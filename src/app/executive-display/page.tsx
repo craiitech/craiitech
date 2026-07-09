@@ -44,33 +44,35 @@ const IDLE_TIMEOUT_MS = 5_000;
 const TOTAL_VIEWS = 5;
 
 const PALETTE = {
-  emerald: '#10b981',
-  teal: '#14b8a6',
-  blue: '#3b82f6',
-  indigo: '#6366f1',
-  violet: '#8b5cf6',
-  amber: '#f59e0b',
-  rose: '#f43f5e',
-  sky: '#0ea5e9',
-  cyan: '#06b6d4',
-  slate: '#94a3b8',
+  green: '#22c55e',
+  greenDark: '#166534',
+  greenLight: '#4ade80',
+  gold: '#eab308',
+  goldLight: '#fde047',
+  goldDark: '#a16207',
+  white: '#ffffff',
+  whiteDim: 'rgba(255,255,255,0.7)',
+  whiteMuted: 'rgba(255,255,255,0.4)',
+  whiteFaint: 'rgba(255,255,255,0.15)',
 };
 
 const P = PALETTE;
 
+const GG = { green: P.green, gold: P.gold, greenLight: P.greenLight, goldLight: P.goldLight };
+
 function gradeColor(score: number) {
-  if (score >= 88) return P.emerald;
-  if (score >= 70) return P.teal;
-  if (score >= 55) return P.blue;
-  if (score >= 40) return P.amber;
-  return P.rose;
+  if (score >= 88) return P.green;
+  if (score >= 70) return P.greenLight;
+  if (score >= 55) return P.gold;
+  if (score >= 40) return P.goldDark;
+  return P.whiteDim;
 }
 
 function statusColor(rate: number) {
-  if (rate >= 80) return P.emerald;
-  if (rate >= 60) return P.teal;
-  if (rate >= 40) return P.amber;
-  return P.rose;
+  if (rate >= 80) return P.green;
+  if (rate >= 60) return P.greenLight;
+  if (rate >= 40) return P.gold;
+  return P.whiteDim;
 }
 
 // ─── Animated Counter ────────────────────────────────────────────────────────
@@ -123,18 +125,18 @@ function KpiTile({
   sub?: string;
 }) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm px-4 py-3 flex flex-col gap-1.5">
+    <div className="relative overflow-hidden rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm px-4 py-3 flex flex-col gap-1.5 shadow-lg shadow-black/10">
       <div className="flex items-center justify-between">
-        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/50">{label}</p>
-        <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ background: `${color}22` }}>
-          <Icon className="h-3 w-3" style={{ color }} />
+        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/70">{label}</p>
+        <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ background: `${color}33` }}>
+          <Icon className="h-3 w-3" style={{ color: P.white }} />
         </div>
       </div>
       <AnimatedNumber value={value} suffix={suffix} className="text-2xl font-black tabular-nums text-white" />
-      {sub && <p className="text-[8px] text-white/40 font-bold uppercase tracking-widest">{sub}</p>}
+      {sub && <p className="text-[8px] text-white/60 font-bold uppercase tracking-widest">{sub}</p>}
       <div
         className="absolute bottom-0 left-0 h-0.5 w-full"
-        style={{ background: `linear-gradient(to right, ${color}, transparent)` }}
+        style={{ background: `linear-gradient(to right, ${color}, ${P.goldLight})` }}
       />
     </div>
   );
@@ -156,13 +158,13 @@ function SectionHeader({
     <div className="flex items-center gap-3 mb-3 shrink-0">
       <div
         className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: `${color}22`, border: `1px solid ${color}44` }}
+        style={{ background: `${color}33`, border: `1px solid ${P.goldLight}` }}
       >
-        <Icon className="h-4 w-4" style={{ color }} />
+        <Icon className="h-4 w-4" style={{ color: P.white }} />
       </div>
       <div>
         <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
-        {subtitle && <p className="text-[8px] text-white/40 font-bold uppercase tracking-widest">{subtitle}</p>}
+        {subtitle && <p className="text-[8px] text-white/60 font-bold uppercase tracking-widest">{subtitle}</p>}
       </div>
     </div>
   );
@@ -172,12 +174,12 @@ function SectionHeader({
 const DarkTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-slate-900/95 border border-white/10 rounded-xl p-3 shadow-2xl text-xs">
-      {label && <p className="font-black text-white/60 uppercase tracking-widest mb-2">{label}</p>}
+    <div className="bg-green-950/95 border border-yellow-600/30 rounded-xl p-3 shadow-2xl text-xs backdrop-blur-md">
+      {label && <p className="font-black text-yellow-400 uppercase tracking-widest mb-2">{label}</p>}
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full" style={{ background: p.color }} />
-          <span className="text-white/70">{p.name}:</span>
+          <div className="h-2 w-2 rounded-full" style={{ background: p.color || P.green }} />
+          <span className="text-white/80">{p.name}:</span>
           <span className="font-black text-white">{typeof p.value === 'number' ? `${p.value}%` : p.value}</span>
         </div>
       ))}
@@ -189,7 +191,7 @@ const DarkTooltip = ({ active, payload, label }: any) => {
 function MiniBar({ value, color }: { value: number; color?: string }) {
   const c = color || statusColor(value);
   return (
-    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden w-full max-w-[80px]">
+    <div className="h-1.5 bg-white/20 rounded-full overflow-hidden w-full max-w-[80px]">
       <div
         className="h-full rounded-full transition-all duration-700"
         style={{ width: `${Math.min(100, value)}%`, background: c }}
@@ -211,9 +213,9 @@ function CampusRow({
   highlightColor?: string;
 }) {
   return (
-    <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors border-b border-white/5 last:border-0">
-      <span className="text-[10px] font-black text-white/30 w-5 text-right tabular-nums">{rank}</span>
-      <span className="text-xs font-bold text-white/80 truncate w-28 shrink-0">{name}</span>
+    <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors border-b border-white/10 last:border-0">
+      <span className="text-[10px] font-black text-white/40 w-5 text-right tabular-nums">{rank}</span>
+      <span className="text-xs font-bold text-white/90 truncate w-28 shrink-0">{name}</span>
       {metrics.map((m, i) => (
         <div key={i} className="flex items-center gap-1.5 flex-1">
           <span className="text-[9px] font-black text-white/40 w-12 text-right tabular-nums">{m.value}%</span>
@@ -227,12 +229,12 @@ function CampusRow({
 // ─── Narrative Card ──────────────────────────────────────────────────────────
 function NarrativeCard({ title, text, color }: { title: string; text: string; color: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] backdrop-blur-sm p-4 flex flex-col gap-2">
+    <div className="rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm p-4 flex flex-col gap-2 shadow-md">
       <div className="flex items-center gap-2">
         <div className="h-2 w-2 rounded-full" style={{ background: color }} />
-        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/40">{title}</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/60">{title}</p>
       </div>
-      <p className="text-[10px] text-white/65 leading-relaxed">{text}</p>
+      <p className="text-[10px] text-white/80 leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -241,14 +243,14 @@ function NarrativeCard({ title, text, color }: { title: string; text: string; co
 function NewsTicker({ items }: { items: string[] }) {
   if (!items.length) return null;
   return (
-    <div className="relative overflow-hidden h-7 bg-black/40 border-t border-white/8 shrink-0">
+    <div className="relative overflow-hidden h-7 bg-green-950/60 border-t border-white/10 shrink-0">
       <div className="flex items-center h-full whitespace-nowrap" style={{ animation: 'marquee 45s linear infinite' }}>
         {items.concat(items).map((item, i) => (
           <span
             key={i}
-            className="inline-flex items-center gap-2 mx-6 text-[10px] font-bold text-white/60 uppercase tracking-wider"
+            className="inline-flex items-center gap-2 mx-6 text-[10px] font-bold text-white/80 uppercase tracking-wider"
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <span className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse shrink-0" />
             {item}
           </span>
         ))}
@@ -279,14 +281,14 @@ function ViewOverview({
     : null;
 
   const tableMetrics = (c: any) => [
-    { label: 'Sub', value: c.subsRate, color: P.sky },
-    { label: 'Risk', value: c.riskRate, color: P.amber },
-    { label: 'CAR', value: c.carRate, color: P.teal },
-    { label: 'Audit', value: c.auditRate, color: P.indigo },
+    { label: 'Sub', value: c.subsRate, color: P.green },
+    { label: 'Risk', value: c.riskRate, color: P.gold },
+    { label: 'CAR', value: c.carRate, color: P.greenLight },
+    { label: 'Audit', value: c.auditRate, color: P.goldDark },
     {
       label: 'Accred',
       value: c.programsTotal > 0 ? Math.round((c.programsWithCopc / c.programsTotal) * 100) : 0,
-      color: P.violet,
+      color: P.gold,
     },
   ];
 
@@ -300,7 +302,7 @@ function ViewOverview({
       />
       <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
         {/* Grade card */}
-        <div className="col-span-2 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm flex flex-col items-center justify-center p-3 relative overflow-hidden">
+        <div className="col-span-2 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm flex flex-col items-center justify-center p-3 relative overflow-hidden shadow-lg">
           <div
             className="absolute inset-0"
             style={{ background: `radial-gradient(circle at 50% 50%, ${sc}15, transparent 70%)` }}
@@ -322,7 +324,7 @@ function ViewOverview({
         </div>
 
         {/* Radar */}
-        <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3">
+        <div className="col-span-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm shadow-lg p-3">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">Quality Dimensions</p>
           <div className="h-[calc(100%-20px)]">
             <div className="flex flex-wrap gap-1 mb-2">
@@ -348,7 +350,7 @@ function ViewOverview({
         </div>
 
         {/* Campus table */}
-        <div className="col-span-4 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3 flex flex-col">
+        <div className="col-span-4 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm shadow-lg p-3 flex flex-col">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2 shrink-0">
             Campus Performance Ranking
           </p>
@@ -380,23 +382,19 @@ function ViewOverview({
             color={sc}
           />
           {topCampus && (
-            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 backdrop-blur-sm p-3">
-              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-emerald-400/70 mb-1">
-                Top Performer
-              </p>
-              <p className="text-xs font-black text-emerald-300">{topCampus.name}</p>
-              <p className="text-[8px] text-white/50 mt-0.5">
+            <div className="rounded-xl border border-green-500/30 bg-green-500/10 backdrop-blur-sm p-3 shadow-md">
+              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-green-300">Top Performer</p>
+              <p className="text-xs font-black text-green-200">{topCampus.name}</p>
+              <p className="text-[8px] text-white/70 mt-0.5">
                 Leading with {topCampus.compositeScore}% composite score
               </p>
             </div>
           )}
           {lowCampus && (
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 backdrop-blur-sm p-3">
-              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-amber-400/70 mb-1">
-                Needs Attention
-              </p>
-              <p className="text-xs font-black text-amber-300">{lowCampus.name}</p>
-              <p className="text-[8px] text-white/50 mt-0.5">
+            <div className="rounded-xl border border-yellow-600/30 bg-yellow-500/10 backdrop-blur-sm p-3 shadow-md">
+              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">Needs Attention</p>
+              <p className="text-xs font-black text-yellow-400">{lowCampus.name}</p>
+              <p className="text-[8px] text-white/70 mt-0.5">
                 At {lowCampus.compositeScore}% — targeted intervention recommended
               </p>
             </div>
@@ -436,7 +434,7 @@ function ViewSubmissions({
         icon={ClipboardCheck}
         title="Submission Compliance by Campus"
         subtitle="Document submission rates across all units"
-        color={P.sky}
+        color={P.greenLight}
       />
       <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
         {/* KPI summary */}
@@ -447,16 +445,16 @@ function ViewSubmissions({
             value={totalApproved}
             suffix=""
             icon={FileText}
-            color={P.emerald}
+            color={P.green}
             sub={`of ${totalSubs} total`}
           />
           {totalPending > 0 && (
-            <KpiTile label="Pending" value={totalPending} suffix="" icon={FileText} color={P.amber} />
+            <KpiTile label="Pending" value={totalPending} suffix="" icon={FileText} color={P.gold} />
           )}
         </div>
 
         {/* Table */}
-        <div className="col-span-5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3 flex flex-col">
+        <div className="col-span-5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm shadow-lg p-3 flex flex-col">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2 shrink-0">
             Compliance by Campus
           </p>
@@ -484,7 +482,7 @@ function ViewSubmissions({
         </div>
 
         {/* Chart */}
-        <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3">
+        <div className="col-span-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm shadow-lg p-3">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">Top 10 Compliance</p>
           <div className="h-[calc(100%-20px)]">
             <ResponsiveContainer width="100%" height="100%">
@@ -500,7 +498,7 @@ function ViewSubmissions({
                 <RTooltip content={<DarkTooltip />} />
                 <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="Rate">
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill={i < 3 ? P.emerald : i < 6 ? P.teal : P.amber} />
+                    <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
                   ))}
                 </Bar>
               </BarChart>
@@ -513,12 +511,12 @@ function ViewSubmissions({
           <NarrativeCard
             title="Why Submissions Matter"
             text="Document submission compliance measures how consistently units meet reporting deadlines. High compliance rates indicate strong adherence to the QMS documentation requirements. Low-performing campuses may need additional support in document management and submission workflows."
-            color={P.sky}
+            color={P.greenLight}
           />
           <NarrativeCard
             title="University Context"
             text={`With ${totalApproved} of ${totalSubs} submissions approved (${rate}%), the university maintains ${rate >= 80 ? 'strong' : rate >= 60 ? 'adequate' : 'below-target'} compliance. The target is 80% or higher for all campuses.`}
-            color={P.teal}
+            color={P.greenLight}
           />
         </div>
       </div>
@@ -553,24 +551,24 @@ function ViewRisks({
         icon={AlertTriangle}
         title="Risk Management by Campus"
         subtitle="Risk identification, treatment, and mitigation effectiveness"
-        color={P.amber}
+        color={P.gold}
       />
       <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
         {/* KPI summary */}
         <div className="col-span-2 flex flex-col gap-2">
           <KpiTile label="Mitigation Rate" value={rate} icon={ShieldCheck} color={statusColor(rate)} />
-          <KpiTile label="Total Risks" value={totalRisks} suffix="" icon={AlertTriangle} color={P.amber} />
+          <KpiTile label="Total Risks" value={totalRisks} suffix="" icon={AlertTriangle} color={P.gold} />
           {highRisks > 0 && (
-            <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 backdrop-blur-sm px-4 py-3">
-              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-rose-400/70">High Risk</p>
-              <p className="text-2xl font-black text-rose-300 tabular-nums">{highRisks}</p>
-              <p className="text-[7px] text-white/40 mt-0.5">Requires immediate attention</p>
+            <div className="rounded-xl border border-yellow-600/30 bg-yellow-500/10 backdrop-blur-sm px-4 py-3">
+              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">High Risk</p>
+              <p className="text-2xl font-black text-white tabular-nums">{highRisks}</p>
+              <p className="text-[7px] text-white/60 mt-0.5">Requires immediate attention</p>
             </div>
           )}
         </div>
 
         {/* Table */}
-        <div className="col-span-5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3 flex flex-col">
+        <div className="col-span-5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm shadow-lg p-3 flex flex-col">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2 shrink-0">
             Risk Mitigation by Campus
           </p>
@@ -593,7 +591,7 @@ function ViewRisks({
                     {c.risksClosed}/{c.risksTotal}
                   </span>
                   {c.risksHigh > 0 && (
-                    <span className="text-[7px] font-bold text-rose-400 w-6 text-right">{c.risksHigh}!</span>
+                    <span className="text-[7px] font-bold text-yellow-400 w-6 text-right">{c.risksHigh}!</span>
                   )}
                 </div>
               ))}
@@ -601,7 +599,7 @@ function ViewRisks({
         </div>
 
         {/* Chart */}
-        <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3">
+        <div className="col-span-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm shadow-lg p-3">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">Top Mitigation Rates</p>
           <div className="h-[calc(100%-20px)]">
             <ResponsiveContainer width="100%" height="100%">
@@ -617,7 +615,7 @@ function ViewRisks({
                 <RTooltip content={<DarkTooltip />} />
                 <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="Mitigated">
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill={i < 3 ? P.emerald : i < 6 ? P.teal : P.amber} />
+                    <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
                   ))}
                 </Bar>
               </BarChart>
@@ -630,7 +628,7 @@ function ViewRisks({
           <NarrativeCard
             title="Why Risk Management Matters"
             text="Effective risk management protects the university from operational, financial, and reputational harm. The mitigation rate indicates how successfully identified risks have been treated. Campuses with high open risk counts or elevated high-risk items should prioritize their risk treatment plans."
-            color={P.amber}
+            color={P.gold}
           />
           <NarrativeCard
             title="Strategic Context"
@@ -639,7 +637,7 @@ function ViewRisks({
                 ? `With ${highRisks} high-risk items remaining across all campuses, immediate executive attention is needed for these critical exposures. ${rate}% overall mitigation shows ${rate >= 70 ? 'strong' : 'developing'} risk governance.`
                 : `All high-risk items have been addressed. The university's ${rate}% mitigation rate reflects a ${rate >= 70 ? 'mature' : 'developing'} risk-aware culture.`
             }
-            color={P.rose}
+            color={P.whiteDim}
           />
         </div>
       </div>
@@ -674,7 +672,7 @@ function ViewCars({
         icon={CheckCircle2}
         title="Corrective Action Performance"
         subtitle="CAR closure rates and effectiveness by campus"
-        color={P.teal}
+        color={P.greenLight}
       />
       <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
         {/* KPI summary */}
@@ -685,13 +683,13 @@ function ViewCars({
             value={totalCars}
             suffix=""
             icon={FileText}
-            color={P.teal}
+            color={P.greenLight}
             sub={`${closedCars} closed · ${openCars} open`}
           />
         </div>
 
         {/* Table */}
-        <div className="col-span-5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3 flex flex-col">
+        <div className="col-span-5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm shadow-lg p-3 flex flex-col">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2 shrink-0">
             CAR Closure by Campus
           </p>
@@ -713,14 +711,14 @@ function ViewCars({
                   <span className="text-[7px] text-white/30 w-14 text-right">
                     {c.carsClosed}/{c.carsTotal}
                   </span>
-                  {c.carsOpen > 0 && c.carRate < 50 && <span className="text-[7px] font-bold text-rose-400">!</span>}
+                  {c.carsOpen > 0 && c.carRate < 50 && <span className="text-[7px] font-bold text-yellow-400">!</span>}
                 </div>
               ))}
           </div>
         </div>
 
         {/* Chart */}
-        <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3">
+        <div className="col-span-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm shadow-lg p-3">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">CAR Closure Rates</p>
           <div className="h-[calc(100%-20px)]">
             <ResponsiveContainer width="100%" height="100%">
@@ -736,7 +734,7 @@ function ViewCars({
                 <RTooltip content={<DarkTooltip />} />
                 <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="Closed">
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill={i < 3 ? P.emerald : i < 6 ? P.teal : P.amber} />
+                    <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
                   ))}
                 </Bar>
               </BarChart>
@@ -749,12 +747,12 @@ function ViewCars({
           <NarrativeCard
             title="Why CAR Closure Matters"
             text="Corrective Action Requests are the primary mechanism for addressing non-conformities identified during audits and operations. High closure rates demonstrate a campus's commitment to continuous improvement. Delayed CARs may indicate systemic issues needing management attention."
-            color={P.teal}
+            color={P.greenLight}
           />
           <NarrativeCard
             title="Current Status"
             text={`With ${closedCars} of ${totalCars} CARs resolved (${rate}%), the institution is ${rate >= 70 ? 'effectively' : 'gradually'} addressing identified issues. ${openCars > 5 ? `The ${openCars} open CARs need coordinated follow-up.` : 'Open CARs are being managed within acceptable thresholds.'}`}
-            color={P.emerald}
+            color={P.green}
           />
         </div>
       </div>
@@ -798,7 +796,7 @@ function ViewAccred({
         icon={GraduationCap}
         title="Accreditation & COPC Compliance"
         subtitle="Program compliance with CHED COPC requirements and accreditation"
-        color={P.violet}
+        color={P.gold}
       />
       <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
         {/* KPI summary */}
@@ -809,20 +807,20 @@ function ViewAccred({
             value={totalPrograms}
             suffix=""
             icon={BookOpen}
-            color={P.violet}
+            color={P.gold}
             sub={`${withCopc} with COPC`}
           />
           {noCopc > 0 && (
-            <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 backdrop-blur-sm px-4 py-3">
-              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-rose-400/70">No COPC</p>
-              <p className="text-2xl font-black text-rose-300 tabular-nums">{noCopc}</p>
-              <p className="text-[7px] text-white/40 mt-0.5">Programs needing attention</p>
+            <div className="rounded-xl border border-yellow-600/30 bg-yellow-500/10 backdrop-blur-sm px-4 py-3">
+              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">No COPC</p>
+              <p className="text-2xl font-black text-white tabular-nums">{noCopc}</p>
+              <p className="text-[7px] text-white/60 mt-0.5">Programs needing attention</p>
             </div>
           )}
         </div>
 
         {/* Table */}
-        <div className="col-span-5 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3 flex flex-col">
+        <div className="col-span-5 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm shadow-lg p-3 flex flex-col">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2 shrink-0">
             Program COPC by Campus
           </p>
@@ -851,7 +849,7 @@ function ViewAccred({
                       {c.programsWithCopc}/{c.programsTotal}
                     </span>
                     {c.programsNoCopc > 0 && (
-                      <span className="text-[7px] font-bold text-rose-400 w-5 text-right">{c.programsNoCopc}</span>
+                      <span className="text-[7px] font-bold text-yellow-400 w-5 text-right">{c.programsNoCopc}</span>
                     )}
                   </div>
                 );
@@ -860,7 +858,7 @@ function ViewAccred({
         </div>
 
         {/* Chart */}
-        <div className="col-span-3 rounded-xl border border-white/10 bg-white/5 backdrop-blur-sm p-3">
+        <div className="col-span-3 rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm shadow-lg p-3">
           <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/40 mb-2">COPC Compliance Rates</p>
           <div className="h-[calc(100%-20px)]">
             <ResponsiveContainer width="100%" height="100%">
@@ -876,7 +874,7 @@ function ViewAccred({
                 <RTooltip content={<DarkTooltip />} />
                 <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="COPC Rate">
                   {chartData.map((_, i) => (
-                    <Cell key={i} fill={i < 3 ? P.emerald : i < 6 ? P.teal : P.amber} />
+                    <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
                   ))}
                 </Bar>
               </BarChart>
@@ -889,12 +887,12 @@ function ViewAccred({
           <NarrativeCard
             title="Why COPC & Accreditation Matter"
             text="CHED Certificate of Program Compliance (COPC) is a regulatory requirement for all academic programs. Accreditation levels (I-IV) reflect program quality against national standards. Programs without COPC or with lapsed accreditation may face regulatory sanctions."
-            color={P.violet}
+            color={P.gold}
           />
           <NarrativeCard
             title="University Position"
             text={`With ${copcRate}% of programs COPC-compliant and ${noCopc} programs needing action, the university must prioritize securing compliance for non-compliant programs to maintain CHED regulatory good standing.`}
-            color={P.indigo}
+            color={P.goldDark}
           />
         </div>
       </div>
@@ -906,11 +904,11 @@ function ViewAccred({
 // VIEW METADATA
 // ═══════════════════════════════════════════════════════════════════════════════
 const VIEW_META = [
-  { label: 'Overview', icon: ShieldCheck, color: P.emerald },
-  { label: 'Submissions', icon: ClipboardCheck, color: P.sky },
-  { label: 'Risks', icon: AlertTriangle, color: P.amber },
-  { label: 'CARs', icon: CheckCircle2, color: P.teal },
-  { label: 'Accreditation', icon: GraduationCap, color: P.violet },
+  { label: 'Overview', icon: ShieldCheck, color: P.green },
+  { label: 'Submissions', icon: ClipboardCheck, color: P.greenLight },
+  { label: 'Risks', icon: AlertTriangle, color: P.gold },
+  { label: 'CARs', icon: CheckCircle2, color: P.greenLight },
+  { label: 'Accreditation', icon: GraduationCap, color: P.gold },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1283,11 +1281,11 @@ export default function ExecutiveDisplayPage() {
     const auditRate = totals.auditsTotal > 0 ? Math.round((totals.auditsCompleted / totals.auditsTotal) * 100) : 0;
     const progRate = totals.programsTotal > 0 ? Math.round((totals.programsWithCopc / totals.programsTotal) * 100) : 0;
     return [
-      { subject: 'Submissions', value: subRate, color: P.sky },
-      { subject: 'Risk Mgmt', value: riskRate, color: P.amber },
-      { subject: 'CAR Closure', value: carRate, color: P.teal },
-      { subject: 'Audits', value: auditRate, color: P.indigo },
-      { subject: 'Accreditation', value: progRate, color: P.violet },
+      { subject: 'Submissions', value: subRate, color: P.greenLight },
+      { subject: 'Risk Mgmt', value: riskRate, color: P.gold },
+      { subject: 'CAR Closure', value: carRate, color: P.greenLight },
+      { subject: 'Audits', value: auditRate, color: P.goldDark },
+      { subject: 'Accreditation', value: progRate, color: P.gold },
     ];
   }, [totals]);
 
@@ -1354,32 +1352,39 @@ export default function ExecutiveDisplayPage() {
     <div
       ref={containerRef}
       onClick={enterFullscreen}
-      className="h-screen w-screen bg-[#060912] text-white overflow-hidden flex flex-col select-none cursor-pointer"
+      className="h-screen w-screen text-white overflow-hidden flex flex-col select-none cursor-pointer animate-gold-green-bg"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
       <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
 
-      {/* Background gradient blobs */}
+      {/* Green/gold animated background orbs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-48 -left-48 h-[700px] w-[700px] rounded-full opacity-20 blur-3xl animate-green-float bg-green-500/30" />
+        <div className="absolute -bottom-48 -right-48 h-[600px] w-[600px] rounded-full opacity-20 blur-3xl animate-gold-float bg-yellow-500/30" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[800px] w-[800px] rounded-full opacity-10 blur-3xl animate-glow-pulse bg-green-400/20" />
+        <div className="absolute top-1/4 right-1/4 h-[300px] w-[300px] rounded-full opacity-15 blur-3xl animate-gold-float bg-yellow-400/25" />
+        <div className="absolute bottom-1/3 left-1/5 h-[250px] w-[250px] rounded-full opacity-10 blur-3xl animate-green-float bg-green-400/20" />
         <div
-          className="absolute -top-40 -left-40 h-[600px] w-[600px] rounded-full opacity-10 blur-3xl"
-          style={{ background: `radial-gradient(circle, ${VIEW_META[currentView].color}, transparent)` }}
-        />
-        <div
-          className="absolute -bottom-40 -right-40 h-[500px] w-[500px] rounded-full opacity-8 blur-3xl"
-          style={{ background: `radial-gradient(circle, ${P.indigo}, transparent)` }}
+          className="absolute inset-0"
+          style={{
+            background: `radial-gradient(ellipse at 30% 20%, ${P.gold}08 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, ${P.green}08 0%, transparent 60%)`,
+          }}
         />
       </div>
 
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-white/8 bg-black/20 backdrop-blur-sm shrink-0">
+      <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center">
-            <ShieldCheck className="h-4 w-4 text-emerald-400" />
+            <ShieldCheck className="h-4 w-4 text-yellow-400" />
           </div>
           <div>
-            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">RSU CrAIITech EOMS</p>
-            <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">Executive Management Display</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
+              RSU Executive Academic and Operations Overview
+            </p>
+            <p className="text-[7px] font-bold text-white/40 uppercase tracking-widest">
+              Real-time Institutional Performance Dashboard
+            </p>
           </div>
         </div>
 
@@ -1412,9 +1417,9 @@ export default function ExecutiveDisplayPage() {
         <div className="flex items-center gap-3">
           {/* Fullscreen warning */}
           {!isFullscreen && (
-            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 animate-pulse">
-              <Maximize2 className="h-3 w-3 text-amber-400" />
-              <span className="text-[7px] font-black uppercase tracking-widest text-amber-400">
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-yellow-500/15 border border-yellow-500/30 animate-pulse">
+              <Maximize2 className="h-3 w-3 text-yellow-400" />
+              <span className="text-[7px] font-black uppercase tracking-widest text-yellow-400">
                 Click for Fullscreen
               </span>
             </div>
@@ -1438,7 +1443,7 @@ export default function ExecutiveDisplayPage() {
             className="h-full rounded-full transition-all duration-200"
             style={{
               width: `${animPhase === 'hide' ? 100 : animPhase === 'enter' ? 0 : isIdle ? 0 : 0}%`,
-              background: `linear-gradient(to right, ${VIEW_META[currentView].color}, ${P.emerald})`,
+              background: `linear-gradient(to right, ${VIEW_META[currentView].color}, ${P.goldLight})`,
               animation: isIdle && animPhase === 'show' ? `timer ${VIEW_INTERVAL_MS}ms linear` : 'none',
             }}
           />
@@ -1464,7 +1469,7 @@ export default function ExecutiveDisplayPage() {
       <NewsTicker items={tickerItems} />
 
       {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 flex items-center justify-between px-6 py-1.5 border-t border-white/8 bg-black/30 backdrop-blur-sm shrink-0">
+      <footer className="relative z-10 flex items-center justify-between px-6 py-1.5 border-t border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
         <p className="text-[7px] font-bold text-white/30 uppercase tracking-widest">
           AY {selectedYear}–{selectedYear + 1} &middot; Real-time
         </p>
@@ -1512,8 +1517,8 @@ export default function ExecutiveDisplayPage() {
           <div className="flex items-center gap-1">
             {isIdle ? (
               <>
-                <div className="h-1 w-1 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[6px] font-black uppercase tracking-widest text-emerald-400/70">Auto</span>
+                <div className="h-1 w-1 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-[6px] font-black uppercase tracking-widest text-green-400/70">Auto</span>
               </>
             ) : (
               <>
