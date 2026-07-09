@@ -34,6 +34,7 @@ import {
   X,
   Maximize2,
   Minimize2,
+  Building2,
 } from 'lucide-react';
 import type {
   Submission,
@@ -51,7 +52,7 @@ import Link from 'next/link';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const VIEW_INTERVAL_MS = 12_000;
-const TOTAL_VIEWS = 5;
+const TOTAL_VIEWS = 6;
 
 const PALETTE = {
   green: '#22c55e',
@@ -1119,6 +1120,191 @@ function ViewAccred({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// VIEW 6: Unit Submission Compliance
+// ═══════════════════════════════════════════════════════════════════════════════
+function ViewUnitSubmission({
+  unitSubTop,
+  unitSubBottom,
+  totalUnits,
+  unitsWithSubs,
+  unitsWithoutSubs,
+  unitSubData,
+}: {
+  unitSubTop: {
+    id: string;
+    name: string;
+    campusName: string;
+    subsTotal: number;
+    subsApproved: number;
+    subRate: number;
+  }[];
+  unitSubBottom: {
+    id: string;
+    name: string;
+    campusName: string;
+    subsTotal: number;
+    subsApproved: number;
+    subRate: number;
+  }[];
+  totalUnits: number;
+  unitsWithSubs: number;
+  unitsWithoutSubs: number;
+  unitSubData: {
+    id: string;
+    name: string;
+    campusName: string;
+    subsTotal: number;
+    subsApproved: number;
+    subRate: number;
+  }[];
+}) {
+  const overallRate = totalUnits > 0 ? Math.round((unitsWithSubs / totalUnits) * 100) : 0;
+  const chartData = unitSubData
+    .filter((u) => u.name)
+    .slice(0, 15)
+    .map((u) => ({ name: u.name, rate: u.subRate, total: u.subsTotal }));
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={Users}
+        title="Unit Submission Compliance"
+        subtitle="Top performers · Non-compliant units · Strengths & weaknesses"
+        color={P.greenLight}
+      />
+      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+        {/* KPI summary */}
+        <div className="col-span-2 flex flex-col gap-2">
+          <KpiTile label="Compliance Rate" value={overallRate} icon={Users} color={statusColor(overallRate)} />
+          <KpiTile
+            label="Total Units"
+            value={totalUnits}
+            suffix=""
+            icon={Building2}
+            color={P.greenLight}
+            sub={`${unitsWithSubs} with submissions`}
+          />
+          {unitsWithoutSubs > 0 && (
+            <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md px-4 py-3">
+              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">No Submissions</p>
+              <p className="text-2xl font-black text-white tabular-nums">{unitsWithoutSubs}</p>
+              <p className="text-[7px] text-white/75 mt-0.5">Units needing attention</p>
+            </div>
+          )}
+        </div>
+
+        {/* Top performers */}
+        <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-green-300 mb-1 shrink-0">
+            Top Submitting Units
+          </p>
+          <div className="flex-1 overflow-y-auto space-y-1">
+            {unitSubTop.length === 0 && <p className="text-[8px] text-white/45">No data</p>}
+            {unitSubTop.map((u, i) => (
+              <div key={u.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5">
+                <span className="text-[8px] font-black text-green-300 w-4 tabular-nums">{i + 1}</span>
+                <span className="text-[9px] font-bold text-white/85 w-20 truncate shrink-0">{u.name}</span>
+                <span className="text-[6px] text-white/55 w-14 truncate shrink-0">{u.campusName}</span>
+                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${u.subRate}%`, background: P.green }} />
+                </div>
+                <span className="text-[8px] font-black text-white/85 w-8 text-right tabular-nums">{u.subRate}%</span>
+                <span className="text-[6px] text-white/45 w-8 text-right tabular-nums">{u.subsTotal}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom performers */}
+        <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400 mb-1 shrink-0">
+            Non-Compliant Units
+          </p>
+          <div className="flex-1 overflow-y-auto space-y-1">
+            {unitSubBottom.length === 0 && <p className="text-[8px] text-white/45">All units are compliant</p>}
+            {unitSubBottom.map((u, i) => (
+              <div key={u.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5">
+                <span className="text-[8px] font-black text-yellow-400 w-4 tabular-nums">{i + 1}</span>
+                <span className="text-[9px] font-bold text-white/85 w-20 truncate shrink-0">{u.name}</span>
+                <span className="text-[6px] text-white/55 w-14 truncate shrink-0">{u.campusName}</span>
+                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${Math.max(u.subRate, 2)}%`, background: u.subsTotal === 0 ? P.whiteDim : P.gold }}
+                  />
+                </div>
+                <span className="text-[8px] font-black text-white/85 w-8 text-right tabular-nums">{u.subRate}%</span>
+                <span className="text-[6px] text-white/45 w-8 text-right tabular-nums">{u.subsTotal}</span>
+                {u.subsTotal === 0 && <span className="text-[7px] font-bold text-red-400">!</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Submission rate bar chart */}
+        <div className="col-span-7 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+            Unit Submission Rates (Top 15)
+          </p>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} domain={[0, 100]} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
+                  width={85}
+                />
+                <Bar
+                  dataKey="rate"
+                  radius={[0, 3, 3, 0]}
+                  name="Rate"
+                  fillOpacity={0.85}
+                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 8, fontWeight: 'bold' }}
+                >
+                  {chartData.map((_, i) => (
+                    <Cell key={i} fill={i < 5 ? P.green : i < 10 ? P.greenLight : P.gold} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Narrative */}
+        <div className="col-span-5 flex flex-col gap-2">
+          <NarrativeCard
+            title="Strengths"
+            text={
+              unitSubTop.length > 0
+                ? `Top units like ${unitSubTop[0].name} (${unitSubTop[0].subRate}%) and ${unitSubTop[1]?.name || ''} (${unitSubTop[1]?.subRate || 0}%) demonstrate strong submission compliance, setting the benchmark for the institution.`
+                : 'No submission data available.'
+            }
+            color={P.greenLight}
+          />
+          <NarrativeCard
+            title="Weaknesses"
+            text={
+              unitsWithoutSubs > 0
+                ? `${unitsWithoutSubs} units have zero submissions — indicating possible process gaps, lack of awareness, or resource constraints. The lowest performers need targeted intervention and retraining on submission procedures.`
+                : `All units are actively submitting. Maintain the upward trend through continuous monitoring.`
+            }
+            color={P.gold}
+          />
+          <NarrativeCard
+            title="Recommendation"
+            text="Recognize top-performing units publicly. For non-compliant units, assign QA liaisons to provide direct support and track weekly submission progress."
+            color={P.goldDark}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // VIEW METADATA
 // ═══════════════════════════════════════════════════════════════════════════════
 const VIEW_META = [
@@ -1127,6 +1313,7 @@ const VIEW_META = [
   { label: 'Risks', icon: AlertTriangle, color: P.gold },
   { label: 'CARs', icon: CheckCircle2, color: P.greenLight },
   { label: 'Accreditation', icon: GraduationCap, color: P.gold },
+  { label: 'Units', icon: Users, color: P.greenLight },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1416,6 +1603,63 @@ export default function ExecutiveDisplayPage() {
 
     return Array.from(map.values());
   }, [yearSubs, yearRisks, yearCars, yearSch, rawPrograms, rawCompliances, allCampuses]);
+
+  // ── Per-unit submission performance ───────────────────────────────────────
+  interface UnitSubPerf {
+    id: string;
+    name: string;
+    campusId: string;
+    campusName: string;
+    subsTotal: number;
+    subsApproved: number;
+    subsPending: number;
+    subsRejected: number;
+    subRate: number;
+  }
+  const unitSubData = useMemo(() => {
+    const map = new Map<string, UnitSubPerf>();
+    (allUnits || []).forEach((u) => {
+      const cName = campusMap.get(u.campusIds?.[0] || '') || 'Unknown';
+      map.set(u.id, {
+        id: u.id,
+        name: u.name,
+        campusId: u.campusIds?.[0] || '',
+        campusName: cName,
+        subsTotal: 0,
+        subsApproved: 0,
+        subsPending: 0,
+        subsRejected: 0,
+        subRate: 0,
+      });
+    });
+    yearSubs.forEach((s) => {
+      const u = map.get(s.unitId);
+      if (!u) return;
+      u.subsTotal++;
+      if (s.statusId === 'approved') u.subsApproved++;
+      else if (s.statusId === 'rejected') u.subsRejected++;
+      else u.subsPending++;
+    });
+    map.forEach((u) => {
+      u.subRate = u.subsTotal > 0 ? Math.round((u.subsApproved / u.subsTotal) * 100) : 0;
+    });
+    return Array.from(map.values()).sort((a, b) => a.subRate - b.subRate);
+  }, [yearSubs, allUnits, campusMap]);
+  const unitSubTop = useMemo(
+    () =>
+      [...unitSubData]
+        .filter((u) => u.subsTotal > 0)
+        .reverse()
+        .slice(0, 6),
+    [unitSubData],
+  );
+  const unitSubBottom = useMemo(
+    () => unitSubData.filter((u) => u.subsTotal === 0 || u.subRate < 100).slice(0, 6),
+    [unitSubData],
+  );
+  const totalUnits = unitSubData.length;
+  const unitsWithSubs = unitSubData.filter((u) => u.subsTotal > 0).length;
+  const unitsWithoutSubs = totalUnits - unitsWithSubs;
 
   // ── Aggregate university totals ───────────────────────────────────────────
   const totals = useMemo(() => {
@@ -1751,6 +1995,15 @@ export default function ExecutiveDisplayPage() {
         accredDist={accredLevelDist}
         progLevelDist={progLevelDist}
       />,
+      <ViewUnitSubmission
+        key="v5"
+        unitSubTop={unitSubTop}
+        unitSubBottom={unitSubBottom}
+        totalUnits={totalUnits}
+        unitsWithSubs={unitsWithSubs}
+        unitsWithoutSubs={unitsWithoutSubs}
+        unitSubData={unitSubData}
+      />,
     ],
     [
       campusData,
@@ -1767,6 +2020,12 @@ export default function ExecutiveDisplayPage() {
       copcDist,
       accredLevelDist,
       progLevelDist,
+      unitSubTop,
+      unitSubBottom,
+      totalUnits,
+      unitsWithSubs,
+      unitsWithoutSubs,
+      unitSubData,
     ],
   );
 
