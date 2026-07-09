@@ -136,13 +136,13 @@ function KpiTile({
   return (
     <div className="relative overflow-hidden rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md px-4 py-3 flex flex-col gap-1.5 shadow-lg shadow-black/10">
       <div className="flex items-center justify-between">
-        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/85">{label}</p>
+        <p className="text-xs font-black uppercase tracking-[0.15em] text-white/85">{label}</p>
         <div className="h-6 w-6 rounded-lg flex items-center justify-center" style={{ background: `${color}33` }}>
           <Icon className="h-3 w-3" style={{ color: P.white }} />
         </div>
       </div>
-      <AnimatedNumber value={value} suffix={suffix} className="text-2xl font-black tabular-nums text-white" />
-      {sub && <p className="text-[8px] text-white/75 font-bold uppercase tracking-widest">{sub}</p>}
+      <AnimatedNumber value={value} suffix={suffix} className="text-3xl font-black tabular-nums text-white" />
+      {sub && <p className="text-[11px] text-white/75 font-bold uppercase tracking-widest">{sub}</p>}
       <div
         className="absolute bottom-0 left-0 h-0.5 w-full"
         style={{ background: `linear-gradient(to right, ${color}, ${P.goldLight})` }}
@@ -173,7 +173,7 @@ function SectionHeader({
       </div>
       <div>
         <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
-        {subtitle && <p className="text-[8px] text-white/75 font-bold uppercase tracking-widest">{subtitle}</p>}
+        {subtitle && <p className="text-[11px] text-white/75 font-bold uppercase tracking-widest">{subtitle}</p>}
       </div>
     </div>
   );
@@ -206,11 +206,11 @@ function CampusRow({
 }) {
   return (
     <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-colors border-b border-white/10 last:border-0">
-      <span className="text-[10px] font-black text-white/55 w-5 text-right tabular-nums">{rank}</span>
+      <span className="text-sm font-black text-white/55 w-5 text-right tabular-nums">{rank}</span>
       <span className="text-xs font-bold text-white/90 truncate w-28 shrink-0">{name}</span>
       {metrics.map((m, i) => (
         <div key={i} className="flex items-center gap-1.5 flex-1">
-          <span className="text-[9px] font-black text-white/55 w-12 text-right tabular-nums">{m.value}%</span>
+          <span className="text-xs font-black text-white/55 w-12 text-right tabular-nums">{m.value}%</span>
           <MiniBar value={m.value} color={m.color || statusColor(m.value)} />
         </div>
       ))}
@@ -224,9 +224,9 @@ function NarrativeCard({ title, text, color }: { title: string; text: string; co
     <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-4 flex flex-col gap-2 shadow-md">
       <div className="flex items-center gap-2">
         <div className="h-2 w-2 rounded-full" style={{ background: color }} />
-        <p className="text-[9px] font-black uppercase tracking-[0.15em] text-white/75">{title}</p>
+        <p className="text-xs font-black uppercase tracking-[0.15em] text-white/75">{title}</p>
       </div>
-      <p className="text-[10px] text-white/80 leading-relaxed">{text}</p>
+      <p className="text-sm text-white/80 leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -294,7 +294,7 @@ function GreenDonut({
       {centerLabel && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
           <p className="text-lg font-black text-white tabular-nums">{centerValue}</p>
-          <p className="text-[7px] font-black uppercase tracking-widest text-white/65 mt-0.5">{centerLabel}</p>
+          <p className="text-sm font-black uppercase tracking-widest text-white/65 mt-0.5">{centerLabel}</p>
         </div>
       )}
     </div>
@@ -314,13 +314,18 @@ function TrendLine({
   areaColor?: string;
 }) {
   if (!data.length)
-    return <div className="h-full flex items-center justify-center text-[8px] text-white/45">No data</div>;
+    return <div className="h-full flex items-center justify-center text-[11px] text-white/45">No data</div>;
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-        <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} axisLine={false} tickLine={false} />
+        <XAxis
+          dataKey="name"
+          tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <YAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} axisLine={false} tickLine={false} />
         <Line
           type="monotone"
           dataKey={dataKey}
@@ -345,7 +350,7 @@ function LegendRow({ items }: { items: { name: string; color: string }[] }) {
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-1">
           <div className="h-2 w-2 rounded-full" style={{ background: item.color }} />
-          <span className="text-[6px] font-bold text-white/65 uppercase tracking-wider">{item.name}</span>
+          <span className="text-[8px] font-bold text-white/65 uppercase tracking-wider">{item.name}</span>
         </div>
       ))}
     </div>
@@ -403,9 +408,9 @@ function ViewOverview({
             className="absolute inset-0"
             style={{ background: `radial-gradient(circle at 50% 50%, ${sc}15, transparent 70%)` }}
           />
-          <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/65">EOMS Score</p>
+          <p className="text-sm font-black uppercase tracking-[0.2em] text-white/65">EOMS Score</p>
           <AnimatedNumber value={eomsScore} suffix="%" className="text-4xl font-black text-white mt-1" />
-          <p className="text-[7px] text-white/65 font-bold uppercase tracking-widest mt-1 text-center leading-tight">
+          <p className="text-sm text-white/65 font-bold uppercase tracking-widest mt-1 text-center leading-tight">
             {eomsScore >= 88
               ? 'Mature'
               : eomsScore >= 70
@@ -420,18 +425,18 @@ function ViewOverview({
 
         {/* Quality Dimensions horizontal bars */}
         <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-2">Quality Dimensions</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-2">Quality Dimensions</p>
           <div className="space-y-1.5">
             {radarData.map((d) => (
               <div key={d.subject} className="flex items-center gap-2">
-                <span className="text-[7px] font-bold text-white/75 w-14 truncate">{d.subject}</span>
+                <span className="text-sm font-bold text-white/75 w-14 truncate">{d.subject}</span>
                 <div className="flex-1 h-2.5 bg-white/20 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{ width: `${d.value}%`, background: d.color, opacity: 0.85 }}
                   />
                 </div>
-                <span className="text-[8px] font-black text-white/85 w-7 text-right tabular-nums">{d.value}%</span>
+                <span className="text-[11px] font-black text-white/85 w-7 text-right tabular-nums">{d.value}%</span>
               </div>
             ))}
           </div>
@@ -439,26 +444,24 @@ function ViewOverview({
 
         {/* Submission Trend Line Chart */}
         <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-2 shrink-0">
-            Submission Trend
-          </p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-2 shrink-0">Submission Trend</p>
           <div className="flex-1 min-h-0">
             {trendData.length > 0 ? (
               <TrendLine data={trendData} dataKey="value" strokeColor={P.green} />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/45">Insufficient data</div>
+              <div className="h-full flex items-center justify-center text-[11px] text-white/45">Insufficient data</div>
             )}
           </div>
         </div>
 
         {/* Risk Severity Donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">Risk Severity</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">Risk Severity</p>
           <div className="flex-1 w-full min-h-0">
             {riskDist.length > 0 ? (
               <GreenDonut data={riskDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <span className="text-[8px] text-white/45">No data</span>
+              <span className="text-[11px] text-white/45">No data</span>
             )}
           </div>
           <LegendRow items={riskDist} />
@@ -466,12 +469,12 @@ function ViewOverview({
 
         {/* CAR Status Donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">CAR Status</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">CAR Status</p>
           <div className="flex-1 w-full min-h-0">
             {carDist.length > 0 ? (
               <GreenDonut data={carDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <span className="text-[8px] text-white/45">No data</span>
+              <span className="text-[11px] text-white/45">No data</span>
             )}
           </div>
           <LegendRow items={carDist} />
@@ -479,10 +482,10 @@ function ViewOverview({
 
         {/* Campus ranking table */}
         <div className="col-span-6 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 flex flex-col shadow-lg">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             Campus Performance Ranking
           </p>
-          <div className="flex text-[7px] font-black text-white/45 uppercase tracking-wider mb-1 px-3">
+          <div className="flex text-sm font-black text-white/45 uppercase tracking-wider mb-1 px-3">
             <span className="w-5 shrink-0" />
             <span className="w-24 shrink-0">Campus</span>
             <span className="flex-1 text-center">Sub</span>
@@ -503,10 +506,10 @@ function ViewOverview({
         <div className="col-span-6 grid grid-cols-2 gap-2">
           {topCampus && (
             <div className="rounded-xl border border-green-700/30 bg-green-950/80 backdrop-blur-md p-3 shadow-md flex flex-col justify-center">
-              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-green-300">Top Performer</p>
+              <p className="text-sm font-black uppercase tracking-[0.15em] text-green-300">Top Performer</p>
               <p className="text-xs font-black text-green-200">{topCampus.name}</p>
-              <p className="text-[8px] text-white/85 mt-0.5">Leading at {topCampus.compositeScore}% composite score</p>
-              <div className="flex gap-3 mt-1.5 text-[7px] text-white/65">
+              <p className="text-[11px] text-white/85 mt-0.5">Leading at {topCampus.compositeScore}% composite score</p>
+              <div className="flex gap-3 mt-1.5 text-sm text-white/65">
                 <span>Sub {topCampus.subsRate}%</span>
                 <span>Risk {topCampus.riskRate}%</span>
                 <span>CAR {topCampus.carRate}%</span>
@@ -515,10 +518,10 @@ function ViewOverview({
           )}
           {lowCampus && (
             <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md flex flex-col justify-center">
-              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">Needs Attention</p>
+              <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400">Needs Attention</p>
               <p className="text-xs font-black text-yellow-400">{lowCampus.name}</p>
-              <p className="text-[8px] text-white/85 mt-0.5">At {lowCampus.compositeScore}% — needs intervention</p>
-              <div className="flex gap-3 mt-1.5 text-[7px] text-white/65">
+              <p className="text-[11px] text-white/85 mt-0.5">At {lowCampus.compositeScore}% — needs intervention</p>
+              <div className="flex gap-3 mt-1.5 text-sm text-white/65">
                 <span>Sub {lowCampus.subsRate}%</span>
                 <span>Risk {lowCampus.riskRate}%</span>
                 <span>CAR {lowCampus.carRate}%</span>
@@ -526,11 +529,11 @@ function ViewOverview({
             </div>
           )}
           <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex flex-col justify-center">
-            <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65">Institution Overview</p>
-            <p className="text-[9px] text-white/85 mt-1 leading-relaxed">
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65">Institution Overview</p>
+            <p className="text-xs text-white/85 mt-1 leading-relaxed">
               {totalSubs} submissions · {totalRisks} risks · {totalCars} CARs across {campuses.length} campuses
             </p>
-            <p className="text-[7px] text-white/55 mt-1">
+            <p className="text-sm text-white/55 mt-1">
               The EOMS score integrates submission compliance, risk mitigation, CAR closure, audit progress, and
               accreditation.
             </p>
@@ -600,7 +603,7 @@ function ViewSubmissions({
 
         {/* Status donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Status Breakdown</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Status Breakdown</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
               data={subDist}
@@ -616,32 +619,32 @@ function ViewSubmissions({
 
         {/* Monthly trend line */}
         <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             Monthly Submission Trend
           </p>
           <div className="flex-1 min-h-0">
             {trendData.length > 0 ? (
               <TrendLine data={trendData} dataKey="value" strokeColor={P.green} />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/45">Insufficient data</div>
+              <div className="h-full flex items-center justify-center text-[11px] text-white/45">Insufficient data</div>
             )}
           </div>
         </div>
 
         {/* Campus compliance bar chart */}
         <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             Compliance by Campus
           </p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} domain={[0, 100]} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
                 <YAxis
                   dataKey="name"
                   type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
                   width={65}
                 />
                 <Bar
@@ -649,7 +652,7 @@ function ViewSubmissions({
                   radius={[0, 3, 3, 0]}
                   name="Rate"
                   fillOpacity={0.85}
-                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 9, fontWeight: 'bold' }}
+                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
                 >
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
@@ -663,21 +666,21 @@ function ViewSubmissions({
         {/* Top/Bottom performers + Narrative */}
         <div className="col-span-2 flex flex-col gap-2">
           <div className="rounded-xl border border-green-700/30 bg-green-950/80 backdrop-blur-md p-3 shadow-md">
-            <p className="text-[7px] font-black uppercase tracking-[0.15em] text-green-300">Top Performing Campuses</p>
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-green-300">Top Performing Campuses</p>
             {top3.map((c, i) => (
               <div key={i} className="flex items-center justify-between mt-1.5">
-                <span className="text-[8px] font-bold text-white/85 truncate max-w-[80px]">{c.name}</span>
-                <span className="text-[8px] font-black text-green-300">{c.rate}%</span>
+                <span className="text-[11px] font-bold text-white/85 truncate max-w-[80px]">{c.name}</span>
+                <span className="text-[11px] font-black text-green-300">{c.rate}%</span>
               </div>
             ))}
           </div>
           {bottom3.length > 0 && (
             <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md">
-              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">Needs Improvement</p>
+              <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400">Needs Improvement</p>
               {bottom3.map((c, i) => (
                 <div key={i} className="flex items-center justify-between mt-1.5">
-                  <span className="text-[8px] font-bold text-white/85 truncate max-w-[80px]">{c.name}</span>
-                  <span className="text-[8px] font-black text-yellow-400">{c.rate}%</span>
+                  <span className="text-[11px] font-bold text-white/85 truncate max-w-[80px]">{c.name}</span>
+                  <span className="text-[11px] font-black text-yellow-400">{c.rate}%</span>
                 </div>
               ))}
             </div>
@@ -733,16 +736,16 @@ function ViewRisks({
           <KpiTile label="Total Risks" value={totalRisks} suffix="" icon={AlertTriangle} color={P.gold} />
           {highRisks > 0 && (
             <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md px-4 py-3">
-              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">High Risk</p>
-              <p className="text-2xl font-black text-white tabular-nums">{highRisks}</p>
-              <p className="text-[7px] text-white/75 mt-0.5">Requires immediate attention</p>
+              <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400">High Risk</p>
+              <p className="text-3xl font-black text-white tabular-nums">{highRisks}</p>
+              <p className="text-sm text-white/75 mt-0.5">Requires immediate attention</p>
             </div>
           )}
         </div>
 
         {/* Severity donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Severity Distribution</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Severity Distribution</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
               data={severityDist}
@@ -758,7 +761,7 @@ function ViewRisks({
 
         {/* Status donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Status Breakdown</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Status Breakdown</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut data={statusDist} dataKey="value" nameKey="name" size="100%" />
           </div>
@@ -767,18 +770,18 @@ function ViewRisks({
 
         {/* Mitigation bar chart */}
         <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             Mitigation by Campus
           </p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} domain={[0, 100]} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
                 <YAxis
                   dataKey="name"
                   type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
                   width={65}
                 />
                 <Bar
@@ -786,7 +789,7 @@ function ViewRisks({
                   radius={[0, 3, 3, 0]}
                   name="Mitigated"
                   fillOpacity={0.85}
-                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 9, fontWeight: 'bold' }}
+                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
                 >
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
@@ -872,7 +875,7 @@ function ViewCars({
 
         {/* CAR Status donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">CAR Status</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">CAR Status</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
               data={carStatusDist}
@@ -888,12 +891,12 @@ function ViewCars({
 
         {/* CAR Nature donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">NC vs OFI</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">NC vs OFI</p>
           <div className="flex-1 w-full min-h-0">
             {carNatureDist.length > 0 ? (
               <GreenDonut data={carNatureDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/45">No data</div>
+              <div className="h-full flex items-center justify-center text-[11px] text-white/45">No data</div>
             )}
           </div>
           <LegendRow items={carNatureDist} />
@@ -901,12 +904,12 @@ function ViewCars({
 
         {/* Audit Status donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Audit Status</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Audit Status</p>
           <div className="flex-1 w-full min-h-0">
             {auditDist.length > 0 ? (
               <GreenDonut data={auditDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/45">No audits</div>
+              <div className="h-full flex items-center justify-center text-[11px] text-white/45">No audits</div>
             )}
           </div>
           <LegendRow items={auditDist} />
@@ -914,18 +917,18 @@ function ViewCars({
 
         {/* CAR closure bar chart */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             CAR Closure by Campus
           </p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} domain={[0, 100]} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
                 <YAxis
                   dataKey="name"
                   type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
                   width={65}
                 />
                 <Bar
@@ -933,7 +936,7 @@ function ViewCars({
                   radius={[0, 3, 3, 0]}
                   name="Closed"
                   fillOpacity={0.85}
-                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 9, fontWeight: 'bold' }}
+                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
                 >
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
@@ -974,6 +977,8 @@ function ViewAccred({
   copcDist,
   accredDist,
   progLevelDist,
+  currentLevelKey,
+  currentLevelPrograms,
 }: {
   campuses: any[];
   totalPrograms: number;
@@ -983,6 +988,8 @@ function ViewAccred({
   copcDist: { name: string; value: number; color: string }[];
   accredDist: { name: string; value: number; color: string }[];
   progLevelDist: { name: string; value: number; color: string }[];
+  currentLevelKey: string;
+  currentLevelPrograms: { name: string; campus: string }[];
 }) {
   const copcRate = totalPrograms > 0 ? Math.round((withCopc / totalPrograms) * 100) : 0;
   const chartData = campuses
@@ -1020,16 +1027,16 @@ function ViewAccred({
           />
           {noCopc > 0 && (
             <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md px-4 py-3">
-              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">No COPC</p>
-              <p className="text-2xl font-black text-white tabular-nums">{noCopc}</p>
-              <p className="text-[7px] text-white/75 mt-0.5">Programs needing attention</p>
+              <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400">No COPC</p>
+              <p className="text-3xl font-black text-white tabular-nums">{noCopc}</p>
+              <p className="text-sm text-white/75 mt-0.5">Programs needing attention</p>
             </div>
           )}
         </div>
 
         {/* COPC donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">COPC Status</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">COPC Status</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
               data={copcDist}
@@ -1043,27 +1050,42 @@ function ViewAccred({
           <LegendRow items={copcDist} />
         </div>
 
-        {/* Accreditation level donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Accreditation Levels</p>
-          <div className="flex-1 w-full min-h-0">
-            {accredDist.length > 0 ? (
+        {/* Accreditation level donut + cycling programs */}
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 text-center">
+            Accreditation Levels
+          </p>
+          <div className="flex-1 min-h-0 flex flex-col">
+            <div className="h-[55%]">
               <GreenDonut data={accredDist} dataKey="value" nameKey="name" size="100%" />
-            ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/45">No data</div>
-            )}
+            </div>
+            <div className="h-px bg-white/10 my-1" />
+            <div className="flex-1 overflow-hidden">
+              <p className="text-[11px] font-black uppercase tracking-widest text-yellow-400 text-center mb-0.5">
+                {currentLevelKey}
+              </p>
+              <div className="text-center space-y-0.5">
+                {currentLevelPrograms.slice(0, 6).map((p, i) => (
+                  <p key={i} className="text-xs font-bold text-white/85 truncate">
+                    {p.name} <span className="text-white/45 text-[11px]">({p.campus})</span>
+                  </p>
+                ))}
+                {currentLevelPrograms.length > 6 && (
+                  <p className="text-[11px] text-white/45">+{currentLevelPrograms.length - 6} more</p>
+                )}
+              </div>
+            </div>
           </div>
-          <LegendRow items={accredDist} />
         </div>
 
         {/* Program level donut */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1">Program Level</p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Program Level</p>
           <div className="flex-1 w-full min-h-0">
             {progLevelDist.length > 0 ? (
               <GreenDonut data={progLevelDist} dataKey="value" nameKey="name" size="100%" />
             ) : (
-              <div className="h-full flex items-center justify-center text-[8px] text-white/45">No data</div>
+              <div className="h-full flex items-center justify-center text-[11px] text-white/45">No data</div>
             )}
           </div>
           <LegendRow items={progLevelDist} />
@@ -1071,18 +1093,16 @@ function ViewAccred({
 
         {/* COPC by campus bar chart */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
-            COPC by Campus
-          </p>
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">COPC by Campus</p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} domain={[0, 100]} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
                 <YAxis
                   dataKey="name"
                   type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
                   width={65}
                 />
                 <Bar
@@ -1090,7 +1110,7 @@ function ViewAccred({
                   radius={[0, 3, 3, 0]}
                   name="COPC Rate"
                   fillOpacity={0.85}
-                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 9, fontWeight: 'bold' }}
+                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
                 >
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
@@ -1186,30 +1206,30 @@ function ViewUnitSubmission({
           />
           {unitsWithoutSubs > 0 && (
             <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md px-4 py-3">
-              <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400">No Submissions</p>
-              <p className="text-2xl font-black text-white tabular-nums">{unitsWithoutSubs}</p>
-              <p className="text-[7px] text-white/75 mt-0.5">Units needing attention</p>
+              <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400">No Submissions</p>
+              <p className="text-3xl font-black text-white tabular-nums">{unitsWithoutSubs}</p>
+              <p className="text-sm text-white/75 mt-0.5">Units needing attention</p>
             </div>
           )}
         </div>
 
         {/* Top performers */}
         <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-green-300 mb-1 shrink-0">
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-green-300 mb-1 shrink-0">
             Top Submitting Units
           </p>
           <div className="flex-1 overflow-y-auto space-y-1">
-            {unitSubTop.length === 0 && <p className="text-[8px] text-white/45">No data</p>}
+            {unitSubTop.length === 0 && <p className="text-[11px] text-white/45">No data</p>}
             {unitSubTop.map((u, i) => (
               <div key={u.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5">
-                <span className="text-[8px] font-black text-green-300 w-4 tabular-nums">{i + 1}</span>
-                <span className="text-[9px] font-bold text-white/85 w-20 truncate shrink-0">{u.name}</span>
-                <span className="text-[6px] text-white/55 w-14 truncate shrink-0">{u.campusName}</span>
+                <span className="text-[11px] font-black text-green-300 w-4 tabular-nums">{i + 1}</span>
+                <span className="text-xs font-bold text-white/85 w-20 truncate shrink-0">{u.name}</span>
+                <span className="text-[8px] text-white/55 w-14 truncate shrink-0">{u.campusName}</span>
                 <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${u.subRate}%`, background: P.green }} />
                 </div>
-                <span className="text-[8px] font-black text-white/85 w-8 text-right tabular-nums">{u.subRate}%</span>
-                <span className="text-[6px] text-white/45 w-8 text-right tabular-nums">{u.subsTotal}</span>
+                <span className="text-[11px] font-black text-white/85 w-8 text-right tabular-nums">{u.subRate}%</span>
+                <span className="text-[8px] text-white/45 w-8 text-right tabular-nums">{u.subsTotal}</span>
               </div>
             ))}
           </div>
@@ -1217,25 +1237,25 @@ function ViewUnitSubmission({
 
         {/* Bottom performers */}
         <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-yellow-400 mb-1 shrink-0">
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400 mb-1 shrink-0">
             Non-Compliant Units
           </p>
           <div className="flex-1 overflow-y-auto space-y-1">
-            {unitSubBottom.length === 0 && <p className="text-[8px] text-white/45">All units are compliant</p>}
+            {unitSubBottom.length === 0 && <p className="text-[11px] text-white/45">All units are compliant</p>}
             {unitSubBottom.map((u, i) => (
               <div key={u.id} className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5">
-                <span className="text-[8px] font-black text-yellow-400 w-4 tabular-nums">{i + 1}</span>
-                <span className="text-[9px] font-bold text-white/85 w-20 truncate shrink-0">{u.name}</span>
-                <span className="text-[6px] text-white/55 w-14 truncate shrink-0">{u.campusName}</span>
+                <span className="text-[11px] font-black text-yellow-400 w-4 tabular-nums">{i + 1}</span>
+                <span className="text-xs font-bold text-white/85 w-20 truncate shrink-0">{u.name}</span>
+                <span className="text-[8px] text-white/55 w-14 truncate shrink-0">{u.campusName}</span>
                 <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
                   <div
                     className="h-full rounded-full"
                     style={{ width: `${Math.max(u.subRate, 2)}%`, background: u.subsTotal === 0 ? P.whiteDim : P.gold }}
                   />
                 </div>
-                <span className="text-[8px] font-black text-white/85 w-8 text-right tabular-nums">{u.subRate}%</span>
-                <span className="text-[6px] text-white/45 w-8 text-right tabular-nums">{u.subsTotal}</span>
-                {u.subsTotal === 0 && <span className="text-[7px] font-bold text-red-400">!</span>}
+                <span className="text-[11px] font-black text-white/85 w-8 text-right tabular-nums">{u.subRate}%</span>
+                <span className="text-[8px] text-white/45 w-8 text-right tabular-nums">{u.subsTotal}</span>
+                {u.subsTotal === 0 && <span className="text-sm font-bold text-red-400">!</span>}
               </div>
             ))}
           </div>
@@ -1243,18 +1263,18 @@ function ViewUnitSubmission({
 
         {/* Submission rate bar chart */}
         <div className="col-span-7 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-[7px] font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
             Unit Submission Rates (Top 15)
           </p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} domain={[0, 100]} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
                 <YAxis
                   dataKey="name"
                   type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
+                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
                   width={85}
                 />
                 <Bar
@@ -1262,7 +1282,7 @@ function ViewUnitSubmission({
                   radius={[0, 3, 3, 0]}
                   name="Rate"
                   fillOpacity={0.85}
-                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 8, fontWeight: 'bold' }}
+                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: 'bold' }}
                 >
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={i < 5 ? P.green : i < 10 ? P.greenLight : P.gold} />
@@ -1359,6 +1379,7 @@ export default function ExecutiveDisplayPage() {
   const firestore = useFirestore();
   const { selectedYear } = useYear();
   const [currentView, setCurrentView] = useState(0);
+  const [cardPhase, setCardPhase] = useState(0);
   const [animPhase, setAnimPhase] = useState<'show' | 'hide' | 'enter'>('show');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [now, setNow] = useState(new Date());
@@ -1369,6 +1390,17 @@ export default function ExecutiveDisplayPage() {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
+
+  // ── Card-level data cycling (every 6s within a view) ─────────────────────
+  useEffect(() => {
+    const t = setInterval(() => setCardPhase((s) => s + 1), 6_000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Reset cardPhase on view change
+  useEffect(() => {
+    setCardPhase(0);
+  }, [currentView]);
 
   // ── Continuous auto-rotation (wall display — no mouse needed) ────────────
   useEffect(() => {
@@ -1908,6 +1940,36 @@ export default function ExecutiveDisplayPage() {
       }));
   }, [rawPrograms, rawCompliances]);
 
+  // ── Programs grouped by accreditation level (for card cycling) ────────────
+  const programsByLevel = useMemo(() => {
+    const groups: Record<string, { name: string; campus: string }[]> = {};
+    (rawPrograms || [])
+      .filter((p) => p.isActive)
+      .forEach((p) => {
+        const comp = (rawCompliances || []).find((c) => c.programId === p.id);
+        const records = comp?.accreditationRecords || [];
+        const cur = records.find((r) => r.lifecycleStatus === 'Current') || records[records.length - 1];
+        const level = cur?.level?.trim() || 'Non Accredited';
+        let matched = 'Non Accredited';
+        for (const key of ['Level IV', 'Level III', 'Level II', 'Level I']) {
+          if (level.includes(key) || level === key) {
+            matched = key;
+            break;
+          }
+        }
+        if (level.toLowerCase().includes('candidate')) matched = 'Candidate';
+        if (!groups[matched]) groups[matched] = [];
+        groups[matched].push({ name: p.name, campus: campusMap.get(p.campusId) || '' });
+      });
+    return groups;
+  }, [rawPrograms, rawCompliances, campusMap]);
+  const levelKeys = useMemo(
+    () => Object.keys(programsByLevel).filter((k) => programsByLevel[k].length > 0),
+    [programsByLevel],
+  );
+  const currentLevelKey = levelKeys.length > 0 ? levelKeys[cardPhase % levelKeys.length] : '';
+  const currentLevelPrograms = currentLevelKey ? programsByLevel[currentLevelKey] || [] : [];
+
   // ── Program level distribution ────────────────────────────────────────
   const progLevelDist = useMemo(() => {
     const levels: Record<string, number> = { Undergraduate: 0, Graduate: 0, TVET: 0 };
@@ -1994,6 +2056,8 @@ export default function ExecutiveDisplayPage() {
         copcDist={copcDist}
         accredDist={accredLevelDist}
         progLevelDist={progLevelDist}
+        currentLevelKey={currentLevelKey}
+        currentLevelPrograms={currentLevelPrograms}
       />,
       <ViewUnitSubmission
         key="v5"
@@ -2026,6 +2090,8 @@ export default function ExecutiveDisplayPage() {
       unitsWithSubs,
       unitsWithoutSubs,
       unitSubData,
+      currentLevelKey,
+      currentLevelPrograms,
     ],
   );
 
@@ -2093,7 +2159,7 @@ export default function ExecutiveDisplayPage() {
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
                   RSU Executive Academic and Operations Overview
                 </p>
-                <p className="text-[7px] font-bold text-white/55 uppercase tracking-widest">
+                <p className="text-sm font-bold text-white/55 uppercase tracking-widest">
                   Real-time Institutional Performance Dashboard
                 </p>
               </div>
@@ -2121,11 +2187,11 @@ export default function ExecutiveDisplayPage() {
                 title="Exit Fullscreen"
               >
                 <Minimize2 className="h-3 w-3 text-white/85" />
-                <span className="text-[7px] font-black uppercase tracking-widest text-white/65">Exit</span>
+                <span className="text-sm font-black uppercase tracking-widest text-white/65">Exit</span>
               </button>
               <div className="text-right">
                 <p className="text-sm font-black tabular-nums text-white">{timeStr}</p>
-                <p className="text-[7px] font-bold text-white/55 uppercase tracking-widest">{dateStr}</p>
+                <p className="text-sm font-bold text-white/55 uppercase tracking-widest">{dateStr}</p>
               </div>
               <Link href="/dashboard" onClick={(e) => e.stopPropagation()}>
                 <button className="h-7 w-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all">
@@ -2155,7 +2221,7 @@ export default function ExecutiveDisplayPage() {
 
           {/* ── Footer ──────────────────────────────────────────────────────── */}
           <footer className="relative z-10 flex items-center justify-between px-6 py-1.5 border-t border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
-            <p className="text-[7px] font-bold text-white/45 uppercase tracking-widest">
+            <p className="text-sm font-bold text-white/45 uppercase tracking-widest">
               AY {selectedYear}–{selectedYear + 1} &middot; Real-time
             </p>
             <div className="flex items-center gap-1.5">
@@ -2170,7 +2236,7 @@ export default function ExecutiveDisplayPage() {
                 >
                   <div className="h-1.5 w-1.5 rounded-full" style={{ background: v.color }} />
                   <span
-                    className="text-[6px] font-black uppercase tracking-widest transition-all duration-500"
+                    className="text-[8px] font-black uppercase tracking-widest transition-all duration-500"
                     style={{ color: currentView === i ? v.color : 'rgba(255,255,255,0.35)' }}
                   >
                     {v.label}
@@ -2178,7 +2244,7 @@ export default function ExecutiveDisplayPage() {
                 </div>
               ))}
             </div>
-            <p className="text-[7px] font-bold text-white/45 tabular-nums">{timeStr}</p>
+            <p className="text-sm font-bold text-white/45 tabular-nums">{timeStr}</p>
           </footer>
         </>
       )}
