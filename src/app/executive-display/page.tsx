@@ -11,7 +11,6 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip as RTooltip,
   Cell,
   PieChart,
   Pie,
@@ -32,8 +31,6 @@ import {
   BookOpen,
   FileText,
   Users,
-  ChevronLeft,
-  ChevronRight,
   X,
   Maximize2,
   Minimize2,
@@ -50,12 +47,10 @@ import type {
 } from '@/lib/types';
 import { normalizeReportType } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
-import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
-const VIEW_INTERVAL_MS = 60_000;
-const IDLE_TIMEOUT_MS = 5_000;
+const VIEW_INTERVAL_MS = 12_000;
 const TOTAL_VIEWS = 5;
 
 const PALETTE = {
@@ -183,23 +178,6 @@ function SectionHeader({
   );
 }
 
-// ─── Custom Tooltip ──────────────────────────────────────────────────────────
-const DarkTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-green-950/95 border border-yellow-600/30 rounded-xl p-3 shadow-2xl text-xs backdrop-blur-md">
-      {label && <p className="font-black text-yellow-400 uppercase tracking-widest mb-2">{label}</p>}
-      {payload.map((p: any, i: number) => (
-        <div key={i} className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full" style={{ background: p.color || P.green }} />
-          <span className="text-white/80">{p.name}:</span>
-          <span className="font-black text-white">{typeof p.value === 'number' ? `${p.value}%` : p.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
 // ─── Mini Bar ────────────────────────────────────────────────────────────────
 function MiniBar({ value, color }: { value: number; color?: string }) {
   const c = color || statusColor(value);
@@ -310,16 +288,6 @@ function GreenDonut({
               <Cell key={i} fill={entry.color} fillOpacity={0.85} />
             ))}
           </Pie>
-          <RTooltip
-            content={({ active, payload }) =>
-              active && payload?.length ? (
-                <div className="bg-green-950/95 border border-yellow-600/30 rounded-lg px-3 py-2 text-xs shadow-xl backdrop-blur-md">
-                  <p className="font-black text-yellow-400 text-[9px] uppercase tracking-widest">{payload[0].name}</p>
-                  <p className="font-bold text-white mt-0.5">{payload[0].value}</p>
-                </div>
-              ) : null
-            }
-          />
         </PieChart>
       </ResponsiveContainer>
       {centerLabel && (
@@ -352,24 +320,17 @@ function TrendLine({
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
         <XAxis dataKey="name" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} axisLine={false} tickLine={false} />
         <YAxis tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 8 }} axisLine={false} tickLine={false} />
-        <RTooltip
-          content={({ active, payload, label }) =>
-            active && payload?.length ? (
-              <div className="bg-green-950/95 border border-yellow-600/30 rounded-lg px-3 py-2 text-xs shadow-xl backdrop-blur-md">
-                <p className="font-black text-yellow-400 text-[9px] uppercase tracking-widest">{label}</p>
-                <p className="font-bold text-white mt-0.5">{payload[0].value}</p>
-              </div>
-            ) : null
-          }
-        />
         <Line
           type="monotone"
           dataKey={dataKey}
           stroke={strokeColor}
           strokeWidth={2}
-          dot={{ fill: strokeColor, r: 2, strokeWidth: 0 }}
-          activeDot={{ fill: strokeColor, r: 4, strokeWidth: 2, stroke: '#fff' }}
-          fillOpacity={0.2}
+          dot={{ fill: strokeColor, r: 3, strokeWidth: 0 }}
+          label={({ x, y, value }) => (
+            <text x={x} y={y - 8} textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize={8} fontWeight="bold">
+              {value}
+            </text>
+          )}
         />
       </LineChart>
     </ResponsiveContainer>
@@ -682,8 +643,13 @@ function ViewSubmissions({
                   tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
                   width={65}
                 />
-                <RTooltip content={<DarkTooltip />} />
-                <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="Rate" fillOpacity={0.85}>
+                <Bar
+                  dataKey="rate"
+                  radius={[0, 3, 3, 0]}
+                  name="Rate"
+                  fillOpacity={0.85}
+                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 9, fontWeight: 'bold' }}
+                >
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
                   ))}
@@ -814,8 +780,13 @@ function ViewRisks({
                   tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
                   width={65}
                 />
-                <RTooltip content={<DarkTooltip />} />
-                <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="Mitigated" fillOpacity={0.85}>
+                <Bar
+                  dataKey="rate"
+                  radius={[0, 3, 3, 0]}
+                  name="Mitigated"
+                  fillOpacity={0.85}
+                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 9, fontWeight: 'bold' }}
+                >
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
                   ))}
@@ -956,8 +927,13 @@ function ViewCars({
                   tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
                   width={65}
                 />
-                <RTooltip content={<DarkTooltip />} />
-                <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="Closed" fillOpacity={0.85}>
+                <Bar
+                  dataKey="rate"
+                  radius={[0, 3, 3, 0]}
+                  name="Closed"
+                  fillOpacity={0.85}
+                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 9, fontWeight: 'bold' }}
+                >
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
                   ))}
@@ -1108,8 +1084,13 @@ function ViewAccred({
                   tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 7, fontWeight: 700 }}
                   width={65}
                 />
-                <RTooltip content={<DarkTooltip />} />
-                <Bar dataKey="rate" radius={[0, 3, 3, 0]} name="COPC Rate" fillOpacity={0.85}>
+                <Bar
+                  dataKey="rate"
+                  radius={[0, 3, 3, 0]}
+                  name="COPC Rate"
+                  fillOpacity={0.85}
+                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 9, fontWeight: 'bold' }}
+                >
                   {chartData.map((_, i) => (
                     <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
                   ))}
@@ -1192,11 +1173,8 @@ export default function ExecutiveDisplayPage() {
   const { selectedYear } = useYear();
   const [currentView, setCurrentView] = useState(0);
   const [animPhase, setAnimPhase] = useState<'show' | 'hide' | 'enter'>('show');
-  const [isIdle, setIsIdle] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [now, setNow] = useState(new Date());
-  const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const viewTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // ── Clock ─────────────────────────────────────────────────────────────────
@@ -1205,44 +1183,17 @@ export default function ExecutiveDisplayPage() {
     return () => clearInterval(id);
   }, []);
 
-  // ── Idle detection ────────────────────────────────────────────────────────
-  const resetIdle = useCallback(() => {
-    setIsIdle(false);
-    clearTimeout(idleTimer.current);
-    idleTimer.current = setTimeout(() => setIsIdle(true), IDLE_TIMEOUT_MS);
-  }, []);
-
+  // ── Continuous auto-rotation (wall display — no mouse needed) ────────────
   useEffect(() => {
-    resetIdle();
-    window.addEventListener('mousemove', resetIdle);
-    window.addEventListener('keydown', resetIdle);
-    window.addEventListener('click', resetIdle);
-    return () => {
-      window.removeEventListener('mousemove', resetIdle);
-      window.removeEventListener('keydown', resetIdle);
-      window.removeEventListener('click', resetIdle);
-      clearTimeout(idleTimer.current);
-    };
-  }, [resetIdle]);
+    const t = setTimeout(() => setAnimPhase('hide'), VIEW_INTERVAL_MS);
+    return () => clearTimeout(t);
+  }, [currentView, animPhase]);
 
-  // ── View auto-rotation ────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!isIdle) {
-      clearTimeout(viewTimer.current);
-      return;
-    }
-    viewTimer.current = setTimeout(() => {
-      setAnimPhase('hide');
-    }, VIEW_INTERVAL_MS);
-    return () => clearTimeout(viewTimer.current);
-  }, [isIdle, currentView, animPhase]);
-
-  // Handle animation phases
   useEffect(() => {
     if (animPhase === 'hide') {
       const t = setTimeout(() => {
         setCurrentView((s) => (s + 1) % TOTAL_VIEWS);
-        setTimeout(() => setAnimPhase('enter'), 50); // Micro-delay for DOM paint
+        setTimeout(() => setAnimPhase('enter'), 50);
       }, 350);
       return () => clearTimeout(t);
     }
@@ -1863,33 +1814,18 @@ export default function ExecutiveDisplayPage() {
           </div>
         </div>
 
-        {/* View nav */}
-        <div className="flex items-center gap-1">
-          {VIEW_META.map((v, i) => {
-            const Icon = v.icon;
-            return (
-              <button
-                key={i}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setAnimPhase('hide');
-                  setCurrentView(i);
-                }}
-                className={cn(
-                  'flex items-center gap-1 px-2 py-1 rounded-lg text-[7px] font-black uppercase tracking-widest transition-all',
-                  currentView === i && animPhase === 'show'
-                    ? 'bg-white/15 text-white border border-white/20'
-                    : 'text-white/45 hover:text-white/75 hover:bg-white/5',
-                )}
-              >
-                <Icon className="h-2.5 w-2.5" />
-                <span className="hidden lg:inline">{v.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
         <div className="flex items-center gap-3">
+          {/* View indicator dots */}
+          <div className="flex gap-2 items-center">
+            {VIEW_META.map((v, i) => (
+              <div key={i} className="flex items-center gap-1">
+                <div
+                  className={`rounded-full transition-all duration-500 ${currentView === i ? 'h-2 w-6' : 'h-2 w-2 bg-white/20'}`}
+                  style={currentView === i ? { background: v.color } : {}}
+                />
+              </div>
+            ))}
+          </div>
           {/* Fullscreen toggle button */}
           <button
             onClick={(e) => {
@@ -1907,7 +1843,7 @@ export default function ExecutiveDisplayPage() {
             <span
               className={`text-[7px] font-black uppercase tracking-widest ${isFullscreen ? 'text-white/65' : 'text-yellow-400'}`}
             >
-              {isFullscreen ? 'Fullscreen' : 'Fullscreen'}
+              Fullscreen
             </span>
           </button>
           <div className="text-right">
@@ -1921,20 +1857,6 @@ export default function ExecutiveDisplayPage() {
           </Link>
         </div>
       </header>
-
-      {/* Timer bar */}
-      <div className="relative z-10 px-6 shrink-0">
-        <div className="w-full h-0.5 bg-white/20 rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-200"
-            style={{
-              width: `${animPhase === 'hide' ? 100 : animPhase === 'enter' ? 0 : isIdle ? 0 : 0}%`,
-              background: `linear-gradient(to right, ${VIEW_META[currentView].color}, ${P.goldLight})`,
-              animation: isIdle && animPhase === 'show' ? `timer ${VIEW_INTERVAL_MS}ms linear` : 'none',
-            }}
-          />
-        </div>
-      </div>
 
       {/* ── Main content ──────────────────────────────────────────────────── */}
       <main className="flex-1 min-h-0 px-6 py-3 relative overflow-hidden">
@@ -1959,61 +1881,27 @@ export default function ExecutiveDisplayPage() {
         <p className="text-[7px] font-bold text-white/45 uppercase tracking-widest">
           AY {selectedYear}–{selectedYear + 1} &middot; Real-time
         </p>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentView((s) => (s - 1 + TOTAL_VIEWS) % TOTAL_VIEWS);
-            }}
-            className="h-5 w-5 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
-          >
-            <ChevronLeft className="h-2.5 w-2.5 text-white/65" />
-          </button>
-          <div className="flex gap-1">
-            {Array.from({ length: TOTAL_VIEWS }).map((_, i) => (
-              <button
-                key={i}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setCurrentView(i);
-                }}
-                className="transition-all duration-300"
+        <div className="flex items-center gap-1.5">
+          {VIEW_META.map((v, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all duration-500"
+              style={{
+                background: currentView === i ? `${v.color}25` : 'transparent',
+                border: currentView === i ? `1px solid ${v.color}40` : '1px solid transparent',
+              }}
+            >
+              <div className="h-1.5 w-1.5 rounded-full" style={{ background: v.color }} />
+              <span
+                className="text-[6px] font-black uppercase tracking-widest transition-all duration-500"
+                style={{ color: currentView === i ? v.color : 'rgba(255,255,255,0.35)' }}
               >
-                <div
-                  className={cn(
-                    'rounded-full transition-all duration-300',
-                    currentView === i ? 'h-1.5 w-5' : 'h-1.5 w-1.5 bg-white/20',
-                  )}
-                  style={currentView === i ? { background: VIEW_META[i].color } : {}}
-                />
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentView((s) => (s + 1) % TOTAL_VIEWS);
-            }}
-            className="h-5 w-5 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
-          >
-            <ChevronRight className="h-2.5 w-2.5 text-white/65" />
-          </button>
+                {v.label}
+              </span>
+            </div>
+          ))}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            {isIdle ? (
-              <>
-                <div className="h-1 w-1 rounded-full bg-green-400 animate-pulse" />
-                <span className="text-[6px] font-black uppercase tracking-widest text-green-400/70">Auto</span>
-              </>
-            ) : (
-              <>
-                <div className="h-1 w-1 rounded-full bg-white/30" />
-                <span className="text-[6px] font-black uppercase tracking-widest text-white/45">Manual</span>
-              </>
-            )}
-          </div>
-        </div>
+        <p className="text-[7px] font-bold text-white/45 tabular-nums">{timeStr}</p>
       </footer>
     </div>
   );
