@@ -282,8 +282,8 @@ function GreenDonut({
             outerRadius={80}
             paddingAngle={2}
             stroke="none"
-            label={({ name, value }) => `${name} ${value}`}
             labelLine={false}
+            label={false}
           >
             {data.map((entry, i) => (
               <Cell key={i} fill={entry.color} fillOpacity={0.85} />
@@ -317,7 +317,7 @@ function TrendLine({
     return <div className="h-full flex items-center justify-center text-[11px] text-white/45">No data</div>;
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+      <LineChart data={data} margin={{ top: 15, right: 5, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
         <XAxis
           dataKey="name"
@@ -642,7 +642,7 @@ function ViewSubmissions({
           </p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
                 <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
                 <YAxis
@@ -800,7 +800,7 @@ function ViewRisks({
           </p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
                 <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
                 <YAxis
@@ -954,7 +954,7 @@ function ViewCars({
           </p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
                 <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
                 <YAxis
@@ -1142,7 +1142,7 @@ function ViewAccred({
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">COPC by Campus</p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
                 <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
                 <YAxis
@@ -1328,7 +1328,7 @@ function ViewUnitSubmission({
           </p>
           <div className="flex-1 min-h-0">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 10, top: 0, bottom: 0 }}>
+              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
                 <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
                 <YAxis
