@@ -41,8 +41,6 @@ import {
   Target,
   BarChart3,
   Globe,
-  Maximize2,
-  Minimize2,
   ChevronLeft,
   ChevronRight,
   Circle,
@@ -772,6 +770,31 @@ function SlideAudit({ data }: { data: any }) {
   );
 }
 
+// ─── News Ticker ──────────────────────────────────────────────────────────
+function NewsTicker({ items }: { items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="relative overflow-hidden h-8 bg-black/40 border-t border-white/8 shrink-0">
+      <div
+        className="flex items-center h-full whitespace-nowrap"
+        style={{
+          animation: 'marquee 45s linear infinite',
+        }}
+      >
+        {items.concat(items).map((item, i) => (
+          <span
+            key={i}
+            className="inline-flex items-center gap-3 mx-8 text-[11px] font-bold text-white/60 uppercase tracking-wider"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── SLIDE LABELS ─────────────────────────────────────────────────────────────
 const SLIDE_META = [
   { label: 'EOMS Health', icon: ShieldCheck, color: PALETTE.emerald },
@@ -831,19 +854,19 @@ export default function ExecutiveDisplayPage() {
     return () => clearTimeout(slideTimer.current);
   }, [isIdle, currentSlide]);
 
-  // ── Fullscreen ────────────────────────────────────────────────────────────
-  const toggleFullscreen = useCallback(() => {
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
+  // ── Fullscreen (always on) ───────────────────────────────────────────────
+  useEffect(() => {
+    containerRef.current?.requestFullscreen().catch(() => {});
   }, []);
 
   useEffect(() => {
-    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    const handler = () => {
+      const fs = !!document.fullscreenElement;
+      setIsFullscreen(fs);
+      if (!fs) {
+        containerRef.current?.requestFullscreen().catch(() => {});
+      }
+    };
     document.addEventListener('fullscreenchange', handler);
     return () => document.removeEventListener('fullscreenchange', handler);
   }, []);
@@ -1097,6 +1120,23 @@ export default function ExecutiveDisplayPage() {
     return { total, completed, inProgress: inProg, scheduled, overdue, completionRate, byCampus };
   }, [rawSchedules, campusMap, selectedYear]);
 
+  // ── Ticker items ─────────────────────────────────────────────────────────
+  const tickerItems = useMemo(() => {
+    const items: string[] = [];
+    const pending = submissionsData.pendingCount;
+    if (pending > 0) items.push(`${pending} submission${pending > 1 ? 's' : ''} pending approval`);
+    const overdueAudits = auditData.overdue;
+    if (overdueAudits > 0) items.push(`${overdueAudits} audit${overdueAudits > 1 ? 's' : ''} overdue`);
+    const high = riskData.highRisks;
+    if (high > 0) items.push(`${high} high-risk item${high > 1 ? 's' : ''} requiring attention`);
+    const noCopcCount = chedData.noCopc;
+    if (noCopcCount > 0) items.push(`${noCopcCount} program${noCopcCount > 1 ? 's' : ''} without COPC`);
+    items.push(
+      `EOMS Score: ${eomsData.score}%  ·  Submissions: ${submissionsData.totalCount}  ·  Risks: ${riskData.openRisks + riskData.closedRisks}  ·  CARs: ${riskData.openCars + riskData.closedCars}  ·  Programs: ${chedData.programs}  ·  Audits: ${auditData.total}`,
+    );
+    return items;
+  }, [submissionsData, auditData, riskData, chedData, eomsData]);
+
   // ── Render slides ─────────────────────────────────────────────────────────
   const slides = [
     <SlideEOMS data={eomsData} key="eoms" />,
@@ -1115,6 +1155,14 @@ export default function ExecutiveDisplayPage() {
       className="h-screen w-screen bg-[#060912] text-white overflow-hidden flex flex-col select-none"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
+      {/* ── Marquee animation keyframes ──────────────────────────────────── */}
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+
       {/* ── Background gradient blobs ─────────────────────────────────────── */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div
@@ -1168,27 +1216,6 @@ export default function ExecutiveDisplayPage() {
             <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{dateStr}</p>
           </div>
           <div className="flex items-center gap-2">
-            {isIdle ? (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30">
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Auto</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/8 border border-white/10">
-                <div className="h-1.5 w-1.5 rounded-full bg-white/40" />
-                <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Manual</span>
-              </div>
-            )}
-            <button
-              onClick={toggleFullscreen}
-              className="h-8 w-8 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
-            >
-              {isFullscreen ? (
-                <Minimize2 className="h-3.5 w-3.5 text-white/60" />
-              ) : (
-                <Maximize2 className="h-3.5 w-3.5 text-white/60" />
-              )}
-            </button>
             <Link href="/dashboard">
               <button className="h-8 w-8 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all">
                 <X className="h-3.5 w-3.5 text-white/60" />
@@ -1210,17 +1237,20 @@ export default function ExecutiveDisplayPage() {
         </div>
       </main>
 
-      {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="relative z-10 flex items-center justify-between px-8 py-3 border-t border-white/8 bg-black/20 backdrop-blur-sm shrink-0">
+      {/* ── News ticker ──────────────────────────────────────────────────── */}
+      <NewsTicker items={tickerItems} />
+
+      {/* ── Footer bar ───────────────────────────────────────────────────── */}
+      <footer className="relative z-10 flex items-center justify-between px-8 py-2 border-t border-white/8 bg-black/30 backdrop-blur-sm shrink-0">
         <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
-          Academic Year {selectedYear}–{selectedYear + 1} · Data refreshes in real-time
+          AY {selectedYear}–{selectedYear + 1} &middot; Real-time
         </p>
         <div className="flex items-center gap-4">
           <button
             onClick={() => setCurrentSlide((s) => (s - 1 + TOTAL_SLIDES) % TOTAL_SLIDES)}
-            className="h-7 w-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
+            className="h-6 w-6 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
           >
-            <ChevronLeft className="h-3.5 w-3.5 text-white/50" />
+            <ChevronLeft className="h-3 w-3 text-white/50" />
           </button>
           <div className="flex gap-1.5">
             {Array.from({ length: TOTAL_SLIDES }).map((_, i) => (
@@ -1237,14 +1267,26 @@ export default function ExecutiveDisplayPage() {
           </div>
           <button
             onClick={() => setCurrentSlide((s) => (s + 1) % TOTAL_SLIDES)}
-            className="h-7 w-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
+            className="h-6 w-6 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center hover:bg-white/15 transition-all"
           >
-            <ChevronRight className="h-3.5 w-3.5 text-white/50" />
+            <ChevronRight className="h-3 w-3 text-white/50" />
           </button>
         </div>
-        <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest">
-          {isIdle ? `Auto-advancing in ${SLIDE_DURATION_MS / 1000}s idle` : 'Move mouse to pause auto-advance'}
-        </p>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            {isIdle ? (
+              <>
+                <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[8px] font-black uppercase tracking-widest text-emerald-400/70">Auto</span>
+              </>
+            ) : (
+              <>
+                <div className="h-1.5 w-1.5 rounded-full bg-white/30" />
+                <span className="text-[8px] font-black uppercase tracking-widest text-white/30">Manual</span>
+              </>
+            )}
+          </div>
+        </div>
       </footer>
     </div>
   );
