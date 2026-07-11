@@ -316,6 +316,82 @@ function NewsTicker({ items }: { items: string[] }) {
   );
 }
 
+// ─── Auto Scroll Container ──────────────────────────────────────────────────
+function AutoScrollContainer({
+  children,
+  className = '',
+  maxHeight,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  maxHeight?: string;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    let animationId: number;
+    let scrollPos = 0;
+    let scrollDirection = 1; // 1 = down, -1 = up
+    let waitCounter = 0;
+
+    const scroll = () => {
+      const maxScroll = container.scrollHeight - container.clientHeight;
+      if (maxScroll <= 0) {
+        container.scrollTop = 0;
+        animationId = requestAnimationFrame(scroll);
+        return;
+      }
+
+      if (waitCounter > 0) {
+        waitCounter--;
+        animationId = requestAnimationFrame(scroll);
+        return;
+      }
+
+      // Smooth scroll speed: 0.35 pixels per frame
+      scrollPos += 0.35 * scrollDirection;
+      container.scrollTop = scrollPos;
+
+      if (scrollDirection === 1 && scrollPos >= maxScroll) {
+        scrollPos = maxScroll;
+        scrollDirection = -1;
+        waitCounter = 180; // Wait 3 seconds at bottom
+      } else if (scrollDirection === -1 && scrollPos <= 0) {
+        scrollPos = 0;
+        scrollDirection = 1;
+        waitCounter = 180; // Wait 3 seconds at top
+      }
+
+      animationId = requestAnimationFrame(scroll);
+    };
+
+    animationId = requestAnimationFrame(scroll);
+    return () => cancelAnimationFrame(animationId);
+  }, []);
+
+  return (
+    <div
+      ref={containerRef}
+      className={`overflow-y-auto no-scrollbar select-none ${className}`}
+      style={{
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+        maxHeight: maxHeight || '100%',
+      }}
+    >
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+      {children}
+    </div>
+  );
+}
+
 // ─── Donut Chart (green/gold theme) ─────────────────────────────────────
 function GreenDonut({
   data,
@@ -594,13 +670,13 @@ function ViewOverview({
             <span className="flex-1 text-center">CAR</span>
             <span className="flex-1 text-center">Audit</span>
           </div>
-          <div className="flex-1 overflow-y-auto space-y-0 max-h-[calc(100%-20px)]">
+          <AutoScrollContainer className="flex-1 space-y-0" maxHeight="calc(100% - 20px)">
             {campuses
               .sort((a: any, b: any) => b.compositeScore - a.compositeScore)
               .map((c: any, i: number) => (
                 <CampusRow key={c.id} rank={i + 1} name={c.name} metrics={tableMetrics(c)} />
               ))}
-          </div>
+          </AutoScrollContainer>
         </div>
 
         {/* Top / Low performer + Narrative */}
@@ -865,8 +941,8 @@ function ViewSubmissions({
               <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">
                 Campus Compliance Ranking
               </p>
-              <div className="flex-1 space-y-1 overflow-hidden">
-                {campusRanked.slice(0, 8).map((c: any, i: number) => (
+              <AutoScrollContainer className="flex-1 space-y-1">
+                {campusRanked.map((c: any, i: number) => (
                   <div key={i} className="flex items-center gap-1.5">
                     <span className="text-[9px] font-black text-white/40 w-4 tabular-nums text-right">{i + 1}</span>
                     <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
@@ -881,7 +957,7 @@ function ViewSubmissions({
                     </span>
                   </div>
                 ))}
-              </div>
+              </AutoScrollContainer>
             </div>
           )}
         </div>
@@ -1071,15 +1147,15 @@ function ViewRisks({
               {highRiskCampuses.length === 0 ? (
                 <p className="text-[11px] text-white/55 italic">No high-risk items currently logged.</p>
               ) : (
-                <div className="flex-1 space-y-1.5 overflow-hidden">
-                  {highRiskCampuses.slice(0, 7).map((c: any, i: number) => (
+                <AutoScrollContainer className="flex-1 space-y-1.5">
+                  {highRiskCampuses.map((c: any, i: number) => (
                     <div key={i} className="flex items-center gap-2">
                       <span className="text-[9px] font-black text-white/40 w-4 tabular-nums text-right">{i + 1}</span>
                       <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
                       <span className="text-[10px] font-black text-yellow-400 tabular-nums">{c.risksHigh} high</span>
                     </div>
                   ))}
-                </div>
+                </AutoScrollContainer>
               )}
             </div>
           )}
@@ -1288,15 +1364,15 @@ function ViewCars({
               {openCarsCampuses.length === 0 ? (
                 <p className="text-[11px] text-green-300 font-bold">✓ All CARs resolved across all campuses.</p>
               ) : (
-                <div className="flex-1 space-y-1.5 overflow-hidden">
-                  {openCarsCampuses.slice(0, 7).map((c: any, i: number) => (
+                <AutoScrollContainer className="flex-1 space-y-1.5">
+                  {openCarsCampuses.map((c: any, i: number) => (
                     <div key={i} className="flex items-center gap-2">
                       <span className="text-[9px] font-black text-white/40 w-4 tabular-nums text-right">{i + 1}</span>
                       <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
                       <span className="text-[10px] font-black text-yellow-400 tabular-nums">{c.carsOpen} open</span>
                     </div>
                   ))}
-                </div>
+                </AutoScrollContainer>
               )}
             </div>
           )}
@@ -1426,16 +1502,13 @@ function ViewAccred({
               >
                 {currentLevelKey}
               </p>
-              <div className="text-center space-y-0.5">
-                {currentLevelPrograms.slice(0, 6).map((p, i) => (
+              <AutoScrollContainer className="space-y-0.5 text-center" maxHeight="85px">
+                {currentLevelPrograms.map((p, i) => (
                   <p key={i} className="text-xs font-bold text-white/85 truncate">
                     {p.name} <span className="text-white/45 text-[11px]">({p.campus})</span>
                   </p>
                 ))}
-                {currentLevelPrograms.length > 6 && (
-                  <p className="text-[11px] text-white/45 font-semibold">+{currentLevelPrograms.length - 6} more</p>
-                )}
-              </div>
+              </AutoScrollContainer>
             </div>
           </div>
           <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1 text-center">
@@ -1531,8 +1604,8 @@ function ViewAccred({
               <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">
                 COPC Compliance by Campus
               </p>
-              <div className="flex-1 space-y-1.5 overflow-hidden">
-                {chartData.slice(0, 7).map((c, i) => (
+              <AutoScrollContainer className="flex-1 space-y-1.5">
+                {chartData.map((c, i) => (
                   <div key={i} className="flex items-center gap-1.5">
                     <span className="text-[9px] font-black text-white/40 w-4 tabular-nums text-right">{i + 1}</span>
                     <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
@@ -1545,7 +1618,7 @@ function ViewAccred({
                     <span className="text-[10px] font-black text-white/85 w-7 text-right tabular-nums">{c.rate}%</span>
                   </div>
                 ))}
-              </div>
+              </AutoScrollContainer>
             </div>
           )}
         </div>
@@ -1657,7 +1730,7 @@ function ViewUnitSubmission({
           <p className="text-sm font-black uppercase tracking-[0.15em] text-green-300 mb-1 shrink-0">
             Top Submitting Units
           </p>
-          <div className="flex-1 overflow-y-auto space-y-1">
+          <AutoScrollContainer className="flex-1 space-y-1">
             {unitSubTop.length === 0 && <p className="text-[11px] text-white/45">No data</p>}
             {unitSubTop.map((u, i) => (
               <div
@@ -1674,7 +1747,7 @@ function ViewUnitSubmission({
                 <span className="text-[8px] text-white/45 w-8 text-right tabular-nums">{u.subsTotal}</span>
               </div>
             ))}
-          </div>
+          </AutoScrollContainer>
         </div>
 
         {/* Bottom performers */}
@@ -1682,7 +1755,7 @@ function ViewUnitSubmission({
           <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400 mb-1 shrink-0">
             Non-Compliant Units
           </p>
-          <div className="flex-1 overflow-y-auto space-y-1">
+          <AutoScrollContainer className="flex-1 space-y-1">
             {unitSubBottom.length === 0 && <p className="text-[11px] text-white/45">All units are compliant</p>}
             {unitSubBottom.map((u, i) => (
               <div
@@ -1703,7 +1776,7 @@ function ViewUnitSubmission({
                 {u.subsTotal === 0 && <span className="text-sm font-bold text-red-400">!</span>}
               </div>
             ))}
-          </div>
+          </AutoScrollContainer>
         </div>
 
         {/* Submission rate bar chart */}
@@ -1791,16 +1864,18 @@ function ViewUnitSubmission({
               {campusUnitGroups.length === 0 ? (
                 <p className="text-[11px] text-white/45 italic">No campus data available.</p>
               ) : (
-                <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-1.5 overflow-hidden">
-                  {campusUnitGroups.slice(0, 10).map((c, i) => (
-                    <div key={i} className="flex items-center gap-1.5">
-                      <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
-                      <span className="text-[10px] font-black tabular-nums" style={{ color: statusColor(c.rate) }}>
-                        {c.rate}%
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <AutoScrollContainer className="flex-1" maxHeight="100%">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                    {campusUnitGroups.map((c, i) => (
+                      <div key={i} className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
+                        <span className="text-[10px] font-black tabular-nums" style={{ color: statusColor(c.rate) }}>
+                          {c.rate}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </AutoScrollContainer>
               )}
             </div>
           )}
