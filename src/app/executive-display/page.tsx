@@ -292,6 +292,42 @@ function NewsTicker({ items }: { items: string[] }) {
   );
 }
 
+// ─── Scrollable Title (marquee if overflows) ─────────────────────────────
+function ScrollableTitle({ text, className }: { text: string; className?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const [shouldScroll, setShouldScroll] = useState(false);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const textEl = textRef.current;
+    if (container && textEl) {
+      setShouldScroll(textEl.scrollWidth > container.clientWidth);
+    }
+  }, [text]);
+
+  if (shouldScroll) {
+    return (
+      <div ref={containerRef} className="relative overflow-hidden w-full">
+        <div className="inline-flex whitespace-nowrap" style={{ animation: 'marquee 25s linear infinite' }}>
+          <p ref={textRef} className={`${className} pr-12`}>
+            {text}
+          </p>
+          <p className={`${className} pr-12`}>{text}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="w-full overflow-hidden">
+      <p ref={textRef} className={`${className} truncate`}>
+        {text}
+      </p>
+    </div>
+  );
+}
+
 // ─── Auto Scroll Container ──────────────────────────────────────────────────
 function AutoScrollContainer({
   children,
@@ -2079,7 +2115,7 @@ export default function ExecutiveDisplayPage() {
   const scopedCampusId = userProfile?.campusId && !isAdmin && !isVp ? userProfile.campusId : null;
 
   const scopeLabel = useMemo(() => {
-    if (!scopedCampusId) return 'ENTIRE RSU SYSTEM';
+    if (!scopedCampusId) return 'RSU SYSTEM PERFORMANCE';
     const cName = allCampuses?.find((c) => c.id === scopedCampusId)?.name;
     return cName ? `${cName} CAMPUS` : 'CAMPUS VIEW';
   }, [scopedCampusId, allCampuses]);
@@ -2960,13 +2996,15 @@ export default function ExecutiveDisplayPage() {
                 <img src="/rsulogo.png" alt="RSU Logo" className="h-14 w-14 object-contain" />
                 <img src="/ISOlogo.jpg" alt="ISO Logo" className="h-14 w-auto object-contain" />
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white truncate">
-                  RSU Executive Academic and Operations Overview
-                </p>
-                <p className="text-sm font-bold text-white/55 uppercase tracking-widest truncate">
-                  Real-time Institutional Performance Dashboard
-                </p>
+              <div className="flex-1 min-w-0">
+                <ScrollableTitle
+                  text="RSU Executive Academic and Operations Overview"
+                  className="text-[11px] font-black uppercase tracking-[0.2em] text-white"
+                />
+                <ScrollableTitle
+                  text="Real-time Institutional Performance Dashboard"
+                  className="text-sm font-bold text-white/55 uppercase tracking-widest"
+                />
                 <div
                   className="inline-flex items-center gap-1.5 mt-0.5 px-2 py-0.5 rounded-md"
                   style={{ background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.35)' }}
