@@ -2305,13 +2305,16 @@ export default function ExecutiveDisplayPage() {
           {/* ── Main content ────────────────────────────────────────────────── */}
           <main className="flex-1 min-h-0 px-6 py-3 relative overflow-hidden">
             <div
-              className={`h-full transition-all duration-[350ms] ease-in-out ${
-                animPhase === 'hide'
-                  ? 'opacity-0 scale-[0.97] blur-sm'
+              className="h-full"
+              style={{
+                transition: 'opacity 350ms ease-in-out, transform 350ms ease-in-out',
+                opacity: animPhase === 'hide' ? 0 : 1,
+                transform: animPhase === 'hide'
+                  ? 'translateY(10px)'
                   : animPhase === 'enter'
-                    ? 'opacity-100 scale-100 blur-none'
-                    : 'opacity-100 scale-100 blur-none'
-              }`}
+                    ? 'translateY(-6px)'
+                    : 'translateY(0px)',
+              }}
             >
               {views[currentView]}
             </div>
