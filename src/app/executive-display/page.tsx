@@ -466,25 +466,33 @@ function ViewOverview({
                     ? 'Developing'
                     : 'Baseline'}
           </p>
+          <p className="text-[9px] text-white/45 mt-2 text-center uppercase tracking-wider leading-tight">
+            Composite health index based on EOMS standards
+          </p>
         </div>
 
         {/* Quality Dimensions horizontal bars */}
-        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg">
-          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-2">Quality Dimensions</p>
-          <div className="space-y-1.5">
-            {radarData.map((d) => (
-              <div key={d.subject} className="flex items-center gap-2">
-                <span className="text-sm font-bold text-white/75 w-14 truncate">{d.subject}</span>
-                <div className="flex-1 h-2.5 bg-white/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full"
-                    style={{ width: `${d.value}%`, background: d.color, opacity: 0.85 }}
-                  />
+        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-2">Quality Dimensions</p>
+            <div className="space-y-1.5">
+              {radarData.map((d) => (
+                <div key={d.subject} className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white/75 w-14 truncate">{d.subject}</span>
+                  <div className="flex-1 h-2.5 bg-white/20 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{ width: `${d.value}%`, background: d.color, opacity: 0.85 }}
+                    />
+                  </div>
+                  <span className="text-[11px] font-black text-white/85 w-7 text-right tabular-nums">{d.value}%</span>
                 </div>
-                <span className="text-[11px] font-black text-white/85 w-7 text-right tabular-nums">{d.value}%</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
+          <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-2 text-center border-t border-white/5 pt-1.5">
+            Key pillars of the ISO 21001:2018 EOMS standard
+          </p>
         </div>
 
         {/* Submission Trend Line Chart */}
@@ -497,10 +505,13 @@ function ViewOverview({
               <div className="h-full flex items-center justify-center text-[11px] text-white/45">Insufficient data</div>
             )}
           </div>
+          <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center shrink-0">
+            Timeline of monthly document submissions across all units
+          </p>
         </div>
 
         {/* Risk Severity Donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center justify-between">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">Risk Severity</p>
           <div className="flex-1 w-full min-h-0">
             {riskDist.length > 0 ? (
@@ -509,11 +520,16 @@ function ViewOverview({
               <span className="text-[11px] text-white/45">No data</span>
             )}
           </div>
-          <LegendRow items={riskDist} />
+          <div className="w-full">
+            <LegendRow items={riskDist} />
+            <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center">
+              Active operational threats by severity level
+            </p>
+          </div>
         </div>
 
         {/* CAR Status Donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center justify-between">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">CAR Status</p>
           <div className="flex-1 w-full min-h-0">
             {carDist.length > 0 ? (
@@ -522,7 +538,12 @@ function ViewOverview({
               <span className="text-[11px] text-white/45">No data</span>
             )}
           </div>
-          <LegendRow items={carDist} />
+          <div className="w-full">
+            <LegendRow items={carDist} />
+            <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center">
+              Closure status of Corrective Action Requests
+            </p>
+          </div>
         </div>
 
         {/* Campus ranking table */}
@@ -629,6 +650,10 @@ function ViewSubmissions({
     .filter((c: any) => c.subsTotal > 0)
     .sort((a: any, b: any) => b.subsRate - a.subsRate);
 
+  const subChartIdx = chartData.length > 0 ? cardPhase % chartData.length : 0;
+  const focusedCampus = chartData[subChartIdx];
+  const focusedCampusRaw = focusedCampus ? campuses.find((c: any) => c.name === focusedCampus.name) : null;
+
   return (
     <div className="h-full flex flex-col gap-3">
       <SectionHeader
@@ -660,7 +685,7 @@ function ViewSubmissions({
         </div>
 
         {/* Status donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center justify-between">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Status Breakdown</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
@@ -673,7 +698,12 @@ function ViewSubmissions({
               showDataSummary
             />
           </div>
-          <LegendRow items={subDist} />
+          <div className="w-full">
+            <LegendRow items={subDist} />
+            <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center">
+              Distribution of document submission statuses
+            </p>
+          </div>
         </div>
 
         {/* Monthly trend line */}
@@ -688,38 +718,56 @@ function ViewSubmissions({
               <div className="h-full flex items-center justify-center text-[11px] text-white/45">Insufficient data</div>
             )}
           </div>
+          <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center shrink-0">
+            Timeline of submitted reports across the current academic cycle
+          </p>
         </div>
 
         {/* Campus compliance bar chart */}
-        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
-            Compliance by Campus
-          </p>
-          <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
-                  width={65}
-                />
-                <Bar
-                  dataKey="rate"
-                  radius={[0, 3, 3, 0]}
-                  name="Rate"
-                  fillOpacity={0.85}
-                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
-                >
-                  {chartData.map((_, i) => (
-                    <Cell key={i} fill={i < 3 ? P.green : i < 6 ? P.greenLight : P.gold} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+              Compliance by Campus
+            </p>
+            <div className="h-44 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                  <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
+                    width={65}
+                  />
+                  <Bar
+                    dataKey="rate"
+                    radius={[0, 3, 3, 0]}
+                    name="Rate"
+                    fillOpacity={0.85}
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
+                  >
+                    {chartData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={i === subChartIdx ? P.gold : i < 3 ? P.green : i < 6 ? P.greenLight : P.gold}
+                        fillOpacity={i === subChartIdx ? 1 : 0.3}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+          {focusedCampusRaw && (
+            <div className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein" key={focusedCampusRaw.name}>
+              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>: 
+              Submitted <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsApproved}</span> documents (<span className="text-yellow-300 font-bold">{focusedCampusRaw.subsRate}%</span> compliance). 
+              {focusedCampusRaw.subsPending > 0 && (
+                <span> <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsPending}</span> pending review.</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Top/Bottom performers + Narrative — rotates every 10s */}
@@ -810,6 +858,8 @@ function ViewRisks({
     .slice(0, 10)
     .map((c: any) => ({ name: c.name, rate: c.riskRate }));
   const riskChartIdx = chartData.length > 0 ? cardPhase % chartData.length : 0;
+  const focusedCampus = chartData[riskChartIdx];
+  const focusedCampusRaw = focusedCampus ? campuses.find((c: any) => c.name === focusedCampus.name) : null;
   const panelPhase = cardPhase % 2;
   const highRiskCampuses = [...campuses]
     .filter((c: any) => c.risksHigh > 0)
@@ -840,7 +890,7 @@ function ViewRisks({
         </div>
 
         {/* Severity donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center justify-between">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Severity Distribution</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
@@ -853,52 +903,75 @@ function ViewRisks({
               showDataSummary
             />
           </div>
-          <LegendRow items={severityDist} />
+          <div className="w-full">
+            <LegendRow items={severityDist} />
+            <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center">
+              Active operational threats by severity level
+            </p>
+          </div>
         </div>
 
         {/* Status donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center justify-between">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Status Breakdown</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut data={statusDist} dataKey="value" nameKey="name" size="100%" showDataSummary />
           </div>
-          <LegendRow items={statusDist} />
+          <div className="w-full">
+            <LegendRow items={statusDist} />
+            <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center">
+              Monitors progress of mitigations: Open, Mitigated, or Closed
+            </p>
+          </div>
         </div>
 
         {/* Mitigation bar chart */}
-        <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
-            Mitigation by Campus
-          </p>
-          <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
-                  width={65}
-                />
-                <Bar
-                  dataKey="rate"
-                  radius={[0, 3, 3, 0]}
-                  name="Mitigated"
-                  fillOpacity={0.85}
-                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
-                >
-                  {chartData.map((_, i) => (
-                    <Cell
-                      key={i}
-                      fill={i === riskChartIdx ? P.gold : i < 3 ? P.green : i < 6 ? P.greenLight : P.gold}
-                      fillOpacity={i === riskChartIdx ? 1 : 0.3}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+              Mitigation by Campus
+            </p>
+            <div className="h-44 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                  <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
+                    width={65}
+                  />
+                  <Bar
+                    dataKey="rate"
+                    radius={[0, 3, 3, 0]}
+                    name="Mitigated"
+                    fillOpacity={0.85}
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
+                  >
+                    {chartData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={i === riskChartIdx ? P.gold : i < 3 ? P.green : i < 6 ? P.greenLight : P.gold}
+                        fillOpacity={i === riskChartIdx ? 1 : 0.3}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+          {focusedCampusRaw && (
+            <div className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein" key={focusedCampusRaw.name}>
+              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>: 
+              Mitigated <span className="text-yellow-300 font-bold">{focusedCampusRaw.risksClosed}</span> of <span className="text-yellow-300 font-bold">{focusedCampusRaw.risksTotal}</span> risks ({focusedCampusRaw.riskRate}% rate).
+              {focusedCampusRaw.risksHigh > 0 ? (
+                <span> There are <span className="text-red-400 font-black">{focusedCampusRaw.risksHigh} high-risk</span> items still open requiring immediate treatment.</span>
+              ) : (
+                <span> All high-risk threats successfully mitigated.</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Narrative — rotates every 10s */}
@@ -976,6 +1049,8 @@ function ViewCars({
     .map((c: any) => ({ name: c.name, rate: c.carRate }));
   const totalAudits = auditDist.reduce((s, d) => s + d.value, 0);
   const carChartIdx = chartData.length > 0 ? cardPhase % chartData.length : 0;
+  const focusedCampus = chartData[carChartIdx];
+  const focusedCampusRaw = focusedCampus ? campuses.find((c: any) => c.name === focusedCampus.name) : null;
   const panelPhase = cardPhase % 2;
   const openCarsCampuses = [...campuses]
     .filter((c: any) => c.carsOpen > 0)
@@ -1007,7 +1082,7 @@ function ViewCars({
         </div>
 
         {/* CAR Status donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center justify-between">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">CAR Status</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
@@ -1020,11 +1095,16 @@ function ViewCars({
               showDataSummary
             />
           </div>
-          <LegendRow items={carStatusDist} />
+          <div className="w-full">
+            <LegendRow items={carStatusDist} />
+            <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center">
+              Monitors resolution status: Open, Verified, or Closed
+            </p>
+          </div>
         </div>
 
         {/* CAR Nature donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center justify-between">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">NC vs OFI</p>
           <div className="flex-1 w-full min-h-0">
             {carNatureDist.length > 0 ? (
@@ -1033,11 +1113,16 @@ function ViewCars({
               <div className="h-full flex items-center justify-center text-[11px] text-white/45">No data</div>
             )}
           </div>
-          <LegendRow items={carNatureDist} />
+          <div className="w-full">
+            <LegendRow items={carNatureDist} />
+            <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center">
+              NC (Non-Conformity) vs OFI (Opportunity for Improvement)
+            </p>
+          </div>
         </div>
 
         {/* Audit Status donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center justify-between">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">Audit Status</p>
           <div className="flex-1 w-full min-h-0">
             {auditDist.length > 0 ? (
@@ -1046,43 +1131,59 @@ function ViewCars({
               <div className="h-full flex items-center justify-center text-[11px] text-white/45">No audits</div>
             )}
           </div>
-          <LegendRow items={auditDist} />
+          <div className="w-full">
+            <LegendRow items={auditDist} />
+            <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center">
+              Tracks progress of internal and external quality audits
+            </p>
+          </div>
         </div>
 
         {/* CAR closure bar chart */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
-            CAR Closure by Campus
-          </p>
-          <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
-                  width={65}
-                />
-                <Bar
-                  dataKey="rate"
-                  radius={[0, 3, 3, 0]}
-                  name="Closed"
-                  fillOpacity={0.85}
-                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
-                >
-                  {chartData.map((_, i) => (
-                    <Cell
-                      key={i}
-                      fill={i === carChartIdx ? P.gold : i < 3 ? P.green : i < 6 ? P.greenLight : P.gold}
-                      fillOpacity={i === carChartIdx ? 1 : 0.3}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+              CAR Closure by Campus
+            </p>
+            <div className="h-44 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                  <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
+                    width={65}
+                  />
+                  <Bar
+                    dataKey="rate"
+                    radius={[0, 3, 3, 0]}
+                    name="Closed"
+                    fillOpacity={0.85}
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
+                  >
+                    {chartData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={i === carChartIdx ? P.gold : i < 3 ? P.green : i < 6 ? P.greenLight : P.gold}
+                        fillOpacity={i === carChartIdx ? 1 : 0.3}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+          {focusedCampusRaw && (
+            <div className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein" key={focusedCampusRaw.name}>
+              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>: 
+              Closed <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsClosed}</span> of <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsTotal}</span> CARs ({focusedCampusRaw.carRate}% rate). 
+              {focusedCampusRaw.carsOpen > 0 && (
+                <span> <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsOpen}</span> corrective actions still open.</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Narrative — rotates every 10s */}
@@ -1162,6 +1263,8 @@ function ViewAccred({
     .sort((a: any, b: any) => b.programsWithCopc - a.programsWithCopc)
     .map((c: any) => ({ name: c.name, rate: Math.round((c.programsWithCopc / c.programsTotal) * 100) }));
   const copcChartIdx = cardPhase % Math.max(chartData.length, 1);
+  const focusedCampus = chartData[copcChartIdx];
+  const focusedCampusRaw = focusedCampus ? campuses.find((c: any) => c.name === focusedCampus.name) : null;
   const panelPhase = cardPhase % 2;
 
   return (
@@ -1196,7 +1299,7 @@ function ViewAccred({
         </div>
 
         {/* COPC donut */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col items-center justify-between">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1">COPC Status</p>
           <div className="flex-1 w-full min-h-0">
             <GreenDonut
@@ -1209,87 +1312,108 @@ function ViewAccred({
               showDataSummary
             />
           </div>
-          <LegendRow items={copcDist} />
+          <div className="w-full">
+            <LegendRow items={copcDist} />
+            <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1.5 text-center">
+              Monitors CHED Certificate of Program Compliance status
+            </p>
+          </div>
         </div>
 
         {/* Accreditation level donut + cycling programs */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 text-center">
-            Accreditation Levels
-          </p>
-          <div className="flex-1 min-h-0 flex flex-col">
-            <div className="h-[55%]">
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 text-center">
+              Accreditation Levels
+            </p>
+            <div className="h-28 min-h-0">
               <GreenDonut data={accredDist} dataKey="value" nameKey="name" size="100%" showDataSummary />
             </div>
             <div className="h-px bg-white/10 my-1" />
-            <div className="flex-1 overflow-hidden">
+            <div className="overflow-hidden">
               <p className="text-[11px] font-black uppercase tracking-widest text-yellow-400 text-center mb-0.5">
                 {currentLevelKey}
               </p>
               <div className="text-center space-y-0.5">
-                {currentLevelPrograms.slice(0, 6).map((p, i) => (
+                {currentLevelPrograms.slice(0, 4).map((p, i) => (
                   <p key={i} className="text-xs font-bold text-white/85 truncate">
                     {p.name} <span className="text-white/45 text-[11px]">({p.campus})</span>
                   </p>
                 ))}
-                {currentLevelPrograms.length > 6 && (
-                  <p className="text-[11px] text-white/45">+{currentLevelPrograms.length - 6} more</p>
+                {currentLevelPrograms.length > 4 && (
+                  <p className="text-[11px] text-white/45">+{currentLevelPrograms.length - 4} more</p>
                 )}
               </div>
             </div>
           </div>
+          <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1 text-center">
+            ALCUCOA / AACCUP level classification
+          </p>
         </div>
 
         {/* COPC yearly trend line */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
-            COPC Yearly Trend
-          </p>
-          <div className="flex-1 min-h-0">
-            {copcYearlyTrend.length > 0 ? (
-              <TrendLine
-                data={copcYearlyTrend}
-                dataKey="value"
-                strokeColor={P.gold}
-              />
-            ) : (
-              <div className="h-full flex items-center justify-center text-[11px] text-white/45">Insufficient data</div>
-            )}
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+              COPC Yearly Trend
+            </p>
+            <div className="h-32 min-h-0">
+              {copcYearlyTrend.length > 0 ? (
+                <TrendLine
+                  data={copcYearlyTrend}
+                  dataKey="value"
+                  strokeColor={P.gold}
+                />
+              ) : (
+                <div className="h-full flex items-center justify-center text-[11px] text-white/45">Insufficient data</div>
+              )}
+            </div>
           </div>
+          <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-1 text-center shrink-0">
+            Progress of COPC compliance over preceding academic years
+          </p>
         </div>
 
         {/* COPC by campus bar chart */}
-        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">COPC by Campus</p>
-          <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
-                  width={65}
-                />
-                <Bar
-                  dataKey="rate"
-                  radius={[0, 3, 3, 0]}
-                  name="COPC Rate"
-                  fillOpacity={0.85}
-                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
-                >
-                  {chartData.map((_, i) => (
-                    <Cell
-                      key={i}
-                      fill={i === copcChartIdx ? P.gold : i < 3 ? P.green : i < 6 ? P.greenLight : P.gold}
-                      fillOpacity={i === copcChartIdx ? 1 : 0.3}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">COPC by Campus</p>
+            <div className="h-32 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                  <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
+                    width={65}
+                  />
+                  <Bar
+                    dataKey="rate"
+                    radius={[0, 3, 3, 0]}
+                    name="COPC Rate"
+                    fillOpacity={0.85}
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
+                  >
+                    {chartData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={i === copcChartIdx ? P.gold : i < 3 ? P.green : i < 6 ? P.greenLight : P.gold}
+                        fillOpacity={i === copcChartIdx ? 1 : 0.3}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+          {focusedCampusRaw && (
+            <div className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein" key={focusedCampusRaw.name}>
+              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>: 
+              Has <span className="text-yellow-300 font-bold">{focusedCampusRaw.programsWithCopc}</span> of <span className="text-yellow-300 font-bold">{focusedCampusRaw.programsTotal}</span> programs compliant ({Math.round((focusedCampusRaw.programsWithCopc / focusedCampusRaw.programsTotal) * 100)}% rate).
+            </div>
+          )}
         </div>
 
         {/* Narrative — rotates every 10s */}
@@ -1380,6 +1504,8 @@ function ViewUnitSubmission({
     .map((u) => ({ name: u.name, rate: u.subRate, total: u.subsTotal }));
   const topUnitIdx = unitSubTop.length > 0 ? cardPhase % unitSubTop.length : 0;
   const botUnitIdx = unitSubBottom.length > 0 ? cardPhase % unitSubBottom.length : 0;
+  const unitChartIdx = chartData.length > 0 ? cardPhase % chartData.length : 0;
+  const focusedUnit = chartData[unitChartIdx];
 
   const panelPhase = cardPhase % 2;
   const campusUnitGroups = (() => {
@@ -1481,35 +1607,47 @@ function ViewUnitSubmission({
         </div>
 
         {/* Submission rate bar chart */}
-        <div className="col-span-7 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col">
-          <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
-            Unit Submission Rates (Top 15)
-          </p>
-          <div className="flex-1 min-h-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
-                  width={85}
-                />
-                <Bar
-                  dataKey="rate"
-                  radius={[0, 3, 3, 0]}
-                  name="Rate"
-                  fillOpacity={0.85}
-                  label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: 'bold' }}
-                >
-                  {chartData.map((_, i) => (
-                    <Cell key={i} fill={i < 5 ? P.green : i < 10 ? P.greenLight : P.gold} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="col-span-7 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
+          <div>
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
+              Unit Submission Rates (Top 15)
+            </p>
+            <div className="h-44 min-h-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
+                  <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }} domain={[0, 100]} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 700 }}
+                    width={85}
+                  />
+                  <Bar
+                    dataKey="rate"
+                    radius={[0, 3, 3, 0]}
+                    name="Rate"
+                    fillOpacity={0.85}
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: 'bold' }}
+                  >
+                    {chartData.map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={i === unitChartIdx ? P.gold : i < 5 ? P.green : i < 10 ? P.greenLight : P.gold}
+                        fillOpacity={i === unitChartIdx ? 1 : 0.3}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
+          {focusedUnit && (
+            <div className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein" key={focusedUnit.name}>
+              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedUnit.name}</span>: 
+              Has attained a <span className="text-yellow-300 font-bold">{focusedUnit.rate}%</span> submission rate across <span className="text-yellow-300 font-bold">{focusedUnit.total}</span> logged documents in this submission cycle.
+            </div>
+          )}
         </div>
 
         {/* Narrative — rotates every 10s */}
