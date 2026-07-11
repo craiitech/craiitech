@@ -172,19 +172,6 @@ function SectionHeader({
   panelPhase?: number;
   panelCount?: number;
 }) {
-  const { userProfile, isAdmin, isVp } = useUser();
-  const firestore = useFirestore();
-  const campusesQ = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
-  const { data: allCampuses } = useCollection<Campus>(campusesQ);
-
-  const scopedCampusId = userProfile?.campusId && !isAdmin && !isVp ? userProfile.campusId : null;
-
-  const scopeLabel = useMemo(() => {
-    if (!scopedCampusId) return 'ENTIRE RSU SYSTEM';
-    const cName = allCampuses?.find((c) => c.id === scopedCampusId)?.name;
-    return cName ? `${cName} CAMPUS` : 'CAMPUS VIEW';
-  }, [scopedCampusId, allCampuses]);
-
   return (
     <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
       <div className="flex items-center gap-3 min-w-0">
@@ -195,21 +182,7 @@ function SectionHeader({
           <Icon className="h-4 w-4" style={{ color: P.white }} />
         </div>
         <div className="min-w-0">
-          <div className="flex items-center gap-3 flex-wrap">
-            <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
-            <span
-              className="px-3.5 py-1 rounded-xl text-[13px] font-black tracking-widest uppercase text-white shadow-lg shrink-0"
-              style={{
-                background: scopedCampusId
-                  ? 'linear-gradient(135deg, #1d4ed8, #3b82f6)'
-                  : `linear-gradient(135deg, ${P.greenDark}, ${P.green})`,
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                boxShadow: scopedCampusId ? '0 4px 12px rgba(59, 130, 246, 0.3)' : `0 4px 12px rgba(34, 197, 94, 0.3)`,
-              }}
-            >
-              {scopeLabel}
-            </span>
-          </div>
+          <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
           {subtitle && (
             <p className="text-[11px] text-white/75 font-bold uppercase tracking-widest truncate">{subtitle}</p>
           )}
@@ -2105,6 +2078,12 @@ export default function ExecutiveDisplayPage() {
   // ── Scoped Campus check for Campus Directors/Coordinators ─────────────────
   const scopedCampusId = userProfile?.campusId && !isAdmin && !isVp ? userProfile.campusId : null;
 
+  const scopeLabel = useMemo(() => {
+    if (!scopedCampusId) return 'ENTIRE RSU SYSTEM';
+    const cName = allCampuses?.find((c) => c.id === scopedCampusId)?.name;
+    return cName ? `${cName} CAMPUS` : 'CAMPUS VIEW';
+  }, [scopedCampusId, allCampuses]);
+
   // ── Memoised derivations ──────────────────────────────────────────────────
   const submissions = useMemo(() => {
     let all = rawSubs || [];
@@ -2975,16 +2954,17 @@ export default function ExecutiveDisplayPage() {
         <>
           {/* ── Header ──────────────────────────────────────────────────────── */}
           <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 mr-1">
+            {/* Left Section: Logos & Title */}
+            <div className="flex items-center gap-3 w-1/3 min-w-0">
+              <div className="flex items-center gap-2 mr-1 shrink-0">
                 <img src="/rsulogo.png" alt="RSU Logo" className="h-14 w-14 object-contain" />
                 <img src="/ISOlogo.jpg" alt="ISO Logo" className="h-14 w-auto object-contain" />
               </div>
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
+              <div className="min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white truncate">
                   RSU Executive Academic and Operations Overview
                 </p>
-                <p className="text-sm font-bold text-white/55 uppercase tracking-widest">
+                <p className="text-sm font-bold text-white/55 uppercase tracking-widest truncate">
                   Real-time Institutional Performance Dashboard
                 </p>
                 <div
@@ -2999,7 +2979,26 @@ export default function ExecutiveDisplayPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Center Section: Prominent Scope Badge */}
+            <div className="flex-1 flex justify-center shrink-0">
+              <span
+                className="px-6 py-2 rounded-2xl text-base font-black tracking-widest uppercase text-white shadow-xl border select-none transition-all duration-500 hover:scale-105"
+                style={{
+                  background: scopedCampusId
+                    ? 'linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6)'
+                    : `linear-gradient(135deg, ${P.greenDark}, ${P.green}, ${P.greenLight})`,
+                  borderColor: 'rgba(255, 255, 255, 0.25)',
+                  boxShadow: scopedCampusId
+                    ? '0 6px 20px rgba(59, 130, 246, 0.45)'
+                    : `0 6px 20px rgba(34, 197, 94, 0.45)`,
+                }}
+              >
+                {scopeLabel}
+              </span>
+            </div>
+
+            {/* Right Section: Navigation Controls & Info */}
+            <div className="flex items-center justify-end gap-3 w-1/3 min-w-0">
               {/* View indicator dots */}
               <div className="flex gap-2 items-center">
                 {VIEW_META.map((v, i) => (
