@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from '@/firebase/firestore-wrapper';
 import { useYear } from '@/lib/year-provider';
 import {
@@ -35,6 +35,8 @@ import {
   Maximize2,
   Minimize2,
   Building2,
+  LogOut,
+  Lock,
 } from 'lucide-react';
 import type {
   Submission,
@@ -157,23 +159,57 @@ function SectionHeader({
   title,
   subtitle,
   color,
+  period,
+  panelPhase,
+  panelCount = 2,
 }: {
   icon: any;
   title: string;
   subtitle?: string;
   color: string;
+  period?: string;
+  panelPhase?: number;
+  panelCount?: number;
 }) {
   return (
-    <div className="flex items-center gap-3 mb-3 shrink-0">
-      <div
-        className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: `${color}33`, border: `1px solid ${P.goldLight}` }}
-      >
-        <Icon className="h-4 w-4" style={{ color: P.white }} />
+    <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
+      <div className="flex items-center gap-3 min-w-0">
+        <div
+          className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: `${color}33`, border: `1px solid ${P.goldLight}` }}
+        >
+          <Icon className="h-4 w-4" style={{ color: P.white }} />
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
+          {subtitle && <p className="text-[11px] text-white/75 font-bold uppercase tracking-widest truncate">{subtitle}</p>}
+        </div>
       </div>
-      <div>
-        <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
-        {subtitle && <p className="text-[11px] text-white/75 font-bold uppercase tracking-widest">{subtitle}</p>}
+      <div className="flex items-center gap-2 shrink-0">
+        {period && (
+          <div
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg"
+            style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)' }}
+          >
+            <div className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />
+            <span className="text-[10px] font-black text-yellow-300 uppercase tracking-[0.12em]">{period}</span>
+          </div>
+        )}
+        {panelPhase !== undefined && (
+          <div className="flex items-center gap-1">
+            {Array.from({ length: panelCount }).map((_, i) => (
+              <div
+                key={i}
+                className="rounded-full transition-all duration-500"
+                style={{
+                  width: panelPhase % panelCount === i ? 16 : 6,
+                  height: 6,
+                  background: panelPhase % panelCount === i ? P.gold : 'rgba(255,255,255,0.2)',
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -565,6 +601,7 @@ function ViewSubmissions({
   subDist,
   trendData,
   cardPhase,
+  periodLabel,
 }: {
   campuses: any[];
   totalApproved: number;
@@ -574,6 +611,7 @@ function ViewSubmissions({
   subDist: { name: string; value: number; color: string }[];
   trendData: { name: string; value: number }[];
   cardPhase: number;
+  periodLabel: string;
 }) {
   const rate = totalSubs > 0 ? Math.round((totalApproved / totalSubs) * 100) : 0;
   const chartData = campuses
@@ -586,6 +624,11 @@ function ViewSubmissions({
   const topIdx = cardPhase % 3;
   const botIdx = cardPhase % 3;
 
+  const panelPhase = cardPhase % 2;
+  const campusRanked = [...campuses]
+    .filter((c: any) => c.subsTotal > 0)
+    .sort((a: any, b: any) => b.subsRate - a.subsRate);
+
   return (
     <div className="h-full flex flex-col gap-3">
       <SectionHeader
@@ -593,6 +636,8 @@ function ViewSubmissions({
         title="Submission Compliance Analytics"
         subtitle="Document submission rates · Status breakdown · Monthly trend"
         color={P.green}
+        period={periodLabel}
+        panelPhase={panelPhase}
       />
       <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* KPI row */}
@@ -677,51 +722,59 @@ function ViewSubmissions({
           </div>
         </div>
 
-        {/* Top/Bottom performers + Narrative */}
-        <div className="col-span-2 flex flex-col gap-2">
-          <div className="rounded-xl border border-green-700/30 bg-green-950/80 backdrop-blur-md p-3 shadow-md">
-            <p className="text-sm font-black uppercase tracking-[0.15em] text-green-300">Top Performing Campuses</p>
-            {top3.map((c, i) => (
-              <div
-                key={i}
-                className={`flex items-center justify-between mt-1.5 transition-opacity duration-700 ${i === topIdx ? 'opacity-100' : 'opacity-30'}`}
-              >
-                <span
-                  className={`text-[11px] font-bold truncate max-w-[80px] ${i === topIdx ? 'text-white' : 'text-white/60'}`}
-                >
-                  {c.name}
-                </span>
-                <span className={`text-[11px] font-black ${i === topIdx ? 'text-green-300' : 'text-white/40'}`}>
-                  {c.rate}%
-                </span>
-              </div>
-            ))}
-          </div>
-          {bottom3.length > 0 && (
-            <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md">
-              <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400">Needs Improvement</p>
-              {bottom3.map((c, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center justify-between mt-1.5 transition-opacity duration-700 ${i === botIdx ? 'opacity-100' : 'opacity-30'}`}
-                >
-                  <span
-                    className={`text-[11px] font-bold truncate max-w-[80px] ${i === botIdx ? 'text-white' : 'text-white/60'}`}
+        {/* Top/Bottom performers + Narrative — rotates every 10s */}
+        <div key={panelPhase} className="col-span-2 flex flex-col gap-2 animate-panel-fadein">
+          {panelPhase === 0 ? (
+            <>
+              <div className="rounded-xl border border-green-700/30 bg-green-950/80 backdrop-blur-md p-3 shadow-md">
+                <p className="text-sm font-black uppercase tracking-[0.15em] text-green-300">Top Performing Campuses</p>
+                {top3.map((c, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between mt-1.5 transition-opacity duration-700 ${i === topIdx ? 'opacity-100' : 'opacity-30'}`}
                   >
-                    {c.name}
-                  </span>
-                  <span className={`text-[11px] font-black ${i === botIdx ? 'text-yellow-400' : 'text-white/40'}`}>
-                    {c.rate}%
-                  </span>
+                    <span className={`text-[11px] font-bold truncate max-w-[80px] ${i === topIdx ? 'text-white' : 'text-white/60'}`}>{c.name}</span>
+                    <span className={`text-[11px] font-black ${i === topIdx ? 'text-green-300' : 'text-white/40'}`}>{c.rate}%</span>
+                  </div>
+                ))}
+              </div>
+              {bottom3.length > 0 && (
+                <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md">
+                  <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400">Needs Improvement</p>
+                  {bottom3.map((c, i) => (
+                    <div
+                      key={i}
+                      className={`flex items-center justify-between mt-1.5 transition-opacity duration-700 ${i === botIdx ? 'opacity-100' : 'opacity-30'}`}
+                    >
+                      <span className={`text-[11px] font-bold truncate max-w-[80px] ${i === botIdx ? 'text-white' : 'text-white/60'}`}>{c.name}</span>
+                      <span className={`text-[11px] font-black ${i === botIdx ? 'text-yellow-400' : 'text-white/40'}`}>{c.rate}%</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+              <NarrativeCard
+                title="Context"
+                text={`With ${totalApproved} of ${totalSubs} submissions approved (${rate}%), the university maintains ${rate >= 80 ? 'strong' : rate >= 60 ? 'adequate' : 'below-target'} compliance. Target is 80%+.`}
+                color={P.green}
+              />
+            </>
+          ) : (
+            <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">Campus Compliance Ranking</p>
+              <div className="flex-1 space-y-1 overflow-hidden">
+                {campusRanked.slice(0, 8).map((c: any, i: number) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-black text-white/40 w-4 tabular-nums text-right">{i + 1}</span>
+                    <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
+                    <div className="w-14 h-1.5 bg-white/15 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${c.subsRate}%`, background: statusColor(c.subsRate) }} />
+                    </div>
+                    <span className="text-[10px] font-black text-white/85 w-7 text-right tabular-nums">{c.subsRate}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-          <NarrativeCard
-            title="Context"
-            text={`With ${totalApproved} of ${totalSubs} submissions approved (${rate}%), the university maintains ${rate >= 80 ? 'strong' : rate >= 60 ? 'adequate' : 'below-target'} compliance. Target is 80%+.`}
-            color={P.green}
-          />
         </div>
       </div>
     </div>
@@ -739,6 +792,7 @@ function ViewRisks({
   severityDist,
   statusDist,
   cardPhase,
+  periodLabel,
 }: {
   campuses: any[];
   totalRisks: number;
@@ -747,6 +801,7 @@ function ViewRisks({
   severityDist: { name: string; value: number; color: string }[];
   statusDist: { name: string; value: number; color: string }[];
   cardPhase: number;
+  periodLabel: string;
 }) {
   const rate = totalRisks > 0 ? Math.round((closedRisks / totalRisks) * 100) : 0;
   const chartData = campuses
@@ -755,6 +810,10 @@ function ViewRisks({
     .slice(0, 10)
     .map((c: any) => ({ name: c.name, rate: c.riskRate }));
   const riskChartIdx = chartData.length > 0 ? cardPhase % chartData.length : 0;
+  const panelPhase = cardPhase % 2;
+  const highRiskCampuses = [...campuses]
+    .filter((c: any) => c.risksHigh > 0)
+    .sort((a: any, b: any) => b.risksHigh - a.risksHigh);
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -763,6 +822,8 @@ function ViewRisks({
         title="Risk Management Intelligence"
         subtitle="Risk severity · Status distribution · Mitigation effectiveness by campus"
         color={P.gold}
+        period={periodLabel}
+        panelPhase={panelPhase}
       />
       <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* KPI summary */}
@@ -840,22 +901,43 @@ function ViewRisks({
           </div>
         </div>
 
-        {/* Narrative */}
-        <div className="col-span-2 flex flex-col gap-2">
-          <NarrativeCard
-            title="Risk Landscape"
-            text={
-              highRisks > 0
-                ? `${highRisks} high-risk items need immediate executive attention. ${rate}% overall mitigation shows ${rate >= 70 ? 'strong' : 'developing'} risk governance.`
-                : `All high-risk items addressed. ${rate}% mitigation reflects a ${rate >= 70 ? 'mature' : 'developing'} risk-aware culture.`
-            }
-            color={P.gold}
-          />
-          <NarrativeCard
-            title="Recommendation"
-            text="Regularly review and update risk registers. Ensure treatment plans are documented and verified. Focus on high and very high-risk items first."
-            color={P.goldDark}
-          />
+        {/* Narrative — rotates every 10s */}
+        <div key={panelPhase} className="col-span-2 flex flex-col gap-2 animate-panel-fadein">
+          {panelPhase === 0 ? (
+            <>
+              <NarrativeCard
+                title="Risk Landscape"
+                text={
+                  highRisks > 0
+                    ? `${highRisks} high-risk items need immediate executive attention. ${rate}% overall mitigation shows ${rate >= 70 ? 'strong' : 'developing'} risk governance.`
+                    : `All high-risk items addressed. ${rate}% mitigation reflects a ${rate >= 70 ? 'mature' : 'developing'} risk-aware culture.`
+                }
+                color={P.gold}
+              />
+              <NarrativeCard
+                title="Recommendation"
+                text="Regularly review and update risk registers. Ensure treatment plans are documented and verified. Focus on high and very high-risk items first."
+                color={P.goldDark}
+              />
+            </>
+          ) : (
+            <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-yellow-400 mb-2">⚠ High-Risk Campuses</p>
+              {highRiskCampuses.length === 0 ? (
+                <p className="text-[11px] text-white/55 italic">No high-risk items currently logged.</p>
+              ) : (
+                <div className="flex-1 space-y-1.5 overflow-hidden">
+                  {highRiskCampuses.slice(0, 7).map((c: any, i: number) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-[9px] font-black text-white/40 w-4 tabular-nums text-right">{i + 1}</span>
+                      <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
+                      <span className="text-[10px] font-black text-yellow-400 tabular-nums">{c.risksHigh} high</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -863,7 +945,7 @@ function ViewRisks({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// VIEW 4: CAR Performance
+// VIEW 4: Corrective Actions & Audit
 // ═══════════════════════════════════════════════════════════════════════════════
 function ViewCars({
   campuses,
@@ -874,6 +956,7 @@ function ViewCars({
   carNatureDist,
   auditDist,
   cardPhase,
+  periodLabel,
 }: {
   campuses: any[];
   totalCars: number;
@@ -883,6 +966,7 @@ function ViewCars({
   carNatureDist: { name: string; value: number; color: string }[];
   auditDist: { name: string; value: number; color: string }[];
   cardPhase: number;
+  periodLabel: string;
 }) {
   const rate = totalCars > 0 ? Math.round((closedCars / totalCars) * 100) : 0;
   const chartData = campuses
@@ -892,6 +976,10 @@ function ViewCars({
     .map((c: any) => ({ name: c.name, rate: c.carRate }));
   const totalAudits = auditDist.reduce((s, d) => s + d.value, 0);
   const carChartIdx = chartData.length > 0 ? cardPhase % chartData.length : 0;
+  const panelPhase = cardPhase % 2;
+  const openCarsCampuses = [...campuses]
+    .filter((c: any) => c.carsOpen > 0)
+    .sort((a: any, b: any) => b.carsOpen - a.carsOpen);
 
   return (
     <div className="h-full flex flex-col gap-3">
@@ -900,6 +988,8 @@ function ViewCars({
         title="Corrective Action & Audit Performance"
         subtitle="CAR closure rates · Audit status · Combined compliance view"
         color={P.greenLight}
+        period={periodLabel}
+        panelPhase={panelPhase}
       />
       <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* KPI summary */}
@@ -995,18 +1085,39 @@ function ViewCars({
           </div>
         </div>
 
-        {/* Narrative */}
-        <div className="col-span-2 flex flex-col gap-2">
-          <NarrativeCard
-            title="CAR Performance"
-            text={`${closedCars} of ${totalCars} CARs resolved (${rate}%). ${openCars} open CARs need follow-up. High closure rates demonstrate commitment to continuous improvement.`}
-            color={P.greenLight}
-          />
-          <NarrativeCard
-            title="Audit Overview"
-            text={`${totalAudits} total audits. Ensure timely completion of scheduled audits to maintain IQA compliance.`}
-            color={P.gold}
-          />
+        {/* Narrative — rotates every 10s */}
+        <div key={panelPhase} className="col-span-2 flex flex-col gap-2 animate-panel-fadein">
+          {panelPhase === 0 ? (
+            <>
+              <NarrativeCard
+                title="CAR Performance"
+                text={`${closedCars} of ${totalCars} CARs resolved (${rate}%). ${openCars} open CARs need follow-up. High closure rates demonstrate commitment to continuous improvement.`}
+                color={P.greenLight}
+              />
+              <NarrativeCard
+                title="Audit Overview"
+                text={`${totalAudits} total audits. Ensure timely completion of scheduled audits to maintain IQA compliance.`}
+                color={P.gold}
+              />
+            </>
+          ) : (
+            <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">Open CARs by Campus</p>
+              {openCarsCampuses.length === 0 ? (
+                <p className="text-[11px] text-green-300 font-bold">✓ All CARs resolved across all campuses.</p>
+              ) : (
+                <div className="flex-1 space-y-1.5 overflow-hidden">
+                  {openCarsCampuses.slice(0, 7).map((c: any, i: number) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-[9px] font-black text-white/40 w-4 tabular-nums text-right">{i + 1}</span>
+                      <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
+                      <span className="text-[10px] font-black text-yellow-400 tabular-nums">{c.carsOpen} open</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1029,6 +1140,7 @@ function ViewAccred({
   currentLevelPrograms,
   copcYearlyTrend,
   cardPhase,
+  periodLabel,
 }: {
   campuses: any[];
   totalPrograms: number;
@@ -1039,32 +1151,28 @@ function ViewAccred({
   accredDist: { name: string; value: number; color: string }[];
   progLevelDist: { name: string; value: number; color: string }[];
   currentLevelKey: string;
-  currentLevelPrograms: { name: string; campus: string }[];
-  copcYearlyTrend: { year: number; rate: number }[];
+  currentLevelPrograms: any[];
+  copcYearlyTrend: { name: string; value: number }[];
   cardPhase: number;
+  periodLabel: string;
 }) {
   const copcRate = totalPrograms > 0 ? Math.round((withCopc / totalPrograms) * 100) : 0;
   const chartData = campuses
     .filter((c: any) => c.programsTotal > 0)
-    .sort((a: any, b: any) => {
-      const aRate = a.programsTotal > 0 ? (a.programsWithCopc / a.programsTotal) * 100 : 0;
-      const bRate = b.programsTotal > 0 ? (b.programsWithCopc / b.programsTotal) * 100 : 0;
-      return bRate - aRate;
-    })
-    .slice(0, 10)
-    .map((c: any) => ({
-      name: c.name,
-      rate: c.programsTotal > 0 ? Math.round((c.programsWithCopc / c.programsTotal) * 100) : 0,
-    }));
-  const copcChartIdx = chartData.length > 0 ? cardPhase % chartData.length : 0;
+    .sort((a: any, b: any) => b.programsWithCopc - a.programsWithCopc)
+    .map((c: any) => ({ name: c.name, rate: Math.round((c.programsWithCopc / c.programsTotal) * 100) }));
+  const copcChartIdx = cardPhase % Math.max(chartData.length, 1);
+  const panelPhase = cardPhase % 2;
 
   return (
     <div className="h-full flex flex-col gap-3">
       <SectionHeader
         icon={GraduationCap}
-        title="Accreditation & Program Quality"
+        title="Accreditation & COPC Intelligence"
         subtitle="COPC compliance · Accreditation levels · Program distribution"
         color={P.gold}
+        period={periodLabel}
+        panelPhase={panelPhase}
       />
       <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* KPI summary */}
@@ -1140,7 +1248,7 @@ function ViewAccred({
           <div className="flex-1 min-h-0">
             {copcYearlyTrend.length > 0 ? (
               <TrendLine
-                data={copcYearlyTrend.map((d) => ({ name: String(d.year), value: d.rate }))}
+                data={copcYearlyTrend}
                 dataKey="value"
                 strokeColor={P.gold}
               />
@@ -1184,18 +1292,38 @@ function ViewAccred({
           </div>
         </div>
 
-        {/* Narrative */}
-        <div className="col-span-2 flex flex-col gap-2">
-          <NarrativeCard
-            title="Regulatory Status"
-            text={`${copcRate}% of programs are COPC-compliant. ${noCopc} programs need action to maintain CHED good standing.`}
-            color={P.gold}
-          />
-          <NarrativeCard
-            title="Accreditation"
-            text="Higher accreditation levels (III, IV) indicate program quality maturity. Monitor programs with lapsed or low accreditation for improvement."
-            color={P.goldDark}
-          />
+        {/* Narrative — rotates every 10s */}
+        <div key={panelPhase} className="col-span-2 flex flex-col gap-2 animate-panel-fadein">
+          {panelPhase === 0 ? (
+            <>
+              <NarrativeCard
+                title="Regulatory Status"
+                text={`${copcRate}% of programs are COPC-compliant. ${noCopc} programs need action to maintain CHED good standing.`}
+                color={P.gold}
+              />
+              <NarrativeCard
+                title="Accreditation"
+                text="Higher accreditation levels (III, IV) indicate program quality maturity. Monitor programs with lapsed or low accreditation for improvement."
+                color={P.goldDark}
+              />
+            </>
+          ) : (
+            <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">COPC Compliance by Campus</p>
+              <div className="flex-1 space-y-1.5 overflow-hidden">
+                {chartData.slice(0, 7).map((c, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <span className="text-[9px] font-black text-white/40 w-4 tabular-nums text-right">{i + 1}</span>
+                    <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
+                    <div className="w-12 h-1.5 bg-white/15 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${c.rate}%`, background: statusColor(c.rate) }} />
+                    </div>
+                    <span className="text-[10px] font-black text-white/85 w-7 text-right tabular-nums">{c.rate}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1213,6 +1341,7 @@ function ViewUnitSubmission({
   unitsWithoutSubs,
   unitSubData,
   cardPhase,
+  periodLabel,
 }: {
   unitSubTop: {
     id: string;
@@ -1242,6 +1371,7 @@ function ViewUnitSubmission({
     subRate: number;
   }[];
   cardPhase: number;
+  periodLabel: string;
 }) {
   const overallRate = totalUnits > 0 ? Math.round((unitsWithSubs / totalUnits) * 100) : 0;
   const chartData = unitSubData
@@ -1251,6 +1381,20 @@ function ViewUnitSubmission({
   const topUnitIdx = unitSubTop.length > 0 ? cardPhase % unitSubTop.length : 0;
   const botUnitIdx = unitSubBottom.length > 0 ? cardPhase % unitSubBottom.length : 0;
 
+  const panelPhase = cardPhase % 2;
+  const campusUnitGroups = (() => {
+    const groups: Record<string, { name: string; total: number; active: number }> = {};
+    unitSubData.forEach((u) => {
+      const key = u.campusName || 'Unknown';
+      if (!groups[key]) groups[key] = { name: u.campusName, total: 0, active: 0 };
+      groups[key].total++;
+      if (u.subRate > 0) groups[key].active++;
+    });
+    return Object.values(groups)
+      .map((g) => ({ ...g, rate: g.total > 0 ? Math.round((g.active / g.total) * 100) : 0 }))
+      .sort((a, b) => b.rate - a.rate);
+  })();
+
   return (
     <div className="h-full flex flex-col gap-3">
       <SectionHeader
@@ -1258,6 +1402,8 @@ function ViewUnitSubmission({
         title="Unit Submission Compliance"
         subtitle="Top performers · Non-compliant units · Strengths & weaknesses"
         color={P.greenLight}
+        period={periodLabel}
+        panelPhase={panelPhase}
       />
       <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* KPI summary */}
@@ -1366,31 +1512,51 @@ function ViewUnitSubmission({
           </div>
         </div>
 
-        {/* Narrative */}
-        <div className="col-span-5 flex flex-col gap-2">
-          <NarrativeCard
-            title="Strengths"
-            text={
-              unitSubTop.length > 0
-                ? `Top units like ${unitSubTop[0].name} (${unitSubTop[0].subRate}%) and ${unitSubTop[1]?.name || ''} (${unitSubTop[1]?.subRate || 0}%) demonstrate strong submission compliance, setting the benchmark for the institution.`
-                : 'No submission data available.'
-            }
-            color={P.greenLight}
-          />
-          <NarrativeCard
-            title="Weaknesses"
-            text={
-              unitsWithoutSubs > 0
-                ? `${unitsWithoutSubs} units have zero submissions — indicating possible process gaps, lack of awareness, or resource constraints. The lowest performers need targeted intervention and retraining on submission procedures.`
-                : `All units are actively submitting. Maintain the upward trend through continuous monitoring.`
-            }
-            color={P.gold}
-          />
-          <NarrativeCard
-            title="Recommendation"
-            text="Recognize top-performing units publicly. For non-compliant units, assign QA liaisons to provide direct support and track weekly submission progress."
-            color={P.goldDark}
-          />
+        {/* Narrative — rotates every 10s */}
+        <div key={panelPhase} className="col-span-5 flex flex-col gap-2 animate-panel-fadein">
+          {panelPhase === 0 ? (
+            <>
+              <NarrativeCard
+                title="Strengths"
+                text={
+                  unitSubTop.length > 0
+                    ? `Top units like ${unitSubTop[0].name} (${unitSubTop[0].subRate}%) and ${unitSubTop[1]?.name || ''} (${unitSubTop[1]?.subRate || 0}%) demonstrate strong submission compliance, setting the benchmark for the institution.`
+                    : 'No submission data available.'
+                }
+                color={P.greenLight}
+              />
+              <NarrativeCard
+                title="Weaknesses"
+                text={
+                  unitsWithoutSubs > 0
+                    ? `${unitsWithoutSubs} units have zero submissions — indicating possible process gaps, lack of awareness, or resource constraints. The lowest performers need targeted intervention and retraining on submission procedures.`
+                    : `All units are actively submitting. Maintain the upward trend through continuous monitoring.`
+                }
+                color={P.gold}
+              />
+              <NarrativeCard
+                title="Recommendation"
+                text="Recognize top-performing units publicly. For non-compliant units, assign QA liaisons to provide direct support and track weekly submission progress."
+                color={P.goldDark}
+              />
+            </>
+          ) : (
+            <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">Unit Compliance by Campus</p>
+              {campusUnitGroups.length === 0 ? (
+                <p className="text-[11px] text-white/45 italic">No campus data available.</p>
+              ) : (
+                <div className="flex-1 grid grid-cols-2 gap-x-4 gap-y-1.5 overflow-hidden">
+                  {campusUnitGroups.slice(0, 10).map((c, i) => (
+                    <div key={i} className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
+                      <span className="text-[10px] font-black tabular-nums" style={{ color: statusColor(c.rate) }}>{c.rate}%</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -1451,12 +1617,17 @@ interface CampusPerf {
 export default function ExecutiveDisplayPage() {
   const firestore = useFirestore();
   const { selectedYear } = useYear();
+  const { user, isUserLoading } = useUser();
   const [currentView, setCurrentView] = useState(0);
   const [cardPhase, setCardPhase] = useState(0);
   const [animPhase, setAnimPhase] = useState<'show' | 'hide' | 'enter'>('show');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [now, setNow] = useState(new Date());
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const month = now.getMonth() + 1; // 1–12
+  const semester = month >= 8 ? '1st Semester' : month <= 6 ? '2nd Semester' : 'Mid-Year';
+  const periodLabel = `AY ${selectedYear}–${selectedYear + 1} · ${semester}`;
 
   // ── Clock ─────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -2120,6 +2291,7 @@ export default function ExecutiveDisplayPage() {
         subDist={subStatusDist}
         trendData={submissionTrend}
         cardPhase={cardPhase}
+        periodLabel={periodLabel}
       />,
       <ViewRisks
         key="v2"
@@ -2130,6 +2302,7 @@ export default function ExecutiveDisplayPage() {
         severityDist={riskSeverityDist}
         statusDist={riskStatusDist}
         cardPhase={cardPhase}
+        periodLabel={periodLabel}
       />,
       <ViewCars
         key="v3"
@@ -2141,6 +2314,7 @@ export default function ExecutiveDisplayPage() {
         carNatureDist={carNatureDist}
         auditDist={auditStatusDist}
         cardPhase={cardPhase}
+        periodLabel={periodLabel}
       />,
       <ViewAccred
         key="v4"
@@ -2154,8 +2328,9 @@ export default function ExecutiveDisplayPage() {
         progLevelDist={progLevelDist}
         currentLevelKey={currentLevelKey}
         currentLevelPrograms={currentLevelPrograms}
-        copcYearlyTrend={copcYearlyTrend}
+        copcYearlyTrend={copcYearlyTrend.map((d) => ({ name: String(d.year), value: d.rate }))}
         cardPhase={cardPhase}
+        periodLabel={periodLabel}
       />,
       <ViewUnitSubmission
         key="v5"
@@ -2166,6 +2341,7 @@ export default function ExecutiveDisplayPage() {
         unitsWithoutSubs={unitsWithoutSubs}
         unitSubData={unitSubData}
         cardPhase={cardPhase}
+        periodLabel={periodLabel}
       />,
     ],
     [
@@ -2193,12 +2369,16 @@ export default function ExecutiveDisplayPage() {
       currentLevelPrograms,
       copcYearlyTrend,
       cardPhase,
+      periodLabel,
     ],
   );
 
   // ── Render ────────────────────────────────────────────────────────────────
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // ── Session-expired guard ─────────────────────────────────────────────────
+  const isLoggedOut = !isUserLoading && !user;
 
   return (
     <div
@@ -2222,6 +2402,34 @@ export default function ExecutiveDisplayPage() {
           }}
         />
       </div>
+
+      {/* ── Session-expired overlay (highest priority) ────────────────────── */}
+      {isLoggedOut && (
+        <div className="absolute inset-0 z-[60] flex flex-col items-center justify-center bg-green-950/95 backdrop-blur-xl">
+          <div className="flex flex-col items-center gap-5 px-10 py-12 rounded-2xl border border-red-500/30 bg-red-950/40 shadow-2xl max-w-sm text-center">
+            <div className="h-16 w-16 rounded-2xl bg-red-500/20 flex items-center justify-center animate-pulse">
+              <Lock className="h-8 w-8 text-red-400" />
+            </div>
+            <div>
+              <p className="text-xl font-black uppercase tracking-[0.15em] text-white">
+                Session Expired
+              </p>
+              <p className="text-sm text-white/55 mt-2">
+                The display account has been logged out. Please sign in again to resume the live dashboard.
+              </p>
+            </div>
+            <a
+              href="/login"
+              className="px-10 py-3 rounded-xl font-black uppercase tracking-widest text-sm transition-all duration-300 hover:scale-105 active:scale-95 text-white"
+              style={{ background: `linear-gradient(135deg, #dc2626, #b91c1c)` }}
+            >
+              <LogOut className="inline h-4 w-4 mr-2" />
+              Sign In Again
+            </a>
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">{dateStr} · {timeStr}</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Fullscreen gate ───────────────────────────────────────────────── */}
       {!isFullscreen && (
@@ -2263,6 +2471,13 @@ export default function ExecutiveDisplayPage() {
                 <p className="text-sm font-bold text-white/55 uppercase tracking-widest">
                   Real-time Institutional Performance Dashboard
                 </p>
+                <div
+                  className="inline-flex items-center gap-1.5 mt-0.5 px-2 py-0.5 rounded-md"
+                  style={{ background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.35)' }}
+                >
+                  <div className="h-1 w-1 rounded-full bg-yellow-400 animate-pulse" />
+                  <span className="text-[9px] font-black text-yellow-300 uppercase tracking-[0.15em]">{periodLabel}</span>
+                </div>
               </div>
             </div>
 

@@ -153,6 +153,7 @@ export default function Home() {
                                     src="/rsulogo.png" 
                                     alt="Romblon State University Logo" 
                                     fill
+                                    sizes="(max-width: 640px) 64px, (max-width: 768px) 80px, 96px"
                                     className="object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
                                     priority
                                 />
@@ -173,6 +174,7 @@ export default function Home() {
                                     src="/qa_logo.png" 
                                     alt="Quality Assurance Logo" 
                                     fill
+                                    sizes="(max-width: 640px) 64px, (max-width: 768px) 80px, 96px"
                                     className="object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
                                     priority
                                 />
