@@ -296,6 +296,8 @@ function GreenDonut({
   centerValue,
   size = '100%',
   showDataSummary = false,
+  innerRadius = '50%',
+  outerRadius = '75%',
 }: {
   data: { name: string; value: number; color: string }[];
   dataKey: string;
@@ -304,6 +306,8 @@ function GreenDonut({
   centerValue?: string;
   size?: string;
   showDataSummary?: boolean;
+  innerRadius?: number | string;
+  outerRadius?: number | string;
 }) {
   const total = data.reduce((s, d) => s + d.value, 0);
   return (
@@ -322,8 +326,8 @@ function GreenDonut({
               nameKey={nameKey}
               cx="50%"
               cy="50%"
-              innerRadius={55}
-              outerRadius={80}
+              innerRadius={innerRadius}
+              outerRadius={outerRadius}
               paddingAngle={2}
               stroke="none"
               labelLine={false}
@@ -1326,22 +1330,30 @@ function ViewAccred({
             <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 text-center">
               Accreditation Levels
             </p>
-            <div className="h-28 min-h-0">
-              <GreenDonut data={accredDist} dataKey="value" nameKey="name" size="100%" showDataSummary />
+            <div className="h-36 min-h-0">
+              <GreenDonut
+                data={accredDist}
+                dataKey="value"
+                nameKey="name"
+                size="100%"
+                centerLabel="Programs"
+                centerValue={String(totalPrograms)}
+                showDataSummary
+              />
             </div>
             <div className="h-px bg-white/10 my-1" />
             <div className="overflow-hidden">
-              <p className="text-[11px] font-black uppercase tracking-widest text-yellow-400 text-center mb-0.5">
+              <p className="text-[11px] font-black uppercase tracking-widest text-yellow-400 text-center mb-0.5 animate-panel-fadein" key={currentLevelKey}>
                 {currentLevelKey}
               </p>
               <div className="text-center space-y-0.5">
-                {currentLevelPrograms.slice(0, 4).map((p, i) => (
+                {currentLevelPrograms.slice(0, 6).map((p, i) => (
                   <p key={i} className="text-xs font-bold text-white/85 truncate">
                     {p.name} <span className="text-white/45 text-[11px]">({p.campus})</span>
                   </p>
                 ))}
-                {currentLevelPrograms.length > 4 && (
-                  <p className="text-[11px] text-white/45">+{currentLevelPrograms.length - 4} more</p>
+                {currentLevelPrograms.length > 6 && (
+                  <p className="text-[11px] text-white/45 font-semibold">+{currentLevelPrograms.length - 6} more</p>
                 )}
               </div>
             </div>
