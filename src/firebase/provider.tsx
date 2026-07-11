@@ -168,7 +168,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     return doc(firestore, 'roles_admin', userAuthState.user.uid);
   }, [userAuthState.user, firestore]);
 
-  const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef);
+  const { data: adminRoleDoc, isLoading: isAdminRoleLoading } = useDoc(adminRoleDocRef, { silent: true });
 
   const roleDocRef = useMemoFirebase(() => {
     if (!firestore || !userProfile?.roleId) return null;

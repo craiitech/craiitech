@@ -22,13 +22,14 @@ export interface UseDocResult<T> {
 
 interface UseDocOptions {
   live?: boolean;
+  silent?: boolean;
 }
 
 export function useDoc<T = any>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
   options?: UseDocOptions,
 ): UseDocResult<T> {
-  const { live = true } = options ?? {};
+  const { live = true, silent = false } = options ?? {};
   type StateDataType = WithId<T> | null;
 
   const [data, setData] = useState<StateDataType>(null);
@@ -78,7 +79,9 @@ export function useDoc<T = any>(
       setError(contextualError)
       setData(null)
       setIsLoading(false)
-      errorEmitter.emit('permission-error', contextualError);
+      if (!silent) {
+        errorEmitter.emit('permission-error', contextualError);
+      }
     };
 
     if (live) {
