@@ -286,12 +286,14 @@ function CampusRow({
 // ─── Narrative Card ──────────────────────────────────────────────────────────
 function NarrativeCard({ title, text, color }: { title: string; text: string; color: string }) {
   return (
-    <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-4 flex flex-col gap-2 shadow-md">
-      <div className="flex items-center gap-2">
-        <div className="h-2 w-2 rounded-full" style={{ background: color }} />
+    <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-4 flex flex-col gap-2 shadow-md flex-1 min-h-0">
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="h-2 w-2 rounded-full shrink-0" style={{ background: color }} />
         <p className="text-xs font-black uppercase tracking-[0.15em] text-white/75">{title}</p>
       </div>
-      <p className="text-sm text-white/80 leading-relaxed">{text}</p>
+      <AutoScrollContainer className="flex-1">
+        <p className="text-sm text-white/80 leading-relaxed">{text}</p>
+      </AutoScrollContainer>
     </div>
   );
 }
@@ -584,9 +586,11 @@ function ViewOverview({
 
         {/* Quality Dimensions horizontal bars */}
         <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
-          <div>
-            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-2">Quality Dimensions</p>
-            <div className="space-y-1.5">
+          <div className="flex-1 flex flex-col min-h-0">
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-2 shrink-0">
+              Quality Dimensions
+            </p>
+            <AutoScrollContainer className="flex-1 space-y-1.5">
               {radarData.map((d) => (
                 <div key={d.subject} className="flex items-center gap-2">
                   <span className="text-sm font-bold text-white/75 w-14 truncate">{d.subject}</span>
@@ -599,9 +603,9 @@ function ViewOverview({
                   <span className="text-[11px] font-black text-white/85 w-7 text-right tabular-nums">{d.value}%</span>
                 </div>
               ))}
-            </div>
+            </AutoScrollContainer>
           </div>
-          <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-2 text-center border-t border-white/5 pt-1.5">
+          <p className="text-[9px] text-white/40 font-bold uppercase tracking-wide mt-2 text-center border-t border-white/5 pt-1.5 shrink-0">
             Key pillars of the ISO 21001:2018 EOMS standard
           </p>
         </div>
@@ -705,15 +709,19 @@ function ViewOverview({
               </div>
             </div>
           )}
-          <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex flex-col justify-center">
-            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65">Institution Overview</p>
-            <p className="text-xs text-white/85 mt-1 leading-relaxed">
-              {totalSubs} submissions · {totalRisks} risks · {totalCars} CARs across {campuses.length} campuses
+          <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col min-h-0">
+            <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 shrink-0">
+              Institution Overview
             </p>
-            <p className="text-sm text-white/55 mt-1">
-              The EOMS score integrates submission compliance, risk mitigation, CAR closure, audit progress, and
-              accreditation.
-            </p>
+            <AutoScrollContainer className="flex-1 mt-1">
+              <p className="text-xs text-white/85 leading-relaxed">
+                {totalSubs} submissions · {totalRisks} risks · {totalCars} CARs across {campuses.length} campuses
+              </p>
+              <p className="text-sm text-white/55 mt-1">
+                The EOMS score integrates submission compliance, risk mitigation, CAR closure, audit progress, and
+                accreditation.
+              </p>
+            </AutoScrollContainer>
           </div>
         </div>
       </div>
@@ -871,20 +879,22 @@ function ViewSubmissions({
             </div>
           </div>
           {focusedCampusRaw && (
-            <div
-              className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
-              key={focusedCampusRaw.name}
-            >
-              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>:
-              Submitted <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsApproved}</span> documents (
-              <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsRate}%</span> compliance).
-              {focusedCampusRaw.subsPending > 0 && (
-                <span>
-                  {' '}
-                  <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsPending}</span> pending review.
-                </span>
-              )}
-            </div>
+            <AutoScrollContainer className="mt-2 shrink-0" maxHeight="60px">
+              <div
+                className="p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
+                key={focusedCampusRaw.name}
+              >
+                <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>:
+                Submitted <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsApproved}</span> documents (
+                <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsRate}%</span> compliance).
+                {focusedCampusRaw.subsPending > 0 && (
+                  <span>
+                    {' '}
+                    <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsPending}</span> pending review.
+                  </span>
+                )}
+              </div>
+            </AutoScrollContainer>
           )}
         </div>
 
@@ -892,42 +902,52 @@ function ViewSubmissions({
         <div key={panelPhase} className="col-span-2 flex flex-col gap-2 animate-panel-fadein">
           {panelPhase === 0 ? (
             <>
-              <div className="rounded-xl border border-green-700/30 bg-green-950/80 backdrop-blur-md p-3 shadow-md">
-                <p className="text-sm font-black uppercase tracking-[0.15em] text-green-300">Top Performing Campuses</p>
-                {top3.map((c, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center justify-between mt-1.5 transition-opacity duration-700 ${i === topIdx ? 'opacity-100' : 'opacity-30'}`}
-                  >
-                    <span
-                      className={`text-[11px] font-bold truncate max-w-[80px] ${i === topIdx ? 'text-white' : 'text-white/60'}`}
-                    >
-                      {c.name}
-                    </span>
-                    <span className={`text-[11px] font-black ${i === topIdx ? 'text-green-300' : 'text-white/40'}`}>
-                      {c.rate}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-              {bottom3.length > 0 && (
-                <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md">
-                  <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400">Needs Improvement</p>
-                  {bottom3.map((c, i) => (
+              <div className="rounded-xl border border-green-700/30 bg-green-950/80 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col min-h-0">
+                <p className="text-sm font-black uppercase tracking-[0.15em] text-green-300 shrink-0">
+                  Top Performing Campuses
+                </p>
+                <AutoScrollContainer className="flex-1 mt-1.5">
+                  {top3.map((c, i) => (
                     <div
                       key={i}
-                      className={`flex items-center justify-between mt-1.5 transition-opacity duration-700 ${i === botIdx ? 'opacity-100' : 'opacity-30'}`}
+                      className={`flex items-center justify-between transition-opacity duration-700 ${i === topIdx ? 'opacity-100' : 'opacity-30'} py-0.5`}
                     >
                       <span
-                        className={`text-[11px] font-bold truncate max-w-[80px] ${i === botIdx ? 'text-white' : 'text-white/60'}`}
+                        className={`text-[11px] font-bold truncate max-w-[80px] ${i === topIdx ? 'text-white' : 'text-white/60'}`}
                       >
                         {c.name}
                       </span>
-                      <span className={`text-[11px] font-black ${i === botIdx ? 'text-yellow-400' : 'text-white/40'}`}>
+                      <span className={`text-[11px] font-black ${i === topIdx ? 'text-green-300' : 'text-white/40'}`}>
                         {c.rate}%
                       </span>
                     </div>
                   ))}
+                </AutoScrollContainer>
+              </div>
+              {bottom3.length > 0 && (
+                <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col min-h-0">
+                  <p className="text-sm font-black uppercase tracking-[0.15em] text-yellow-400 shrink-0">
+                    Needs Improvement
+                  </p>
+                  <AutoScrollContainer className="flex-1 mt-1.5">
+                    {bottom3.map((c, i) => (
+                      <div
+                        key={i}
+                        className={`flex items-center justify-between transition-opacity duration-700 ${i === botIdx ? 'opacity-100' : 'opacity-30'} py-0.5`}
+                      >
+                        <span
+                          className={`text-[11px] font-bold truncate max-w-[80px] ${i === botIdx ? 'text-white' : 'text-white/60'}`}
+                        >
+                          {c.name}
+                        </span>
+                        <span
+                          className={`text-[11px] font-black ${i === botIdx ? 'text-yellow-400' : 'text-white/40'}`}
+                        >
+                          {c.rate}%
+                        </span>
+                      </div>
+                    ))}
+                  </AutoScrollContainer>
                 </div>
               )}
               <NarrativeCard
@@ -1099,24 +1119,26 @@ function ViewRisks({
             </div>
           </div>
           {focusedCampusRaw && (
-            <div
-              className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
-              key={focusedCampusRaw.name}
-            >
-              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>:
-              Mitigated <span className="text-yellow-300 font-bold">{focusedCampusRaw.risksClosed}</span> of{' '}
-              <span className="text-yellow-300 font-bold">{focusedCampusRaw.risksTotal}</span> risks (
-              {focusedCampusRaw.riskRate}% rate).
-              {focusedCampusRaw.risksHigh > 0 ? (
-                <span>
-                  {' '}
-                  There are <span className="text-red-400 font-black">{focusedCampusRaw.risksHigh} high-risk</span>{' '}
-                  items still open requiring immediate treatment.
-                </span>
-              ) : (
-                <span> All high-risk threats successfully mitigated.</span>
-              )}
-            </div>
+            <AutoScrollContainer className="mt-2 shrink-0" maxHeight="60px">
+              <div
+                className="p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
+                key={focusedCampusRaw.name}
+              >
+                <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>:
+                Mitigated <span className="text-yellow-300 font-bold">{focusedCampusRaw.risksClosed}</span> of{' '}
+                <span className="text-yellow-300 font-bold">{focusedCampusRaw.risksTotal}</span> risks (
+                {focusedCampusRaw.riskRate}% rate).
+                {focusedCampusRaw.risksHigh > 0 ? (
+                  <span>
+                    {' '}
+                    <span className="text-red-400 font-black">{focusedCampusRaw.risksHigh} high-risk</span> items still
+                    open requiring immediate treatment.
+                  </span>
+                ) : (
+                  <span> All high-risk threats successfully mitigated.</span>
+                )}
+              </div>
+            </AutoScrollContainer>
           )}
         </div>
 
@@ -1124,20 +1146,24 @@ function ViewRisks({
         <div key={panelPhase} className="col-span-2 flex flex-col gap-2 animate-panel-fadein">
           {panelPhase === 0 ? (
             <>
-              <NarrativeCard
-                title="Risk Landscape"
-                text={
-                  highRisks > 0
-                    ? `${highRisks} high-risk items need immediate executive attention. ${rate}% overall mitigation shows ${rate >= 70 ? 'strong' : 'developing'} risk governance.`
-                    : `All high-risk items addressed. ${rate}% mitigation reflects a ${rate >= 70 ? 'mature' : 'developing'} risk-aware culture.`
-                }
-                color={P.gold}
-              />
-              <NarrativeCard
-                title="Recommendation"
-                text="Regularly review and update risk registers. Ensure treatment plans are documented and verified. Focus on high and very high-risk items first."
-                color={P.goldDark}
-              />
+              <AutoScrollContainer maxHeight="120px">
+                <NarrativeCard
+                  title="Risk Landscape"
+                  text={
+                    highRisks > 0
+                      ? `${highRisks} high-risk items need immediate executive attention. ${rate}% overall mitigation shows ${rate >= 70 ? 'strong' : 'developing'} risk governance.`
+                      : `All high-risk items addressed. ${rate}% mitigation reflects a ${rate >= 70 ? 'mature' : 'developing'} risk-aware culture.`
+                  }
+                  color={P.gold}
+                />
+              </AutoScrollContainer>
+              <AutoScrollContainer maxHeight="120px">
+                <NarrativeCard
+                  title="Recommendation"
+                  text="Regularly review and update risk registers. Ensure treatment plans are documented and verified. Focus on high and very high-risk items first."
+                  color={P.goldDark}
+                />
+              </AutoScrollContainer>
             </>
           ) : (
             <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
@@ -1324,22 +1350,24 @@ function ViewCars({
             </div>
           </div>
           {focusedCampusRaw && (
-            <div
-              className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
-              key={focusedCampusRaw.name}
-            >
-              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>:
-              Closed <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsClosed}</span> of{' '}
-              <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsTotal}</span> CARs (
-              {focusedCampusRaw.carRate}% rate).
-              {focusedCampusRaw.carsOpen > 0 && (
-                <span>
-                  {' '}
-                  <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsOpen}</span> corrective actions
-                  still open.
-                </span>
-              )}
-            </div>
+            <AutoScrollContainer className="mt-2 shrink-0" maxHeight="60px">
+              <div
+                className="p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
+                key={focusedCampusRaw.name}
+              >
+                <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>:
+                Closed <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsClosed}</span> of{' '}
+                <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsTotal}</span> CARs (
+                {focusedCampusRaw.carRate}% rate).
+                {focusedCampusRaw.carsOpen > 0 && (
+                  <span>
+                    {' '}
+                    <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsOpen}</span> corrective actions
+                    still open.
+                  </span>
+                )}
+              </div>
+            </AutoScrollContainer>
           )}
         </div>
 
@@ -1347,16 +1375,20 @@ function ViewCars({
         <div key={panelPhase} className="col-span-2 flex flex-col gap-2 animate-panel-fadein">
           {panelPhase === 0 ? (
             <>
-              <NarrativeCard
-                title="CAR Performance"
-                text={`${closedCars} of ${totalCars} CARs resolved (${rate}%). ${openCars} open CARs need follow-up. High closure rates demonstrate commitment to continuous improvement.`}
-                color={P.greenLight}
-              />
-              <NarrativeCard
-                title="Audit Overview"
-                text={`${totalAudits} total audits. Ensure timely completion of scheduled audits to maintain IQA compliance.`}
-                color={P.gold}
-              />
+              <AutoScrollContainer maxHeight="120px">
+                <NarrativeCard
+                  title="CAR Performance"
+                  text={`${closedCars} of ${totalCars} CARs resolved (${rate}%). ${openCars} open CARs need follow-up. High closure rates demonstrate commitment to continuous improvement.`}
+                  color={P.greenLight}
+                />
+              </AutoScrollContainer>
+              <AutoScrollContainer maxHeight="120px">
+                <NarrativeCard
+                  title="Audit Overview"
+                  text={`${totalAudits} total audits. Ensure timely completion of scheduled audits to maintain IQA compliance.`}
+                  color={P.gold}
+                />
+              </AutoScrollContainer>
             </>
           ) : (
             <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
@@ -1518,11 +1550,11 @@ function ViewAccred({
 
         {/* COPC yearly trend line */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
-          <div>
+          <div className="flex-1 flex flex-col min-h-0">
             <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
               COPC Yearly Trend
             </p>
-            <div className="h-32 min-h-0">
+            <div className="flex-1 min-h-0">
               {copcYearlyTrend.length > 0 ? (
                 <TrendLine data={copcYearlyTrend} dataKey="value" strokeColor={P.gold} />
               ) : (
@@ -1539,9 +1571,9 @@ function ViewAccred({
 
         {/* COPC by campus bar chart */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
-          <div>
+          <div className="flex-1 flex flex-col min-h-0">
             <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">COPC by Campus</p>
-            <div className="h-32 min-h-0">
+            <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
@@ -1572,15 +1604,17 @@ function ViewAccred({
             </div>
           </div>
           {focusedCampusRaw && (
-            <div
-              className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
-              key={focusedCampusRaw.name}
-            >
-              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>: Has{' '}
-              <span className="text-yellow-300 font-bold">{focusedCampusRaw.programsWithCopc}</span> of{' '}
-              <span className="text-yellow-300 font-bold">{focusedCampusRaw.programsTotal}</span> programs compliant (
-              {Math.round((focusedCampusRaw.programsWithCopc / focusedCampusRaw.programsTotal) * 100)}% rate).
-            </div>
+            <AutoScrollContainer className="mt-2 shrink-0" maxHeight="60px">
+              <div
+                className="p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
+                key={focusedCampusRaw.name}
+              >
+                <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>:
+                Has <span className="text-yellow-300 font-bold">{focusedCampusRaw.programsWithCopc}</span> of{' '}
+                <span className="text-yellow-300 font-bold">{focusedCampusRaw.programsTotal}</span> programs compliant (
+                {Math.round((focusedCampusRaw.programsWithCopc / focusedCampusRaw.programsTotal) * 100)}% rate).
+              </div>
+            </AutoScrollContainer>
           )}
         </div>
 
@@ -1816,15 +1850,17 @@ function ViewUnitSubmission({
             </div>
           </div>
           {focusedUnit && (
-            <div
-              className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
-              key={focusedUnit.name}
-            >
-              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedUnit.name}</span>: Has
-              attained a <span className="text-yellow-300 font-bold">{focusedUnit.rate}%</span> submission rate across{' '}
-              <span className="text-yellow-300 font-bold">{focusedUnit.total}</span> logged documents in this submission
-              cycle.
-            </div>
+            <AutoScrollContainer className="mt-2 shrink-0" maxHeight="60px">
+              <div
+                className="p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
+                key={focusedUnit.name}
+              >
+                <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedUnit.name}</span>: Has
+                attained a <span className="text-yellow-300 font-bold">{focusedUnit.rate}%</span> submission rate across{' '}
+                <span className="text-yellow-300 font-bold">{focusedUnit.total}</span> logged documents in this
+                submission cycle.
+              </div>
+            </AutoScrollContainer>
           )}
         </div>
 
