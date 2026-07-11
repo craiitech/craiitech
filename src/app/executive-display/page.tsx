@@ -836,11 +836,11 @@ function ViewSubmissions({
 
         {/* Campus compliance bar chart */}
         <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
-          <div>
+          <div className="flex-1 flex flex-col min-h-0">
             <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
               Compliance by Campus
             </p>
-            <div className="h-44 min-h-0">
+            <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
@@ -1064,11 +1064,11 @@ function ViewRisks({
 
         {/* Mitigation bar chart */}
         <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
-          <div>
+          <div className="flex-1 flex flex-col min-h-0">
             <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
               Mitigation by Campus
             </p>
-            <div className="h-44 min-h-0">
+            <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
@@ -1289,11 +1289,11 @@ function ViewCars({
 
         {/* CAR closure bar chart */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
-          <div>
+          <div className="flex-1 flex flex-col min-h-0">
             <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
               CAR Closure by Campus
             </p>
-            <div className="h-44 min-h-0">
+            <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
@@ -1479,11 +1479,11 @@ function ViewAccred({
 
         {/* Accreditation level donut + cycling programs */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
-          <div>
+          <div className="flex-1 flex flex-col min-h-0">
             <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 text-center">
               Accreditation Levels
             </p>
-            <div className="h-36 min-h-0">
+            <div className="flex-1 min-h-0">
               <GreenDonut
                 data={accredDist}
                 dataKey="value"
@@ -1781,11 +1781,11 @@ function ViewUnitSubmission({
 
         {/* Submission rate bar chart */}
         <div className="col-span-7 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col justify-between">
-          <div>
+          <div className="flex-1 flex flex-col min-h-0">
             <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
               Unit Submission Rates (Top 15)
             </p>
-            <div className="h-44 min-h-0">
+            <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} layout="vertical" margin={{ left: 0, right: 45, top: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" horizontal={false} />
@@ -2928,7 +2928,7 @@ export default function ExecutiveDisplayPage() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 mr-1">
                 <img src="/rsulogo.png" alt="RSU Logo" className="h-14 w-14 object-contain" />
-                <img src="/ISOlogo.jpg" alt="ISO Logo" className="h-14 w-auto object-contain rounded-sm" />
+                <img src="/ISOlogo.jpg" alt="ISO Logo" className="h-14 w-auto object-contain" />
               </div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
