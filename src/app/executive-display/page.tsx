@@ -3003,12 +3003,13 @@ export default function ExecutiveDisplayPage() {
               {/* View indicator dots */}
               <div className="flex gap-2 items-center">
                 {VIEW_META.map((v, i) => (
-                  <div key={i} className="flex items-center gap-1">
-                    <div
-                      className={`rounded-full transition-all duration-500 ${currentView === i ? 'h-2 w-6' : 'h-2 w-2 bg-white/20'}`}
-                      style={currentView === i ? { background: v.color } : {}}
-                    />
-                  </div>
+                  <button
+                    key={i}
+                    onClick={() => handleViewChange(i)}
+                    className={`rounded-full transition-all duration-500 hover:scale-125 cursor-pointer focus:outline-none ${currentView === i ? 'h-2 w-6' : 'h-2 w-2 bg-white/20'}`}
+                    style={currentView === i ? { background: v.color } : {}}
+                    title={`Go to ${v.label}`}
+                  />
                 ))}
               </div>
               {/* Fullscreen toggle button */}
@@ -3062,21 +3063,22 @@ export default function ExecutiveDisplayPage() {
             <p className="text-sm font-bold text-white/45 uppercase tracking-widest">
               AY {selectedYear}–{selectedYear + 1} &middot; Real-time
             </p>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {VIEW_META.map((v, i) => (
                 <button
                   key={i}
                   onClick={() => handleViewChange(i)}
-                  className="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all duration-500 hover:bg-white/5 cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1 rounded-lg transition-all duration-300 hover:scale-105 cursor-pointer text-white border select-none"
                   style={{
-                    background: currentView === i ? `${v.color}25` : 'transparent',
-                    border: currentView === i ? `1px solid ${v.color}40` : '1px solid transparent',
+                    background: currentView === i ? `${v.color}25` : 'rgba(255,255,255,0.03)',
+                    borderColor: currentView === i ? `${v.color}60` : 'rgba(255,255,255,0.1)',
                   }}
+                  title={`Go to ${v.label}`}
                 >
-                  <div className="h-1.5 w-1.5 rounded-full" style={{ background: v.color }} />
+                  <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ background: v.color }} />
                   <span
-                    className="text-[8px] font-black uppercase tracking-widest transition-all duration-500"
-                    style={{ color: currentView === i ? v.color : 'rgba(255,255,255,0.35)' }}
+                    className="text-[9px] font-black uppercase tracking-wider transition-all duration-300"
+                    style={{ color: currentView === i ? '#ffffff' : 'rgba(255,255,255,0.55)' }}
                   >
                     {v.label}
                   </span>
@@ -3086,10 +3088,10 @@ export default function ExecutiveDisplayPage() {
               {/* Next page manual cycle button */}
               <button
                 onClick={handleNextView}
-                className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-white/20 bg-white/5 hover:bg-white/15 text-white/80 hover:text-white transition-all cursor-pointer select-none"
+                className="flex items-center gap-1 px-3 py-1 rounded-lg border border-white/20 bg-white/5 hover:bg-white/15 text-white/80 hover:text-white transition-all hover:scale-105 cursor-pointer select-none"
               >
-                <span className="text-[8px] font-black uppercase tracking-widest">Next</span>
-                <ChevronRight className="h-2.5 w-2.5" />
+                <span className="text-[9px] font-black uppercase tracking-wider">Next</span>
+                <ChevronRight className="h-3 w-3" />
               </button>
             </div>
             <p className="text-sm font-bold text-white/45 tabular-nums">{timeStr}</p>
