@@ -171,6 +171,19 @@ function SectionHeader({
   panelPhase?: number;
   panelCount?: number;
 }) {
+  const { userProfile, isAdmin, isVp } = useUser();
+  const firestore = useFirestore();
+  const campusesQ = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: allCampuses } = useCollection<Campus>(campusesQ);
+
+  const scopedCampusId = userProfile?.campusId && !isAdmin && !isVp ? userProfile.campusId : null;
+
+  const scopeLabel = useMemo(() => {
+    if (!scopedCampusId) return 'ENTIRE RSU SYSTEM';
+    const cName = allCampuses?.find((c) => c.id === scopedCampusId)?.name;
+    return cName ? `${cName} CAMPUS` : 'CAMPUS VIEW';
+  }, [scopedCampusId, allCampuses]);
+
   return (
     <div className="flex items-center justify-between gap-3 mb-3 shrink-0">
       <div className="flex items-center gap-3 min-w-0">
@@ -181,8 +194,24 @@ function SectionHeader({
           <Icon className="h-4 w-4" style={{ color: P.white }} />
         </div>
         <div className="min-w-0">
-          <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
-          {subtitle && <p className="text-[11px] text-white/75 font-bold uppercase tracking-widest truncate">{subtitle}</p>}
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-lg font-black tracking-tight text-white">{title}</h2>
+            <span
+              className="px-3.5 py-1 rounded-xl text-[13px] font-black tracking-widest uppercase text-white shadow-lg shrink-0"
+              style={{
+                background: scopedCampusId
+                  ? 'linear-gradient(135deg, #1d4ed8, #3b82f6)'
+                  : `linear-gradient(135deg, ${P.greenDark}, ${P.green})`,
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                boxShadow: scopedCampusId ? '0 4px 12px rgba(59, 130, 246, 0.3)' : `0 4px 12px rgba(34, 197, 94, 0.3)`,
+              }}
+            >
+              {scopeLabel}
+            </span>
+          </div>
+          {subtitle && (
+            <p className="text-[11px] text-white/75 font-bold uppercase tracking-widest truncate">{subtitle}</p>
+          )}
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
@@ -764,11 +793,18 @@ function ViewSubmissions({
             </div>
           </div>
           {focusedCampusRaw && (
-            <div className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein" key={focusedCampusRaw.name}>
-              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>: 
-              Submitted <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsApproved}</span> documents (<span className="text-yellow-300 font-bold">{focusedCampusRaw.subsRate}%</span> compliance). 
+            <div
+              className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
+              key={focusedCampusRaw.name}
+            >
+              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>:
+              Submitted <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsApproved}</span> documents (
+              <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsRate}%</span> compliance).
               {focusedCampusRaw.subsPending > 0 && (
-                <span> <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsPending}</span> pending review.</span>
+                <span>
+                  {' '}
+                  <span className="text-yellow-300 font-bold">{focusedCampusRaw.subsPending}</span> pending review.
+                </span>
               )}
             </div>
           )}
@@ -785,8 +821,14 @@ function ViewSubmissions({
                     key={i}
                     className={`flex items-center justify-between mt-1.5 transition-opacity duration-700 ${i === topIdx ? 'opacity-100' : 'opacity-30'}`}
                   >
-                    <span className={`text-[11px] font-bold truncate max-w-[80px] ${i === topIdx ? 'text-white' : 'text-white/60'}`}>{c.name}</span>
-                    <span className={`text-[11px] font-black ${i === topIdx ? 'text-green-300' : 'text-white/40'}`}>{c.rate}%</span>
+                    <span
+                      className={`text-[11px] font-bold truncate max-w-[80px] ${i === topIdx ? 'text-white' : 'text-white/60'}`}
+                    >
+                      {c.name}
+                    </span>
+                    <span className={`text-[11px] font-black ${i === topIdx ? 'text-green-300' : 'text-white/40'}`}>
+                      {c.rate}%
+                    </span>
                   </div>
                 ))}
               </div>
@@ -798,8 +840,14 @@ function ViewSubmissions({
                       key={i}
                       className={`flex items-center justify-between mt-1.5 transition-opacity duration-700 ${i === botIdx ? 'opacity-100' : 'opacity-30'}`}
                     >
-                      <span className={`text-[11px] font-bold truncate max-w-[80px] ${i === botIdx ? 'text-white' : 'text-white/60'}`}>{c.name}</span>
-                      <span className={`text-[11px] font-black ${i === botIdx ? 'text-yellow-400' : 'text-white/40'}`}>{c.rate}%</span>
+                      <span
+                        className={`text-[11px] font-bold truncate max-w-[80px] ${i === botIdx ? 'text-white' : 'text-white/60'}`}
+                      >
+                        {c.name}
+                      </span>
+                      <span className={`text-[11px] font-black ${i === botIdx ? 'text-yellow-400' : 'text-white/40'}`}>
+                        {c.rate}%
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -812,16 +860,23 @@ function ViewSubmissions({
             </>
           ) : (
             <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
-              <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">Campus Compliance Ranking</p>
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">
+                Campus Compliance Ranking
+              </p>
               <div className="flex-1 space-y-1 overflow-hidden">
                 {campusRanked.slice(0, 8).map((c: any, i: number) => (
                   <div key={i} className="flex items-center gap-1.5">
                     <span className="text-[9px] font-black text-white/40 w-4 tabular-nums text-right">{i + 1}</span>
                     <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
                     <div className="w-14 h-1.5 bg-white/15 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${c.subsRate}%`, background: statusColor(c.subsRate) }} />
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${c.subsRate}%`, background: statusColor(c.subsRate) }}
+                      />
                     </div>
-                    <span className="text-[10px] font-black text-white/85 w-7 text-right tabular-nums">{c.subsRate}%</span>
+                    <span className="text-[10px] font-black text-white/85 w-7 text-right tabular-nums">
+                      {c.subsRate}%
+                    </span>
                   </div>
                 ))}
               </div>
@@ -966,11 +1021,20 @@ function ViewRisks({
             </div>
           </div>
           {focusedCampusRaw && (
-            <div className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein" key={focusedCampusRaw.name}>
-              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>: 
-              Mitigated <span className="text-yellow-300 font-bold">{focusedCampusRaw.risksClosed}</span> of <span className="text-yellow-300 font-bold">{focusedCampusRaw.risksTotal}</span> risks ({focusedCampusRaw.riskRate}% rate).
+            <div
+              className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
+              key={focusedCampusRaw.name}
+            >
+              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>:
+              Mitigated <span className="text-yellow-300 font-bold">{focusedCampusRaw.risksClosed}</span> of{' '}
+              <span className="text-yellow-300 font-bold">{focusedCampusRaw.risksTotal}</span> risks (
+              {focusedCampusRaw.riskRate}% rate).
               {focusedCampusRaw.risksHigh > 0 ? (
-                <span> There are <span className="text-red-400 font-black">{focusedCampusRaw.risksHigh} high-risk</span> items still open requiring immediate treatment.</span>
+                <span>
+                  {' '}
+                  There are <span className="text-red-400 font-black">{focusedCampusRaw.risksHigh} high-risk</span>{' '}
+                  items still open requiring immediate treatment.
+                </span>
               ) : (
                 <span> All high-risk threats successfully mitigated.</span>
               )}
@@ -999,7 +1063,9 @@ function ViewRisks({
             </>
           ) : (
             <div className="rounded-xl border border-yellow-600/30 bg-yellow-950/80 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
-              <p className="text-xs font-black uppercase tracking-[0.15em] text-yellow-400 mb-2">⚠ High-Risk Campuses</p>
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-yellow-400 mb-2">
+                ⚠ High-Risk Campuses
+              </p>
               {highRiskCampuses.length === 0 ? (
                 <p className="text-[11px] text-white/55 italic">No high-risk items currently logged.</p>
               ) : (
@@ -1180,11 +1246,20 @@ function ViewCars({
             </div>
           </div>
           {focusedCampusRaw && (
-            <div className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein" key={focusedCampusRaw.name}>
-              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>: 
-              Closed <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsClosed}</span> of <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsTotal}</span> CARs ({focusedCampusRaw.carRate}% rate). 
+            <div
+              className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
+              key={focusedCampusRaw.name}
+            >
+              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>:
+              Closed <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsClosed}</span> of{' '}
+              <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsTotal}</span> CARs (
+              {focusedCampusRaw.carRate}% rate).
               {focusedCampusRaw.carsOpen > 0 && (
-                <span> <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsOpen}</span> corrective actions still open.</span>
+                <span>
+                  {' '}
+                  <span className="text-yellow-300 font-bold">{focusedCampusRaw.carsOpen}</span> corrective actions
+                  still open.
+                </span>
               )}
             </div>
           )}
@@ -1343,7 +1418,10 @@ function ViewAccred({
             </div>
             <div className="h-px bg-white/10 my-1" />
             <div className="overflow-hidden">
-              <p className="text-[11px] font-black uppercase tracking-widest text-yellow-400 text-center mb-0.5 animate-panel-fadein" key={currentLevelKey}>
+              <p
+                className="text-[11px] font-black uppercase tracking-widest text-yellow-400 text-center mb-0.5 animate-panel-fadein"
+                key={currentLevelKey}
+              >
                 {currentLevelKey}
               </p>
               <div className="text-center space-y-0.5">
@@ -1371,13 +1449,11 @@ function ViewAccred({
             </p>
             <div className="h-32 min-h-0">
               {copcYearlyTrend.length > 0 ? (
-                <TrendLine
-                  data={copcYearlyTrend}
-                  dataKey="value"
-                  strokeColor={P.gold}
-                />
+                <TrendLine data={copcYearlyTrend} dataKey="value" strokeColor={P.gold} />
               ) : (
-                <div className="h-full flex items-center justify-center text-[11px] text-white/45">Insufficient data</div>
+                <div className="h-full flex items-center justify-center text-[11px] text-white/45">
+                  Insufficient data
+                </div>
               )}
             </div>
           </div>
@@ -1421,9 +1497,14 @@ function ViewAccred({
             </div>
           </div>
           {focusedCampusRaw && (
-            <div className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein" key={focusedCampusRaw.name}>
-              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>: 
-              Has <span className="text-yellow-300 font-bold">{focusedCampusRaw.programsWithCopc}</span> of <span className="text-yellow-300 font-bold">{focusedCampusRaw.programsTotal}</span> programs compliant ({Math.round((focusedCampusRaw.programsWithCopc / focusedCampusRaw.programsTotal) * 100)}% rate).
+            <div
+              className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
+              key={focusedCampusRaw.name}
+            >
+              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedCampusRaw.name}</span>: Has{' '}
+              <span className="text-yellow-300 font-bold">{focusedCampusRaw.programsWithCopc}</span> of{' '}
+              <span className="text-yellow-300 font-bold">{focusedCampusRaw.programsTotal}</span> programs compliant (
+              {Math.round((focusedCampusRaw.programsWithCopc / focusedCampusRaw.programsTotal) * 100)}% rate).
             </div>
           )}
         </div>
@@ -1445,14 +1526,19 @@ function ViewAccred({
             </>
           ) : (
             <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
-              <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">COPC Compliance by Campus</p>
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">
+                COPC Compliance by Campus
+              </p>
               <div className="flex-1 space-y-1.5 overflow-hidden">
                 {chartData.slice(0, 7).map((c, i) => (
                   <div key={i} className="flex items-center gap-1.5">
                     <span className="text-[9px] font-black text-white/40 w-4 tabular-nums text-right">{i + 1}</span>
                     <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
                     <div className="w-12 h-1.5 bg-white/15 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${c.rate}%`, background: statusColor(c.rate) }} />
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${c.rate}%`, background: statusColor(c.rate) }}
+                      />
                     </div>
                     <span className="text-[10px] font-black text-white/85 w-7 text-right tabular-nums">{c.rate}%</span>
                   </div>
@@ -1655,9 +1741,14 @@ function ViewUnitSubmission({
             </div>
           </div>
           {focusedUnit && (
-            <div className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein" key={focusedUnit.name}>
-              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedUnit.name}</span>: 
-              Has attained a <span className="text-yellow-300 font-bold">{focusedUnit.rate}%</span> submission rate across <span className="text-yellow-300 font-bold">{focusedUnit.total}</span> logged documents in this submission cycle.
+            <div
+              className="mt-2 p-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-[11px] leading-relaxed text-white/90 animate-panel-fadein"
+              key={focusedUnit.name}
+            >
+              <span className="font-black text-yellow-400 uppercase tracking-wider">{focusedUnit.name}</span>: Has
+              attained a <span className="text-yellow-300 font-bold">{focusedUnit.rate}%</span> submission rate across{' '}
+              <span className="text-yellow-300 font-bold">{focusedUnit.total}</span> logged documents in this submission
+              cycle.
             </div>
           )}
         </div>
@@ -1692,7 +1783,9 @@ function ViewUnitSubmission({
             </>
           ) : (
             <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-md flex-1 flex flex-col">
-              <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">Unit Compliance by Campus</p>
+              <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">
+                Unit Compliance by Campus
+              </p>
               {campusUnitGroups.length === 0 ? (
                 <p className="text-[11px] text-white/45 italic">No campus data available.</p>
               ) : (
@@ -1700,7 +1793,9 @@ function ViewUnitSubmission({
                   {campusUnitGroups.slice(0, 10).map((c, i) => (
                     <div key={i} className="flex items-center gap-1.5">
                       <span className="text-[10px] font-bold text-white/85 flex-1 truncate">{c.name}</span>
-                      <span className="text-[10px] font-black tabular-nums" style={{ color: statusColor(c.rate) }}>{c.rate}%</span>
+                      <span className="text-[10px] font-black tabular-nums" style={{ color: statusColor(c.rate) }}>
+                        {c.rate}%
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -1881,7 +1976,7 @@ export default function ExecutiveDisplayPage() {
   const { data: allCampuses } = useCollection<Campus>(campusesQ);
 
   // ── Scoped Campus check for Campus Directors/Coordinators ─────────────────
-  const scopedCampusId = (userProfile?.campusId && !isAdmin && !isVp) ? userProfile.campusId : null;
+  const scopedCampusId = userProfile?.campusId && !isAdmin && !isVp ? userProfile.campusId : null;
 
   // ── Memoised derivations ──────────────────────────────────────────────────
   const submissions = useMemo(() => {
@@ -2605,9 +2700,7 @@ export default function ExecutiveDisplayPage() {
               <Lock className="h-8 w-8 text-red-400" />
             </div>
             <div>
-              <p className="text-xl font-black uppercase tracking-[0.15em] text-white">
-                Session Expired
-              </p>
+              <p className="text-xl font-black uppercase tracking-[0.15em] text-white">Session Expired</p>
               <p className="text-sm text-white/55 mt-2">
                 The display account has been logged out. Please sign in again to resume the live dashboard.
               </p>
@@ -2620,7 +2713,9 @@ export default function ExecutiveDisplayPage() {
               <LogOut className="inline h-4 w-4 mr-2" />
               Sign In Again
             </a>
-            <p className="text-[10px] text-white/30 uppercase tracking-widest">{dateStr} · {timeStr}</p>
+            <p className="text-[10px] text-white/30 uppercase tracking-widest">
+              {dateStr} · {timeStr}
+            </p>
           </div>
         </div>
       )}
@@ -2671,7 +2766,9 @@ export default function ExecutiveDisplayPage() {
                   style={{ background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.35)' }}
                 >
                   <div className="h-1 w-1 rounded-full bg-yellow-400 animate-pulse" />
-                  <span className="text-[9px] font-black text-yellow-300 uppercase tracking-[0.15em]">{periodLabel}</span>
+                  <span className="text-[9px] font-black text-yellow-300 uppercase tracking-[0.15em]">
+                    {periodLabel}
+                  </span>
                 </div>
               </div>
             </div>
@@ -2719,11 +2816,12 @@ export default function ExecutiveDisplayPage() {
               style={{
                 transition: 'opacity 350ms ease-in-out, transform 350ms ease-in-out',
                 opacity: animPhase === 'hide' ? 0 : 1,
-                transform: animPhase === 'hide'
-                  ? 'translateY(10px)'
-                  : animPhase === 'enter'
-                    ? 'translateY(-6px)'
-                    : 'translateY(0px)',
+                transform:
+                  animPhase === 'hide'
+                    ? 'translateY(10px)'
+                    : animPhase === 'enter'
+                      ? 'translateY(-6px)'
+                      : 'translateY(0px)',
               }}
             >
               {views[currentView]}
