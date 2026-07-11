@@ -410,7 +410,7 @@ function ViewOverview({
         subtitle="Composite EOMS score · Quality dimensions · Risk & CAR snapshots"
         color={sc}
       />
-      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* Grade card */}
         <div className="col-span-2 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md flex flex-col items-center justify-center p-3 relative overflow-hidden shadow-lg">
           <div
@@ -594,9 +594,9 @@ function ViewSubmissions({
         subtitle="Document submission rates · Status breakdown · Monthly trend"
         color={P.green}
       />
-      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* KPI row */}
-        <div className="col-span-2 flex flex-col gap-2">
+        <div className="col-span-2 flex flex-col gap-2 overflow-hidden min-h-0">
           <KpiTile label="Compliance Rate" value={rate} icon={CheckCircle2} color={statusColor(rate)} />
           <KpiTile
             label="Approved"
@@ -764,9 +764,9 @@ function ViewRisks({
         subtitle="Risk severity · Status distribution · Mitigation effectiveness by campus"
         color={P.gold}
       />
-      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* KPI summary */}
-        <div className="col-span-2 flex flex-col gap-2">
+        <div className="col-span-2 flex flex-col gap-2 overflow-hidden min-h-0">
           <KpiTile label="Mitigation Rate" value={rate} icon={ShieldCheck} color={statusColor(rate)} />
           <KpiTile label="Total Risks" value={totalRisks} suffix="" icon={AlertTriangle} color={P.gold} />
           {highRisks > 0 && (
@@ -901,9 +901,9 @@ function ViewCars({
         subtitle="CAR closure rates · Audit status · Combined compliance view"
         color={P.greenLight}
       />
-      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* KPI summary */}
-        <div className="col-span-2 flex flex-col gap-2">
+        <div className="col-span-2 flex flex-col gap-2 overflow-hidden min-h-0">
           <KpiTile label="CAR Closure Rate" value={rate} icon={CheckCircle2} color={statusColor(rate)} />
           <KpiTile
             label="Total CARs"
@@ -1066,9 +1066,9 @@ function ViewAccred({
         subtitle="COPC compliance · Accreditation levels · Program distribution"
         color={P.gold}
       />
-      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* KPI summary */}
-        <div className="col-span-2 flex flex-col gap-2">
+        <div className="col-span-2 flex flex-col gap-2 overflow-hidden min-h-0">
           <KpiTile label="COPC Compliance" value={copcRate} icon={Award} color={statusColor(copcRate)} />
           <KpiTile
             label="Total Programs"
@@ -1259,9 +1259,9 @@ function ViewUnitSubmission({
         subtitle="Top performers · Non-compliant units · Strengths & weaknesses"
         color={P.greenLight}
       />
-      <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* KPI summary */}
-        <div className="col-span-2 flex flex-col gap-2">
+        <div className="col-span-2 flex flex-col gap-2 overflow-hidden min-h-0">
           <KpiTile label="Compliance Rate" value={overallRate} icon={Users} color={statusColor(overallRate)} />
           <KpiTile
             label="Total Units"
