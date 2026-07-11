@@ -1,3 +1,1 @@
-*.apk filter=lfs diff=lfs merge=lfs -text
-public/*.png filter=lfs diff=lfs merge=lfs -text
-public/*.jpg filter=lfs diff=lfs merge=lfs -text
+# Disable LFS tracking for standard files to ensure proper serving on hosting environments.
