@@ -37,6 +37,7 @@ import {
   Building2,
   LogOut,
   Lock,
+  ChevronRight,
 } from 'lucide-react';
 import type {
   Submission,
@@ -2037,6 +2038,19 @@ export default function ExecutiveDisplayPage() {
     }
   }, []);
 
+  const handleViewChange = useCallback((targetIndex: number) => {
+    setAnimPhase('hide');
+    setTimeout(() => {
+      setCurrentView(targetIndex);
+      setTimeout(() => setAnimPhase('enter'), 50);
+    }, 350);
+  }, []);
+
+  const handleNextView = useCallback(() => {
+    const nextIdx = (currentView + 1) % TOTAL_VIEWS;
+    handleViewChange(nextIdx);
+  }, [currentView, handleViewChange]);
+
   useEffect(() => {
     const t = setTimeout(() => {
       toggleFullscreen().catch(() => {});
@@ -3050,9 +3064,10 @@ export default function ExecutiveDisplayPage() {
             </p>
             <div className="flex items-center gap-1.5">
               {VIEW_META.map((v, i) => (
-                <div
+                <button
                   key={i}
-                  className="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all duration-500"
+                  onClick={() => handleViewChange(i)}
+                  className="flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-all duration-500 hover:bg-white/5 cursor-pointer"
                   style={{
                     background: currentView === i ? `${v.color}25` : 'transparent',
                     border: currentView === i ? `1px solid ${v.color}40` : '1px solid transparent',
@@ -3065,8 +3080,17 @@ export default function ExecutiveDisplayPage() {
                   >
                     {v.label}
                   </span>
-                </div>
+                </button>
               ))}
+
+              {/* Next page manual cycle button */}
+              <button
+                onClick={handleNextView}
+                className="flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-white/20 bg-white/5 hover:bg-white/15 text-white/80 hover:text-white transition-all cursor-pointer select-none"
+              >
+                <span className="text-[8px] font-black uppercase tracking-widest">Next</span>
+                <ChevronRight className="h-2.5 w-2.5" />
+              </button>
             </div>
             <p className="text-sm font-bold text-white/45 tabular-nums">{timeStr}</p>
           </footer>
