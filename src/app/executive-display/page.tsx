@@ -1767,7 +1767,7 @@ interface CampusPerf {
 export default function ExecutiveDisplayPage() {
   const firestore = useFirestore();
   const { selectedYear } = useYear();
-  const { user, isUserLoading } = useUser();
+  const { user, userProfile, isUserLoading, isAdmin, isVp } = useUser();
   const [currentView, setCurrentView] = useState(0);
   const [cardPhase, setCardPhase] = useState(0);
   const [animPhase, setAnimPhase] = useState<'show' | 'hide' | 'enter'>('show');
@@ -1880,37 +1880,54 @@ export default function ExecutiveDisplayPage() {
   const campusesQ = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses } = useCollection<Campus>(campusesQ);
 
+  // ── Scoped Campus check for Campus Directors/Coordinators ─────────────────
+  const scopedCampusId = (userProfile?.campusId && !isAdmin && !isVp) ? userProfile.campusId : null;
+
   // ── Memoised derivations ──────────────────────────────────────────────────
-  const submissions = useMemo(
-    () => (rawSubs || []).map((s) => ({ ...s, reportType: normalizeReportType(s.reportType) })),
-    [rawSubs],
-  );
+  const submissions = useMemo(() => {
+    let all = rawSubs || [];
+    if (scopedCampusId) {
+      all = all.filter((s) => s.campusId === scopedCampusId);
+    }
+    return all.map((s) => ({ ...s, reportType: normalizeReportType(s.reportType) }));
+  }, [rawSubs, scopedCampusId]);
+
   const yearSubs = useMemo(
     () => submissions.filter((s) => Number(s.year) === Number(selectedYear)),
     [submissions, selectedYear],
   );
-  const yearRisks = useMemo(
-    () => (rawRisks || []).filter((r) => Number(r.year) === Number(selectedYear)),
-    [rawRisks, selectedYear],
-  );
-  const yearCars = useMemo(
-    () =>
-      (rawCars || []).filter((c) => {
-        if (!c.createdAt) return true;
-        const d = c.createdAt instanceof Timestamp ? c.createdAt.toDate() : new Date(c.createdAt as any);
-        return d.getFullYear() === Number(selectedYear);
-      }),
-    [rawCars, selectedYear],
-  );
-  const yearSch = useMemo(
-    () =>
-      (rawSchedules || []).filter((s) => {
-        if (!s.scheduledDate) return false;
-        const d = s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate as any);
-        return d.getFullYear() === Number(selectedYear);
-      }),
-    [rawSchedules, selectedYear],
-  );
+
+  const yearRisks = useMemo(() => {
+    let all = rawRisks || [];
+    if (scopedCampusId) {
+      all = all.filter((r) => r.campusId === scopedCampusId);
+    }
+    return all.filter((r) => Number(r.year) === Number(selectedYear));
+  }, [rawRisks, selectedYear, scopedCampusId]);
+
+  const yearCars = useMemo(() => {
+    let all = rawCars || [];
+    if (scopedCampusId) {
+      all = all.filter((c) => c.campusId === scopedCampusId);
+    }
+    return all.filter((c) => {
+      if (!c.createdAt) return true;
+      const d = c.createdAt instanceof Timestamp ? c.createdAt.toDate() : new Date(c.createdAt as any);
+      return d.getFullYear() === Number(selectedYear);
+    });
+  }, [rawCars, selectedYear, scopedCampusId]);
+
+  const yearSch = useMemo(() => {
+    let all = rawSchedules || [];
+    if (scopedCampusId) {
+      all = all.filter((s) => s.campusId === scopedCampusId);
+    }
+    return all.filter((s) => {
+      if (!s.scheduledDate) return false;
+      const d = s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate as any);
+      return d.getFullYear() === Number(selectedYear);
+    });
+  }, [rawSchedules, selectedYear, scopedCampusId]);
 
   const campusMap = useMemo(() => new Map((allCampuses || []).map((c) => [c.id, c.name])), [allCampuses]);
 
@@ -1918,7 +1935,11 @@ export default function ExecutiveDisplayPage() {
   const campusData = useMemo(() => {
     const map = new Map<string, CampusPerf>();
 
-    (allCampuses || []).forEach((c) => {
+    let list = allCampuses || [];
+    if (scopedCampusId) {
+      list = list.filter((c) => c.id === scopedCampusId);
+    }
+    list.forEach((c) => {
       map.set(c.id, {
         id: c.id,
         name: c.name || c.id,
@@ -2028,7 +2049,7 @@ export default function ExecutiveDisplayPage() {
     });
 
     return Array.from(map.values());
-  }, [yearSubs, yearRisks, yearCars, yearSch, rawPrograms, rawCompliances, allCampuses]);
+  }, [yearSubs, yearRisks, yearCars, yearSch, rawPrograms, rawCompliances, allCampuses, scopedCampusId]);
 
   // ── Per-unit submission performance ───────────────────────────────────────
   interface UnitSubPerf {
@@ -2044,7 +2065,11 @@ export default function ExecutiveDisplayPage() {
   }
   const unitSubData = useMemo(() => {
     const map = new Map<string, UnitSubPerf>();
-    (allUnits || []).forEach((u) => {
+    let list = allUnits || [];
+    if (scopedCampusId) {
+      list = list.filter((u) => u.campusIds?.includes(scopedCampusId));
+    }
+    list.forEach((u) => {
       const cName = campusMap.get(u.campusIds?.[0] || '') || 'Unknown';
       map.set(u.id, {
         id: u.id,
@@ -2070,7 +2095,7 @@ export default function ExecutiveDisplayPage() {
       u.subRate = u.subsTotal > 0 ? Math.round((u.subsApproved / u.subsTotal) * 100) : 0;
     });
     return Array.from(map.values()).sort((a, b) => a.subRate - b.subRate);
-  }, [yearSubs, allUnits, campusMap]);
+  }, [yearSubs, allUnits, campusMap, scopedCampusId]);
   const unitSubTop = useMemo(
     () =>
       [...unitSubData]
@@ -2270,7 +2295,10 @@ export default function ExecutiveDisplayPage() {
 
   // ── COPC status distribution ──────────────────────────────────────────
   const copcDist = useMemo(() => {
-    const active = (rawPrograms || []).filter((p) => p.isActive);
+    let active = (rawPrograms || []).filter((p) => p.isActive);
+    if (scopedCampusId) {
+      active = active.filter((p) => p.campusId === scopedCampusId);
+    }
     const withCopc = active.filter((p) => {
       const comp = (rawCompliances || []).find((c) => c.programId === p.id);
       return comp?.ched?.copcStatus === 'With COPC';
@@ -2285,7 +2313,7 @@ export default function ExecutiveDisplayPage() {
       { name: 'In Progress', value: inProg, color: P.gold },
       { name: 'No COPC', value: none, color: P.whiteDim },
     ].filter((d) => d.value > 0);
-  }, [rawPrograms, rawCompliances]);
+  }, [rawPrograms, rawCompliances, scopedCampusId]);
 
   // ── Accreditation level distribution ──────────────────────────────────
   const accredLevelDist = useMemo(() => {
@@ -2297,7 +2325,11 @@ export default function ExecutiveDisplayPage() {
       Candidate: 0,
       'Non Accredited': 0,
     };
-    (rawPrograms || [])
+    let active = rawPrograms || [];
+    if (scopedCampusId) {
+      active = active.filter((p) => p.campusId === scopedCampusId);
+    }
+    active
       .filter((p) => p.isActive)
       .forEach((p) => {
         const comp = (rawCompliances || []).find((c) => c.programId === p.id);
@@ -2332,12 +2364,16 @@ export default function ExecutiveDisplayPage() {
                     ? P.whiteDim
                     : P.whiteMuted,
       }));
-  }, [rawPrograms, rawCompliances]);
+  }, [rawPrograms, rawCompliances, scopedCampusId]);
 
   // ── Programs grouped by accreditation level (for card cycling) ────────────
   const programsByLevel = useMemo(() => {
     const groups: Record<string, { name: string; campus: string }[]> = {};
-    (rawPrograms || [])
+    let active = rawPrograms || [];
+    if (scopedCampusId) {
+      active = active.filter((p) => p.campusId === scopedCampusId);
+    }
+    active
       .filter((p) => p.isActive)
       .forEach((p) => {
         const comp = (rawCompliances || []).find((c) => c.programId === p.id);
@@ -2356,7 +2392,7 @@ export default function ExecutiveDisplayPage() {
         groups[matched].push({ name: p.name, campus: campusMap.get(p.campusId) || '' });
       });
     return groups;
-  }, [rawPrograms, rawCompliances, campusMap]);
+  }, [rawPrograms, rawCompliances, campusMap, scopedCampusId]);
   const levelKeys = useMemo(
     () => Object.keys(programsByLevel).filter((k) => programsByLevel[k].length > 0),
     [programsByLevel],
@@ -2367,7 +2403,11 @@ export default function ExecutiveDisplayPage() {
   // ── COPC yearly performance trend ──────────────────────────────────────
   const copcYearlyTrend = useMemo(() => {
     const years: Record<number, { total: number; withCopc: number }> = {};
-    (rawPrograms || [])
+    let active = rawPrograms || [];
+    if (scopedCampusId) {
+      active = active.filter((p) => p.campusId === scopedCampusId);
+    }
+    active
       .filter((p) => p.isActive)
       .forEach((p) => {
         const comps = (rawCompliances || []).filter((c) => c.programId === p.id);
@@ -2382,12 +2422,16 @@ export default function ExecutiveDisplayPage() {
     return Object.entries(years)
       .sort(([a], [b]) => Number(a) - Number(b))
       .map(([year, d]) => ({ year: Number(year), rate: d.total > 0 ? Math.round((d.withCopc / d.total) * 100) : 0 }));
-  }, [rawPrograms, rawCompliances]);
+  }, [rawPrograms, rawCompliances, scopedCampusId]);
 
   // ── Program level distribution ────────────────────────────────────────
   const progLevelDist = useMemo(() => {
     const levels: Record<string, number> = { Undergraduate: 0, Graduate: 0, TVET: 0 };
-    (rawPrograms || [])
+    let active = rawPrograms || [];
+    if (scopedCampusId) {
+      active = active.filter((p) => p.campusId === scopedCampusId);
+    }
+    active
       .filter((p) => p.isActive)
       .forEach((p) => {
         const lvl = p.level || 'Undergraduate';
@@ -2400,7 +2444,7 @@ export default function ExecutiveDisplayPage() {
         value: v,
         color: k === 'Undergraduate' ? P.green : k === 'Graduate' ? P.gold : P.greenLight,
       }));
-  }, [rawPrograms]);
+  }, [rawPrograms, scopedCampusId]);
 
   // ── Ticker items ─────────────────────────────────────────────────────────
   const tickerItems = useMemo(() => {
@@ -2611,8 +2655,9 @@ export default function ExecutiveDisplayPage() {
           {/* ── Header ──────────────────────────────────────────────────────── */}
           <header className="relative z-10 flex items-center justify-between px-6 py-3 border-b border-white/10 bg-green-950/40 backdrop-blur-sm shrink-0">
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center">
-                <ShieldCheck className="h-4 w-4 text-yellow-400" />
+              <div className="flex items-center gap-2 mr-1">
+                <img src="/rsulogo.png" alt="RSU Logo" className="h-9 w-9 object-contain" />
+                <img src="/ISOlogo.jpg" alt="ISO Logo" className="h-9 w-9 object-contain rounded-sm" />
               </div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
