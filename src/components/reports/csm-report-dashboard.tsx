@@ -10,36 +10,36 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip as RechartsTooltip, 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
   Cell,
   LabelList,
-  Radar, 
-  RadarChart, 
-  PolarGrid, 
-  PolarAngleAxis, 
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
   PolarRadiusAxis,
   Legend,
   ComposedChart,
-  Line
+  Line,
 } from 'recharts';
-import { 
-  Users, 
-  CheckCircle2, 
-  TrendingUp, 
-  AlertTriangle, 
-  Printer, 
-  FileText, 
-  Info, 
-  ThumbsUp, 
+import {
+  Users,
+  CheckCircle2,
+  TrendingUp,
+  AlertTriangle,
+  Printer,
+  FileText,
+  Info,
+  ThumbsUp,
   HelpCircle,
   Building2,
   Calendar,
@@ -52,28 +52,24 @@ import {
   Download,
   Filter,
   Search,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { doc, setDoc, serverTimestamp, collection } from '@/firebase/firestore-wrapper';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const maskName = (name: string) => {
   if (!name) return 'Anonymous';
   const parts = name.trim().split(/\s+/);
-  return parts.map(part => {
-    if (part.length <= 1) return part;
-    if (part.length === 2) return part.charAt(0) + '*';
-    return part.charAt(0) + '*'.repeat(part.length - 2) + part.charAt(part.length - 1);
-  }).join(' ');
+  return parts
+    .map((part) => {
+      if (part.length <= 1) return part;
+      if (part.length === 2) return part.charAt(0) + '*';
+      return part.charAt(0) + '*'.repeat(part.length - 2) + part.charAt(part.length - 1);
+    })
+    .join(' ');
 };
 
 // FY 2025 Baseline Report Constants
@@ -101,7 +97,7 @@ const BASELINE_2025 = {
     ],
     stakeholders: [
       { name: 'Internal Stakeholders', value: 750, fill: '#1b6535' },
-      { name: 'External Stakeholders', value: 250, fill: '#fb923c' }
+      { name: 'External Stakeholders', value: 250, fill: '#fb923c' },
     ],
     age: [
       { name: '19 or lower', value: 250 },
@@ -129,51 +125,213 @@ const BASELINE_2025 = {
     cc3: [0, 850, 150, 0, 0], // counts for option 1 to 4
   },
   sqd: [
-    { id: 0, name: "SQD0. Overall Satisfaction", key: "sqd0", desc: "I am satisfied with the service I availed", avg: 4.60, positivePercent: 92, counts: [0, 5, 15, 60, 120, 800] },
-    { id: 1, name: "SQD1. Responsiveness", key: "sqd1", desc: "Spent reasonable amount of time", avg: 4.40, positivePercent: 88, counts: [0, 10, 30, 80, 130, 750] },
-    { id: 2, name: "SQD2. Reliability", key: "sqd2", desc: "Followed charter steps/requirements", avg: 4.50, positivePercent: 90, counts: [0, 15, 25, 60, 120, 780] },
-    { id: 3, name: "SQD3. Access & Facilities", key: "sqd3", desc: "Clean, comfortable, and accessible office", avg: 4.35, positivePercent: 87, counts: [0, 20, 40, 70, 150, 720] },
-    { id: 4, name: "SQD4. Communication", key: "sqd4", desc: "Clear guidelines and friendly explanations", avg: 4.70, positivePercent: 94, counts: [0, 5, 15, 40, 120, 820] },
-    { id: 5, name: "SQD5. Costs", key: "sqd5", desc: "Fees paid were just and reasonable", avg: 4.55, positivePercent: 91, counts: [0, 10, 20, 60, 120, 790] },
-    { id: 6, name: "SQD6. Integrity", key: "sqd6", desc: "Free from corruption and under-the-table actions", avg: 4.90, positivePercent: 98, counts: [0, 2, 3, 15, 60, 920] },
-    { id: 7, name: "SQD7. Assurance", key: "sqd7", desc: "Felt safe, staff was professional and courteous", avg: 4.75, positivePercent: 95, counts: [0, 5, 10, 35, 80, 870] },
-    { id: 8, name: "SQD8. Outcome", key: "sqd8", desc: "Office delivered the requested service/result", avg: 4.65, positivePercent: 93, counts: [0, 7, 18, 45, 100, 830] },
+    {
+      id: 0,
+      name: 'SQD0. Overall Satisfaction',
+      key: 'sqd0',
+      desc: 'I am satisfied with the service I availed',
+      avg: 4.6,
+      positivePercent: 92,
+      counts: [0, 5, 15, 60, 120, 800],
+    },
+    {
+      id: 1,
+      name: 'SQD1. Responsiveness',
+      key: 'sqd1',
+      desc: 'Spent reasonable amount of time',
+      avg: 4.4,
+      positivePercent: 88,
+      counts: [0, 10, 30, 80, 130, 750],
+    },
+    {
+      id: 2,
+      name: 'SQD2. Reliability',
+      key: 'sqd2',
+      desc: 'Followed charter steps/requirements',
+      avg: 4.5,
+      positivePercent: 90,
+      counts: [0, 15, 25, 60, 120, 780],
+    },
+    {
+      id: 3,
+      name: 'SQD3. Access & Facilities',
+      key: 'sqd3',
+      desc: 'Clean, comfortable, and accessible office',
+      avg: 4.35,
+      positivePercent: 87,
+      counts: [0, 20, 40, 70, 150, 720],
+    },
+    {
+      id: 4,
+      name: 'SQD4. Communication',
+      key: 'sqd4',
+      desc: 'Clear guidelines and friendly explanations',
+      avg: 4.7,
+      positivePercent: 94,
+      counts: [0, 5, 15, 40, 120, 820],
+    },
+    {
+      id: 5,
+      name: 'SQD5. Costs',
+      key: 'sqd5',
+      desc: 'Fees paid were just and reasonable',
+      avg: 4.55,
+      positivePercent: 91,
+      counts: [0, 10, 20, 60, 120, 790],
+    },
+    {
+      id: 6,
+      name: 'SQD6. Integrity',
+      key: 'sqd6',
+      desc: 'Free from corruption and under-the-table actions',
+      avg: 4.9,
+      positivePercent: 98,
+      counts: [0, 2, 3, 15, 60, 920],
+    },
+    {
+      id: 7,
+      name: 'SQD7. Assurance',
+      key: 'sqd7',
+      desc: 'Felt safe, staff was professional and courteous',
+      avg: 4.75,
+      positivePercent: 95,
+      counts: [0, 5, 10, 35, 80, 870],
+    },
+    {
+      id: 8,
+      name: 'SQD8. Outcome',
+      key: 'sqd8',
+      desc: 'Office delivered the requested service/result',
+      avg: 4.65,
+      positivePercent: 93,
+      counts: [0, 7, 18, 45, 100, 830],
+    },
   ],
   services: [
-    { name: "Issuance of Service Record", campus: "Main Campus", count: 120, satisfactionRate: 96, avgRating: 4.80 },
-    { name: "Filing of Leave of Absence of Students", campus: "Main Campus", count: 80, satisfactionRate: 50, avgRating: 2.50 },
-    { name: "Cross Enrollees", campus: "Cajidiocan", count: 15, satisfactionRate: 47, avgRating: 2.35 },
-    { name: "Issuance of Transcript of Records", campus: "Main Campus", count: 350, satisfactionRate: 94, avgRating: 4.70 },
-    { name: "Re-admission of Returning Students", campus: "San Andres", count: 45, satisfactionRate: 92, avgRating: 4.60 },
-    { name: "Enrollment Verification", campus: "Calatrava", count: 60, satisfactionRate: 97, avgRating: 4.85 },
-    { name: "Issuance of Certificate of Grades", campus: "San Agustin", count: 110, satisfactionRate: 91, avgRating: 4.55 },
-    { name: "Processing of Student Clearance", campus: "Romblon", count: 250, satisfactionRate: 93, avgRating: 4.65 },
-    { name: "Scholarship Application Processing", campus: "Main Campus", count: 180, satisfactionRate: 88, avgRating: 4.40 },
-    { name: "Evaluation of Student Records", campus: "Sta. Fe", count: 35, satisfactionRate: 94, avgRating: 4.70 },
-    { name: "Issuance of Certificate of Honorable Dismissal", campus: "Sta. Maria", count: 25, satisfactionRate: 96, avgRating: 4.80 },
-    { name: "Processing of Graduation Application", campus: "San Fernando", count: 40, satisfactionRate: 95, avgRating: 4.75 },
-    { name: "Issuance of Student ID Card", campus: "Agpudlos", count: 50, satisfactionRate: 98, avgRating: 4.90 },
+    { name: 'Issuance of Service Record', campus: 'Main Campus', count: 120, satisfactionRate: 96, avgRating: 4.8 },
+    {
+      name: 'Filing of Leave of Absence of Students',
+      campus: 'Main Campus',
+      count: 80,
+      satisfactionRate: 50,
+      avgRating: 2.5,
+    },
+    { name: 'Cross Enrollees', campus: 'Cajidiocan', count: 15, satisfactionRate: 47, avgRating: 2.35 },
+    {
+      name: 'Issuance of Transcript of Records',
+      campus: 'Main Campus',
+      count: 350,
+      satisfactionRate: 94,
+      avgRating: 4.7,
+    },
+    {
+      name: 'Re-admission of Returning Students',
+      campus: 'San Andres',
+      count: 45,
+      satisfactionRate: 92,
+      avgRating: 4.6,
+    },
+    { name: 'Enrollment Verification', campus: 'Calatrava', count: 60, satisfactionRate: 97, avgRating: 4.85 },
+    {
+      name: 'Issuance of Certificate of Grades',
+      campus: 'San Agustin',
+      count: 110,
+      satisfactionRate: 91,
+      avgRating: 4.55,
+    },
+    { name: 'Processing of Student Clearance', campus: 'Romblon', count: 250, satisfactionRate: 93, avgRating: 4.65 },
+    {
+      name: 'Scholarship Application Processing',
+      campus: 'Main Campus',
+      count: 180,
+      satisfactionRate: 88,
+      avgRating: 4.4,
+    },
+    { name: 'Evaluation of Student Records', campus: 'Sta. Fe', count: 35, satisfactionRate: 94, avgRating: 4.7 },
+    {
+      name: 'Issuance of Certificate of Honorable Dismissal',
+      campus: 'Sta. Maria',
+      count: 25,
+      satisfactionRate: 96,
+      avgRating: 4.8,
+    },
+    {
+      name: 'Processing of Graduation Application',
+      campus: 'San Fernando',
+      count: 40,
+      satisfactionRate: 95,
+      avgRating: 4.75,
+    },
+    { name: 'Issuance of Student ID Card', campus: 'Agpudlos', count: 50, satisfactionRate: 98, avgRating: 4.9 },
   ],
   qualitativeComments: [
-    { visitorName: "Juan Dela Cruz", comments: "Mabagal ang release ng TOR", category: "Responsiveness (SQD1)", campus: "Main Campus", type: "Student" },
-    { visitorName: "Maria Santos", comments: "Sobrang init po", category: "Access & Facilities (SQD3)", campus: "Main Campus", type: "Student" },
-    { visitorName: "Jose Rizal", comments: "Wait time for clearance processing is too long", category: "Responsiveness (SQD1)", campus: "Romblon", type: "Student" },
-    { visitorName: "Andres Bonifacio", comments: "No ventilation in the waiting lobby", category: "Access & Facilities (SQD3)", campus: "Cajidiocan", type: "Student" },
-    { visitorName: "Apolinario Mabini", comments: "Lack of directional signs inside the building", category: "Communication (SQD4)", campus: "San Fernando", type: "Student" },
-    { visitorName: "Emilio Aguinaldo", comments: "Convenience fee for online payments is too high", category: "Costs (SQD5)", campus: "Main Campus", type: "Government Employees" },
-    { visitorName: "Gabriela Silang", comments: "Accommodating and very polite frontline staff", category: "Assurance (SQD7)", campus: "San Agustin", type: "Other Stakeholders" },
-    { visitorName: "Melchora Aquino", comments: "Got my service record in less than 30 minutes, thank you!", category: "Outcome (SQD8)", campus: "Main Campus", type: "Government Employees" },
+    {
+      visitorName: 'Juan Dela Cruz',
+      comments: 'Mabagal ang release ng TOR',
+      category: 'Responsiveness (SQD1)',
+      campus: 'Main Campus',
+      type: 'Student',
+    },
+    {
+      visitorName: 'Maria Santos',
+      comments: 'Sobrang init po',
+      category: 'Access & Facilities (SQD3)',
+      campus: 'Main Campus',
+      type: 'Student',
+    },
+    {
+      visitorName: 'Jose Rizal',
+      comments: 'Wait time for clearance processing is too long',
+      category: 'Responsiveness (SQD1)',
+      campus: 'Romblon',
+      type: 'Student',
+    },
+    {
+      visitorName: 'Andres Bonifacio',
+      comments: 'No ventilation in the waiting lobby',
+      category: 'Access & Facilities (SQD3)',
+      campus: 'Cajidiocan',
+      type: 'Student',
+    },
+    {
+      visitorName: 'Apolinario Mabini',
+      comments: 'Lack of directional signs inside the building',
+      category: 'Communication (SQD4)',
+      campus: 'San Fernando',
+      type: 'Student',
+    },
+    {
+      visitorName: 'Emilio Aguinaldo',
+      comments: 'Convenience fee for online payments is too high',
+      category: 'Costs (SQD5)',
+      campus: 'Main Campus',
+      type: 'Government Employees',
+    },
+    {
+      visitorName: 'Gabriela Silang',
+      comments: 'Accommodating and very polite frontline staff',
+      category: 'Assurance (SQD7)',
+      campus: 'San Agustin',
+      type: 'Other Stakeholders',
+    },
+    {
+      visitorName: 'Melchora Aquino',
+      comments: 'Got my service record in less than 30 minutes, thank you!',
+      category: 'Outcome (SQD8)',
+      campus: 'Main Campus',
+      type: 'Government Employees',
+    },
   ],
   pareto: [
-    { theme: "Responsiveness (SQD1)", count: 42, cumulativePercent: 38 },
-    { theme: "Access & Facilities (SQD3)", count: 28, cumulativePercent: 64 },
-    { theme: "Reliability (SQD2)", count: 15, cumulativePercent: 77 },
-    { theme: "Communication (SQD4)", count: 10, cumulativePercent: 86 },
-    { theme: "Assurance (SQD7)", count: 8, cumulativePercent: 94 },
-    { theme: "Costs (SQD5)", count: 5, cumulativePercent: 98 },
-    { theme: "Outcome (SQD8)", count: 3, cumulativePercent: 100 },
-    { theme: "Integrity (SQD6)", count: 0, cumulativePercent: 100 },
-  ]
+    { theme: 'Responsiveness (SQD1)', count: 42, cumulativePercent: 38 },
+    { theme: 'Access & Facilities (SQD3)', count: 28, cumulativePercent: 64 },
+    { theme: 'Reliability (SQD2)', count: 15, cumulativePercent: 77 },
+    { theme: 'Communication (SQD4)', count: 10, cumulativePercent: 86 },
+    { theme: 'Assurance (SQD7)', count: 8, cumulativePercent: 94 },
+    { theme: 'Costs (SQD5)', count: 5, cumulativePercent: 98 },
+    { theme: 'Outcome (SQD8)', count: 3, cumulativePercent: 100 },
+    { theme: 'Integrity (SQD6)', count: 0, cumulativePercent: 100 },
+  ],
 };
 
 interface CsmReportDashboardProps {
@@ -203,7 +361,6 @@ export function CsmReportDashboard({
   csmDeployments,
   cycles,
 }: CsmReportDashboardProps) {
-
   const hasAccessToAll = isAdmin || isCsmManager;
 
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
@@ -222,14 +379,20 @@ export function CsmReportDashboard({
   // Pre-fill and restrict selectors for unit coordinators/supervisors
   useMemo(() => {
     if (!hasAccessToAll && userProfile) {
-      if (userProfile.campusId) {
+      if (userProfile.campusId && localCampusId !== userProfile.campusId) {
         setLocalCampusId(userProfile.campusId);
       }
-      if (userProfile.unitId) {
+      if (userProfile.campusId) {
+        const campusObj = campuses.find((c) => c.id === userProfile.campusId);
+        if (campusObj && selectedCampusForExport !== campusObj.name) {
+          setSelectedCampusForExport(campusObj.name);
+        }
+      }
+      if (userProfile.unitId && selectedUnitId !== userProfile.unitId) {
         setSelectedUnitId(userProfile.unitId);
       }
     }
-  }, [hasAccessToAll, userProfile]);
+  }, [hasAccessToAll, userProfile, campuses, localCampusId, selectedCampusForExport, selectedUnitId]);
 
   const [isUpdatingApproval, setIsUpdatingApproval] = useState(false);
   const [deployingCycleIds, setDeployingCycleIds] = useState<Record<string, boolean>>({});
@@ -243,13 +406,13 @@ export function CsmReportDashboard({
   // Fetch CSM Settings for signatories
   const csmSettingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'csmSettings') : null),
-    [firestore]
+    [firestore],
   );
   const { data: csmSettings } = useDoc<CsmSettings>(csmSettingsRef);
 
   const deploymentsMap = useMemo(() => {
     const dMap = new Map<string, boolean>();
-    csmDeployments?.forEach(d => {
+    csmDeployments?.forEach((d) => {
       dMap.set(d.id, d.isPublished);
     });
     return dMap;
@@ -259,24 +422,28 @@ export function CsmReportDashboard({
   const handleTogglePublishCycle = async (cycle: Cycle, isCurrentlyPublished: boolean) => {
     if (!firestore || !userProfile) return;
     const dId = `${cycle.year}-${cycle.name}`;
-    setDeployingCycleIds(prev => ({ ...prev, [dId]: true }));
+    setDeployingCycleIds((prev) => ({ ...prev, [dId]: true }));
     try {
       const docRef = doc(firestore, 'csmDeployments', dId);
-      const existing = csmDeployments.find(d => d.id === dId);
-      
-      await setDoc(docRef, {
-        id: dId,
-        academicYear: Number(cycle.year),
-        cycleId: cycle.name,
-        isPublished: !isCurrentlyPublished,
-        publishedUnitIds: existing?.publishedUnitIds || [],
-        deployedAt: serverTimestamp(),
-        deployedBy: userProfile.id,
-      }, { merge: true });
+      const existing = csmDeployments.find((d) => d.id === dId);
+
+      await setDoc(
+        docRef,
+        {
+          id: dId,
+          academicYear: Number(cycle.year),
+          cycleId: cycle.name,
+          isPublished: !isCurrentlyPublished,
+          publishedUnitIds: existing?.publishedUnitIds || [],
+          deployedAt: serverTimestamp(),
+          deployedBy: userProfile.id,
+        },
+        { merge: true },
+      );
 
       toast({
         title: !isCurrentlyPublished ? 'CSM Report Deployed' : 'CSM Report Recalled',
-        description: !isCurrentlyPublished 
+        description: !isCurrentlyPublished
           ? `The CSM report for AY ${cycle.year} ${cycle.name} cycle has been successfully deployed.`
           : `The CSM report for AY ${cycle.year} ${cycle.name} cycle has been recalled and is now hidden.`,
       });
@@ -288,7 +455,7 @@ export function CsmReportDashboard({
         variant: 'destructive',
       });
     } finally {
-      setDeployingCycleIds(prev => ({ ...prev, [dId]: false }));
+      setDeployingCycleIds((prev) => ({ ...prev, [dId]: false }));
     }
   };
 
@@ -297,19 +464,19 @@ export function CsmReportDashboard({
     if (!units) return [];
     let list = units;
     if (localCampusId && localCampusId !== 'all') {
-      list = list.filter(u => u.campusIds?.includes(localCampusId));
+      list = list.filter((u) => u.campusIds?.includes(localCampusId));
     }
     if (unitSearchQuery.trim()) {
       const q = unitSearchQuery.toLowerCase();
-      list = list.filter(u => u.name.toLowerCase().includes(q));
+      list = list.filter((u) => u.name.toLowerCase().includes(q));
     }
-    return list.sort((a,b) => a.name.localeCompare(b.name));
+    return list.sort((a, b) => a.name.localeCompare(b.name));
   }, [units, localCampusId, unitSearchQuery]);
 
   // Reset selected unit if campus changes and it's no longer in the list of units belonging to that campus
   useMemo(() => {
     if (selectedUnitId !== 'all') {
-      const selectedUnit = units?.find(u => u.id === selectedUnitId);
+      const selectedUnit = units?.find((u) => u.id === selectedUnitId);
       if (selectedUnit && localCampusId && localCampusId !== 'all') {
         const belongsToCampus = selectedUnit.campusIds?.includes(localCampusId);
         if (!belongsToCampus) {
@@ -319,56 +486,59 @@ export function CsmReportDashboard({
     }
   }, [localCampusId, selectedUnitId, units]);
 
-
   // Check if the selected unit's report is approved/deployed for the selected year
   const isUnitApproved = useMemo(() => {
     if (selectedUnitId === 'all') return false;
-    return csmDeployments?.some(d => 
-      d.academicYear === selectedYear && 
-      d.isPublished && 
-      d.publishedUnitIds?.includes(selectedUnitId)
-    ) || false;
+    return (
+      csmDeployments?.some(
+        (d) => d.academicYear === selectedYear && d.isPublished && d.publishedUnitIds?.includes(selectedUnitId),
+      ) || false
+    );
   }, [csmDeployments, selectedYear, selectedUnitId]);
 
   const handleToggleUnitApproval = async () => {
     if (!firestore || !userProfile || selectedUnitId === 'all') return;
     setIsUpdatingApproval(true);
     try {
-      const yearDeployments = csmDeployments.filter(d => d.academicYear === selectedYear);
+      const yearDeployments = csmDeployments.filter((d) => d.academicYear === selectedYear);
       const targetDocIds: string[] = [];
       if (yearDeployments.length > 0) {
-        yearDeployments.forEach(d => targetDocIds.push(d.id));
+        yearDeployments.forEach((d) => targetDocIds.push(d.id));
       } else {
         targetDocIds.push(`${selectedYear}-first`, `${selectedYear}-final`);
       }
 
       for (const docId of targetDocIds) {
         const docRef = doc(firestore, 'csmDeployments', docId);
-        const existing = csmDeployments.find(d => d.id === docId);
+        const existing = csmDeployments.find((d) => d.id === docId);
         const currentList = existing?.publishedUnitIds || [];
-        
+
         let newList: string[];
         if (isUnitApproved) {
-          newList = currentList.filter(id => id !== selectedUnitId);
+          newList = currentList.filter((id) => id !== selectedUnitId);
         } else {
           newList = [...new Set([...currentList, selectedUnitId])];
         }
 
-        await setDoc(docRef, {
-          id: docId,
-          academicYear: selectedYear,
-          cycleId: docId.endsWith('-final') ? 'final' : 'first',
-          isPublished: existing ? existing.isPublished : true,
-          publishedUnitIds: newList,
-          deployedAt: serverTimestamp(),
-          deployedBy: userProfile.id,
-        }, { merge: true });
+        await setDoc(
+          docRef,
+          {
+            id: docId,
+            academicYear: selectedYear,
+            cycleId: docId.endsWith('-final') ? 'final' : 'first',
+            isPublished: existing ? existing.isPublished : true,
+            publishedUnitIds: newList,
+            deployedAt: serverTimestamp(),
+            deployedBy: userProfile.id,
+          },
+          { merge: true },
+        );
       }
 
-      const unitName = units.find(u => u.id === selectedUnitId)?.name || 'Unit';
+      const unitName = units.find((u) => u.id === selectedUnitId)?.name || 'Unit';
       toast({
         title: isUnitApproved ? 'Approval Recalled' : 'Report Approved & Deployed',
-        description: isUnitApproved 
+        description: isUnitApproved
           ? `CSM Reports for ${unitName} are now hidden from their coordinators.`
           : `CSM Reports for ${unitName} have been approved and published for their viewing.`,
       });
@@ -387,34 +557,38 @@ export function CsmReportDashboard({
   // Filter dynamic responses from DB
   const filteredResponses = useMemo(() => {
     if (!csmResponses) return [];
-    return csmResponses.filter(res => {
+    return csmResponses.filter((res) => {
       const date = res.createdAt?.toDate ? res.createdAt.toDate() : new Date(res.createdAt);
       const resYear = date.getFullYear();
-      
+
       const matchesYear = resYear === selectedYear;
       const matchesCampus = !localCampusId || localCampusId === 'all' || res.campusId === localCampusId;
-      
+
       const matchesUnit = hasAccessToAll
-        ? (selectedUnitId === 'all' ? true : res.unitId === selectedUnitId)
+        ? selectedUnitId === 'all'
+          ? true
+          : res.unitId === selectedUnitId
         : res.unitId === userProfile?.unitId;
-      
+
       return matchesYear && matchesCampus && matchesUnit;
     });
   }, [csmResponses, selectedYear, localCampusId, hasAccessToAll, selectedUnitId, userProfile]);
 
   const filteredVisitorLogs = useMemo(() => {
     if (!visitorLogs) return [];
-    return visitorLogs.filter(log => {
+    return visitorLogs.filter((log) => {
       const date = log.createdAt?.toDate ? log.createdAt.toDate() : new Date(log.createdAt);
       const logYear = date.getFullYear();
-      
+
       const matchesYear = logYear === selectedYear;
       const matchesCampus = !localCampusId || localCampusId === 'all' || log.campusId === localCampusId;
-      
+
       const matchesUnit = hasAccessToAll
-        ? (selectedUnitId === 'all' ? true : log.unitId === selectedUnitId)
+        ? selectedUnitId === 'all'
+          ? true
+          : log.unitId === selectedUnitId
         : log.unitId === userProfile?.unitId;
-      
+
       return matchesYear && matchesCampus && matchesUnit;
     });
   }, [visitorLogs, selectedYear, localCampusId, hasAccessToAll, selectedUnitId, userProfile]);
@@ -422,18 +596,18 @@ export function CsmReportDashboard({
   // Unified stats calculator based on selected source (live vs baseline)
   const activeCampusName = useMemo(() => {
     if (!localCampusId || localCampusId === 'all') return 'all';
-    return campuses.find(c => c.id === localCampusId)?.name || 'all';
+    return campuses.find((c) => c.id === localCampusId)?.name || 'all';
   }, [localCampusId, campuses]);
 
   const selectedUnitName = useMemo(() => {
     if (selectedUnitId === 'all') return 'all';
-    return units?.find(u => u.id === selectedUnitId)?.name || 'all';
+    return units?.find((u) => u.id === selectedUnitId)?.name || 'all';
   }, [selectedUnitId, units]);
 
   const displayStats = useMemo(() => {
     if (dataSource === 'baseline25') {
       const isFiltered = activeCampusName !== 'all';
-      
+
       // If a specific campus is filtered, scale down baseline values logically
       let totalResponses = BASELINE_2025.totalResponses;
       let totalVisitors = BASELINE_2025.totalVisitors;
@@ -441,34 +615,51 @@ export function CsmReportDashboard({
       let comments = BASELINE_2025.qualitativeComments;
 
       if (isFiltered) {
-        const campusInfo = BASELINE_2025.demographics.campus.find(c => c.name.toLowerCase().includes(activeCampusName.toLowerCase()));
+        const campusInfo = BASELINE_2025.demographics.campus.find((c) =>
+          c.name.toLowerCase().includes(activeCampusName.toLowerCase()),
+        );
         const ratio = campusInfo ? campusInfo.value / 1000 : 0.1;
         totalResponses = Math.round(BASELINE_2025.totalResponses * ratio);
         totalVisitors = Math.round(BASELINE_2025.totalVisitors * ratio);
-        services = BASELINE_2025.services.filter(s => s.campus.toLowerCase().includes(activeCampusName.toLowerCase()));
-        comments = BASELINE_2025.qualitativeComments.filter(s => s.campus.toLowerCase().includes(activeCampusName.toLowerCase()));
+        services = BASELINE_2025.services.filter((s) =>
+          s.campus.toLowerCase().includes(activeCampusName.toLowerCase()),
+        );
+        comments = BASELINE_2025.qualitativeComments.filter((s) =>
+          s.campus.toLowerCase().includes(activeCampusName.toLowerCase()),
+        );
       }
 
       // Simulate filtering by selected unit in baseline mode
       if (selectedUnitId !== 'all') {
         const uName = selectedUnitName.toLowerCase();
         if (uName.includes('registrar') || uName.includes('admission') || uName.includes('records')) {
-          services = services.filter(s => 
-            s.name.includes('Leave of Absence') || 
-            s.name.includes('Enrollees') || 
-            s.name.includes('Transcript') || 
-            s.name.includes('Re-admission') || 
-            s.name.includes('Verification') || 
-            s.name.includes('Grades') || 
-            s.name.includes('Clearance') || 
-            s.name.includes('Evaluation') || 
-            s.name.includes('Dismissal') || 
-            s.name.includes('Graduation')
+          services = services.filter(
+            (s) =>
+              s.name.includes('Leave of Absence') ||
+              s.name.includes('Enrollees') ||
+              s.name.includes('Transcript') ||
+              s.name.includes('Re-admission') ||
+              s.name.includes('Verification') ||
+              s.name.includes('Grades') ||
+              s.name.includes('Clearance') ||
+              s.name.includes('Evaluation') ||
+              s.name.includes('Dismissal') ||
+              s.name.includes('Graduation'),
           );
-        } else if (uName.includes('hr') || uName.includes('human resource') || uName.includes('admin') || uName.includes('personnel')) {
-          services = services.filter(s => s.name.includes('Service Record'));
-        } else if (uName.includes('student affairs') || uName.includes('osa') || uName.includes('scholarship') || uName.includes('kiosk')) {
-          services = services.filter(s => s.name.includes('Scholarship') || s.name.includes('ID Card'));
+        } else if (
+          uName.includes('hr') ||
+          uName.includes('human resource') ||
+          uName.includes('admin') ||
+          uName.includes('personnel')
+        ) {
+          services = services.filter((s) => s.name.includes('Service Record'));
+        } else if (
+          uName.includes('student affairs') ||
+          uName.includes('osa') ||
+          uName.includes('scholarship') ||
+          uName.includes('kiosk')
+        ) {
+          services = services.filter((s) => s.name.includes('Scholarship') || s.name.includes('ID Card'));
         } else {
           const charCodeSum = uName.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
           services = services.filter((_, idx) => (idx + charCodeSum) % 3 === 0);
@@ -477,8 +668,12 @@ export function CsmReportDashboard({
         totalResponses = services.reduce((sum, s) => sum + s.count, 0) || 15;
         totalVisitors = Math.round(totalResponses * 1.15);
 
-        comments = comments.filter(c => {
-          if (uName.includes('registrar') && (c.category.includes('Responsiveness') || c.category.includes('Reliability'))) return true;
+        comments = comments.filter((c) => {
+          if (
+            uName.includes('registrar') &&
+            (c.category.includes('Responsiveness') || c.category.includes('Reliability'))
+          )
+            return true;
           if (uName.includes('hr') && c.visitorName.includes('Melchora')) return true;
           return false;
         });
@@ -488,40 +683,50 @@ export function CsmReportDashboard({
       }
 
       // Demographic distribution for charts
-      const sexData = BASELINE_2025.demographics.sex.map(s => ({
-        ...s,
-        value: Math.round(s.value * (totalResponses / BASELINE_2025.totalResponses))
-      })).filter(x => x.value > 0);
+      const sexData = BASELINE_2025.demographics.sex
+        .map((s) => ({
+          ...s,
+          value: Math.round(s.value * (totalResponses / BASELINE_2025.totalResponses)),
+        }))
+        .filter((x) => x.value > 0);
 
-      const clientTypeData = BASELINE_2025.demographics.customerType.map(c => ({
-        ...c,
-        value: Math.round(c.value * (totalResponses / BASELINE_2025.totalResponses))
-      })).filter(x => x.value > 0);
+      const clientTypeData = BASELINE_2025.demographics.customerType
+        .map((c) => ({
+          ...c,
+          value: Math.round(c.value * (totalResponses / BASELINE_2025.totalResponses)),
+        }))
+        .filter((x) => x.value > 0);
 
       const internalCount = clientTypeData
-        .filter(c => c.name === 'Student' || c.name === 'Internal Employees')
+        .filter((c) => c.name === 'Student' || c.name === 'Internal Employees')
         .reduce((sum, item) => sum + item.value, 0);
 
       const externalCount = clientTypeData
-        .filter(c => c.name !== 'Student' && c.name !== 'Internal Employees')
+        .filter((c) => c.name !== 'Student' && c.name !== 'Internal Employees')
         .reduce((sum, item) => sum + item.value, 0);
 
       const stakeholderData = [
         { name: 'Internal Stakeholders', value: internalCount, fill: '#1b6535' },
-        { name: 'External Stakeholders', value: externalCount, fill: '#fb923c' }
-      ].filter(x => x.value > 0);
+        { name: 'External Stakeholders', value: externalCount, fill: '#fb923c' },
+      ].filter((x) => x.value > 0);
 
-      const ageData = BASELINE_2025.demographics.age.map(a => ({
+      const ageData = BASELINE_2025.demographics.age.map((a) => ({
         ...a,
-        value: Math.round(a.value * (totalResponses / BASELINE_2025.totalResponses))
+        value: Math.round(a.value * (totalResponses / BASELINE_2025.totalResponses)),
       }));
 
       const campusData = BASELINE_2025.demographics.campus;
 
       // Citizen's charter percentages
-      const cc1 = BASELINE_2025.ccResults.cc1.map(v => Math.round(v * (totalResponses / BASELINE_2025.totalResponses)));
-      const cc2 = BASELINE_2025.ccResults.cc2.map(v => Math.round(v * (totalResponses / BASELINE_2025.totalResponses)));
-      const cc3 = BASELINE_2025.ccResults.cc3.map(v => Math.round(v * (totalResponses / BASELINE_2025.totalResponses)));
+      const cc1 = BASELINE_2025.ccResults.cc1.map((v) =>
+        Math.round(v * (totalResponses / BASELINE_2025.totalResponses)),
+      );
+      const cc2 = BASELINE_2025.ccResults.cc2.map((v) =>
+        Math.round(v * (totalResponses / BASELINE_2025.totalResponses)),
+      );
+      const cc3 = BASELINE_2025.ccResults.cc3.map((v) =>
+        Math.round(v * (totalResponses / BASELINE_2025.totalResponses)),
+      );
 
       const totalCC1 = cc1[1] + cc1[2] + cc1[3] + cc1[4] || 1;
       const totalCC2 = cc2[1] + cc2[2] + cc2[3] + cc2[4] + cc2[5] || 1;
@@ -534,7 +739,7 @@ export function CsmReportDashboard({
           'Option 2': Math.round((cc1[2] / totalCC1) * 100),
           'Option 3': Math.round((cc1[3] / totalCC1) * 100),
           'Option 4': Math.round((cc1[4] / totalCC1) * 100),
-          'Option 5': 0
+          'Option 5': 0,
         },
         {
           dimension: 'CC2 (Visibility)',
@@ -542,7 +747,7 @@ export function CsmReportDashboard({
           'Option 2': Math.round((cc2[2] / totalCC2) * 100),
           'Option 3': Math.round((cc2[3] / totalCC2) * 100),
           'Option 4': Math.round((cc2[4] / totalCC2) * 100),
-          'Option 5': Math.round((cc2[5] / totalCC2) * 100)
+          'Option 5': Math.round((cc2[5] / totalCC2) * 100),
         },
         {
           dimension: 'CC3 (Helpfulness)',
@@ -550,16 +755,16 @@ export function CsmReportDashboard({
           'Option 2': Math.round((cc3[2] / totalCC3) * 100),
           'Option 3': Math.round((cc3[3] / totalCC3) * 100),
           'Option 4': Math.round((cc3[4] / totalCC3) * 100),
-          'Option 5': 0
-        }
+          'Option 5': 0,
+        },
       ];
 
       // SQD dimension stats
-      const sqdData = BASELINE_2025.sqd.map(s => {
-        const countsScaled = s.counts.map(v => Math.round(v * (totalResponses / BASELINE_2025.totalResponses)));
+      const sqdData = BASELINE_2025.sqd.map((s) => {
+        const countsScaled = s.counts.map((v) => Math.round(v * (totalResponses / BASELINE_2025.totalResponses)));
         return {
           ...s,
-          counts: countsScaled
+          counts: countsScaled,
         };
       });
 
@@ -580,7 +785,7 @@ export function CsmReportDashboard({
         sqdData,
         services,
         comments,
-        paretoData
+        paretoData,
       };
     } else {
       // LIVE SYSTEM LOGS CALCULATION
@@ -591,7 +796,7 @@ export function CsmReportDashboard({
       // Overall Satisfaction Index
       let totalSqdRatingsCount = 0;
       let positiveRatingsCount = 0;
-      filteredResponses.forEach(res => {
+      filteredResponses.forEach((res) => {
         for (let i = 1; i <= 8; i++) {
           const rating = res[`sqd${i}`];
           if (rating > 0 && rating <= 5) {
@@ -600,13 +805,14 @@ export function CsmReportDashboard({
           }
         }
       });
-      const overallSatisfactionRate = totalSqdRatingsCount === 0 ? 0 : Math.round((positiveRatingsCount / totalSqdRatingsCount) * 100);
+      const overallSatisfactionRate =
+        totalSqdRatingsCount === 0 ? 0 : Math.round((positiveRatingsCount / totalSqdRatingsCount) * 100);
 
       // Citizen's Charter count distributions
       const cc1 = [0, 0, 0, 0, 0];
       const cc2 = [0, 0, 0, 0, 0, 0];
       const cc3 = [0, 0, 0, 0, 0];
-      filteredResponses.forEach(res => {
+      filteredResponses.forEach((res) => {
         const c1 = Number(res.cc1 || 0);
         const c2 = Number(res.cc2 || 0);
         const c3 = Number(res.cc3 || 0);
@@ -633,7 +839,7 @@ export function CsmReportDashboard({
           'Option 2': Math.round((cc1[2] / totalCC1) * 100),
           'Option 3': Math.round((cc1[3] / totalCC1) * 100),
           'Option 4': Math.round((cc1[4] / totalCC1) * 100),
-          'Option 5': 0
+          'Option 5': 0,
         },
         {
           dimension: 'CC2 (Visibility)',
@@ -641,7 +847,7 @@ export function CsmReportDashboard({
           'Option 2': Math.round((cc2[2] / totalCC2) * 100),
           'Option 3': Math.round((cc2[3] / totalCC2) * 100),
           'Option 4': Math.round((cc2[4] / totalCC2) * 100),
-          'Option 5': Math.round((cc2[5] / totalCC2) * 100)
+          'Option 5': Math.round((cc2[5] / totalCC2) * 100),
         },
         {
           dimension: 'CC3 (Helpfulness)',
@@ -649,21 +855,34 @@ export function CsmReportDashboard({
           'Option 2': Math.round((cc3[2] / totalCC3) * 100),
           'Option 3': Math.round((cc3[3] / totalCC3) * 100),
           'Option 4': Math.round((cc3[4] / totalCC3) * 100),
-          'Option 5': 0
-        }
+          'Option 5': 0,
+        },
       ];
 
       // Live demographics calculation
       const sexCounts: Record<string, number> = { Male: 0, Female: 0, 'LGBTQ+': 0, 'Did not specify': 0 };
-      const clientTypeCounts: Record<string, number> = { Student: 0, Parents: 0, 'Government Employees': 0, 'Internal Employees': 0, Citizens: 0, Others: 0 };
-      const ageCounts: Record<string, number> = { '19 or lower': 0, '20-34': 0, '35-49': 0, '50-64': 0, '65 or higher': 0 };
+      const clientTypeCounts: Record<string, number> = {
+        Student: 0,
+        Parents: 0,
+        'Government Employees': 0,
+        'Internal Employees': 0,
+        Citizens: 0,
+        Others: 0,
+      };
+      const ageCounts: Record<string, number> = {
+        '19 or lower': 0,
+        '20-34': 0,
+        '35-49': 0,
+        '50-64': 0,
+        '65 or higher': 0,
+      };
       const campusCounts: Record<string, number> = {};
 
-      campuses.forEach(c => {
+      campuses.forEach((c) => {
         campusCounts[c.name] = 0;
       });
 
-      filteredResponses.forEach(res => {
+      filteredResponses.forEach((res) => {
         // Sex
         let sexVal = res.sex || 'Did not specify';
         if (sexVal === 'LGBTQA+' || sexVal === 'Others (LGBTQI++)') {
@@ -678,7 +897,7 @@ export function CsmReportDashboard({
         if (typeVal === 'Government') typeVal = 'Government Employees';
         if (typeVal === 'Citizen') typeVal = 'Citizens';
         if (typeVal === 'Business') typeVal = 'Others';
-        
+
         if (typeVal in clientTypeCounts) clientTypeCounts[typeVal]++;
         else clientTypeCounts['Others']++;
 
@@ -690,52 +909,69 @@ export function CsmReportDashboard({
         else ageCounts['20-34']++;
 
         // Campus
-        const cName = campuses.find(c => c.id === res.campusId)?.name || 'Main Campus';
+        const cName = campuses.find((c) => c.id === res.campusId)?.name || 'Main Campus';
         campusCounts[cName] = (campusCounts[cName] || 0) + 1;
       });
 
-      const sexData = Object.entries(sexCounts).map(([name, value], i) => ({
-        name,
-        value,
-        fill: i === 0 ? 'hsl(var(--chart-2))' : i === 1 ? 'hsl(var(--chart-1))' : i === 2 ? 'hsl(var(--chart-3))' : 'hsl(var(--chart-4))'
-      })).filter(d => d.value > 0);
+      const sexData = Object.entries(sexCounts)
+        .map(([name, value], i) => ({
+          name,
+          value,
+          fill:
+            i === 0
+              ? 'hsl(var(--chart-2))'
+              : i === 1
+                ? 'hsl(var(--chart-1))'
+                : i === 2
+                  ? 'hsl(var(--chart-3))'
+                  : 'hsl(var(--chart-4))',
+        }))
+        .filter((d) => d.value > 0);
 
-      const clientTypeData = Object.entries(clientTypeCounts).map(([name, value], i) => ({
-        name,
-        value,
-        fill: `hsl(var(--chart-${(i % 5) + 1}))`
-      })).filter(d => d.value > 0);
+      const clientTypeData = Object.entries(clientTypeCounts)
+        .map(([name, value], i) => ({
+          name,
+          value,
+          fill: `hsl(var(--chart-${(i % 5) + 1}))`,
+        }))
+        .filter((d) => d.value > 0);
 
       const internalCount = clientTypeCounts['Student'] + clientTypeCounts['Internal Employees'];
-      const externalCount = clientTypeCounts['Parents'] + clientTypeCounts['Government Employees'] + clientTypeCounts['Citizens'] + clientTypeCounts['Others'];
+      const externalCount =
+        clientTypeCounts['Parents'] +
+        clientTypeCounts['Government Employees'] +
+        clientTypeCounts['Citizens'] +
+        clientTypeCounts['Others'];
       const stakeholderData = [
         { name: 'Internal Stakeholders', value: internalCount, fill: '#1b6535' },
-        { name: 'External Stakeholders', value: externalCount, fill: '#fb923c' }
-      ].filter(d => d.value > 0);
+        { name: 'External Stakeholders', value: externalCount, fill: '#fb923c' },
+      ].filter((d) => d.value > 0);
 
       const ageData = Object.entries(ageCounts).map(([name, value]) => ({ name, value }));
-      const campusData = Object.entries(campusCounts).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value);
+      const campusData = Object.entries(campusCounts)
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
 
       // SQD performance
       const dims = [
-        { id: 0, name: "SQD0. Overall Satisfaction", key: "sqd0", desc: "I am satisfied with the service I availed" },
-        { id: 1, name: "SQD1. Responsiveness", key: "sqd1", desc: "Spent reasonable amount of time" },
-        { id: 2, name: "SQD2. Reliability", key: "sqd2", desc: "Followed charter steps/requirements" },
-        { id: 3, name: "SQD3. Access & Facilities", key: "sqd3", desc: "Clean, comfortable, and accessible office" },
-        { id: 4, name: "SQD4. Communication", key: "sqd4", desc: "Clear guidelines and friendly explanations" },
-        { id: 5, name: "SQD5. Costs", key: "sqd5", desc: "Fees paid were just and reasonable" },
-        { id: 6, name: "SQD6. Integrity", key: "sqd6", desc: "Free from corruption and under-the-table actions" },
-        { id: 7, name: "SQD7. Assurance", key: "sqd7", desc: "Felt safe, staff was professional and courteous" },
-        { id: 8, name: "SQD8. Outcome", key: "sqd8", desc: "Office delivered the requested service/result" }
+        { id: 0, name: 'SQD0. Overall Satisfaction', key: 'sqd0', desc: 'I am satisfied with the service I availed' },
+        { id: 1, name: 'SQD1. Responsiveness', key: 'sqd1', desc: 'Spent reasonable amount of time' },
+        { id: 2, name: 'SQD2. Reliability', key: 'sqd2', desc: 'Followed charter steps/requirements' },
+        { id: 3, name: 'SQD3. Access & Facilities', key: 'sqd3', desc: 'Clean, comfortable, and accessible office' },
+        { id: 4, name: 'SQD4. Communication', key: 'sqd4', desc: 'Clear guidelines and friendly explanations' },
+        { id: 5, name: 'SQD5. Costs', key: 'sqd5', desc: 'Fees paid were just and reasonable' },
+        { id: 6, name: 'SQD6. Integrity', key: 'sqd6', desc: 'Free from corruption and under-the-table actions' },
+        { id: 7, name: 'SQD7. Assurance', key: 'sqd7', desc: 'Felt safe, staff was professional and courteous' },
+        { id: 8, name: 'SQD8. Outcome', key: 'sqd8', desc: 'Office delivered the requested service/result' },
       ];
 
-      const sqdData = dims.map(dim => {
+      const sqdData = dims.map((dim) => {
         let sum = 0;
         let count = 0;
         let posCount = 0;
         const counts = [0, 0, 0, 0, 0, 0];
 
-        filteredResponses.forEach(res => {
+        filteredResponses.forEach((res) => {
           const rating = Number(res[dim.key] || 0);
           if (rating === 0) counts[0]++;
           else if (rating >= 1 && rating <= 5) {
@@ -754,13 +990,16 @@ export function CsmReportDashboard({
           avg,
           positivePercent,
           totalValid: count,
-          counts
+          counts,
         };
       });
 
       // Service Performance table calculation
-      const serviceStats = new Map<string, { count: number; ratingSum: number; ratingCount: number; positiveCount: number }>();
-      filteredResponses.forEach(res => {
+      const serviceStats = new Map<
+        string,
+        { count: number; ratingSum: number; ratingCount: number; positiveCount: number }
+      >();
+      filteredResponses.forEach((res) => {
         const purposeVal = res.purpose || 'General Assistance';
         const stats = serviceStats.get(purposeVal) || { count: 0, ratingSum: 0, ratingCount: 0, positiveCount: 0 };
         stats.count++;
@@ -776,41 +1015,53 @@ export function CsmReportDashboard({
         serviceStats.set(purposeVal, stats);
       });
 
-      const services = Array.from(serviceStats.entries()).map(([serviceName, stats]) => {
-        const avgRating = stats.ratingCount > 0 ? Number((stats.ratingSum / stats.ratingCount).toFixed(2)) : 0;
-        const satisfactionRate = stats.ratingCount > 0 ? Math.min(100, Math.round((stats.positiveCount / stats.ratingCount) * 100)) : 0;
-        const cName = activeCampusName === 'all' ? 'Main Campus' : activeCampusName;
-        return {
-          name: serviceName,
-          campus: cName,
-          count: stats.count,
-          avgRating,
-          satisfactionRate
-        };
-      }).sort((a,b) => b.count - a.count);
+      const services = Array.from(serviceStats.entries())
+        .map(([serviceName, stats]) => {
+          const avgRating = stats.ratingCount > 0 ? Number((stats.ratingSum / stats.ratingCount).toFixed(2)) : 0;
+          const satisfactionRate =
+            stats.ratingCount > 0 ? Math.min(100, Math.round((stats.positiveCount / stats.ratingCount) * 100)) : 0;
+          const cName = activeCampusName === 'all' ? 'Main Campus' : activeCampusName;
+          return {
+            name: serviceName,
+            campus: cName,
+            count: stats.count,
+            avgRating,
+            satisfactionRate,
+          };
+        })
+        .sort((a, b) => b.count - a.count);
 
       // Comments list
       const comments = filteredResponses
-        .filter(r => r.comments && r.comments.trim().length > 0)
-        .map(r => {
+        .filter((r) => r.comments && r.comments.trim().length > 0)
+        .map((r) => {
           let typeVal = r.clientType || 'Student';
           if (typeVal === 'STUDENT') typeVal = 'Student';
           if (typeVal === 'Government') typeVal = 'Government Employees';
           if (typeVal === 'Citizen') typeVal = 'Citizens';
-          const cName = campuses.find(c => c.id === r.campusId)?.name || 'Main Campus';
-          
+          const cName = campuses.find((c) => c.id === r.campusId)?.name || 'Main Campus';
+
           // Heuristic theme mapping
-          let category = "Outcome (SQD8)";
+          let category = 'Outcome (SQD8)';
           for (let i = 0; i <= 8; i++) {
             if (i === 0) continue; // Skip SQD0 for heuristic mapping
             if (r[`sqd${i}`] > 0 && r[`sqd${i}`] <= 2) {
-              category = i === 1 ? "Responsiveness (SQD1)" :
-                         i === 2 ? "Reliability (SQD2)" :
-                         i === 3 ? "Access & Facilities (SQD3)" :
-                         i === 4 ? "Communication (SQD4)" :
-                         i === 5 ? "Costs (SQD5)" :
-                         i === 6 ? "Integrity (SQD6)" :
-                         i === 7 ? "Assurance (SQD7)" : "Outcome (SQD8)";
+              category =
+                i === 1
+                  ? 'Responsiveness (SQD1)'
+                  : i === 2
+                    ? 'Reliability (SQD2)'
+                    : i === 3
+                      ? 'Access & Facilities (SQD3)'
+                      : i === 4
+                        ? 'Communication (SQD4)'
+                        : i === 5
+                          ? 'Costs (SQD5)'
+                          : i === 6
+                            ? 'Integrity (SQD6)'
+                            : i === 7
+                              ? 'Assurance (SQD7)'
+                              : 'Outcome (SQD8)';
               break;
             }
           }
@@ -820,23 +1071,23 @@ export function CsmReportDashboard({
             comments: r.comments,
             category,
             campus: cName,
-            type: typeVal
+            type: typeVal,
           };
         });
 
       // Pareto live count
       const liveParetoCounts: Record<string, number> = {
-        "Responsiveness (SQD1)": 0,
-        "Reliability (SQD2)": 0,
-        "Access & Facilities (SQD3)": 0,
-        "Communication (SQD4)": 0,
-        "Costs (SQD5)": 0,
-        "Integrity (SQD6)": 0,
-        "Assurance (SQD7)": 0,
-        "Outcome (SQD8)": 0,
+        'Responsiveness (SQD1)': 0,
+        'Reliability (SQD2)': 0,
+        'Access & Facilities (SQD3)': 0,
+        'Communication (SQD4)': 0,
+        'Costs (SQD5)': 0,
+        'Integrity (SQD6)': 0,
+        'Assurance (SQD7)': 0,
+        'Outcome (SQD8)': 0,
       };
 
-      comments.forEach(c => {
+      comments.forEach((c) => {
         if (c.category in liveParetoCounts) {
           liveParetoCounts[c.category]++;
         }
@@ -848,12 +1099,12 @@ export function CsmReportDashboard({
 
       const totalParetoCount = sortedPareto.reduce((sum, item) => sum + item.count, 0) || 1;
       let runningSum = 0;
-      const paretoData = sortedPareto.map(item => {
+      const paretoData = sortedPareto.map((item) => {
         runningSum += item.count;
         return {
           theme: item.theme,
           count: item.count,
-          cumulativePercent: Math.round((runningSum / totalParetoCount) * 100)
+          cumulativePercent: Math.round((runningSum / totalParetoCount) * 100),
         };
       });
 
@@ -871,14 +1122,14 @@ export function CsmReportDashboard({
         sqdData,
         services,
         comments,
-        paretoData
+        paretoData,
       };
     }
   }, [dataSource, filteredResponses, filteredVisitorLogs, campuses, activeCampusName]);
 
   // SQD Diverging Likert dataset constructor
   const divergingData = useMemo(() => {
-    return displayStats.sqdData.map(sqd => {
+    return displayStats.sqdData.map((sqd) => {
       const total = sqd.counts[1] + sqd.counts[2] + sqd.counts[3] + sqd.counts[4] + sqd.counts[5] || 1;
       const sd = (sqd.counts[1] / total) * 100;
       const d = (sqd.counts[2] / total) * 100;
@@ -889,35 +1140,36 @@ export function CsmReportDashboard({
       return {
         name: `SQD${sqd.id}`,
         fullName: sqd.name,
-        "Strongly Disagree": -sd,
-        "Disagree": -d,
-        "Neutral (Neg)": -n / 2,
-        "Neutral (Pos)": n / 2,
-        "Agree": a,
-        "Strongly Agree": sa,
+        'Strongly Disagree': -sd,
+        Disagree: -d,
+        'Neutral (Neg)': -n / 2,
+        'Neutral (Pos)': n / 2,
+        Agree: a,
+        'Strongly Agree': sa,
       };
     });
   }, [displayStats]);
 
   // Radar Spider chart dataset constructor
   const radarData = useMemo(() => {
-    const list = displayStats.sqdData.map(s => ({
+    const list = displayStats.sqdData.map((s) => ({
       subject: `SQD${s.id}`,
       name: s.name,
       Score: s.positivePercent,
-      fullMark: 100
+      fullMark: 100,
     }));
     return [
       { subject: 'Overall', name: 'Overall Satisfaction', Score: displayStats.overallSatisfactionRate, fullMark: 100 },
-      ...list
+      ...list,
     ];
   }, [displayStats]);
 
   // Paginated/Filtered Services performance
   const filteredServices = useMemo(() => {
-    return displayStats.services.filter(s => 
-      s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
-      s.campus.toLowerCase().includes(serviceSearch.toLowerCase())
+    return displayStats.services.filter(
+      (s) =>
+        s.name.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+        s.campus.toLowerCase().includes(serviceSearch.toLowerCase()),
     );
   }, [displayStats.services, serviceSearch]);
 
@@ -931,94 +1183,96 @@ export function CsmReportDashboard({
     if (!displayStats.comments) return [];
     if (!commentSearch.trim()) return displayStats.comments;
     const q = commentSearch.toLowerCase();
-    return displayStats.comments.filter(c => 
-      c.visitorName.toLowerCase().includes(q) ||
-      c.comments.toLowerCase().includes(q) ||
-      c.category.toLowerCase().includes(q) ||
-      c.campus.toLowerCase().includes(q) ||
-      c.type.toLowerCase().includes(q)
+    return displayStats.comments.filter(
+      (c) =>
+        c.visitorName.toLowerCase().includes(q) ||
+        c.comments.toLowerCase().includes(q) ||
+        c.category.toLowerCase().includes(q) ||
+        c.campus.toLowerCase().includes(q) ||
+        c.type.toLowerCase().includes(q),
     );
   }, [displayStats.comments, commentSearch]);
 
   // Decision Support System alerts
   const dssInsights = useMemo(() => {
     const alerts: any[] = [];
-    displayStats.sqdData.forEach(sqd => {
+    displayStats.sqdData.forEach((sqd) => {
       if (sqd.avg > 0 && sqd.positivePercent < 85) {
-        let recommendation = "";
+        let recommendation = '';
         let checklist: string[] = [];
 
-        switch(sqd.id) {
+        switch (sqd.id) {
           case 0:
-            recommendation = "Overall Satisfaction Alert: General satisfaction below threshold. Conduct root cause analysis across all dimensions.";
+            recommendation =
+              'Overall Satisfaction Alert: General satisfaction below threshold. Conduct root cause analysis across all dimensions.';
             checklist = [
-              "Review all SQD dimension scores to identify weakest areas.",
-              "Conduct focus group discussions with frontline staff and clients.",
-              "Implement institution-wide service improvement initiatives."
+              'Review all SQD dimension scores to identify weakest areas.',
+              'Conduct focus group discussions with frontline staff and clients.',
+              'Implement institution-wide service improvement initiatives.',
             ];
             break;
           case 1:
-            recommendation = "Responsiveness Alert: Transaction time is sub-optimal. Review counter queue management.";
+            recommendation = 'Responsiveness Alert: Transaction time is sub-optimal. Review counter queue management.';
             checklist = [
-              "Audit typical service time per client counter.",
-              "Adjust personnel allocation to increase count during peak hours (10 AM - 2 PM).",
-              "Implement pre-screening checkers to avoid queue recycling."
+              'Audit typical service time per client counter.',
+              'Adjust personnel allocation to increase count during peak hours (10 AM - 2 PM).',
+              'Implement pre-screening checkers to avoid queue recycling.',
             ];
             break;
           case 2:
-            recommendation = "Reliability Gap: Service delivery is not complying strictly with charter timelines.";
+            recommendation = 'Reliability Gap: Service delivery is not complying strictly with charter timelines.';
             checklist = [
-              "Standardize compliance review periods for documents.",
-              "Track process deviations using digitised logs.",
-              "Schedule workflow orientation refreshers for administrative assistants."
+              'Standardize compliance review periods for documents.',
+              'Track process deviations using digitised logs.',
+              'Schedule workflow orientation refreshers for administrative assistants.',
             ];
             break;
           case 3:
-            recommendation = "Facilities Alert: Customer lounge comfort levels are below standard.";
+            recommendation = 'Facilities Alert: Customer lounge comfort levels are below standard.';
             checklist = [
-              "Provide additional ventilation, seating, and clean restrooms.",
-              "Ensure directional signs are placed at all floor entrances.",
-              "Review lobby seating capacity and implement priority seats."
+              'Provide additional ventilation, seating, and clean restrooms.',
+              'Ensure directional signs are placed at all floor entrances.',
+              'Review lobby seating capacity and implement priority seats.',
             ];
             break;
           case 4:
-            recommendation = "Communication Issue: Instructions or prerequisites are ambiguous to visitors.";
+            recommendation = 'Communication Issue: Instructions or prerequisites are ambiguous to visitors.';
             checklist = [
-              "Upload and post visual 1-page guides for all services.",
-              "Ensure information helpdesks are manned by trained frontline agents.",
-              "Review document requirements checklists to eliminate obsolete certificates."
+              'Upload and post visual 1-page guides for all services.',
+              'Ensure information helpdesks are manned by trained frontline agents.',
+              'Review document requirements checklists to eliminate obsolete certificates.',
             ];
             break;
           case 5:
-            recommendation = "Cost Dissatisfaction: Fees charged are not clearly visible.";
+            recommendation = 'Cost Dissatisfaction: Fees charged are not clearly visible.';
             checklist = [
-              "Post certified schedules of fees directly at payment counters.",
-              "Issue itemsized breakdowns on official receipts.",
-              "Review electronic transaction fees to minimize convenience surcharges."
+              'Post certified schedules of fees directly at payment counters.',
+              'Issue itemsized breakdowns on official receipts.',
+              'Review electronic transaction fees to minimize convenience surcharges.',
             ];
             break;
           case 6:
-            recommendation = "Integrity Risk: Standard processes are bypassed or not transparent.";
+            recommendation = 'Integrity Risk: Standard processes are bypassed or not transparent.';
             checklist = [
-              "Enforce RA 11032 anti-graft training schedules.",
-              "Implement transparent queue monitoring display screens.",
-              "Deploy locked Suggestion chests that bypass direct office staff."
+              'Enforce RA 11032 anti-graft training schedules.',
+              'Implement transparent queue monitoring display screens.',
+              'Deploy locked Suggestion chests that bypass direct office staff.',
             ];
             break;
           case 7:
-            recommendation = "Assurance Gaps: Professional courtesy standards require training.";
+            recommendation = 'Assurance Gaps: Professional courtesy standards require training.';
             checklist = [
-              "Schedule Customer Relations & Values Training workshops.",
-              "Enforce strict frontline uniform and identification code of conduct.",
-              "Establish standard client reception greetings."
+              'Schedule Customer Relations & Values Training workshops.',
+              'Enforce strict frontline uniform and identification code of conduct.',
+              'Establish standard client reception greetings.',
             ];
             break;
           case 8:
-            recommendation = "Outcome Issue: High rejection rate or inadequate rejection explanations.";
+            recommendation = 'Outcome Issue: High rejection rate or inadequate rejection explanations.';
             checklist = [
-              "Provide written checklists detailing specific deficiencies for denied documents.",
-              "Examine reject reasons to optimize requirements listing.",
-              "Establish a clear appeals channel."
+              'Provide written checklists detailing specific deficiencies for denied documents.',
+              'Examine reject reasons to optimize requirements listing.',
+              'Establish a clear appeals channel.',
             ];
             break;
         }
@@ -1029,7 +1283,7 @@ export function CsmReportDashboard({
           positivePercent: sqd.positivePercent,
           avg: sqd.avg,
           recommendation,
-          checklist
+          checklist,
         });
       }
     });
@@ -1037,13 +1291,13 @@ export function CsmReportDashboard({
     if (displayStats.totalVisitors > 20 && displayStats.participationRate < 30) {
       alerts.push({
         id: 99,
-        name: "Low Survey Participation",
+        name: 'Low Survey Participation',
         recommendation: `Participation is at ${displayStats.participationRate}%. Bypasses might be occurring.`,
         checklist: [
-          "Ensure kiosk checkout prompts are activated in fullscreen mode.",
-          "Train desk clerks to polite invite visitors to complete evaluation prior to exit.",
-          "Verify QR code signages are visible on exit walls."
-        ]
+          'Ensure kiosk checkout prompts are activated in fullscreen mode.',
+          'Train desk clerks to polite invite visitors to complete evaluation prior to exit.',
+          'Verify QR code signages are visible on exit walls.',
+        ],
       });
     }
 
@@ -1054,59 +1308,60 @@ export function CsmReportDashboard({
   const unitBenchmarks = useMemo(() => {
     if (!hasAccessToAll || !units) return [];
     const resByUnit = new Map<string, any[]>();
-    filteredResponses.forEach(res => {
+    filteredResponses.forEach((res) => {
       const list = resByUnit.get(res.unitId) || [];
       list.push(res);
       resByUnit.set(res.unitId, list);
     });
 
     const logsByUnit = new Map<string, any[]>();
-    filteredVisitorLogs.forEach(log => {
+    filteredVisitorLogs.forEach((log) => {
       const list = logsByUnit.get(log.unitId) || [];
       list.push(log);
       logsByUnit.set(log.unitId, list);
     });
 
-    return units.map(unit => {
-      const uResponses = resByUnit.get(unit.id) || [];
-      const uLogs = logsByUnit.get(unit.id) || [];
+    return units
+      .map((unit) => {
+        const uResponses = resByUnit.get(unit.id) || [];
+        const uLogs = logsByUnit.get(unit.id) || [];
 
-      let ratingCount = 0;
-      let posCount = 0;
-      let ratingSum = 0;
+        let ratingCount = 0;
+        let posCount = 0;
+        let ratingSum = 0;
 
-      uResponses.forEach(res => {
-        for (let i = 0; i <= 8; i++) {
-          const rating = res[`sqd${i}`];
-          if (rating > 0 && rating <= 5) {
-            ratingCount++;
-            ratingSum += rating;
-            if (rating >= 4) posCount++;
+        uResponses.forEach((res) => {
+          for (let i = 0; i <= 8; i++) {
+            const rating = res[`sqd${i}`];
+            if (rating > 0 && rating <= 5) {
+              ratingCount++;
+              ratingSum += rating;
+              if (rating >= 4) posCount++;
+            }
           }
-        }
-      });
+        });
 
-      const totalUResponses = uResponses.length;
-      const totalULogs = uLogs.length;
-      const uParticipationRate = totalULogs > 0 ? Math.round((totalUResponses / totalULogs) * 100) : 0;
-      const uSatisfactionRate = ratingCount > 0 ? Math.round((posCount / ratingCount) * 100) : 0;
-      const uAvgRating = ratingCount > 0 ? Number((ratingSum / ratingCount).toFixed(2)) : 0;
-      const campusNames = unit.campusIds?.map(cId => campuses.find(c => c.id === cId)?.name || 'N/A') || [];
+        const totalUResponses = uResponses.length;
+        const totalULogs = uLogs.length;
+        const uParticipationRate = totalULogs > 0 ? Math.round((totalUResponses / totalULogs) * 100) : 0;
+        const uSatisfactionRate = ratingCount > 0 ? Math.round((posCount / ratingCount) * 100) : 0;
+        const uAvgRating = ratingCount > 0 ? Number((ratingSum / ratingCount).toFixed(2)) : 0;
+        const campusNames = unit.campusIds?.map((cId) => campuses.find((c) => c.id === cId)?.name || 'N/A') || [];
 
-      return {
-        id: unit.id,
-        name: unit.name,
-        campuses: campusNames.join(', '),
-        totalVisitors: totalULogs,
-        totalResponses: totalUResponses,
-        participationRate: uParticipationRate,
-        satisfactionRate: uSatisfactionRate,
-        avgRating: uAvgRating,
-      };
-    }).filter(u => u.totalVisitors > 0 || u.totalResponses > 0)
+        return {
+          id: unit.id,
+          name: unit.name,
+          campuses: campusNames.join(', '),
+          totalVisitors: totalULogs,
+          totalResponses: totalUResponses,
+          participationRate: uParticipationRate,
+          satisfactionRate: uSatisfactionRate,
+          avgRating: uAvgRating,
+        };
+      })
+      .filter((u) => u.totalVisitors > 0 || u.totalResponses > 0)
       .sort((a, b) => b.satisfactionRate - a.satisfactionRate);
   }, [filteredResponses, filteredVisitorLogs, units, campuses, hasAccessToAll]);
-
 
   // ==================== REPORT GENERATION & PRINT TRIGGERS ====================
 
@@ -1114,11 +1369,11 @@ export function CsmReportDashboard({
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const titleLabel = dataSource === 'baseline25' ? "FY 2025 BASELINE REPORT" : "LIVE SYSTEM LOGS";
-    const campusLabel = activeCampusName === 'all' ? "RSU SYSTEM-WIDE" : activeCampusName;
+    const titleLabel = dataSource === 'baseline25' ? 'FY 2025 BASELINE REPORT' : 'LIVE SYSTEM LOGS';
+    const campusLabel = activeCampusName === 'all' ? 'RSU SYSTEM-WIDE' : activeCampusName;
 
     let sqdRows = '';
-    displayStats.sqdData.forEach(sqd => {
+    displayStats.sqdData.forEach((sqd) => {
       sqdRows += `
         <tr>
           <td style="border: 1px solid black; padding: 8px; font-weight: bold;">${sqd.name}</td>
@@ -1198,17 +1453,18 @@ export function CsmReportDashboard({
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
-    const campusText = activeCampusName === 'all' ? "RSU SYSTEM-WIDE" : activeCampusName;
-    const titleLabel = dataSource === 'baseline25' ? "FY 2025 BASELINE REPORT" : "LIVE SYSTEM LOGS";
-    const unitText = selectedUnitId === 'all' ? "ALL OFFICES / UNITS" : (units.find(u => u.id === selectedUnitId)?.name || "Office");
-    
+    const campusText = activeCampusName === 'all' ? 'RSU SYSTEM-WIDE' : activeCampusName;
+    const titleLabel = dataSource === 'baseline25' ? 'FY 2025 BASELINE REPORT' : 'LIVE SYSTEM LOGS';
+    const unitText =
+      selectedUnitId === 'all' ? 'ALL OFFICES / UNITS' : units.find((u) => u.id === selectedUnitId)?.name || 'Office';
+
     // CSM Signatories from settings
     const csmDirector = csmSettings?.csmDirector || '____________________';
     const csmQualityHead = csmSettings?.csmQualityHead || '____________________';
     const csmCampusCoordinator = csmSettings?.csmCampusCoordinator || '____________________';
 
     let serviceRows = '';
-    displayStats.services.forEach(s => {
+    displayStats.services.forEach((s) => {
       serviceRows += `
         <tr>
           <td style="border: 1px solid black; padding: 6px;">${s.name.toUpperCase()}</td>
@@ -1346,16 +1602,20 @@ export function CsmReportDashboard({
     if (!printWindow) return;
 
     // Filter services and comments by campus name
-    const campusServices = displayStats.services.filter(s => s.campus.toLowerCase().includes(campusName.toLowerCase()));
-    const campusComments = displayStats.comments.filter(c => c.campus.toLowerCase().includes(campusName.toLowerCase()));
-    
+    const campusServices = displayStats.services.filter((s) =>
+      s.campus.toLowerCase().includes(campusName.toLowerCase()),
+    );
+    const campusComments = displayStats.comments.filter((c) =>
+      c.campus.toLowerCase().includes(campusName.toLowerCase()),
+    );
+
     // CSM Signatories from settings
     const csmDirector = csmSettings?.csmDirector || '____________________';
     const csmQualityHead = csmSettings?.csmQualityHead || '____________________';
     const csmCampusCoordinator = csmSettings?.csmCampusCoordinator || '____________________';
 
     let serviceRows = '';
-    campusServices.forEach(s => {
+    campusServices.forEach((s) => {
       serviceRows += `
         <tr>
           <td style="border: 1px solid black; padding: 6px;">${s.name}</td>
@@ -1398,7 +1658,7 @@ export function CsmReportDashboard({
         <body>
           <h2 style="text-align: center; margin: 0;">ROMBLON STATE UNIVERSITY</h2>
           <h1>CAMPUS SATISFACTION AUDIT REPORT - ${campusName.toUpperCase()}</h1>
-          <p><strong>REPORT PERIOD:</strong> Calendar Year ${selectedYear} &bull; <strong>SOURCE:</strong> ${dataSource === 'baseline25' ? "FY 2025 baseline" : "Live logs"}</p>
+          <p><strong>REPORT PERIOD:</strong> Calendar Year ${selectedYear} &bull; <strong>SOURCE:</strong> ${dataSource === 'baseline25' ? 'FY 2025 baseline' : 'Live logs'}</p>
           
           <h3>I. CAMPUS SERVICE RATINGS</h3>
           <table>
@@ -1546,10 +1806,12 @@ export function CsmReportDashboard({
   // ==================== TAB-SPECIFIC PRINT TEMPLATES ====================
 
   const getReportHeaderHtml = (tabTitle: string) => {
-    const titleLabel = dataSource === 'baseline25' ? "FY 2025 BASELINE REPORT" : "LIVE SYSTEM LOGS";
-    const campusText = localCampusId === 'all' ? "UNIVERSITY-WIDE" : (campuses.find(c => c.id === localCampusId)?.name || "RSU");
-    const unitText = selectedUnitId === 'all' ? "ALL OFFICES / UNITS" : (units.find(u => u.id === selectedUnitId)?.name || "Office");
-    
+    const titleLabel = dataSource === 'baseline25' ? 'FY 2025 BASELINE REPORT' : 'LIVE SYSTEM LOGS';
+    const campusText =
+      localCampusId === 'all' ? 'UNIVERSITY-WIDE' : campuses.find((c) => c.id === localCampusId)?.name || 'RSU';
+    const unitText =
+      selectedUnitId === 'all' ? 'ALL OFFICES / UNITS' : units.find((u) => u.id === selectedUnitId)?.name || 'Office';
+
     return `
       <table style="width: 100%; border: none; border-bottom: 2px solid black; margin-bottom: 20px;">
         <tr>
@@ -1580,22 +1842,22 @@ export function CsmReportDashboard({
     if (!printWindow) return;
 
     let sexRows = '';
-    displayStats.demographics.sexData.forEach(d => {
+    displayStats.demographics.sexData.forEach((d) => {
       sexRows += `<tr><td>${d.name}</td><td style="text-align:center;">${d.value}</td><td style="text-align:center;">${Math.round((d.value / displayStats.totalResponses) * 100)}%</td></tr>`;
     });
 
     let customerRows = '';
-    displayStats.demographics.clientTypeData.forEach(d => {
+    displayStats.demographics.clientTypeData.forEach((d) => {
       customerRows += `<tr><td>${d.name}</td><td style="text-align:center;">${d.value}</td><td style="text-align:center;">${Math.round((d.value / displayStats.totalResponses) * 100)}%</td></tr>`;
     });
 
     let stakeholderRows = '';
-    displayStats.demographics.stakeholderData.forEach(d => {
+    displayStats.demographics.stakeholderData.forEach((d) => {
       stakeholderRows += `<tr><td>${d.name}</td><td style="text-align:center;">${d.value}</td><td style="text-align:center;">${Math.round((d.value / displayStats.totalResponses) * 100)}%</td></tr>`;
     });
 
     let ageRows = '';
-    displayStats.demographics.ageData.forEach(d => {
+    displayStats.demographics.ageData.forEach((d) => {
       ageRows += `<tr><td>${d.name}</td><td style="text-align:center;">${d.value}</td><td style="text-align:center;">${Math.round((d.value / displayStats.totalResponses) * 100)}%</td></tr>`;
     });
 
@@ -1618,7 +1880,7 @@ export function CsmReportDashboard({
           </style>
         </head>
         <body>
-          ${getReportHeaderHtml("Executive Overview & Demographics")}
+          ${getReportHeaderHtml('Executive Overview & Demographics')}
           
            <h4>I. Executive Satisfaction Indicators</h4>
            <table>
@@ -1698,7 +1960,7 @@ export function CsmReportDashboard({
     if (!printWindow) return;
 
     let sqdRows = '';
-    displayStats.sqdData.forEach(sqd => {
+    displayStats.sqdData.forEach((sqd) => {
       sqdRows += `
         <tr>
           <td><strong>${sqd.name}</strong><br/><small style="color:#666;">${sqd.desc}</small></td>
@@ -1715,7 +1977,7 @@ export function CsmReportDashboard({
     });
 
     let serviceRows = '';
-    filteredServices.forEach(s => {
+    filteredServices.forEach((s) => {
       let heatBg = '#e6f4ea';
       let heatFg = '#137333';
       if (s.satisfactionRate < 89) {
@@ -1737,7 +1999,7 @@ export function CsmReportDashboard({
     });
 
     let dssList = '';
-    dssInsights.forEach(i => {
+    dssInsights.forEach((i) => {
       if (i.id !== 99) {
         dssList += `
           <div style="border: 1px solid #f5c2c2; background-color: #fdf3f3; padding: 10px; border-radius: 6px; margin-bottom: 10px;">
@@ -1764,7 +2026,7 @@ export function CsmReportDashboard({
           </style>
         </head>
         <body>
-          ${getReportHeaderHtml("Service Quality & Performance Scorecard")}
+          ${getReportHeaderHtml('Service Quality & Performance Scorecard')}
 
            <h4>I. ARTA Service Quality Dimensions (SQD) Scorecard</h4>
            <table>
@@ -1786,10 +2048,14 @@ export function CsmReportDashboard({
              </tbody>
            </table>
 
-           ${dssList ? `
+           ${
+             dssList
+               ? `
              <h4>II. Corrective Action Improvement Directives (DSS Alerts)</h4>
              <div>${dssList}</div>
-           ` : ''}
+           `
+               : ''
+           }
 
            <h4 style="page-break-before: always;">III. Service-Level Satisfaction Heatmap Matrix</h4>
            <table>
@@ -1819,7 +2085,7 @@ export function CsmReportDashboard({
     if (!printWindow) return;
 
     let paretoRows = '';
-    displayStats.paretoData.forEach(p => {
+    displayStats.paretoData.forEach((p) => {
       paretoRows += `
         <tr>
           <td><strong>${p.theme}</strong></td>
@@ -1855,7 +2121,7 @@ export function CsmReportDashboard({
           </style>
         </head>
         <body>
-          ${getReportHeaderHtml("Qualitative Feedbacks & Pareto theme analysis")}
+          ${getReportHeaderHtml('Qualitative Feedbacks & Pareto theme analysis')}
 
            <h4>I. Pareto Complaint Frequency Theme Analysis</h4>
            <table>
@@ -1896,7 +2162,6 @@ export function CsmReportDashboard({
 
   return (
     <div className="space-y-6">
-      
       {/* HEADER CONTROLS (Live vs Baseline Data Toggle & Campus / Unit Filters) */}
       <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center p-5 bg-gradient-to-r from-emerald-800 to-[#1B6535] rounded-2xl shadow-lg border border-emerald-700 gap-4">
         <div>
@@ -1908,7 +2173,7 @@ export function CsmReportDashboard({
             ARTA Harmonized Reporting & Analytics
           </p>
         </div>
-        
+
         {/* Dynamic Filters Grid */}
         <div className="flex flex-wrap items-center gap-3">
           {/* Data Source Toggle */}
@@ -1928,15 +2193,26 @@ export function CsmReportDashboard({
           {/* Campus Selector */}
           <div className="flex flex-col">
             <span className="text-[9px] font-black uppercase text-emerald-100 tracking-wider mb-1">Campus Site</span>
-            <Select value={localCampusId} onValueChange={(v) => { setLocalCampusId(v); setSelectedUnitId('all'); }} disabled={!hasAccessToAll}>
+            <Select
+              value={localCampusId}
+              onValueChange={(v) => {
+                setLocalCampusId(v);
+                setSelectedUnitId('all');
+              }}
+              disabled={!hasAccessToAll}
+            >
               <SelectTrigger className="w-[180px] h-9 bg-white dark:bg-slate-900 font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md">
                 <SelectValue placeholder="University-Wide" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">🏢 University-Wide (All)</SelectItem>
-                {campuses.map(c => (
-                  <SelectItem key={c.id} value={c.id}>📍 {c.name}</SelectItem>
-                ))}
+                {hasAccessToAll && <SelectItem value="all">🏢 University-Wide (All)</SelectItem>}
+                {campuses
+                  .filter((c) => hasAccessToAll || !userProfile?.campusId || c.id === userProfile.campusId)
+                  .map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      📍 {c.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -1951,8 +2227,10 @@ export function CsmReportDashboard({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">📁 All Units / Offices</SelectItem>
-                  {dropdownUnits.map(u => (
-                    <SelectItem key={u.id} value={u.id}>📄 {u.name}</SelectItem>
+                  {dropdownUnits.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      📄 {u.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1988,7 +2266,10 @@ export function CsmReportDashboard({
             <FileText className="h-3.5 w-3.5" /> Official Exporter
           </TabsTrigger>
           {hasAccessToAll && (
-            <TabsTrigger value="deployment" className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8 bg-amber-50 text-amber-800 hover:bg-amber-100/50">
+            <TabsTrigger
+              value="deployment"
+              className="gap-2 text-[10px] font-black uppercase tracking-wider px-5 h-8 bg-amber-50 text-amber-800 hover:bg-amber-100/50"
+            >
               <Radio className="h-3.5 w-3.5" /> Deployment Center
             </TabsTrigger>
           )}
@@ -1996,15 +2277,15 @@ export function CsmReportDashboard({
 
         {/* ==================== TAB 1: EXECUTIVE OVERVIEW ==================== */}
         <TabsContent value="overview" className="space-y-6 animate-in fade-in duration-500">
-          
           {/* Executive Scorecard Gauge charts */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            
             {/* Satisfaction Gauge */}
             <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Overall Score</span>
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
+                  Overall Score
+                </span>
                 <ThumbsUp className="h-3.5 w-3.5 text-emerald-600" />
               </CardHeader>
               <CardContent className="flex flex-col items-center pb-3 pt-1">
@@ -2012,18 +2293,27 @@ export function CsmReportDashboard({
                   <ResponsiveContainer width="100%" height={80}>
                     <PieChart>
                       <Pie
-                        data={[{ value: displayStats.overallSatisfactionRate }, { value: 100 - displayStats.overallSatisfactionRate }]}
-                        cx="50%" cy="100%"
-                        startAngle={180} endAngle={0}
-                        innerRadius={30} outerRadius={42}
-                        dataKey="value" stroke="none"
+                        data={[
+                          { value: displayStats.overallSatisfactionRate },
+                          { value: 100 - displayStats.overallSatisfactionRate },
+                        ]}
+                        cx="50%"
+                        cy="100%"
+                        startAngle={180}
+                        endAngle={0}
+                        innerRadius={30}
+                        outerRadius={42}
+                        dataKey="value"
+                        stroke="none"
                       >
                         <Cell fill="#1b6535" />
                         <Cell fill="#e2e8f0" />
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">{displayStats.overallSatisfactionRate}%</span>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">
+                    {displayStats.overallSatisfactionRate}%
+                  </span>
                 </div>
                 <p className="text-[8.5px] text-emerald-600 font-bold uppercase mt-1">Satisfied & Very Satisfied</p>
               </CardContent>
@@ -2033,7 +2323,9 @@ export function CsmReportDashboard({
             <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-[#D4AF37]" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">Response Rate</span>
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
+                  Response Rate
+                </span>
                 <Percent className="h-3.5 w-3.5 text-[#D4AF37]" />
               </CardHeader>
               <CardContent className="flex flex-col items-center pb-3 pt-1">
@@ -2041,18 +2333,27 @@ export function CsmReportDashboard({
                   <ResponsiveContainer width="100%" height={80}>
                     <PieChart>
                       <Pie
-                        data={[{ value: displayStats.participationRate }, { value: 100 - displayStats.participationRate }]}
-                        cx="50%" cy="100%"
-                        startAngle={180} endAngle={0}
-                        innerRadius={30} outerRadius={42}
-                        dataKey="value" stroke="none"
+                        data={[
+                          { value: displayStats.participationRate },
+                          { value: 100 - displayStats.participationRate },
+                        ]}
+                        cx="50%"
+                        cy="100%"
+                        startAngle={180}
+                        endAngle={0}
+                        innerRadius={30}
+                        outerRadius={42}
+                        dataKey="value"
+                        stroke="none"
                       >
                         <Cell fill="#D4AF37" />
                         <Cell fill="#e2e8f0" />
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">{displayStats.participationRate}%</span>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">
+                    {displayStats.participationRate}%
+                  </span>
                 </div>
                 <p className="text-[8.5px] text-slate-500 font-bold uppercase mt-1">Evaluations per Logged visit</p>
               </CardContent>
@@ -2062,7 +2363,9 @@ export function CsmReportDashboard({
             <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-blue-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">CC Awareness</span>
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
+                  CC Awareness
+                </span>
                 <HelpCircle className="h-3.5 w-3.5 text-blue-600" />
               </CardHeader>
               <CardContent className="flex flex-col items-center pb-3 pt-1">
@@ -2071,17 +2374,23 @@ export function CsmReportDashboard({
                     <PieChart>
                       <Pie
                         data={[{ value: displayStats.cc1AwarePercent }, { value: 100 - displayStats.cc1AwarePercent }]}
-                        cx="50%" cy="100%"
-                        startAngle={180} endAngle={0}
-                        innerRadius={30} outerRadius={42}
-                        dataKey="value" stroke="none"
+                        cx="50%"
+                        cy="100%"
+                        startAngle={180}
+                        endAngle={0}
+                        innerRadius={30}
+                        outerRadius={42}
+                        dataKey="value"
+                        stroke="none"
                       >
                         <Cell fill="#3b82f6" />
                         <Cell fill="#e2e8f0" />
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">{displayStats.cc1AwarePercent}%</span>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">
+                    {displayStats.cc1AwarePercent}%
+                  </span>
                 </div>
                 <p className="text-[8.5px] text-blue-600 font-bold uppercase mt-1">Charter Awareness</p>
               </CardContent>
@@ -2091,7 +2400,9 @@ export function CsmReportDashboard({
             <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-purple-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">CC Visibility</span>
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
+                  CC Visibility
+                </span>
                 <Info className="h-3.5 w-3.5 text-purple-600" />
               </CardHeader>
               <CardContent className="flex flex-col items-center pb-3 pt-1">
@@ -2099,18 +2410,27 @@ export function CsmReportDashboard({
                   <ResponsiveContainer width="100%" height={80}>
                     <PieChart>
                       <Pie
-                        data={[{ value: displayStats.cc2VisibilityPercent }, { value: 100 - displayStats.cc2VisibilityPercent }]}
-                        cx="50%" cy="100%"
-                        startAngle={180} endAngle={0}
-                        innerRadius={30} outerRadius={42}
-                        dataKey="value" stroke="none"
+                        data={[
+                          { value: displayStats.cc2VisibilityPercent },
+                          { value: 100 - displayStats.cc2VisibilityPercent },
+                        ]}
+                        cx="50%"
+                        cy="100%"
+                        startAngle={180}
+                        endAngle={0}
+                        innerRadius={30}
+                        outerRadius={42}
+                        dataKey="value"
+                        stroke="none"
                       >
                         <Cell fill="#a855f7" />
                         <Cell fill="#e2e8f0" />
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">{displayStats.cc2VisibilityPercent}%</span>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">
+                    {displayStats.cc2VisibilityPercent}%
+                  </span>
                 </div>
                 <p className="text-[8.5px] text-purple-600 font-bold uppercase mt-1">Easy / Somewhat Easy to see</p>
               </CardContent>
@@ -2120,7 +2440,9 @@ export function CsmReportDashboard({
             <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1 bg-rose-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">CC Helpfulness</span>
+                <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
+                  CC Helpfulness
+                </span>
                 <CheckCircle2 className="h-3.5 w-3.5 text-rose-600" />
               </CardHeader>
               <CardContent className="flex flex-col items-center pb-3 pt-1">
@@ -2128,18 +2450,27 @@ export function CsmReportDashboard({
                   <ResponsiveContainer width="100%" height={80}>
                     <PieChart>
                       <Pie
-                        data={[{ value: displayStats.cc3HelpfulnessPercent }, { value: 100 - displayStats.cc3HelpfulnessPercent }]}
-                        cx="50%" cy="100%"
-                        startAngle={180} endAngle={0}
-                        innerRadius={30} outerRadius={42}
-                        dataKey="value" stroke="none"
+                        data={[
+                          { value: displayStats.cc3HelpfulnessPercent },
+                          { value: 100 - displayStats.cc3HelpfulnessPercent },
+                        ]}
+                        cx="50%"
+                        cy="100%"
+                        startAngle={180}
+                        endAngle={0}
+                        innerRadius={30}
+                        outerRadius={42}
+                        dataKey="value"
+                        stroke="none"
                       >
                         <Cell fill="#ec4899" />
                         <Cell fill="#e2e8f0" />
                       </Pie>
                     </PieChart>
                   </ResponsiveContainer>
-                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">{displayStats.cc3HelpfulnessPercent}%</span>
+                  <span className="absolute bottom-1 text-xl font-black text-slate-800 dark:text-slate-200">
+                    {displayStats.cc3HelpfulnessPercent}%
+                  </span>
                 </div>
                 <p className="text-[8.5px] text-rose-600 font-bold uppercase mt-1">Helped Transaction</p>
               </CardContent>
@@ -2155,10 +2486,19 @@ export function CsmReportDashboard({
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <Button size="sm" onClick={handlePrintScorecard} variant="outline" className="h-8 text-[9px] font-black uppercase tracking-widest px-4">
+              <Button
+                size="sm"
+                onClick={handlePrintScorecard}
+                variant="outline"
+                className="h-8 text-[9px] font-black uppercase tracking-widest px-4"
+              >
                 <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Scorecard
               </Button>
-              <Button size="sm" onClick={handlePrintOverviewTab} className="h-8 text-[9px] font-black uppercase tracking-widest px-4 bg-emerald-700 hover:bg-emerald-800 border-none text-white">
+              <Button
+                size="sm"
+                onClick={handlePrintOverviewTab}
+                className="h-8 text-[9px] font-black uppercase tracking-widest px-4 bg-emerald-700 hover:bg-emerald-800 border-none text-white"
+              >
                 <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Overview Report
               </Button>
             </div>
@@ -2166,11 +2506,12 @@ export function CsmReportDashboard({
 
           {/* Demographics Donuts & Stacked Charts grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
             {/* Sex Donut */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Sex Distribution</CardTitle>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Sex Distribution
+                </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="h-[180px] w-full flex items-center justify-center">
@@ -2179,9 +2520,12 @@ export function CsmReportDashboard({
                       <PieChart>
                         <Pie
                           data={displayStats.demographics.sexData}
-                          cx="50%" cy="50%"
-                          innerRadius={50} outerRadius={70}
-                          paddingAngle={3} dataKey="value"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={70}
+                          paddingAngle={3}
+                          dataKey="value"
                         >
                           {displayStats.demographics.sexData.map((e, i) => (
                             <Cell key={i} fill={e.fill} />
@@ -2197,7 +2541,10 @@ export function CsmReportDashboard({
                 <div className="mt-4 grid grid-cols-2 gap-2 text-[10px] border-t pt-3 font-semibold text-slate-600 dark:text-slate-400">
                   {displayStats.demographics.sexData.map((e, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.fill }} />{e.name}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.fill }} />
+                        {e.name}
+                      </span>
                       <span className="font-bold">{e.value}</span>
                     </div>
                   ))}
@@ -2208,7 +2555,9 @@ export function CsmReportDashboard({
             {/* Customer Type Donut */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Customer Types</CardTitle>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Customer Types
+                </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="h-[180px] w-full flex items-center justify-center">
@@ -2217,9 +2566,12 @@ export function CsmReportDashboard({
                       <PieChart>
                         <Pie
                           data={displayStats.demographics.clientTypeData}
-                          cx="50%" cy="50%"
-                          innerRadius={50} outerRadius={70}
-                          paddingAngle={3} dataKey="value"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={70}
+                          paddingAngle={3}
+                          dataKey="value"
                         >
                           {displayStats.demographics.clientTypeData.map((e, i) => (
                             <Cell key={i} fill={e.fill} />
@@ -2235,7 +2587,10 @@ export function CsmReportDashboard({
                 <div className="mt-4 grid grid-cols-2 gap-2 text-[9px] border-t pt-3 font-semibold text-slate-650">
                   {displayStats.demographics.clientTypeData.map((e, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.fill }} />{e.name}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.fill }} />
+                        {e.name}
+                      </span>
                       <span className="font-bold">{e.value}</span>
                     </div>
                   ))}
@@ -2246,7 +2601,9 @@ export function CsmReportDashboard({
             {/* Internal vs External Stakeholders */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Stakeholder Classification</CardTitle>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Stakeholder Classification
+                </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="h-[180px] w-full flex items-center justify-center">
@@ -2255,9 +2612,12 @@ export function CsmReportDashboard({
                       <PieChart>
                         <Pie
                           data={displayStats.demographics.stakeholderData}
-                          cx="50%" cy="50%"
-                          innerRadius={50} outerRadius={70}
-                          paddingAngle={3} dataKey="value"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={70}
+                          paddingAngle={3}
+                          dataKey="value"
                         >
                           {displayStats.demographics.stakeholderData.map((e, i) => (
                             <Cell key={i} fill={e.fill} />
@@ -2273,7 +2633,10 @@ export function CsmReportDashboard({
                 <div className="mt-4 grid grid-cols-2 gap-2 text-[10px] border-t pt-3 font-semibold text-slate-650">
                   {displayStats.demographics.stakeholderData.map((e, idx) => (
                     <div key={idx} className="flex justify-between items-center">
-                      <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.fill }} />{e.name}</span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: e.fill }} />
+                        {e.name}
+                      </span>
                       <span className="font-bold">{e.value}</span>
                     </div>
                   ))}
@@ -2284,15 +2647,20 @@ export function CsmReportDashboard({
 
           {/* Age & Campus Distributions horizontal bars */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
             {/* Age Distribution */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Age Bracket Distribution</CardTitle>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Age Bracket Distribution
+                </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
                 <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={displayStats.demographics.ageData} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
+                  <BarChart
+                    data={displayStats.demographics.ageData}
+                    layout="vertical"
+                    margin={{ left: 20, right: 20, top: 10, bottom: 10 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} />
@@ -2307,11 +2675,17 @@ export function CsmReportDashboard({
             {/* Campus distribution */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Campus distribution</CardTitle>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Campus distribution
+                </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={displayStats.demographics.campusData} layout="vertical" margin={{ left: 40, right: 20, top: 10, bottom: 10 }}>
+                  <BarChart
+                    data={displayStats.demographics.campusData}
+                    layout="vertical"
+                    margin={{ left: 40, right: 20, top: 10, bottom: 10 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fontWeight: 'bold' }} width={80} />
@@ -2336,16 +2710,27 @@ export function CsmReportDashboard({
             </CardHeader>
             <CardContent className="pt-4">
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={displayStats.ccStackedData} layout="vertical" margin={{ left: 60, right: 20, top: 10, bottom: 10 }}>
+                <BarChart
+                  data={displayStats.ccStackedData}
+                  layout="vertical"
+                  margin={{ left: 60, right: 20, top: 10, bottom: 10 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
-                  <XAxis type="number" domain={[0, 100]} tickFormatter={v => `${v}%`} />
+                  <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                   <YAxis dataKey="dimension" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} />
                   <Bar dataKey="Option 1" stackId="a" fill="#1b6535" name="Excellent compliance (5/4)" />
                   <Bar dataKey="Option 2" stackId="a" fill="#4ade80" name="Good compliance (3)" />
                   <Bar dataKey="Option 3" stackId="a" fill="#e2e8f0" name="Neutral (2)" />
                   <Bar dataKey="Option 4" stackId="a" fill="#fb923c" name="Under-performing / Unaware (1)" />
                   <Bar dataKey="Option 5" stackId="a" fill="#e11d48" name="N/A" />
-                  <Legend wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '10px' }} />
+                  <Legend
+                    wrapperStyle={{
+                      fontSize: '9px',
+                      textTransform: 'uppercase',
+                      fontWeight: 'bold',
+                      paddingTop: '10px',
+                    }}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -2354,7 +2739,6 @@ export function CsmReportDashboard({
 
         {/* ==================== TAB 2: SERVICE QUALITY (SQD) & SERVICES ==================== */}
         <TabsContent value="sqd" className="space-y-6 animate-in fade-in duration-500">
-          
           {/* Print SQD Report bar */}
           <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 dark:border-slate-700/85 gap-3">
             <div className="flex items-center gap-2">
@@ -2363,14 +2747,17 @@ export function CsmReportDashboard({
                 Format and print the SQD dimensions audit and services performance heatmap list.
               </span>
             </div>
-            <Button size="sm" onClick={handlePrintSqdTab} className="h-8 text-[9px] font-black uppercase tracking-widest px-4">
+            <Button
+              size="sm"
+              onClick={handlePrintSqdTab}
+              className="h-8 text-[9px] font-black uppercase tracking-widest px-4"
+            >
               <Printer className="h-3.5 w-3.5 mr-1.5" /> Print SQD Audit
             </Button>
           </div>
-          
+
           {/* Charts grid: Diverging Stacked Bar & Radar Chart */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
             {/* Diverging Stacked Bar Chart */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
@@ -2383,13 +2770,23 @@ export function CsmReportDashboard({
               </CardHeader>
               <CardContent className="pt-4">
                 <ResponsiveContainer width="100%" height={380}>
-                  <BarChart data={divergingData} layout="vertical" stackOffset="sign" margin={{ left: 30, right: 20, top: 10, bottom: 10 }}>
+                  <BarChart
+                    data={divergingData}
+                    layout="vertical"
+                    stackOffset="sign"
+                    margin={{ left: 30, right: 20, top: 10, bottom: 10 }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
                     <XAxis type="number" tickFormatter={(v) => `${Math.abs(v)}%`} />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fontWeight: 'bold' }} width={45} />
                     <RechartsTooltip formatter={(v: any) => `${Math.abs(Math.round(v))}%`} />
-                    <Legend 
-                      wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '10px' }}
+                    <Legend
+                      wrapperStyle={{
+                        fontSize: '9px',
+                        textTransform: 'uppercase',
+                        fontWeight: 'bold',
+                        paddingTop: '10px',
+                      }}
                       formatter={(value) => value.replace(' (Neg)', '').replace(' (Pos)', '')}
                     />
                     <Bar dataKey="Strongly Disagree" stackId="a" fill="#e11d48" name="Strongly Disagree" />
@@ -2418,8 +2815,19 @@ export function CsmReportDashboard({
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
                     <PolarGrid strokeOpacity={0.2} />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                    <Radar name="Satisfaction Index %" dataKey="Score" stroke="#1b6535" fill="#1b6535" fillOpacity={0.3}>
-                      <LabelList dataKey="Score" position="top" style={{ fontSize: '8px', fontWeight: 'bold', fill: '#1b6535' }} formatter={(v: any) => `${v}%`} />
+                    <Radar
+                      name="Satisfaction Index %"
+                      dataKey="Score"
+                      stroke="#1b6535"
+                      fill="#1b6535"
+                      fillOpacity={0.3}
+                    >
+                      <LabelList
+                        dataKey="Score"
+                        position="top"
+                        style={{ fontSize: '8px', fontWeight: 'bold', fill: '#1b6535' }}
+                        formatter={(v: any) => `${v}%`}
+                      />
                     </Radar>
                     <RechartsTooltip />
                   </RadarChart>
@@ -2439,10 +2847,15 @@ export function CsmReportDashboard({
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {dssInsights.map(insight => (
-                    <div key={insight.id} className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm space-y-2.5">
+                  {dssInsights.map((insight) => (
+                    <div
+                      key={insight.id}
+                      className="bg-white border border-amber-200 rounded-xl p-4 shadow-sm space-y-2.5"
+                    >
                       <div className="flex items-center justify-between border-b pb-1.5">
-                        <span className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight">{insight.name}</span>
+                        <span className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight">
+                          {insight.name}
+                        </span>
                         {insight.id !== 99 ? (
                           <Badge variant="destructive" className="text-[8px] uppercase font-black px-1.5 py-0.5">
                             {insight.positivePercent}% Positive
@@ -2453,12 +2866,21 @@ export function CsmReportDashboard({
                           </Badge>
                         )}
                       </div>
-                      <p className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 italic">"{insight.recommendation}"</p>
+                      <p className="text-[10.5px] font-bold text-slate-600 dark:text-slate-400 italic">
+                        "{insight.recommendation}"
+                      </p>
                       <div className="bg-slate-50/80 dark:bg-slate-800/80 p-2.5 rounded-lg border border-slate-100 dark:border-slate-700">
-                        <span className="text-[9px] font-black uppercase text-amber-800 tracking-wider">Corrective Action Plan Checklist:</span>
+                        <span className="text-[9px] font-black uppercase text-amber-800 tracking-wider">
+                          Corrective Action Plan Checklist:
+                        </span>
                         <ul className="list-disc list-inside mt-1 space-y-1">
                           {insight.checklist.map((item: string, idx: number) => (
-                            <li key={idx} className="text-[9.5px] font-medium text-slate-700 dark:text-slate-300 leading-tight">{item}</li>
+                            <li
+                              key={idx}
+                              className="text-[9.5px] font-medium text-slate-700 dark:text-slate-300 leading-tight"
+                            >
+                              {item}
+                            </li>
                           ))}
                         </ul>
                       </div>
@@ -2507,18 +2929,21 @@ export function CsmReportDashboard({
                 <TableBody>
                   {paginatedServices.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-xs font-bold text-slate-400 uppercase italic">
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-8 text-xs font-bold text-slate-400 uppercase italic"
+                      >
                         No service transactions logged matching criteria.
                       </TableCell>
                     </TableRow>
                   ) : (
                     paginatedServices.map((svc, idx) => {
                       // Heatmap color code rules: green for >=95, yellow for 90-94, red for <89
-                      let heatClass = "bg-emerald-50 text-emerald-800 border-emerald-200";
+                      let heatClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
                       if (svc.satisfactionRate < 89) {
-                        heatClass = "bg-rose-50 text-rose-800 border-rose-200";
+                        heatClass = 'bg-rose-50 text-rose-800 border-rose-200';
                       } else if (svc.satisfactionRate >= 90 && svc.satisfactionRate <= 94) {
-                        heatClass = "bg-amber-50 text-amber-800 border-amber-250";
+                        heatClass = 'bg-amber-50 text-amber-800 border-amber-250';
                       }
 
                       return (
@@ -2529,11 +2954,15 @@ export function CsmReportDashboard({
                           <TableCell className="text-xs font-bold text-slate-500 uppercase">{svc.campus}</TableCell>
                           <TableCell className="text-center text-xs font-bold text-slate-650">{svc.count}</TableCell>
                           <TableCell className="text-center py-3">
-                            <span className={`px-2.5 py-1 rounded-full border text-[10px] font-black uppercase ${heatClass}`}>
+                            <span
+                              className={`px-2.5 py-1 rounded-full border text-[10px] font-black uppercase ${heatClass}`}
+                            >
                               {svc.satisfactionRate}%
                             </span>
                           </TableCell>
-                          <TableCell className="text-center text-xs font-bold text-slate-650">{svc.avgRating} / 5.0</TableCell>
+                          <TableCell className="text-center text-xs font-bold text-slate-650">
+                            {svc.avgRating} / 5.0
+                          </TableCell>
                         </TableRow>
                       );
                     })
@@ -2542,11 +2971,11 @@ export function CsmReportDashboard({
               </Table>
               {filteredServices.length > servicePageSize && (
                 <div className="flex justify-end items-center gap-2 p-3 border-t bg-slate-50/40 dark:bg-slate-800/40">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    disabled={servicePage === 0} 
-                    onClick={() => setServicePage(p => p - 1)}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={servicePage === 0}
+                    onClick={() => setServicePage((p) => p - 1)}
                     className="h-8 text-[9.5px] font-black uppercase"
                   >
                     Previous
@@ -2554,11 +2983,11 @@ export function CsmReportDashboard({
                   <span className="text-[10px] font-bold text-slate-500">
                     Page {servicePage + 1} of {Math.ceil(filteredServices.length / servicePageSize)}
                   </span>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    disabled={(servicePage + 1) * servicePageSize >= filteredServices.length} 
-                    onClick={() => setServicePage(p => p + 1)}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={(servicePage + 1) * servicePageSize >= filteredServices.length}
+                    onClick={() => setServicePage((p) => p + 1)}
                     className="h-8 text-[9.5px] font-black uppercase"
                   >
                     Next
@@ -2571,7 +3000,6 @@ export function CsmReportDashboard({
 
         {/* ==================== TAB 3: QUALITATIVE INSIGHTS ==================== */}
         <TabsContent value="qualitative" className="space-y-6 animate-in fade-in duration-500">
-          
           {/* Print Qualitative Feedback bar */}
           <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl border border-slate-200/85 dark:border-slate-700/85 gap-3">
             <div className="flex items-center gap-2">
@@ -2580,13 +3008,16 @@ export function CsmReportDashboard({
                 Format and print the Pareto complaints analytics and qualitative suggestions logs.
               </span>
             </div>
-            <Button size="sm" onClick={handlePrintQualitativeTab} className="h-8 text-[9px] font-black uppercase tracking-widest px-4">
+            <Button
+              size="sm"
+              onClick={handlePrintQualitativeTab}
+              className="h-8 text-[9px] font-black uppercase tracking-widest px-4"
+            >
               <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Feedback Logs
             </Button>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
             {/* Pareto Chart for comments count */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-2">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
@@ -2594,7 +3025,8 @@ export function CsmReportDashboard({
                   Pareto Analysis of Qualitative Friction Themes
                 </CardTitle>
                 <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
-                  Shows frequency of complaints per theme (bars, left axis) and cumulative percentage (line, right axis).
+                  Shows frequency of complaints per theme (bars, left axis) and cumulative percentage (line, right
+                  axis).
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6">
@@ -2602,12 +3034,55 @@ export function CsmReportDashboard({
                   <ComposedChart data={displayStats.paretoData} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.2} />
                     <XAxis dataKey="theme" tick={{ fontSize: 9, fontWeight: 'bold' }} />
-                    <YAxis yAxisId="left" tick={{ fontSize: 9 }} label={{ value: 'Complaints count', angle: -90, position: 'insideLeft', fontSize: 9, fontWeight: 'bold' }} />
-                    <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 9 }} domain={[0, 100]} label={{ value: 'Cumulative %', angle: 90, position: 'insideRight', fontSize: 9, fontWeight: 'bold' }} />
+                    <YAxis
+                      yAxisId="left"
+                      tick={{ fontSize: 9 }}
+                      label={{
+                        value: 'Complaints count',
+                        angle: -90,
+                        position: 'insideLeft',
+                        fontSize: 9,
+                        fontWeight: 'bold',
+                      }}
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      tick={{ fontSize: 9 }}
+                      domain={[0, 100]}
+                      label={{
+                        value: 'Cumulative %',
+                        angle: 90,
+                        position: 'insideRight',
+                        fontSize: 9,
+                        fontWeight: 'bold',
+                      }}
+                    />
                     <RechartsTooltip />
-                    <Bar dataKey="count" fill="hsl(var(--primary))" yAxisId="left" name="Count of Complaints" radius={[3, 3, 0, 0]} barSize={40} />
-                    <Line dataKey="cumulativePercent" stroke="hsl(var(--destructive))" strokeWidth={2.5} yAxisId="right" name="Cumulative Percentage" dot={{ fill: 'hsl(var(--destructive))' }} />
-                    <Legend wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '15px' }} />
+                    <Bar
+                      dataKey="count"
+                      fill="hsl(var(--primary))"
+                      yAxisId="left"
+                      name="Count of Complaints"
+                      radius={[3, 3, 0, 0]}
+                      barSize={40}
+                    />
+                    <Line
+                      dataKey="cumulativePercent"
+                      stroke="hsl(var(--destructive))"
+                      strokeWidth={2.5}
+                      yAxisId="right"
+                      name="Cumulative Percentage"
+                      dot={{ fill: 'hsl(var(--destructive))' }}
+                    />
+                    <Legend
+                      wrapperStyle={{
+                        fontSize: '9px',
+                        textTransform: 'uppercase',
+                        fontWeight: 'bold',
+                        paddingTop: '15px',
+                      }}
+                    />
                   </ComposedChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -2639,7 +3114,10 @@ export function CsmReportDashboard({
                   {filteredComments.length > 0 ? (
                     <div className="space-y-3">
                       {filteredComments.map((comment, idx) => (
-                        <div key={idx} className="bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-sm space-y-1.5">
+                        <div
+                          key={idx}
+                          className="bg-white border border-slate-200 dark:border-slate-700 rounded-xl p-3 shadow-sm space-y-1.5"
+                        >
                           <div className="flex justify-between items-start border-b pb-1">
                             <span className="text-xs font-black text-[#1B6535] uppercase">
                               {maskName(comment.visitorName)}
@@ -2648,7 +3126,9 @@ export function CsmReportDashboard({
                               {comment.category.split(' ')[0]}
                             </Badge>
                           </div>
-                          <p className="text-[11px] text-slate-700 dark:text-slate-300 italic font-semibold">"{comment.comments}"</p>
+                          <p className="text-[11px] text-slate-700 dark:text-slate-300 italic font-semibold">
+                            "{comment.comments}"
+                          </p>
                           <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">
                             {comment.campus} &bull; {comment.type}
                           </div>
@@ -2668,14 +3148,14 @@ export function CsmReportDashboard({
 
         {/* ==================== TAB 4: OFFICIAL EXPORTER ==================== */}
         <TabsContent value="exporter" className="space-y-6 animate-in fade-in duration-500">
-          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
             {/* Harmonized Agency Report Card */}
             <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-600" />
               <CardHeader className="pb-2 pt-5">
-                <span className="text-[9px] font-black uppercase text-[#1B6535] tracking-widest">Mandated ARTA Output</span>
+                <span className="text-[9px] font-black uppercase text-[#1B6535] tracking-widest">
+                  Mandated ARTA Output
+                </span>
                 <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
                   Harmonized CSM Agency Report
                 </CardTitle>
@@ -2684,11 +3164,16 @@ export function CsmReportDashboard({
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
-                Compiles the consolidated survey evaluations into the layout required for submissions to the Anti-Red Tape Authority (ARTA). Includes structured Methodology, CC tables, and SQD interpretations.
+                Compiles the consolidated survey evaluations into the layout required for submissions to the Anti-Red
+                Tape Authority (ARTA). Includes structured Methodology, CC tables, and SQD interpretations.
               </CardContent>
               <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex justify-between items-center">
                 <span className="text-[9px] font-black uppercase text-slate-400">PDF / Print-ready</span>
-                <Button size="sm" onClick={handlePrintHarmonizedReport} className="h-8 text-[9px] font-black uppercase tracking-wider">
+                <Button
+                  size="sm"
+                  onClick={handlePrintHarmonizedReport}
+                  className="h-8 text-[9px] font-black uppercase tracking-wider"
+                >
                   <Printer className="h-3.5 w-3.5 mr-1" /> Print / Export
                 </Button>
               </CardFooter>
@@ -2698,7 +3183,9 @@ export function CsmReportDashboard({
             <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-600" />
               <CardHeader className="pb-2 pt-5">
-                <span className="text-[9px] font-black uppercase text-blue-600 tracking-widest">Regional breakdown</span>
+                <span className="text-[9px] font-black uppercase text-blue-600 tracking-widest">
+                  Regional breakdown
+                </span>
                 <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
                   Campus Performance Export
                 </CardTitle>
@@ -2707,7 +3194,8 @@ export function CsmReportDashboard({
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
-                Generates a report isolation specifically for local campuses. Extracts only the transactions, satisfaction rate indices, and qualitative suggestions scoped to Campus Directors (e.g. Cajidiocan).
+                Generates a report isolation specifically for local campuses. Extracts only the transactions,
+                satisfaction rate indices, and qualitative suggestions scoped to Campus Directors (e.g. Cajidiocan).
               </CardContent>
               <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex flex-col items-stretch gap-2.5">
                 <div className="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase">
@@ -2715,19 +3203,27 @@ export function CsmReportDashboard({
                   <span>Isolation Print</span>
                 </div>
                 <div className="flex gap-2">
-                  <Select value={selectedCampusForExport} onValueChange={setSelectedCampusForExport}>
+                  <Select
+                    value={selectedCampusForExport}
+                    onValueChange={setSelectedCampusForExport}
+                    disabled={!hasAccessToAll && !!userProfile?.campusId}
+                  >
                     <SelectTrigger className="h-8 bg-white text-[10px] font-bold w-full">
                       <SelectValue placeholder="Select Campus" />
                     </SelectTrigger>
                     <SelectContent>
-                      {campuses.map(c => (
-                        <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>
-                      ))}
+                      {campuses
+                        .filter((c) => hasAccessToAll || !userProfile?.campusId || c.id === userProfile.campusId)
+                        .map((c) => (
+                          <SelectItem key={c.id} value={c.name}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
-                  <Button 
-                    size="sm" 
-                    onClick={() => handlePrintCampusReport(selectedCampusForExport)} 
+                  <Button
+                    size="sm"
+                    onClick={() => handlePrintCampusReport(selectedCampusForExport)}
                     className="h-8 text-[9px] font-black uppercase tracking-wider px-3 bg-blue-600 hover:bg-blue-700 border-none"
                   >
                     <Printer className="h-3.5 w-3.5" />
@@ -2740,7 +3236,9 @@ export function CsmReportDashboard({
             <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-[#D4AF37]" />
               <CardHeader className="pb-2 pt-5">
-                <span className="text-[9px] font-black uppercase text-amber-700 tracking-widest">Quality improvement</span>
+                <span className="text-[9px] font-black uppercase text-amber-700 tracking-widest">
+                  Quality improvement
+                </span>
                 <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
                   Improvement Plan (CAIP) Matrix
                 </CardTitle>
@@ -2749,11 +3247,16 @@ export function CsmReportDashboard({
                 </CardDescription>
               </CardHeader>
               <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
-                Compiles the Continuous Agency Improvement Plan tracking matrix containing targeted satisfaction goals, QR kiosk system deployment status, and customer service seminars schedules.
+                Compiles the Continuous Agency Improvement Plan tracking matrix containing targeted satisfaction goals,
+                QR kiosk system deployment status, and customer service seminars schedules.
               </CardContent>
               <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex justify-between items-center">
                 <span className="text-[9px] font-black uppercase text-slate-400">Target Year: 2026</span>
-                <Button size="sm" onClick={handlePrintCaipReport} className="h-8 text-[9px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 border-none">
+                <Button
+                  size="sm"
+                  onClick={handlePrintCaipReport}
+                  className="h-8 text-[9px] font-black uppercase tracking-wider bg-amber-600 hover:bg-amber-700 border-none"
+                >
                   <Printer className="h-3.5 w-3.5 mr-1" /> Print Matrix
                 </Button>
               </CardFooter>
@@ -2764,20 +3267,21 @@ export function CsmReportDashboard({
         {/* ==================== TAB 5: DEPLOYMENT CENTER (Admin/IPDO only) ==================== */}
         {hasAccessToAll && (
           <TabsContent value="deployment" className="space-y-6 animate-in fade-in duration-500">
-            
             {/* Admin Drilldown selectors */}
             <Card className="border-slate-200/85 dark:border-slate-700/85 shadow-sm bg-slate-50/40 dark:bg-slate-800/40">
               <CardContent className="p-4 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div className="flex flex-col md:flex-row items-start md:items-center gap-4 w-full md:w-auto">
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Drill Down Unit / Office</span>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
+                      Drill Down Unit / Office
+                    </span>
                     <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
                       <SelectTrigger className="w-[280px] h-9 bg-white font-extrabold text-xs shadow-sm">
                         <SelectValue placeholder="System-Wide Overview" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">🏢 System-Wide Overview</SelectItem>
-                        {dropdownUnits.map(unit => (
+                        {dropdownUnits.map((unit) => (
                           <SelectItem key={unit.id} value={unit.id}>
                             📄 {unit.name}
                           </SelectItem>
@@ -2788,14 +3292,19 @@ export function CsmReportDashboard({
 
                   {selectedUnitId !== 'all' && (
                     <div className="flex flex-col">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Approval Status</span>
+                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">
+                        Approval Status
+                      </span>
                       <div className="flex items-center gap-2 h-9">
                         {isUnitApproved ? (
                           <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-black uppercase h-7 px-2">
                             <CheckCircle2 className="h-3 w-3 mr-1" /> Approved for Unit
                           </Badge>
                         ) : (
-                          <Badge variant="secondary" className="text-[9px] font-black uppercase text-slate-500 h-7 px-2">
+                          <Badge
+                            variant="secondary"
+                            className="text-[9px] font-black uppercase text-slate-500 h-7 px-2"
+                          >
                             <Info className="h-3 w-3 mr-1" /> Pending Approval
                           </Badge>
                         )}
@@ -2808,7 +3317,7 @@ export function CsmReportDashboard({
                   <div className="flex items-center gap-2 w-full md:w-auto justify-end">
                     <Button
                       size="sm"
-                      variant={isUnitApproved ? "destructive" : "default"}
+                      variant={isUnitApproved ? 'destructive' : 'default'}
                       disabled={isUpdatingApproval}
                       onClick={handleToggleUnitApproval}
                       className="h-9 text-[10px] font-black uppercase tracking-wider px-4 shadow-sm"
@@ -2820,7 +3329,7 @@ export function CsmReportDashboard({
                       ) : (
                         <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
                       )}
-                      {isUnitApproved ? "Recall Report" : "Approve & Deploy"}
+                      {isUnitApproved ? 'Recall Report' : 'Approve & Deploy'}
                     </Button>
                   </div>
                 )}
@@ -2845,19 +3354,33 @@ export function CsmReportDashboard({
                         <TableHead className="font-black text-[10px] uppercase text-center">Logged Visitors</TableHead>
                         <TableHead className="font-black text-[10px] uppercase text-center">CSM Responses</TableHead>
                         <TableHead className="font-black text-[10px] uppercase text-center">Engagement</TableHead>
-                        <TableHead className="font-black text-[10px] uppercase text-center">Satisfaction Rate</TableHead>
+                        <TableHead className="font-black text-[10px] uppercase text-center">
+                          Satisfaction Rate
+                        </TableHead>
                         <TableHead className="font-black text-[10px] uppercase text-center">Avg SQD Score</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {unitBenchmarks.map(u => (
+                      {unitBenchmarks.map((u) => (
                         <TableRow key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
-                          <TableCell className="pl-4 py-3 font-bold text-xs text-slate-800 dark:text-slate-200">{u.name}</TableCell>
+                          <TableCell className="pl-4 py-3 font-bold text-xs text-slate-800 dark:text-slate-200">
+                            {u.name}
+                          </TableCell>
                           <TableCell className="text-xs font-bold text-slate-500 uppercase">{u.campuses}</TableCell>
-                          <TableCell className="text-center font-bold text-xs text-slate-600 dark:text-slate-400">{u.totalVisitors}</TableCell>
-                          <TableCell className="text-center font-bold text-xs text-slate-600 dark:text-slate-400">{u.totalResponses}</TableCell>
+                          <TableCell className="text-center font-bold text-xs text-slate-600 dark:text-slate-400">
+                            {u.totalVisitors}
+                          </TableCell>
+                          <TableCell className="text-center font-bold text-xs text-slate-600 dark:text-slate-400">
+                            {u.totalResponses}
+                          </TableCell>
                           <TableCell className="text-center font-bold text-xs">
-                            <span className={u.participationRate >= 30 ? 'text-slate-800 dark:text-slate-200 font-bold' : 'text-amber-600 font-black'}>
+                            <span
+                              className={
+                                u.participationRate >= 30
+                                  ? 'text-slate-800 dark:text-slate-200 font-bold'
+                                  : 'text-amber-600 font-black'
+                              }
+                            >
                               {u.participationRate}%
                             </span>
                           </TableCell>
@@ -2880,11 +3403,16 @@ export function CsmReportDashboard({
               <CardHeader className="bg-slate-50/40 dark:bg-slate-800/40 border-b py-3.5">
                 <div className="flex items-center gap-2 mb-1">
                   <Radio className="h-4.5 w-4.5 text-primary" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">Cycle deployment Manager</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                    Cycle deployment Manager
+                  </span>
                 </div>
-                <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200">CSM Unit Deployment Center</CardTitle>
+                <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200">
+                  CSM Unit Deployment Center
+                </CardTitle>
                 <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
-                  Publish or recall Client Satisfaction Monitoring reports. Deployed periods become visible for all units to view and print.
+                  Publish or recall Client Satisfaction Monitoring reports. Deployed periods become visible for all
+                  units to view and print.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-6 p-0">
@@ -2899,47 +3427,54 @@ export function CsmReportDashboard({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {[...cycles].sort((a,b) => b.year - a.year || b.name.localeCompare(a.name)).map(cycle => {
-                        const dId = `${cycle.year}-${cycle.name}`;
-                        const isPublished = deploymentsMap.get(dId) || false;
-                        const isDeploying = deployingCycleIds[dId] || false;
+                      {[...cycles]
+                        .sort((a, b) => b.year - a.year || b.name.localeCompare(a.name))
+                        .map((cycle) => {
+                          const dId = `${cycle.year}-${cycle.name}`;
+                          const isPublished = deploymentsMap.get(dId) || false;
+                          const isDeploying = deployingCycleIds[dId] || false;
 
-                        return (
-                          <TableRow key={dId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                            <TableCell className="font-bold text-xs pl-4">AY {cycle.year}</TableCell>
-                            <TableCell className="font-bold text-xs uppercase text-slate-600 dark:text-slate-400">{cycle.name} Cycle</TableCell>
-                            <TableCell className="text-center font-bold text-xs">
-                              {isPublished ? (
-                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[8.5px] uppercase font-black">
-                                  <CheckCircle2 className="h-3 w-3 mr-1" /> Deployed
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="text-[8.5px] uppercase font-black text-slate-500">
-                                  <Radio className="h-3 w-3 mr-1" /> Draft / Hidden
-                                </Badge>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right pr-4">
-                              <Button
-                                size="sm"
-                                variant={isPublished ? "destructive" : "default"}
-                                disabled={isDeploying}
-                                onClick={() => handleTogglePublishCycle(cycle, isPublished)}
-                                className="text-[8.5px] font-black uppercase tracking-widest h-8 px-4"
-                              >
-                                {isDeploying ? (
-                                  <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
-                                ) : isPublished ? (
-                                  <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                          return (
+                            <TableRow key={dId} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                              <TableCell className="font-bold text-xs pl-4">AY {cycle.year}</TableCell>
+                              <TableCell className="font-bold text-xs uppercase text-slate-600 dark:text-slate-400">
+                                {cycle.name} Cycle
+                              </TableCell>
+                              <TableCell className="text-center font-bold text-xs">
+                                {isPublished ? (
+                                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[8.5px] uppercase font-black">
+                                    <CheckCircle2 className="h-3 w-3 mr-1" /> Deployed
+                                  </Badge>
                                 ) : (
-                                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[8.5px] uppercase font-black text-slate-500"
+                                  >
+                                    <Radio className="h-3 w-3 mr-1" /> Draft / Hidden
+                                  </Badge>
                                 )}
-                                {isPublished ? "Recall" : "Deploy"}
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                              </TableCell>
+                              <TableCell className="text-right pr-4">
+                                <Button
+                                  size="sm"
+                                  variant={isPublished ? 'destructive' : 'default'}
+                                  disabled={isDeploying}
+                                  onClick={() => handleTogglePublishCycle(cycle, isPublished)}
+                                  className="text-[8.5px] font-black uppercase tracking-widest h-8 px-4"
+                                >
+                                  {isDeploying ? (
+                                    <Loader2 className="h-3 w-3 animate-spin mr-1.5" />
+                                  ) : isPublished ? (
+                                    <XCircle className="h-3.5 w-3.5 mr-1.5" />
+                                  ) : (
+                                    <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                                  )}
+                                  {isPublished ? 'Recall' : 'Deploy'}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
                     </TableBody>
                   </Table>
                 ) : (
