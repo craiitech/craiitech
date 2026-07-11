@@ -272,7 +272,7 @@ function CampusRow({
   return (
     <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-colors border-b border-white/10 last:border-0">
       <span className="text-sm font-black text-white/55 w-5 text-right tabular-nums">{rank}</span>
-      <span className="text-xs font-bold text-white/90 truncate w-28 shrink-0">{name}</span>
+      <span className="text-xs font-bold text-white/90 truncate w-36 shrink-0">{name}</span>
       {metrics.map((m, i) => (
         <div key={i} className="flex items-center gap-1.5 flex-1">
           <span className="text-xs font-black text-white/55 w-12 text-right tabular-nums">{m.value}%</span>
@@ -453,6 +453,8 @@ function ViewOverview({
   riskDist: { name: string; value: number; color: string }[];
   carDist: { name: string; value: number; color: string }[];
 }) {
+  const { userProfile, isAdmin, isVp } = useUser();
+  const scopedCampusId = userProfile?.campusId && !isAdmin && !isVp ? userProfile.campusId : null;
   const sc = gradeColor(eomsScore);
   const topCampus = campuses.length
     ? campuses.reduce((a: any, b: any) => (a.compositeScore > b.compositeScore ? a : b))
@@ -582,11 +584,11 @@ function ViewOverview({
         {/* Campus ranking table */}
         <div className="col-span-6 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 flex flex-col shadow-lg">
           <p className="text-sm font-black uppercase tracking-[0.15em] text-white/65 mb-1 shrink-0">
-            Campus Performance Ranking
+            {scopedCampusId ? 'Unit Performance Ranking' : 'Campus / Unit Performance Ranking'}
           </p>
           <div className="flex text-sm font-black text-white/45 uppercase tracking-wider mb-1 px-3">
             <span className="w-5 shrink-0" />
-            <span className="w-24 shrink-0">Campus</span>
+            <span className="w-36 shrink-0">{scopedCampusId ? 'Unit' : 'Campus / Unit'}</span>
             <span className="flex-1 text-center">Sub</span>
             <span className="flex-1 text-center">Risk</span>
             <span className="flex-1 text-center">CAR</span>
@@ -2028,16 +2030,49 @@ export default function ExecutiveDisplayPage() {
 
   // ── Campus performance data ───────────────────────────────────────────────
   const campusData = useMemo(() => {
+    const MAIN_CAMPUS_ID = 'HOsGLxGvyiC5DLizifik';
     const map = new Map<string, CampusPerf>();
+    const targets: { id: string; name: string; type: 'campus' | 'unit'; campusId: string }[] = [];
 
-    let list = allCampuses || [];
+    const campusUnits = (allUnits || []).filter((u) => u.campusIds?.includes(scopedCampusId || ''));
+    const mainCampusUnits = (allUnits || []).filter((u) => u.campusIds?.includes(MAIN_CAMPUS_ID));
+
     if (scopedCampusId) {
-      list = list.filter((c) => c.id === scopedCampusId);
+      // Campus-level user: show all units under this campus
+      campusUnits.forEach((u) => {
+        targets.push({
+          id: u.id,
+          name: u.name,
+          type: 'unit',
+          campusId: scopedCampusId,
+        });
+      });
+    } else {
+      // Entire RSU System: show other campuses + Main Campus units
+      const otherCampuses = (allCampuses || []).filter((c) => c.id !== MAIN_CAMPUS_ID);
+      otherCampuses.forEach((c) => {
+        targets.push({
+          id: c.id,
+          name: c.name || c.id,
+          type: 'campus',
+          campusId: c.id,
+        });
+      });
+
+      mainCampusUnits.forEach((u) => {
+        targets.push({
+          id: u.id,
+          name: `${u.name} (Main)`,
+          type: 'unit',
+          campusId: MAIN_CAMPUS_ID,
+        });
+      });
     }
-    list.forEach((c) => {
-      map.set(c.id, {
-        id: c.id,
-        name: c.name || c.id,
+
+    targets.forEach((t) => {
+      map.set(t.id, {
+        id: t.id,
+        name: t.name,
         subsTotal: 0,
         subsApproved: 0,
         subsPending: 0,
@@ -2069,9 +2104,67 @@ export default function ExecutiveDisplayPage() {
       });
     });
 
+    const getTargetId = (campusId: string, unitId: string): string | null => {
+      if (scopedCampusId) {
+        if (campusId === scopedCampusId && map.has(unitId)) {
+          return unitId;
+        }
+        return null;
+      } else {
+        if (campusId === MAIN_CAMPUS_ID) {
+          if (map.has(unitId)) return unitId;
+          return null;
+        }
+        if (map.has(campusId)) return campusId;
+        return null;
+      }
+    };
+
+    const getAuditTargetId = (s: AuditSchedule): string | null => {
+      if (scopedCampusId) {
+        if (s.campusId === scopedCampusId && s.targetType === 'Unit' && map.has(s.targetId)) {
+          return s.targetId;
+        }
+        return null;
+      } else {
+        if (s.campusId === MAIN_CAMPUS_ID) {
+          if (s.targetType === 'Unit' && map.has(s.targetId)) return s.targetId;
+          return null;
+        }
+        if (map.has(s.campusId)) return s.campusId;
+        return null;
+      }
+    };
+
+    const getProgramTargetId = (p: AcademicProgram): string | null => {
+      if (scopedCampusId) {
+        if (p.campusId === scopedCampusId) {
+          const matchedUnit = campusUnits.find(
+            (u) =>
+              u.id.toLowerCase() === p.collegeId?.toLowerCase() || u.name.toLowerCase() === p.collegeId?.toLowerCase(),
+          );
+          if (matchedUnit && map.has(matchedUnit.id)) return matchedUnit.id;
+        }
+        return null;
+      } else {
+        if (p.campusId === MAIN_CAMPUS_ID) {
+          const matchedUnit = mainCampusUnits.find(
+            (u) =>
+              u.id.toLowerCase() === p.collegeId?.toLowerCase() || u.name.toLowerCase() === p.collegeId?.toLowerCase(),
+          );
+          if (matchedUnit && map.has(matchedUnit.id)) return matchedUnit.id;
+          return null;
+        }
+        if (map.has(p.campusId)) return p.campusId;
+        return null;
+      }
+    };
+
     // Submissions
     yearSubs.forEach((s) => {
-      const c = map.get(s.campusId);
+      const targetId = getTargetId(s.campusId, s.unitId);
+      if (!targetId) return;
+      const c = map.get(targetId);
       if (!c) return;
       c.subsTotal++;
       if (s.statusId === 'approved') c.subsApproved++;
@@ -2081,7 +2174,9 @@ export default function ExecutiveDisplayPage() {
 
     // Risks
     yearRisks.forEach((r) => {
-      const c = map.get(r.campusId);
+      const targetId = getTargetId(r.campusId, r.unitId);
+      if (!targetId) return;
+      const c = map.get(targetId);
       if (!c) return;
       c.risksTotal++;
       if (r.status === 'Closed') c.risksClosed++;
@@ -2093,7 +2188,9 @@ export default function ExecutiveDisplayPage() {
 
     // CARs
     yearCars.forEach((car) => {
-      const c = map.get(car.campusId);
+      const targetId = getTargetId(car.campusId, car.unitId);
+      if (!targetId) return;
+      const c = map.get(targetId);
       if (!c) return;
       c.carsTotal++;
       if (car.status === 'Closed') c.carsClosed++;
@@ -2103,7 +2200,9 @@ export default function ExecutiveDisplayPage() {
     // Programs
     const activePrograms = (rawPrograms || []).filter((p) => p.isActive);
     activePrograms.forEach((p) => {
-      const c = map.get(p.campusId);
+      const targetId = getProgramTargetId(p);
+      if (!targetId) return;
+      const c = map.get(targetId);
       if (!c) return;
       c.programsTotal++;
       const comp = (rawCompliances || []).find((co) => co.programId === p.id);
@@ -2125,7 +2224,9 @@ export default function ExecutiveDisplayPage() {
 
     // Audits
     yearSch.forEach((s) => {
-      const c = map.get(s.campusId);
+      const targetId = getAuditTargetId(s);
+      if (!targetId) return;
+      const c = map.get(targetId);
       if (!c) return;
       c.auditsTotal++;
       if (s.status === 'Completed') c.auditsCompleted++;
@@ -2144,7 +2245,7 @@ export default function ExecutiveDisplayPage() {
     });
 
     return Array.from(map.values());
-  }, [yearSubs, yearRisks, yearCars, yearSch, rawPrograms, rawCompliances, allCampuses, scopedCampusId]);
+  }, [yearSubs, yearRisks, yearCars, yearSch, rawPrograms, rawCompliances, allCampuses, allUnits, scopedCampusId]);
 
   // ── Per-unit submission performance ───────────────────────────────────────
   interface UnitSubPerf {
