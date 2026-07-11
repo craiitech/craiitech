@@ -2752,7 +2752,7 @@ export default function ExecutiveDisplayPage() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2 mr-1">
                 <img src="/rsulogo.png" alt="RSU Logo" className="h-14 w-14 object-contain" />
-                <img src="/ISOlogo.jpg" alt="ISO Logo" className="h-14 w-14 object-contain rounded-sm" />
+                <img src="/ISOlogo.jpg" alt="ISO Logo" className="h-14 w-auto object-contain rounded-sm" />
               </div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-[0.2em] text-white">
