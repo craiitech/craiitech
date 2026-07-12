@@ -27,7 +27,9 @@ export function VoiceAnnouncements() {
       const campusId = userProfile.campusId;
       const activeYear = now.getFullYear();
       const listItems: string[] = [];
-      const ord = (n: number) => ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"][n] || `${n + 1}th`;
+      const ord = (n: number) =>
+        ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth'][n] ||
+        `${n + 1}th`;
 
       let unitName = userProfile?.unitName || '';
       if (!unitName && unitId && firestore) {
@@ -36,7 +38,9 @@ export function VoiceAnnouncements() {
           if (unitSnap.exists()) {
             unitName = unitSnap.data()?.name || '';
           }
-        } catch {}
+        } catch {
+          // ignore
+        }
       }
       unitName = unitName || 'esteemed colleague';
 
@@ -70,7 +74,9 @@ export function VoiceAnnouncements() {
 
         try {
           sessionStorage.setItem('rsu_eoms_announcement_spoken_session', 'true');
-        } catch {}
+        } catch {
+          // ignore
+        }
         return;
       }
 
@@ -81,15 +87,18 @@ export function VoiceAnnouncements() {
         let totalDrafts = 0;
         try {
           const submissionsSnap = await getDocs(collection(firestore, 'submissions'));
-          const submissions = submissionsSnap.docs.map(d => d.data() as Submission)
-                                                  .filter(s => Number(s.year) === activeYear);
-          totalSubmitted = submissions.filter(s => s.statusId === 'submitted').length;
-          totalApproved = submissions.filter(s => s.statusId === 'approved').length;
-          totalDrafts = submissions.filter(s => s.statusId === 'draft' || s.isDraft).length;
-        } catch { /* silent */ }
-        
+          const submissions = submissionsSnap.docs
+            .map((d) => d.data() as Submission)
+            .filter((s) => Number(s.year) === activeYear);
+          totalSubmitted = submissions.filter((s) => s.statusId === 'submitted').length;
+          totalApproved = submissions.filter((s) => s.statusId === 'approved').length;
+          totalDrafts = submissions.filter((s) => s.statusId === 'draft' || s.isDraft).length;
+        } catch {
+          /* silent */
+        }
+
         listItems.push(
-          `First, across all university units and campuses for the active academic year, there are currently ${totalSubmitted} EOMS submissions pending review, ${totalApproved} approved submissions, and ${totalDrafts} in draft status.`
+          `First, across all university units and campuses for the active academic year, there are currently ${totalSubmitted} EOMS submissions pending review, ${totalApproved} approved submissions, and ${totalDrafts} in draft status.`,
         );
 
         // 2. CHED Programs (COPC & Accreditation)
@@ -102,16 +111,17 @@ export function VoiceAnnouncements() {
 
         try {
           const pcSnap = await getDocs(collection(firestore, 'programCompliances'));
-          const compliances = pcSnap.docs.map(d => d.data() as ProgramComplianceRecord)
-                                         .filter(c => Number(c.academicYear) === activeYear);
-          
-          compliances.forEach(c => {
+          const compliances = pcSnap.docs
+            .map((d) => d.data() as ProgramComplianceRecord)
+            .filter((c) => Number(c.academicYear) === activeYear);
+
+          compliances.forEach((c) => {
             if (c.ched?.copcStatus === 'With COPC') copcCount++;
             else if (c.ched?.copcStatus === 'No COPC') noCopcCount++;
             else if (c.ched?.copcStatus === 'In Progress') inProgressCopcCount++;
 
             const milestones = c.accreditationRecords || [];
-            const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+            const latest = milestones.find((m) => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
             if (latest) {
               if (latest.level === 'Non Accredited' || latest.level === 'Candidate Status' || latest.level === 'TBA') {
                 nonAccreditedCount++;
@@ -122,29 +132,31 @@ export function VoiceAnnouncements() {
               nonAccreditedCount++;
             }
 
-            milestones.forEach(m => {
-              m.recommendations?.forEach(reco => {
+            milestones.forEach((m) => {
+              m.recommendations?.forEach((reco) => {
                 if (reco.status === 'Open' || reco.status === 'In Progress') {
                   totalOpenRecommendations++;
                 }
               });
             });
           });
-        } catch { /* silent */ }
+        } catch {
+          /* silent */
+        }
 
         listItems.push(
-          `Second, regarding CHED compliance, there are ${copcCount} programs with active COPC certification, ${noCopcCount} programs lacking COPC, and ${inProgressCopcCount} in progress.`
+          `Second, regarding CHED compliance, there are ${copcCount} programs with active COPC certification, ${noCopcCount} programs lacking COPC, and ${inProgressCopcCount} in progress.`,
         );
 
         if (accreditedCount > 0 || nonAccreditedCount > 0) {
           listItems.push(
-            `Third, in terms of program accreditation, we have ${accreditedCount} accredited academic programs and ${nonAccreditedCount} programs in non-accredited or candidate status.`
+            `Third, in terms of program accreditation, we have ${accreditedCount} accredited academic programs and ${nonAccreditedCount} programs in non-accredited or candidate status.`,
           );
         }
 
         if (totalOpenRecommendations > 0) {
           listItems.push(
-            `Additionally, there are ${totalOpenRecommendations} open accreditor recommendations requiring action by their respective colleges.`
+            `Additionally, there are ${totalOpenRecommendations} open accreditor recommendations requiring action by their respective colleges.`,
           );
         }
 
@@ -153,13 +165,19 @@ export function VoiceAnnouncements() {
         let manualsAwaitingPresident = 0;
         try {
           const formsSnap = await getDocs(collection(firestore, 'unitFormRequests'));
-          formsAwaitingPresident = formsSnap.docs.filter(d => d.data().status === 'Endorsement for Approval').length;
-        } catch { /* silent */ }
+          formsAwaitingPresident = formsSnap.docs.filter((d) => d.data().status === 'Endorsement for Approval').length;
+        } catch {
+          /* silent */
+        }
 
         try {
           const manualsSnap = await getDocs(collection(firestore, 'procedureRevisionRequests'));
-          manualsAwaitingPresident = manualsSnap.docs.filter(d => d.data().status === 'Awaiting Presidential Approval').length;
-        } catch { /* silent */ }
+          manualsAwaitingPresident = manualsSnap.docs.filter(
+            (d) => d.data().status === 'Awaiting Presidential Approval',
+          ).length;
+        } catch {
+          /* silent */
+        }
 
         if (formsAwaitingPresident > 0 || manualsAwaitingPresident > 0) {
           const parts: string[] = [];
@@ -167,10 +185,12 @@ export function VoiceAnnouncements() {
             parts.push(`${formsAwaitingPresident} form registration request${formsAwaitingPresident !== 1 ? 's' : ''}`);
           }
           if (manualsAwaitingPresident > 0) {
-            parts.push(`${manualsAwaitingPresident} procedure manual revision${manualsAwaitingPresident !== 1 ? 's' : ''}`);
+            parts.push(
+              `${manualsAwaitingPresident} procedure manual revision${manualsAwaitingPresident !== 1 ? 's' : ''}`,
+            );
           }
           listItems.push(
-            `Finally, you have ${parts.join(' and ')} awaiting your executive signature and final approval.`
+            `Finally, you have ${parts.join(' and ')} awaiting your executive signature and final approval.`,
           );
         }
       } else if (isExecutive) {
@@ -179,19 +199,21 @@ export function VoiceAnnouncements() {
         let totalApproved = 0;
         let totalDrafts = 0;
         try {
-          const submissionsSnap = await getDocs(query(
-            collection(firestore, 'submissions'),
-            where('campusId', '==', campusId)
-          ));
-          const submissions = submissionsSnap.docs.map(d => d.data() as Submission)
-                                                  .filter(s => Number(s.year) === activeYear);
-          totalSubmitted = submissions.filter(s => s.statusId === 'submitted').length;
-          totalApproved = submissions.filter(s => s.statusId === 'approved').length;
-          totalDrafts = submissions.filter(s => s.statusId === 'draft' || s.isDraft).length;
-        } catch { /* silent */ }
+          const submissionsSnap = await getDocs(
+            query(collection(firestore, 'submissions'), where('campusId', '==', campusId)),
+          );
+          const submissions = submissionsSnap.docs
+            .map((d) => d.data() as Submission)
+            .filter((s) => Number(s.year) === activeYear);
+          totalSubmitted = submissions.filter((s) => s.statusId === 'submitted').length;
+          totalApproved = submissions.filter((s) => s.statusId === 'approved').length;
+          totalDrafts = submissions.filter((s) => s.statusId === 'draft' || s.isDraft).length;
+        } catch {
+          /* silent */
+        }
 
         listItems.push(
-          `First, across your campus for the active academic year, there are currently ${totalSubmitted} EOMS submissions pending review, ${totalApproved} approved submissions, and ${totalDrafts} in draft status.`
+          `First, across your campus for the active academic year, there are currently ${totalSubmitted} EOMS submissions pending review, ${totalApproved} approved submissions, and ${totalDrafts} in draft status.`,
         );
 
         // CHED Programs (COPC & Accreditation)
@@ -203,20 +225,20 @@ export function VoiceAnnouncements() {
         let totalOpenRecommendations = 0;
 
         try {
-          const pcSnap = await getDocs(query(
-            collection(firestore, 'programCompliances'),
-            where('campusId', '==', campusId)
-          ));
-          const compliances = pcSnap.docs.map(d => d.data() as ProgramComplianceRecord)
-                                         .filter(c => Number(c.academicYear) === activeYear);
-          
-          compliances.forEach(c => {
+          const pcSnap = await getDocs(
+            query(collection(firestore, 'programCompliances'), where('campusId', '==', campusId)),
+          );
+          const compliances = pcSnap.docs
+            .map((d) => d.data() as ProgramComplianceRecord)
+            .filter((c) => Number(c.academicYear) === activeYear);
+
+          compliances.forEach((c) => {
             if (c.ched?.copcStatus === 'With COPC') copcCount++;
             else if (c.ched?.copcStatus === 'No COPC') noCopcCount++;
             else if (c.ched?.copcStatus === 'In Progress') inProgressCopcCount++;
 
             const milestones = c.accreditationRecords || [];
-            const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+            const latest = milestones.find((m) => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
             if (latest) {
               if (latest.level === 'Non Accredited' || latest.level === 'Candidate Status' || latest.level === 'TBA') {
                 nonAccreditedCount++;
@@ -227,62 +249,66 @@ export function VoiceAnnouncements() {
               nonAccreditedCount++;
             }
 
-            milestones.forEach(m => {
-              m.recommendations?.forEach(reco => {
+            milestones.forEach((m) => {
+              m.recommendations?.forEach((reco) => {
                 if (reco.status === 'Open' || reco.status === 'In Progress') {
                   totalOpenRecommendations++;
                 }
               });
             });
           });
-        } catch { /* silent */ }
+        } catch {
+          /* silent */
+        }
 
         listItems.push(
-          `Second, regarding CHED compliance on your campus, there are ${copcCount} programs with active COPC certification, ${noCopcCount} programs lacking COPC, and ${inProgressCopcCount} in progress.`
+          `Second, regarding CHED compliance on your campus, there are ${copcCount} programs with active COPC certification, ${noCopcCount} programs lacking COPC, and ${inProgressCopcCount} in progress.`,
         );
 
         if (accreditedCount > 0 || nonAccreditedCount > 0) {
           listItems.push(
-            `Third, in terms of program accreditation, there are ${accreditedCount} accredited academic programs and ${nonAccreditedCount} programs in non-accredited or candidate status.`
+            `Third, in terms of program accreditation, there are ${accreditedCount} accredited academic programs and ${nonAccreditedCount} programs in non-accredited or candidate status.`,
           );
         }
 
         if (totalOpenRecommendations > 0) {
           listItems.push(
-            `Additionally, there are ${totalOpenRecommendations} open accreditor recommendations currently being addressed by the colleges.`
+            `Additionally, there are ${totalOpenRecommendations} open accreditor recommendations currently being addressed by the colleges.`,
           );
         }
       } else if (isAuditor) {
         // Auditors - Audits & Audit Status
         let pendingAudits = 0;
         try {
-          const schedSnap = await getDocs(query(
-            collection(firestore, 'auditSchedules'),
-            where('auditorId', '==', userProfile.id)
-          ));
-          const schedules = schedSnap.docs.map(d => d.data() as AuditSchedule);
-          pendingAudits = schedules.filter(s => s.status === 'Scheduled' || s.status === 'In Progress').length;
-        } catch { /* silent */ }
+          const schedSnap = await getDocs(
+            query(collection(firestore, 'auditSchedules'), where('auditorId', '==', userProfile.id)),
+          );
+          const schedules = schedSnap.docs.map((d) => d.data() as AuditSchedule);
+          pendingAudits = schedules.filter((s) => s.status === 'Scheduled' || s.status === 'In Progress').length;
+        } catch {
+          /* silent */
+        }
 
         let verifyCount = 0;
         try {
-          const verifySnap = await getDocs(query(
-            collection(firestore, 'correctiveActionRequests'),
-            where('status', '==', 'For Final Verification')
-          ));
+          const verifySnap = await getDocs(
+            query(collection(firestore, 'correctiveActionRequests'), where('status', '==', 'For Final Verification')),
+          );
           verifyCount = verifySnap.size;
-        } catch { /* silent */ }
+        } catch {
+          /* silent */
+        }
 
         listItems.push(
-          `First, you have ${pendingAudits} pending audit schedule${pendingAudits !== 1 ? 's' : ''} currently on your list.`
+          `First, you have ${pendingAudits} pending audit schedule${pendingAudits !== 1 ? 's' : ''} currently on your list.`,
         );
         if (verifyCount > 0) {
           listItems.push(
-            `Second, there are ${verifyCount} corrective action request${verifyCount !== 1 ? 's' : ''} awaiting final verification in your inbox.`
+            `Second, there are ${verifyCount} corrective action request${verifyCount !== 1 ? 's' : ''} awaiting final verification in your inbox.`,
           );
         }
         listItems.push(
-          `Thank you for your dedicated service as an auditor and for being part of Romblon State University and the Quality Assurance Office for Quality.`
+          `Thank you for your dedicated service as an auditor and for being part of Romblon State University and the Quality Assurance Office for Quality.`,
         );
       } else {
         // Standard User (Unit Head / Staff / Admin / Supervisor)
@@ -290,38 +316,43 @@ export function VoiceAnnouncements() {
         let openCarsCount = 0;
         if (unitId) {
           try {
-            const carsSnap = await getDocs(query(
-              collection(firestore, 'correctiveActionRequests'),
-              where('unitId', '==', unitId)
-            ));
-            openCarsCount = carsSnap.docs.filter(d => {
+            const carsSnap = await getDocs(
+              query(collection(firestore, 'correctiveActionRequests'), where('unitId', '==', unitId)),
+            );
+            openCarsCount = carsSnap.docs.filter((d) => {
               const s = d.data().status;
               return s === 'Open' || s === 'Awaiting Response/Update';
             }).length;
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
         }
         if (openCarsCount > 0) {
-          listItems.push(`${ord(listItems.length)}, you have ${openCarsCount} open corrective action request${openCarsCount > 1 ? 's' : ''}, which you can address by logging implementation plans and evidence in the Corrective Action module.`);
+          listItems.push(
+            `${ord(listItems.length)}, you have ${openCarsCount} open corrective action request${openCarsCount > 1 ? 's' : ''}, which you can address by logging implementation plans and evidence in the Corrective Action module.`,
+          );
         }
 
         // 2. Overdue Risks
         let overdueRisksCount = 0;
         if (unitId) {
           try {
-            const risksSnap = await getDocs(query(
-              collection(firestore, 'risks'),
-              where('unitId', '==', unitId)
-            ));
-            overdueRisksCount = risksSnap.docs.filter(d => {
+            const risksSnap = await getDocs(query(collection(firestore, 'risks'), where('unitId', '==', unitId)));
+            overdueRisksCount = risksSnap.docs.filter((d) => {
               const data = d.data();
               if (data.status === 'Closed' || !data.targetDate) return false;
-              const target = data.targetDate instanceof Timestamp ? data.targetDate.toDate() : new Date(data.targetDate);
+              const target =
+                data.targetDate instanceof Timestamp ? data.targetDate.toDate() : new Date(data.targetDate);
               return target < now;
             }).length;
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
         }
         if (overdueRisksCount > 0) {
-          listItems.push(`${ord(listItems.length)}, you have ${overdueRisksCount} overdue risk treatment${overdueRisksCount > 1 ? 's' : ''}, which you can address by navigating to the Risk Register and updating their final assessments.`);
+          listItems.push(
+            `${ord(listItems.length)}, you have ${overdueRisksCount} overdue risk treatment${overdueRisksCount > 1 ? 's' : ''}, which you can address by navigating to the Risk Register and updating their final assessments.`,
+          );
         }
 
         // 3. Actionable Decisions (Management Review Outputs)
@@ -329,15 +360,20 @@ export function VoiceAnnouncements() {
         if (unitId) {
           try {
             const mroSnap = await getDocs(collection(firestore, 'managementReviewOutputs'));
-            mrDecisionsCount = mroSnap.docs.filter(d => {
+            mrDecisionsCount = mroSnap.docs.filter((d) => {
               const data = d.data() as ManagementReviewOutput;
-              const hasAssignment = data.assignments?.some(a => a.unitId === unitId) || data.concernedUnitIds?.includes(unitId);
+              const hasAssignment =
+                data.assignments?.some((a) => a.unitId === unitId) || data.concernedUnitIds?.includes(unitId);
               return hasAssignment && (data.status === 'Open' || data.status === 'On-going');
             }).length;
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
         }
         if (mrDecisionsCount > 0) {
-          listItems.push(`${ord(listItems.length)}, you have ${mrDecisionsCount} pending management review decision${mrDecisionsCount > 1 ? 's' : ''}, which you can address by submitting implementation details and evidence in the Management Review outputs page.`);
+          listItems.push(
+            `${ord(listItems.length)}, you have ${mrDecisionsCount} pending management review decision${mrDecisionsCount > 1 ? 's' : ''}, which you can address by submitting implementation details and evidence in the Management Review outputs page.`,
+          );
         }
 
         // 4. Accreditation Gaps & Open Recommendations
@@ -345,40 +381,49 @@ export function VoiceAnnouncements() {
         let openRecommendationsCount = 0;
         if (unitId) {
           try {
-            const pcSnap = await getDocs(query(
-              collection(firestore, 'programCompliances'),
-              where('unitId', '==', unitId)
-            ));
-            const compliances = pcSnap.docs.map(d => d.data() as ProgramComplianceRecord)
-                                         .filter(c => Number(c.academicYear) === activeYear);
-            compliances.forEach(c => {
+            const pcSnap = await getDocs(
+              query(collection(firestore, 'programCompliances'), where('unitId', '==', unitId)),
+            );
+            const compliances = pcSnap.docs
+              .map((d) => d.data() as ProgramComplianceRecord)
+              .filter((c) => Number(c.academicYear) === activeYear);
+            compliances.forEach((c) => {
               if (c.ched?.copcStatus !== 'With COPC') {
                 accreditationGapsCount++;
               }
               const milestones = c.accreditationRecords || [];
-              const latest = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+              const latest =
+                milestones.find((m) => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
               if (!latest || latest.level === 'Non Accredited') {
                 accreditationGapsCount++;
               }
-              milestones.forEach(m => {
-                m.recommendations?.forEach(reco => {
-                  if ((reco.status === 'Open' || reco.status === 'In Progress') && 
-                      reco.assignedUnitIds?.includes(unitId)) {
+              milestones.forEach((m) => {
+                m.recommendations?.forEach((reco) => {
+                  if (
+                    (reco.status === 'Open' || reco.status === 'In Progress') &&
+                    reco.assignedUnitIds?.includes(unitId)
+                  ) {
                     openRecommendationsCount++;
                   }
                 });
               });
             });
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
         }
         if (accreditationGapsCount > 0 || openRecommendationsCount > 0) {
           let text = `${ord(listItems.length)}, we found `;
           const gapsText: string[] = [];
           if (accreditationGapsCount > 0) {
-            gapsText.push(`${accreditationGapsCount} active program authority or accreditation gap${accreditationGapsCount > 1 ? 's' : ''}`);
+            gapsText.push(
+              `${accreditationGapsCount} active program authority or accreditation gap${accreditationGapsCount > 1 ? 's' : ''}`,
+            );
           }
           if (openRecommendationsCount > 0) {
-            gapsText.push(`${openRecommendationsCount} open accreditor recommendation${openRecommendationsCount > 1 ? 's' : ''}`);
+            gapsText.push(
+              `${openRecommendationsCount} open accreditor recommendation${openRecommendationsCount > 1 ? 's' : ''}`,
+            );
           }
           text += gapsText.join(' and ');
           text += `, which you can address by uploading compliance certificates or evidence logs in the Program Monitoring section.`;
@@ -392,25 +437,28 @@ export function VoiceAnnouncements() {
             let allCycles: Cycle[] = [];
             try {
               const cyclesSnap = await getDocs(collection(firestore, 'cycles'));
-              allCycles = cyclesSnap.docs.map(d => ({ id: d.id, ...d.data() } as Cycle));
-            } catch { /* silent */ }
+              allCycles = cyclesSnap.docs.map((d) => ({ id: d.id, ...d.data() }) as Cycle);
+            } catch {
+              /* silent */
+            }
 
-            const subSnap = await getDocs(query(
-              collection(firestore, 'submissions'),
-              where('unitId', '==', unitId)
-            ));
-            const unitSubs = subSnap.docs.map(d => d.data() as Submission);
-            const currentYearSubmissions = unitSubs.filter(s => Number(s.year) === activeYear);
+            const subSnap = await getDocs(query(collection(firestore, 'submissions'), where('unitId', '==', unitId)));
+            const unitSubs = subSnap.docs.map((d) => d.data() as Submission);
+            const currentYearSubmissions = unitSubs.filter((s) => Number(s.year) === activeYear);
 
             for (const cycleId of ['first', 'final'] as const) {
               if (isCycleActive(cycleId, activeYear, allCycles)) {
-                const cycleSubs = currentYearSubmissions.filter(s => s.cycleId === cycleId);
-                const registrySub = cycleSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
+                const cycleSubs = currentYearSubmissions.filter((s) => s.cycleId === cycleId);
+                const registrySub = cycleSubs.find((s) => s.reportType === 'Risk and Opportunity Registry');
                 const isActionPlanNA = registrySub?.riskRating === 'low';
-                
-                const approvedOrSubmittedSet = new Set(cycleSubs.filter(s => s.statusId === 'approved' || s.statusId === 'submitted').map(s => s.reportType));
-                
-                const missing = submissionTypes.filter(type => {
+
+                const approvedOrSubmittedSet = new Set(
+                  cycleSubs
+                    .filter((s) => s.statusId === 'approved' || s.statusId === 'submitted')
+                    .map((s) => s.reportType),
+                );
+
+                const missing = submissionTypes.filter((type) => {
                   if (approvedOrSubmittedSet.has(type)) return false;
                   if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) return false;
                   return true;
@@ -422,52 +470,63 @@ export function VoiceAnnouncements() {
                 }
               }
             }
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
         }
         if (missingReports.length > 0) {
-          listItems.push(`${ord(listItems.length)}, you have not submitted all required reports for the active cycle, missing documents include: ${missingReports.join(', and ')}, please prepare and upload these in the submissions panel.`);
+          listItems.push(
+            `${ord(listItems.length)}, you have not submitted all required reports for the active cycle, missing documents include: ${missingReports.join(', and ')}, please prepare and upload these in the submissions panel.`,
+          );
         }
 
         // 6. Returned Requests (Procedure manual revisions or Form registrations)
         let returnedRequestsCount = 0;
         if (unitId) {
           try {
-            const prSnap = await getDocs(query(
-              collection(firestore, 'procedureRevisionRequests'),
-              where('unitId', '==', unitId)
-            ));
-            const returnedPR = prSnap.docs.filter(d => d.data().status === 'Returned for Revision').length;
+            const prSnap = await getDocs(
+              query(collection(firestore, 'procedureRevisionRequests'), where('unitId', '==', unitId)),
+            );
+            const returnedPR = prSnap.docs.filter((d) => d.data().status === 'Returned for Revision').length;
             returnedRequestsCount += returnedPR;
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
 
           try {
-            const ufSnap = await getDocs(query(
-              collection(firestore, 'unitFormRequests'),
-              where('unitId', '==', unitId)
-            ));
-            const returnedUF = ufSnap.docs.filter(d => d.data().status === 'Returned for Correction').length;
+            const ufSnap = await getDocs(
+              query(collection(firestore, 'unitFormRequests'), where('unitId', '==', unitId)),
+            );
+            const returnedUF = ufSnap.docs.filter((d) => d.data().status === 'Returned for Correction').length;
             returnedRequestsCount += returnedUF;
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
         }
         if (returnedRequestsCount > 0) {
-          listItems.push(`${ord(listItems.length)}, you have ${returnedRequestsCount} request${returnedRequestsCount > 1 ? 's' : ''} returned for correction by the Quality Assurance Office, you can address this by reviewing their feedback and resubmitting.`);
+          listItems.push(
+            `${ord(listItems.length)}, you have ${returnedRequestsCount} request${returnedRequestsCount > 1 ? 's' : ''} returned for correction by the Quality Assurance Office, you can address this by reviewing their feedback and resubmitting.`,
+          );
         }
 
         // 7. Portal Software Evaluation
         let hasCompletedSoftwareEvaluation = true;
         if (!isAdmin && userRole !== 'Auditor' && userRole !== 'Supervisor' && userRole !== 'VP' && userProfile?.id) {
           try {
-            const evalSnap = await getDocs(query(
-              collection(firestore, 'softwareEvaluations'),
-              where('userId', '==', userProfile.id)
-            ));
+            const evalSnap = await getDocs(
+              query(collection(firestore, 'softwareEvaluations'), where('userId', '==', userProfile.id)),
+            );
             if (evalSnap.empty) {
               hasCompletedSoftwareEvaluation = false;
             }
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
         }
         if (!hasCompletedSoftwareEvaluation) {
-          listItems.push(`${ord(listItems.length)}, you have not completed the Portal Software Evaluation, please share your feedback to help us improve the system.`);
+          listItems.push(
+            `${ord(listItems.length)}, you have not completed the Portal Software Evaluation, please share your feedback to help us improve the system.`,
+          );
         }
 
         // Admin / Supervisor specific announcements (Submissions pending review)
@@ -478,10 +537,14 @@ export function VoiceAnnouncements() {
               ? query(collection(firestore, 'submissions'), where('statusId', '==', 'submitted'))
               : query(collection(firestore, 'submissions'), where('campusId', '==', campusId));
             const pendingSnap = await getDocs(pendingQuery);
-            pendingReviewCount = pendingSnap.docs.filter(d => d.data().statusId === 'submitted').length;
-          } catch { /* silent */ }
+            pendingReviewCount = pendingSnap.docs.filter((d) => d.data().statusId === 'submitted').length;
+          } catch {
+            /* silent */
+          }
           if (pendingReviewCount > 0) {
-            listItems.push(`Additionally, you have ${pendingReviewCount} submission${pendingReviewCount > 1 ? 's' : ''} pending review, which you can evaluate in the approvals dashboard.`);
+            listItems.push(
+              `Additionally, you have ${pendingReviewCount} submission${pendingReviewCount > 1 ? 's' : ''} pending review, which you can evaluate in the approvals dashboard.`,
+            );
           }
         }
 
@@ -489,14 +552,17 @@ export function VoiceAnnouncements() {
         if (isAdmin || userRole === 'Auditor') {
           let verifyCount = 0;
           try {
-            const verifySnap = await getDocs(query(
-              collection(firestore, 'correctiveActionRequests'),
-              where('status', '==', 'For Final Verification')
-            ));
+            const verifySnap = await getDocs(
+              query(collection(firestore, 'correctiveActionRequests'), where('status', '==', 'For Final Verification')),
+            );
             verifyCount = verifySnap.size;
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
           if (verifyCount > 0) {
-            listItems.push(`Additionally, you have ${verifyCount} corrective action request${verifyCount > 1 ? 's' : ''} awaiting final verification in your inbox.`);
+            listItems.push(
+              `Additionally, you have ${verifyCount} corrective action request${verifyCount > 1 ? 's' : ''} awaiting final verification in your inbox.`,
+            );
           }
         }
 
@@ -506,19 +572,23 @@ export function VoiceAnnouncements() {
           let pendingManualsCount = 0;
           try {
             const formsSnap = await getDocs(collection(firestore, 'unitFormRequests'));
-            pendingFormsCount = formsSnap.docs.filter(d => {
+            pendingFormsCount = formsSnap.docs.filter((d) => {
               const s = d.data().status;
               return s === 'Submitted' || s === 'QA Review' || s === 'Endorsement for Approval';
             }).length;
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
 
           try {
             const manualsSnap = await getDocs(collection(firestore, 'procedureRevisionRequests'));
-            pendingManualsCount = manualsSnap.docs.filter(d => {
+            pendingManualsCount = manualsSnap.docs.filter((d) => {
               const s = d.data().status;
               return s === 'Submitted' || s === 'Awaiting Presidential Approval';
             }).length;
-          } catch { /* silent */ }
+          } catch {
+            /* silent */
+          }
 
           if (pendingFormsCount > 0 || pendingManualsCount > 0) {
             const parts: string[] = [];
@@ -528,20 +598,20 @@ export function VoiceAnnouncements() {
             if (pendingManualsCount > 0) {
               parts.push(`${pendingManualsCount} procedure revision request${pendingManualsCount > 1 ? 's' : ''}`);
             }
-            listItems.push(`Additionally, you have ${parts.join(' and ')} pending review in the manuals and forms inbox.`);
+            listItems.push(
+              `Additionally, you have ${parts.join(' and ')} pending review in the manuals and forms inbox.`,
+            );
           }
         }
 
         // Unread communications (for everyone)
         let unreadCommsCount = 0;
         try {
-          const commsSnap = await getDocs(query(
-            collection(firestore, 'communications')
-          ));
+          const commsSnap = await getDocs(query(collection(firestore, 'communications')));
           const roleLower = userRole?.toLowerCase() || '';
           const isOdimo = isAdmin || roleLower.includes('odimo') || roleLower.includes('coordinator');
           const currentYear = new Date().getFullYear();
-          unreadCommsCount = commsSnap.docs.filter(d => {
+          unreadCommsCount = commsSnap.docs.filter((d) => {
             const c = d.data();
             if (c.senderUnitId === unitId) return false;
             const date = c.createdAt?.toDate ? c.createdAt.toDate() : c.createdAt ? new Date(c.createdAt) : null;
@@ -557,9 +627,13 @@ export function VoiceAnnouncements() {
             const hasRead = c.readBy?.includes(userProfile.id) || (unitId && c.readBy?.includes(unitId));
             return !hasRead;
           }).length;
-        } catch { /* silent */ }
+        } catch {
+          /* silent */
+        }
         if (unreadCommsCount > 0) {
-          listItems.push(`Finally, you have ${unreadCommsCount} unread communication${unreadCommsCount > 1 ? 's' : ''} in the Communications Hub.`);
+          listItems.push(
+            `Finally, you have ${unreadCommsCount} unread communication${unreadCommsCount > 1 ? 's' : ''} in the Communications Hub.`,
+          );
         }
       }
 
@@ -576,17 +650,18 @@ export function VoiceAnnouncements() {
           }
         }
       } catch (error) {
-        console.error("Error fetching global announcement for voice:", error);
+        console.error('Error fetching global announcement for voice:', error);
       }
 
       setTimeout(() => {
-        const portalDescription = "The E.O.M.S. Portal is your Educational Organizations Management System, designed to streamline compliance monitoring, risk evaluation, and quality assurance workflows, empowering your unit to make data-driven decisions for continuous academic and administrative improvement.";
-        
-        let intro = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. Here is your quality assurance and compliance summary. Please check the following items requiring your attention:`;
+        const portalDescription =
+          'The E.O.M.S. Portal is your Educational Organizations Management System, designed to streamline compliance monitoring, risk evaluation, and quality assurance workflows, empowering your unit to make data-driven decisions for continuous academic and administrative improvement.';
+
+        let intro = `Good day, ${unitName}, I am your RSU Drongos EOMS Assistant, your RSU quality management companion. Here is your quality assurance and compliance summary. Please check the following items requiring your attention:`;
         if (isPresident || isExecutive) {
-          intro = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. Here is your EOMS executive overview.`;
+          intro = `Good day, ${unitName}, I am your RSU Drongos EOMS Assistant, your RSU quality management companion. Here is your EOMS executive overview.`;
         } else if (isAuditor) {
-          intro = `Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. Here is your audit overview.`;
+          intro = `Good day, ${unitName}, I am your RSU Drongos EOMS Assistant, your RSU quality management companion. Here is your audit overview.`;
         }
 
         const announcementPart = globalAnnouncementText ? ` ${globalAnnouncementText}.` : '';
@@ -595,14 +670,18 @@ export function VoiceAnnouncements() {
           const speechText = `${intro}${announcementPart} Here are your reminders: ${listItems.join(' ')} ${portalDescription}`;
           queueAnnouncement(speechText);
         } else {
-          queueAnnouncement(`Good day, ${unitName}, I am your EOMS Support Agent, your RSU quality management companion. You have no pending items that require your attention.${announcementPart} ${portalDescription}`);
+          queueAnnouncement(
+            `Good day, ${unitName}, I am your RSU Drongos EOMS Assistant, your RSU quality management companion. You have no pending items that require your attention.${announcementPart} ${portalDescription}`,
+          );
         }
 
         try {
           localStorage.setItem(storageKey, todayStr);
           localStorage.setItem(countKey, '0');
           sessionStorage.setItem('rsu_eoms_announcement_spoken_session', 'true');
-        } catch {}
+        } catch {
+          // ignore
+        }
       }, 1000);
     };
 
