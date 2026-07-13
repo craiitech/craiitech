@@ -33,7 +33,10 @@ export default function QRScannerPage() {
       setIsScannerLibLoaded(true);
     };
     script.onerror = () => {
-      setScanResult({ status: 'error', message: 'Failed to load QR scanner resources. Please check your internet connection.' });
+      setScanResult({
+        status: 'error',
+        message: 'Failed to load QR scanner resources. Please check your internet connection.',
+      });
     };
     document.body.appendChild(script);
 
@@ -49,7 +52,7 @@ export default function QRScannerPage() {
 
   const startScanning = (mode?: 'environment' | 'user') => {
     if (!isScannerLibLoaded || !(window as any).Html5Qrcode) return;
-    
+
     // Stop any existing session
     stopScanning();
 
@@ -67,42 +70,48 @@ export default function QRScannerPage() {
 
       try {
         const scanner = new (window as any).Html5Qrcode('mobile-scanner-reader');
-        
-        scanner.start(
-          { facingMode: activeMode },
-          {
-            fps: 24,
-            qrbox: (width: number, height: number) => {
-              const size = Math.min(width, height) * 0.75;
-              return { width: size, height: size };
+
+        scanner
+          .start(
+            { facingMode: activeMode },
+            {
+              fps: 24,
+              qrbox: (width: number, height: number) => {
+                const size = Math.min(width, height) * 0.75;
+                return { width: size, height: size };
+              },
+              aspectRatio: 1.0,
+              experimentalFeatures: {
+                useBarCodeDetectorIfSupported: true,
+              },
             },
-            aspectRatio: 1.0,
-            experimentalFeatures: {
-              useBarCodeDetectorIfSupported: true,
+            (decodedText: string) => {
+              handleScanSuccess(decodedText, scanner);
+            },
+            () => {
+              // Silently swallow camera frames parsing errors
+            },
+          )
+          .then(() => {
+            html5QrCodeScannerRef.current = scanner;
+            setScanResult({ status: 'none', message: 'Align the system QR code within the frame.' });
+
+            // Apply continuous focus if possible
+            try {
+              scanner.applyVideoConstraints({ focusMode: 'continuous' }).catch(() => {});
+            } catch (e) {
+              // Ignore focus configuration errors
             }
-          },
-          (decodedText: string) => {
-            handleScanSuccess(decodedText, scanner);
-          },
-          () => {
-            // Silently swallow camera frames parsing errors
-          }
-        ).then(() => {
-          html5QrCodeScannerRef.current = scanner;
-          setScanResult({ status: 'none', message: 'Align the system QR code within the frame.' });
-          
-          // Apply continuous focus if possible
-          try {
-            scanner.applyVideoConstraints({ focusMode: 'continuous' }).catch(() => {});
-          } catch (e) {}
-        }).catch((err: any) => {
-          console.error('Camera Access Error:', err);
-          setScanResult({
-            status: 'error',
-            message: 'Camera permission denied or camera unavailable. Please ensure permissions are granted in your browser settings.'
+          })
+          .catch((err: any) => {
+            console.error('Camera Access Error:', err);
+            setScanResult({
+              status: 'error',
+              message:
+                'Camera permission denied or camera unavailable. Please ensure permissions are granted in your browser settings.',
+            });
+            setScannerActive(false);
           });
-          setScannerActive(false);
-        });
       } catch (err: any) {
         console.error('Camera Init Error:', err);
         setScanResult({ status: 'error', message: `Camera error: ${err.message || err}` });
@@ -140,7 +149,9 @@ export default function QRScannerPage() {
         html5QrCodeScannerRef.current = null;
       }
       setScannerActive(false);
-    } catch (e) {}
+    } catch (e) {
+      // Ignore scanner stop errors
+    }
 
     setScanResult({ status: 'success', message: 'Valid QR Code Detected! Redirecting...' });
 
@@ -148,7 +159,7 @@ export default function QRScannerPage() {
     try {
       if (decodedText.startsWith('http://') || decodedText.startsWith('https://')) {
         const url = new URL(decodedText);
-        
+
         // Redirecting to relative path if it's on the same origin (safe redirect)
         if (url.origin === window.location.origin) {
           redirectTimeoutRef.current = setTimeout(() => {
@@ -158,7 +169,8 @@ export default function QRScannerPage() {
           // If it's an external link, show warning (we only scan system QR codes)
           setScanResult({
             status: 'error',
-            message: 'Scanned URL belongs to an external system. For security, we only redirect to system-generated QR codes.'
+            message:
+              'Scanned URL belongs to an external system. For security, we only redirect to system-generated QR codes.',
           });
           redirectTimeoutRef.current = setTimeout(() => {
             startScanning();
@@ -171,7 +183,7 @@ export default function QRScannerPage() {
       } else {
         setScanResult({
           status: 'error',
-          message: 'The scanned code is not a valid EOMS portal link.'
+          message: 'The scanned code is not a valid EOMS portal link.',
         });
         redirectTimeoutRef.current = setTimeout(() => {
           startScanning();
@@ -180,7 +192,7 @@ export default function QRScannerPage() {
     } catch (e) {
       setScanResult({
         status: 'error',
-        message: 'Invalid QR payload format.'
+        message: 'Invalid QR payload format.',
       });
       redirectTimeoutRef.current = setTimeout(() => {
         startScanning();
@@ -206,7 +218,13 @@ export default function QRScannerPage() {
 
       {/* Header bar */}
       <div className="w-full flex items-center justify-between z-10 pt-2 shrink-0">
-        <Button asChild variant="ghost" size="icon" className="h-10 w-10 rounded-full text-white/80 hover:text-white hover:bg-white/10" onClick={stopScanning}>
+        <Button
+          asChild
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 rounded-full text-white/80 hover:text-white hover:bg-white/10"
+          onClick={stopScanning}
+        >
           <Link href="/">
             <ArrowLeft className="h-5 w-5" />
           </Link>
@@ -220,7 +238,13 @@ export default function QRScannerPage() {
           </h1>
         </div>
         {scannerActive ? (
-          <Button variant="ghost" size="icon" onClick={switchCamera} className="h-10 w-10 rounded-full text-white/80 hover:text-white hover:bg-white/10" title="Switch Camera">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={switchCamera}
+            className="h-10 w-10 rounded-full text-white/80 hover:text-white hover:bg-white/10"
+            title="Switch Camera"
+          >
             <FlipHorizontal2 className="h-5 w-5" />
           </Button>
         ) : (
@@ -232,8 +256,8 @@ export default function QRScannerPage() {
       <div className="w-full max-w-sm mx-auto my-auto z-10 flex flex-col items-center justify-center py-6">
         <div className="relative w-full aspect-square max-w-[280px] sm:max-w-[320px] rounded-3xl overflow-hidden bg-black/40 border border-white/10 shadow-2xl flex items-center justify-center">
           {/* html5-qrcode video wrapper */}
-          <div 
-            id="mobile-scanner-reader" 
+          <div
+            id="mobile-scanner-reader"
             ref={readerRef}
             className="w-full h-full object-cover [&_video]:object-cover [&_video]:w-full [&_video]:h-full"
           />
@@ -250,7 +274,7 @@ export default function QRScannerPage() {
                 <div className="absolute -bottom-1.5 -right-1.5 w-5 h-5 border-b-4 border-r-4 border-[#D4AF37] rounded-br-md" />
 
                 {/* Laser animation line */}
-                <div 
+                <div
                   className="absolute left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_8px_rgba(239,68,68,0.8)]"
                   style={{
                     animation: 'scannerLaser 2.2s ease-in-out infinite',
@@ -270,8 +294,8 @@ export default function QRScannerPage() {
                   <p className="text-xs font-semibold text-slate-350 max-w-[200px] leading-relaxed">
                     {scanResult.message}
                   </p>
-                  <Button 
-                    onClick={() => startScanning()} 
+                  <Button
+                    onClick={() => startScanning()}
                     className="bg-[#1B6535] hover:bg-[#1B6535]/80 text-white rounded-xl text-[10px] font-black uppercase tracking-wider py-1.5 px-4 h-8"
                   >
                     Retry Camera
@@ -292,13 +316,15 @@ export default function QRScannerPage() {
 
       {/* Info console / status text */}
       <div className="w-full max-w-sm mx-auto z-10 shrink-0 text-center pb-6 space-y-4">
-        <div className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed min-h-[72px] flex items-center justify-center ${
-          scanResult.status === 'success' 
-            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-            : scanResult.status === 'error'
-            ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-            : 'bg-white/5 border-white/10 text-slate-300'
-        }`}>
+        <div
+          className={`p-4 rounded-2xl border text-xs font-semibold leading-relaxed min-h-[72px] flex items-center justify-center ${
+            scanResult.status === 'success'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+              : scanResult.status === 'error'
+                ? 'bg-rose-500/10 border-rose-500/30 text-rose-400'
+                : 'bg-white/5 border-white/10 text-slate-300'
+          }`}
+        >
           {scanResult.status === 'loading' && (
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-[#D4AF37]" />
@@ -306,23 +332,34 @@ export default function QRScannerPage() {
             </div>
           )}
           {scanResult.status !== 'loading' && (
-            <span className={scanResult.status === 'success' ? 'font-black uppercase tracking-wide animate-pulse' : 'italic'}>
+            <span
+              className={
+                scanResult.status === 'success' ? 'font-black uppercase tracking-wide animate-pulse' : 'italic'
+              }
+            >
               {scanResult.message}
             </span>
           )}
         </div>
 
         <p className="text-[10px] text-slate-400 max-w-[280px] mx-auto leading-relaxed">
-          Open the EOMS portal on a desktop or kiosk, locate a sign-in or survey QR code, and scan it with this camera reader.
+          Open the EOMS portal on a desktop or kiosk, locate a sign-in or survey QR code, and scan it with this camera
+          reader.
         </p>
       </div>
 
       {/* Styles injected locally to handle the custom animations */}
       <style jsx global>{`
         @keyframes scannerLaser {
-          0% { top: 0%; }
-          50% { top: 100%; }
-          100% { top: 0%; }
+          0% {
+            top: 0%;
+          }
+          50% {
+            top: 100%;
+          }
+          100% {
+            top: 0%;
+          }
         }
         #mobile-scanner-reader {
           width: 100% !important;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const admin = require('firebase-admin');
 const projectId = "studio-9288801258-68151";
 

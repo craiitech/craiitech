@@ -36,6 +36,8 @@ const eslintConfig = [
       "android/",
       "capacitor/www/",
       "*.config.*",
+      "next-env.d.ts",
+      "electron/",
     ],
   },
 ];

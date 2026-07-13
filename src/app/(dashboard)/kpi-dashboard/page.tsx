@@ -13,7 +13,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useYear } from '@/lib/year-provider';
-import type { KpiDefinition, KpiSnapshot, KpiAlert, Submission, Risk, Cycle, Unit, CorrectiveActionRequest, AuditPlan, CsmResponse } from '@/lib/types';
+import type {
+  KpiDefinition,
+  KpiSnapshot,
+  KpiAlert,
+  Submission,
+  Risk,
+  Cycle,
+  Unit,
+  CorrectiveActionRequest,
+  AuditPlan,
+  CsmResponse,
+} from '@/lib/types';
 import { computeKpis } from '@/lib/kpi-engine';
 import { KPI_CATEGORIES } from '@/lib/constants';
 import { useRouter } from 'next/navigation';
@@ -32,11 +43,19 @@ export default function KpiDashboardPage() {
 
   const alertsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'kpiAlerts'), where('acknowledged', '==', false), orderBy('createdAt', 'desc'), limit(20));
+    return query(
+      collection(firestore, 'kpiAlerts'),
+      where('acknowledged', '==', false),
+      orderBy('createdAt', 'desc'),
+      limit(20),
+    );
   }, [firestore]);
   const { data: alerts } = useCollection<KpiAlert>(alertsQuery);
 
-  const submissionsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'submissions') : null), [firestore]);
+  const submissionsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'submissions') : null),
+    [firestore],
+  );
   const { data: submissions } = useCollection<Submission>(submissionsQuery);
 
   const risksQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'risks') : null), [firestore]);
@@ -48,7 +67,10 @@ export default function KpiDashboardPage() {
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
-  const carsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'correctiveActionRequests') : null), [firestore]);
+  const carsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'correctiveActionRequests') : null),
+    [firestore],
+  );
   const { data: cars } = useCollection<CorrectiveActionRequest>(carsQuery);
 
   const auditsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditPlans') : null), [firestore]);
@@ -72,7 +94,7 @@ export default function KpiDashboardPage() {
   const snapshots = useMemo(() => {
     if (!definitions?.length) return [];
     return computeKpis({
-      definitions: definitions.filter(d => d.isActive),
+      definitions: definitions.filter((d) => d.isActive),
       submissions: (submissions || []) as any,
       risks: (risks || []) as any,
       cycles: (cycles || []) as any,
@@ -80,9 +102,23 @@ export default function KpiDashboardPage() {
       cars: (cars || []) as any,
       auditPlans: (auditPlans || []) as any,
       csmResponses: (csmResponses || []) as any,
-      selectedYear, entityType, entityId,
+      selectedYear,
+      entityType,
+      entityId,
     });
-  }, [definitions, submissions, risks, cycles, units, cars, auditPlans, csmResponses, selectedYear, entityType, entityId]);
+  }, [
+    definitions,
+    submissions,
+    risks,
+    cycles,
+    units,
+    cars,
+    auditPlans,
+    csmResponses,
+    selectedYear,
+    entityType,
+    entityId,
+  ]);
 
   const latestSnapshots = useMemo(() => {
     const map = new Map<string, KpiSnapshot>();
@@ -96,7 +132,7 @@ export default function KpiDashboardPage() {
   const groupedByCategory = useMemo(() => {
     const groups: Record<string, KpiSnapshot[]> = {};
     for (const snap of latestSnapshots) {
-      const def = definitions?.find(d => d.id === snap.kpiId);
+      const def = definitions?.find((d) => d.id === snap.kpiId);
       const cat = def?.category || 'system_operations';
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(snap);
@@ -114,22 +150,29 @@ export default function KpiDashboardPage() {
     return map;
   }, [snapshots]);
 
-  const acknowledgeAlert = useCallback(async (alertId: string) => {
-    if (!firestore) return;
-    try {
-      await updateDoc(doc(firestore, 'kpiAlerts', alertId), {
-        acknowledged: true,
-        acknowledgedBy: userProfile?.id || 'unknown',
-        acknowledgedAt: Timestamp.now(),
-      });
-    } catch { }
-  }, [firestore, userProfile]);
+  const acknowledgeAlert = useCallback(
+    async (alertId: string) => {
+      if (!firestore) return;
+      try {
+        await updateDoc(doc(firestore, 'kpiAlerts', alertId), {
+          acknowledged: true,
+          acknowledgedBy: userProfile?.id || 'unknown',
+          acknowledgedAt: Timestamp.now(),
+        });
+      } catch {
+        // Ignore error updating document
+      }
+    },
+    [firestore, userProfile],
+  );
 
   const exportKpiData = useCallback(() => {
     const csvRows = ['KPI,Category,Value,Target,Status,Period'];
     for (const snap of snapshots) {
-      const def = definitions?.find(d => d.id === snap.kpiId);
-      csvRows.push(`${snap.kpiName},${def?.category || 'N/A'},${snap.value},${snap.target},${snap.status},${snap.period}`);
+      const def = definitions?.find((d) => d.id === snap.kpiId);
+      csvRows.push(
+        `${snap.kpiName},${def?.category || 'N/A'},${snap.value},${snap.target},${snap.status},${snap.period}`,
+      );
     }
     const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -185,7 +228,12 @@ export default function KpiDashboardPage() {
               <Button variant="outline" size="sm" onClick={exportKpiData} className="h-9 text-xs font-bold">
                 <Download className="h-3.5 w-3.5 mr-1.5" /> Export
               </Button>
-              <Button variant="outline" size="sm" onClick={() => router.push('/settings/kpi-definitions')} className="h-9 text-xs font-bold">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push('/settings/kpi-definitions')}
+                className="h-9 text-xs font-bold"
+              >
                 Manage KPIs
               </Button>
             </>
@@ -198,16 +246,26 @@ export default function KpiDashboardPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="h-4 w-4 text-rose-600" />
-              <span className="text-xs font-black uppercase tracking-wider text-rose-700">KPI Alerts ({alerts.length})</span>
+              <span className="text-xs font-black uppercase tracking-wider text-rose-700">
+                KPI Alerts ({alerts.length})
+              </span>
             </div>
             <div className="space-y-1.5">
-              {alerts.slice(0, 5).map(alert => (
-                <div key={alert.id} className="flex items-center justify-between text-xs bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2">
+              {alerts.slice(0, 5).map((alert) => (
+                <div
+                  key={alert.id}
+                  className="flex items-center justify-between text-xs bg-white/60 dark:bg-slate-800/60 rounded-lg px-3 py-2"
+                >
                   <div>
                     <span className="font-bold">{alert.kpiName}:</span>{' '}
                     <span className="text-muted-foreground">{alert.message}</span>
                   </div>
-                  <Button variant="ghost" size="sm" className="h-6 text-[9px] font-black" onClick={() => acknowledgeAlert(alert.id)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 text-[9px] font-black"
+                    onClick={() => acknowledgeAlert(alert.id)}
+                  >
                     Dismiss
                   </Button>
                 </div>
@@ -219,8 +277,12 @@ export default function KpiDashboardPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="overview"><BarChart className="h-3.5 w-3.5 mr-1.5" /> Overview</TabsTrigger>
-          <TabsTrigger value="trends"><TrendingUp className="h-3.5 w-3.5 mr-1.5" /> Trends</TabsTrigger>
+          <TabsTrigger value="overview">
+            <BarChart className="h-3.5 w-3.5 mr-1.5" /> Overview
+          </TabsTrigger>
+          <TabsTrigger value="trends">
+            <TrendingUp className="h-3.5 w-3.5 mr-1.5" /> Trends
+          </TabsTrigger>
           <TabsTrigger value="heatmap">Unit Heatmap</TabsTrigger>
         </TabsList>
 
@@ -230,10 +292,12 @@ export default function KpiDashboardPage() {
               <h3 className="text-sm font-black uppercase tracking-tight mb-3 flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                 {KPI_CATEGORIES[category as keyof typeof KPI_CATEGORIES] || category}
-                <Badge variant="outline" className="text-[9px] font-black ml-1">{kpis.length}</Badge>
+                <Badge variant="outline" className="text-[9px] font-black ml-1">
+                  {kpis.length}
+                </Badge>
               </h3>
               <KpiScorecardGrid>
-                {kpis.map(snap => (
+                {kpis.map((snap) => (
                   <KpiScorecard
                     key={snap.id}
                     name={snap.kpiName}
@@ -241,7 +305,7 @@ export default function KpiDashboardPage() {
                     target={snap.target}
                     status={snap.status}
                     trend={snap.trend}
-                    description={definitions?.find(d => d.id === snap.kpiId)?.description}
+                    description={definitions?.find((d) => d.id === snap.kpiId)?.description}
                   />
                 ))}
               </KpiScorecardGrid>
@@ -258,11 +322,11 @@ export default function KpiDashboardPage() {
 
         <TabsContent value="trends" className="space-y-4 mt-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {latestSnapshots.slice(0, 8).map(snap => (
+            {latestSnapshots.slice(0, 8).map((snap) => (
               <KpiTrendChart
                 key={snap.id}
                 title={snap.kpiName}
-                description={definitions?.find(d => d.id === snap.kpiId)?.description}
+                description={definitions?.find((d) => d.id === snap.kpiId)?.description}
                 data={snapshotsByKpi.get(snap.kpiId) || []}
                 target={snap.target}
                 height={250}
@@ -275,7 +339,7 @@ export default function KpiDashboardPage() {
           {units && definitions && (
             <KpiHeatmap
               units={units}
-              definitions={definitions.filter(d => d.isActive)}
+              definitions={definitions.filter((d) => d.isActive)}
               snapshots={snapshots}
               selectedYear={selectedYear}
             />

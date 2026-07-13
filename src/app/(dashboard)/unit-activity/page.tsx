@@ -3,26 +3,41 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
+import {
+  collection,
+  doc,
+  setDoc,
   getDoc,
   deleteDoc,
-  getDocs, 
-  query, 
-  where, 
-  orderBy, 
-  serverTimestamp 
+  getDocs,
+  query,
+  where,
+  orderBy,
+  serverTimestamp,
 } from '@/firebase/firestore-wrapper';
-import type { Campus, Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog, ActivitySession, ActivityEvaluation } from '@/lib/types';
+import type {
+  Campus,
+  Unit,
+  AttendanceActivity,
+  DeviceBinding,
+  ActivityAttendanceLog,
+  ActivitySession,
+  ActivityEvaluation,
+} from '@/lib/types';
 import { verifyPayloadSignature, resolveActiveSession, parseSessionTime } from '@/lib/unit-activity-crypto';
 import { useActivityAutoTransition } from '@/hooks/use-activity-auto-transition';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -30,18 +45,18 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { 
-  Calendar, 
-  Plus, 
-  Camera, 
-  Users, 
-  Search, 
-  FileSpreadsheet, 
-  Trash2, 
-  CheckCircle2, 
-  AlertTriangle, 
-  XCircle, 
-  Clock, 
+import {
+  Calendar,
+  Plus,
+  Camera,
+  Users,
+  Search,
+  FileSpreadsheet,
+  Trash2,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  Clock,
   Loader2,
   Smartphone,
   ShieldAlert,
@@ -59,7 +74,7 @@ import {
   X,
   FileText,
   Printer,
-  ClipboardCopy
+  ClipboardCopy,
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
@@ -76,10 +91,10 @@ export default function UnitActivityPage() {
   const [activeTab, setActiveTab] = useState('activities');
 
   // DB queries
-  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
 
   // Activities queries - Sort in memory to bypass composite index constraints for non-admin filters
@@ -96,8 +111,16 @@ export default function UnitActivityPage() {
   const sortedActivities = useMemo(() => {
     if (!activities) return [];
     return [...activities].sort((a, b) => {
-      const timeA = a.startDateTime?.toDate ? a.startDateTime.toDate().getTime() : (a.startDateTime?.seconds ? a.startDateTime.seconds * 1000 : new Date(a.startDateTime).getTime());
-      const timeB = b.startDateTime?.toDate ? b.startDateTime.toDate().getTime() : (b.startDateTime?.seconds ? b.startDateTime.seconds * 1000 : new Date(b.startDateTime).getTime());
+      const timeA = a.startDateTime?.toDate
+        ? a.startDateTime.toDate().getTime()
+        : a.startDateTime?.seconds
+          ? a.startDateTime.seconds * 1000
+          : new Date(a.startDateTime).getTime();
+      const timeB = b.startDateTime?.toDate
+        ? b.startDateTime.toDate().getTime()
+        : b.startDateTime?.seconds
+          ? b.startDateTime.seconds * 1000
+          : new Date(b.startDateTime).getTime();
       return timeB - timeA;
     });
   }, [activities]);
@@ -148,7 +171,16 @@ export default function UnitActivityPage() {
   const [wizardStep, setWizardStep] = useState(1);
   const [evalRequirePin, setEvalRequirePin] = useState(false);
   const [evalPinCode, setEvalPinCode] = useState('');
-  const [evalFeedbackFocus, setEvalFeedbackFocus] = useState<string[]>(['perfQuality', 'perfTimeliness', 'perfStaff', 'venue', 'facility', 'food', 'materials', 'overall']);
+  const [evalFeedbackFocus, setEvalFeedbackFocus] = useState<string[]>([
+    'perfQuality',
+    'perfTimeliness',
+    'perfStaff',
+    'venue',
+    'facility',
+    'food',
+    'materials',
+    'overall',
+  ]);
   const [evalFormMode, setEvalFormMode] = useState<'open' | 'strict'>('open');
   const [isSavingStrategy, setIsSavingStrategy] = useState(false);
   const [selectedEvaluation, setSelectedEvaluation] = useState<ActivityEvaluation | null>(null);
@@ -158,7 +190,18 @@ export default function UnitActivityPage() {
     setSelectedEvalActivity(act);
     setEvalRequirePin(act.evaluationStrategy?.requirePin ?? false);
     setEvalPinCode(act.evaluationStrategy?.pinCode ?? Math.floor(1000 + Math.random() * 9000).toString());
-    setEvalFeedbackFocus(act.evaluationStrategy?.feedbackFocus ?? ['perfQuality', 'perfTimeliness', 'perfStaff', 'venue', 'facility', 'food', 'materials', 'overall']);
+    setEvalFeedbackFocus(
+      act.evaluationStrategy?.feedbackFocus ?? [
+        'perfQuality',
+        'perfTimeliness',
+        'perfStaff',
+        'venue',
+        'facility',
+        'food',
+        'materials',
+        'overall',
+      ],
+    );
     setEvalFormMode(act.evaluationStrategy?.formMode ?? 'open');
     setWizardStep(1);
     setIsEvalWizardOpen(true);
@@ -172,18 +215,18 @@ export default function UnitActivityPage() {
         requirePin: evalRequirePin,
         pinCode: evalPinCode.trim() || '1234',
         feedbackFocus: evalFeedbackFocus,
-        formMode: evalFormMode
+        formMode: evalFormMode,
       };
 
       const docRef = doc(firestore, 'unitActivities', selectedEvalActivity.id);
       await setDoc(docRef, {
         ...selectedEvalActivity,
-        evaluationStrategy: updatedStrategy
+        evaluationStrategy: updatedStrategy,
       });
 
       toast({
         title: 'Strategy Saved',
-        description: 'Activity evaluation strategy has been updated successfully.'
+        description: 'Activity evaluation strategy has been updated successfully.',
       });
       setWizardStep(3);
     } catch (e) {
@@ -191,7 +234,7 @@ export default function UnitActivityPage() {
       toast({
         title: 'Error',
         description: 'Failed to save evaluation strategy.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     } finally {
       setIsSavingStrategy(false);
@@ -210,22 +253,24 @@ export default function UnitActivityPage() {
         sessionType: 'WHOLE_DAY',
         requiresLogout: false,
         startTime: '08:00',
-        endTime: '17:00'
-      }
+        endTime: '17:00',
+      },
     ]);
   };
 
   const handleRemoveSession = (id: string) => {
-    setNewActivitySessions(newActivitySessions.filter(s => s.id !== id));
+    setNewActivitySessions(newActivitySessions.filter((s) => s.id !== id));
   };
 
   const handleUpdateSession = (id: string, field: keyof ActivitySession, value: any) => {
-    setNewActivitySessions(newActivitySessions.map(s => {
-      if (s.id === id) {
-        return { ...s, [field]: value };
-      }
-      return s;
-    }));
+    setNewActivitySessions(
+      newActivitySessions.map((s) => {
+        if (s.id === id) {
+          return { ...s, [field]: value };
+        }
+        return s;
+      }),
+    );
   };
 
   const handleAddEditSession = () => {
@@ -239,35 +284,37 @@ export default function UnitActivityPage() {
         sessionType: 'WHOLE_DAY',
         requiresLogout: false,
         startTime: '08:00',
-        endTime: '17:00'
-      }
+        endTime: '17:00',
+      },
     ]);
   };
 
   const handleRemoveEditSession = (id: string) => {
-    setEditActivitySessions(editActivitySessions.filter(s => s.id !== id));
+    setEditActivitySessions(editActivitySessions.filter((s) => s.id !== id));
   };
 
   const handleUpdateEditSession = (id: string, field: keyof ActivitySession, value: any) => {
-    setEditActivitySessions(editActivitySessions.map(s => {
-      if (s.id === id) {
-        return { ...s, [field]: value };
-      }
-      return s;
-    }));
+    setEditActivitySessions(
+      editActivitySessions.map((s) => {
+        if (s.id === id) {
+          return { ...s, [field]: value };
+        }
+        return s;
+      }),
+    );
   };
 
   const getSessionsRange = (sessList: ActivitySession[]) => {
     if (sessList.length === 0) {
       return { start: new Date(), end: new Date() };
     }
-    const times = sessList.map(s => {
+    const times = sessList.map((s) => {
       const start = new Date(`${s.date}T${s.startTime}:00`).getTime();
       const end = new Date(`${s.date}T${s.endTime}:00`).getTime();
       return { start, end };
     });
-    const minStart = Math.min(...times.map(t => t.start));
-    const maxEnd = Math.max(...times.map(t => t.end));
+    const minStart = Math.min(...times.map((t) => t.start));
+    const maxEnd = Math.max(...times.map((t) => t.end));
     return { start: new Date(minStart), end: new Date(maxEnd) };
   };
 
@@ -279,7 +326,11 @@ export default function UnitActivityPage() {
       return;
     }
     if (newActivitySessions.length === 0) {
-      toast({ title: 'Validation Error', description: 'Please add at least one session to this activity.', variant: 'destructive' });
+      toast({
+        title: 'Validation Error',
+        description: 'Please add at least one session to this activity.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -304,7 +355,7 @@ export default function UnitActivityPage() {
         createdAt: new Date(),
         createdBy: userProfile.id,
         sessions: newActivitySessions,
-        documents: newActivityDocs
+        documents: newActivityDocs,
       };
 
       await setDoc(docRef, newAct);
@@ -327,14 +378,18 @@ export default function UnitActivityPage() {
   const openEditModal = (act: AttendanceActivity) => {
     setEditingActivity(act);
     setEditName(act.name);
-    
+
     // Parse times for datetime-local input (format: yyyy-MM-ddTHH:mm)
-    const startVal = act.startDateTime?.toDate 
-      ? act.startDateTime.toDate() 
-      : (act.startDateTime?.seconds ? new Date(act.startDateTime.seconds * 1000) : new Date(act.startDateTime));
-    const endVal = act.endDateTime?.toDate 
-      ? act.endDateTime.toDate() 
-      : (act.endDateTime?.seconds ? new Date(act.endDateTime.seconds * 1000) : new Date(act.endDateTime));
+    const startVal = act.startDateTime?.toDate
+      ? act.startDateTime.toDate()
+      : act.startDateTime?.seconds
+        ? new Date(act.startDateTime.seconds * 1000)
+        : new Date(act.startDateTime);
+    const endVal = act.endDateTime?.toDate
+      ? act.endDateTime.toDate()
+      : act.endDateTime?.seconds
+        ? new Date(act.endDateTime.seconds * 1000)
+        : new Date(act.endDateTime);
 
     setEditStart(format(startVal, "yyyy-MM-dd'T'HH:mm"));
     setEditEnd(format(endVal, "yyyy-MM-dd'T'HH:mm"));
@@ -344,15 +399,17 @@ export default function UnitActivityPage() {
     if (act.sessions && act.sessions.length > 0) {
       setEditActivitySessions(act.sessions);
     } else {
-      setEditActivitySessions([{
-        id: 'default',
-        date: format(startVal, 'yyyy-MM-dd'),
-        label: 'Default Session',
-        sessionType: 'WHOLE_DAY',
-        requiresLogout: act.requiresLogout === true,
-        startTime: format(startVal, 'HH:mm'),
-        endTime: format(endVal, 'HH:mm')
-      }]);
+      setEditActivitySessions([
+        {
+          id: 'default',
+          date: format(startVal, 'yyyy-MM-dd'),
+          label: 'Default Session',
+          sessionType: 'WHOLE_DAY',
+          requiresLogout: act.requiresLogout === true,
+          startTime: format(startVal, 'HH:mm'),
+          endTime: format(endVal, 'HH:mm'),
+        },
+      ]);
     }
 
     if (act.documents) {
@@ -372,7 +429,11 @@ export default function UnitActivityPage() {
     }
 
     if (editActivitySessions.length === 0) {
-      toast({ title: 'Validation Error', description: 'Please add at least one session to this activity.', variant: 'destructive' });
+      toast({
+        title: 'Validation Error',
+        description: 'Please add at least one session to this activity.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -383,7 +444,7 @@ export default function UnitActivityPage() {
     setIsSavingEdit(true);
     try {
       const docRef = doc(firestore, 'unitActivities', editingActivity.id);
-      
+
       const updatedActivity: AttendanceActivity = {
         ...editingActivity,
         name: editName.trim(),
@@ -392,7 +453,7 @@ export default function UnitActivityPage() {
         lateThresholdMinutes: Number(editThreshold),
         requiresLogout: editRequiresLogout,
         sessions: editActivitySessions,
-        documents: editActivityDocs
+        documents: editActivityDocs,
       };
 
       await setDoc(docRef, updatedActivity);
@@ -407,13 +468,19 @@ export default function UnitActivityPage() {
   };
 
   const handleEndActivity = async (act: AttendanceActivity) => {
-    if (!firestore || !window.confirm(`Are you sure you want to end "${act.name}"? This will disable scanning and mark it as COMPLETED.`)) return;
+    if (
+      !firestore ||
+      !window.confirm(
+        `Are you sure you want to end "${act.name}"? This will disable scanning and mark it as COMPLETED.`,
+      )
+    )
+      return;
     try {
       const docRef = doc(firestore, 'unitActivities', act.id);
-      
+
       const updatedActivity: AttendanceActivity = {
         ...act,
-        status: 'COMPLETED'
+        status: 'COMPLETED',
       };
 
       await setDoc(docRef, updatedActivity);
@@ -432,8 +499,8 @@ export default function UnitActivityPage() {
       const logsCol = collection(firestore, 'unitActivityAttendanceLogs');
       const q = query(logsCol, where('activityId', '==', activityId));
       const snapshot = await getDocs(q);
-      const deletePromises = snapshot.docs.map(docSnap => 
-        deleteDoc(doc(firestore, 'unitActivityAttendanceLogs', docSnap.id))
+      const deletePromises = snapshot.docs.map((docSnap) =>
+        deleteDoc(doc(firestore, 'unitActivityAttendanceLogs', docSnap.id)),
       );
       await Promise.all(deletePromises);
 
@@ -445,16 +512,16 @@ export default function UnitActivityPage() {
         setSelectedActivityId('all');
       }
 
-      toast({ 
-        title: 'Activity Deleted', 
-        description: 'Activity and its attendance logs have been permanently deleted.' 
+      toast({
+        title: 'Activity Deleted',
+        description: 'Activity and its attendance logs have been permanently deleted.',
       });
     } catch (err) {
       console.error(err);
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to delete activity.', 
-        variant: 'destructive' 
+      toast({
+        title: 'Error',
+        description: 'Failed to delete activity.',
+        variant: 'destructive',
       });
     } finally {
       setConfirmDeleteActivityId(null);
@@ -471,7 +538,7 @@ export default function UnitActivityPage() {
   }, [selectedActivityId]);
 
   const activeActivity = useMemo(() => {
-    return sortedActivities?.find(a => a.id === selectedActivityId) || null;
+    return sortedActivities?.find((a) => a.id === selectedActivityId) || null;
   }, [sortedActivities, selectedActivityId]);
 
   const logsQuery = useMemoFirebase(() => {
@@ -488,11 +555,19 @@ export default function UnitActivityPage() {
     if (!attendanceLogs) return [];
     let logs = [...attendanceLogs];
     if (selectedSessionIdFilter !== 'all') {
-      logs = logs.filter(l => l.sessionId === selectedSessionIdFilter);
+      logs = logs.filter((l) => l.sessionId === selectedSessionIdFilter);
     }
     return logs.sort((a, b) => {
-      const timeA = a.scannedAt?.toDate ? a.scannedAt.toDate().getTime() : (a.scannedAt?.seconds ? a.scannedAt.seconds * 1000 : new Date(a.scannedAt).getTime());
-      const timeB = b.scannedAt?.toDate ? b.scannedAt.toDate().getTime() : (b.scannedAt?.seconds ? b.scannedAt.seconds * 1000 : new Date(b.scannedAt).getTime());
+      const timeA = a.scannedAt?.toDate
+        ? a.scannedAt.toDate().getTime()
+        : a.scannedAt?.seconds
+          ? a.scannedAt.seconds * 1000
+          : new Date(a.scannedAt).getTime();
+      const timeB = b.scannedAt?.toDate
+        ? b.scannedAt.toDate().getTime()
+        : b.scannedAt?.seconds
+          ? b.scannedAt.seconds * 1000
+          : new Date(b.scannedAt).getTime();
       return timeB - timeA;
     });
   }, [attendanceLogs, selectedSessionIdFilter]);
@@ -507,15 +582,14 @@ export default function UnitActivityPage() {
   const filteredEvaluations = useMemo(() => {
     if (!evaluations) return [];
     if (selectedActivityId === 'all') return evaluations;
-    return evaluations.filter(e => e.activityId === selectedActivityId);
+    return evaluations.filter((e) => e.activityId === selectedActivityId);
   }, [evaluations, selectedActivityId]);
 
   const punctualityData = useMemo(() => {
     const counts = { ON_TIME: 0, LATE: 0, OUTSIDE_WINDOW: 0 };
-    const logsToCount = selectedActivityId === 'all' 
-      ? sortedLogs 
-      : sortedLogs.filter(l => l.activityId === selectedActivityId);
-    logsToCount.forEach(l => {
+    const logsToCount =
+      selectedActivityId === 'all' ? sortedLogs : sortedLogs.filter((l) => l.activityId === selectedActivityId);
+    logsToCount.forEach((l) => {
       if (l.status in counts) {
         counts[l.status as keyof typeof counts]++;
       }
@@ -524,57 +598,108 @@ export default function UnitActivityPage() {
       { name: 'On Time', value: counts.ON_TIME, color: '#10b981' },
       { name: 'Late', value: counts.LATE, color: '#f59e0b' },
       { name: 'Outside Window', value: counts.OUTSIDE_WINDOW, color: '#ef4444' },
-    ].filter(d => d.value > 0);
+    ].filter((d) => d.value > 0);
   }, [sortedLogs, selectedActivityId]);
 
   const genderData = useMemo(() => {
     const counts: Record<string, number> = {};
-    const logsToCount = selectedActivityId === 'all' 
-      ? sortedLogs 
-      : sortedLogs.filter(l => l.activityId === selectedActivityId);
-    logsToCount.forEach(l => {
+    const logsToCount =
+      selectedActivityId === 'all' ? sortedLogs : sortedLogs.filter((l) => l.activityId === selectedActivityId);
+    logsToCount.forEach((l) => {
       const sex = l.sex || 'Did not specify';
       counts[sex] = (counts[sex] || 0) + 1;
     });
     return Object.entries(counts || {}).map(([name, value]) => ({
       name,
       value,
-      color: name === 'Male' ? '#3b82f6' : name === 'Female' ? '#ec4899' : '#8b5cf6'
+      color: name === 'Male' ? '#3b82f6' : name === 'Female' ? '#ec4899' : '#8b5cf6',
     }));
   }, [sortedLogs, selectedActivityId]);
 
   const averageRatingsObj = useMemo(() => {
     if (filteredEvaluations.length === 0) {
-      return { 
-        objectives: 0, speaker: 0, topic: 0, 
-        perfQuality: 0, perfTimeliness: 0, perfStaff: 0, 
-        venue: 0, facility: 0, food: 0, materials: 0, overall: 0 
+      return {
+        objectives: 0,
+        speaker: 0,
+        topic: 0,
+        perfQuality: 0,
+        perfTimeliness: 0,
+        perfStaff: 0,
+        venue: 0,
+        facility: 0,
+        food: 0,
+        materials: 0,
+        overall: 0,
       };
     }
-    let sumObj = 0, countObj = 0;
-    let sumSpk = 0, countSpk = 0;
-    let sumTop = 0, countTop = 0;
-    let sumPQ = 0, countPQ = 0;
-    let sumPT = 0, countPT = 0;
-    let sumPS = 0, countPS = 0;
-    let sumVen = 0, countVen = 0;
-    let sumFac = 0, countFac = 0;
-    let sumFood = 0, countFood = 0;
-    let sumMat = 0, countMat = 0;
-    let sumOvr = 0, countOvr = 0;
+    let sumObj = 0,
+      countObj = 0;
+    let sumSpk = 0,
+      countSpk = 0;
+    let sumTop = 0,
+      countTop = 0;
+    let sumPQ = 0,
+      countPQ = 0;
+    let sumPT = 0,
+      countPT = 0;
+    let sumPS = 0,
+      countPS = 0;
+    let sumVen = 0,
+      countVen = 0;
+    let sumFac = 0,
+      countFac = 0;
+    let sumFood = 0,
+      countFood = 0;
+    let sumMat = 0,
+      countMat = 0;
+    let sumOvr = 0,
+      countOvr = 0;
 
-    filteredEvaluations.forEach(e => {
-      if (e.ratingObjectives) { sumObj += e.ratingObjectives; countObj++; }
-      if (e.ratingSpeaker) { sumSpk += e.ratingSpeaker; countSpk++; }
-      if (e.ratingTopic) { sumTop += e.ratingTopic; countTop++; }
-      if (e.ratingPerfQuality) { sumPQ += e.ratingPerfQuality; countPQ++; }
-      if (e.ratingPerfTimeliness) { sumPT += e.ratingPerfTimeliness; countPT++; }
-      if (e.ratingPerfStaff) { sumPS += e.ratingPerfStaff; countPS++; }
-      if (e.ratingVenue) { sumVen += e.ratingVenue; countVen++; }
-      if (e.ratingFacility) { sumFac += e.ratingFacility; countFac++; }
-      if (e.ratingFood) { sumFood += e.ratingFood; countFood++; }
-      if (e.ratingMaterials) { sumMat += e.ratingMaterials; countMat++; }
-      if (e.ratingOverall) { sumOvr += e.ratingOverall; countOvr++; }
+    filteredEvaluations.forEach((e) => {
+      if (e.ratingObjectives) {
+        sumObj += e.ratingObjectives;
+        countObj++;
+      }
+      if (e.ratingSpeaker) {
+        sumSpk += e.ratingSpeaker;
+        countSpk++;
+      }
+      if (e.ratingTopic) {
+        sumTop += e.ratingTopic;
+        countTop++;
+      }
+      if (e.ratingPerfQuality) {
+        sumPQ += e.ratingPerfQuality;
+        countPQ++;
+      }
+      if (e.ratingPerfTimeliness) {
+        sumPT += e.ratingPerfTimeliness;
+        countPT++;
+      }
+      if (e.ratingPerfStaff) {
+        sumPS += e.ratingPerfStaff;
+        countPS++;
+      }
+      if (e.ratingVenue) {
+        sumVen += e.ratingVenue;
+        countVen++;
+      }
+      if (e.ratingFacility) {
+        sumFac += e.ratingFacility;
+        countFac++;
+      }
+      if (e.ratingFood) {
+        sumFood += e.ratingFood;
+        countFood++;
+      }
+      if (e.ratingMaterials) {
+        sumMat += e.ratingMaterials;
+        countMat++;
+      }
+      if (e.ratingOverall) {
+        sumOvr += e.ratingOverall;
+        countOvr++;
+      }
     });
 
     return {
@@ -593,24 +718,53 @@ export default function UnitActivityPage() {
   }, [filteredEvaluations]);
 
   const focusList = useMemo(() => {
-    return activeActivity?.evaluationStrategy?.feedbackFocus || ['perfQuality', 'perfTimeliness', 'perfStaff', 'venue', 'facility', 'food', 'materials', 'overall'];
+    return (
+      activeActivity?.evaluationStrategy?.feedbackFocus || [
+        'perfQuality',
+        'perfTimeliness',
+        'perfStaff',
+        'venue',
+        'facility',
+        'food',
+        'materials',
+        'overall',
+      ]
+    );
   }, [activeActivity]);
 
   const averageRatings = useMemo(() => {
     if (filteredEvaluations.length === 0) return [];
-    
-    const { objectives, speaker, topic, perfQuality, perfTimeliness, perfStaff, venue, facility, food, materials, overall } = averageRatingsObj;
+
+    const {
+      objectives,
+      speaker,
+      topic,
+      perfQuality,
+      perfTimeliness,
+      perfStaff,
+      venue,
+      facility,
+      food,
+      materials,
+      overall,
+    } = averageRatingsObj;
     const result = [];
-    if (focusList.includes('perfQuality') && perfQuality > 0) result.push({ category: 'Quality of Service', rating: perfQuality });
-    if (focusList.includes('perfTimeliness') && perfTimeliness > 0) result.push({ category: 'Timeliness of Service', rating: perfTimeliness });
-    if (focusList.includes('perfStaff') && perfStaff > 0) result.push({ category: 'Staff Behavior', rating: perfStaff });
+    if (focusList.includes('perfQuality') && perfQuality > 0)
+      result.push({ category: 'Quality of Service', rating: perfQuality });
+    if (focusList.includes('perfTimeliness') && perfTimeliness > 0)
+      result.push({ category: 'Timeliness of Service', rating: perfTimeliness });
+    if (focusList.includes('perfStaff') && perfStaff > 0)
+      result.push({ category: 'Staff Behavior', rating: perfStaff });
     if (focusList.includes('venue') && venue > 0) result.push({ category: 'Venue Quality', rating: venue });
     if (focusList.includes('facility') && facility > 0) result.push({ category: 'Facility Quality', rating: facility });
     if (focusList.includes('food') && food > 0) result.push({ category: 'Food Quality', rating: food });
-    if (focusList.includes('materials') && materials > 0) result.push({ category: 'Material Quality', rating: materials });
-    if (focusList.includes('overall') && overall > 0) result.push({ category: 'Overall Satisfaction', rating: overall });
+    if (focusList.includes('materials') && materials > 0)
+      result.push({ category: 'Material Quality', rating: materials });
+    if (focusList.includes('overall') && overall > 0)
+      result.push({ category: 'Overall Satisfaction', rating: overall });
     // Legacy support
-    if (focusList.includes('objectives') && objectives > 0) result.push({ category: 'Objectives Met', rating: objectives });
+    if (focusList.includes('objectives') && objectives > 0)
+      result.push({ category: 'Objectives Met', rating: objectives });
     if (focusList.includes('speaker') && speaker > 0) result.push({ category: 'Speaker Delivery', rating: speaker });
     if (focusList.includes('speaker') && topic > 0) result.push({ category: 'Topic Relevance', rating: topic });
 
@@ -642,7 +796,7 @@ export default function UnitActivityPage() {
     }
 
     const script = document.createElement('script');
-    script.src = "https://unpkg.com/html5-qrcode";
+    script.src = 'https://unpkg.com/html5-qrcode';
     script.async = true;
     script.onload = () => setIsScannerLibLoaded(true);
     document.body.appendChild(script);
@@ -659,9 +813,9 @@ export default function UnitActivityPage() {
     if (!isScannerLibLoaded || !(window as any).Html5Qrcode) return;
     if (selectedActivityId === 'all') {
       toast({
-        title: "Scanning Locked",
-        description: "Please select a specific active activity to scan against.",
-        variant: "destructive"
+        title: 'Scanning Locked',
+        description: 'Please select a specific active activity to scan against.',
+        variant: 'destructive',
       });
       return;
     }
@@ -671,33 +825,39 @@ export default function UnitActivityPage() {
 
     setTimeout(() => {
       try {
-        const scanner = new (window as any).Html5Qrcode("reader-container");
+        const scanner = new (window as any).Html5Qrcode('reader-container');
 
-        scanner.start(
-          { facingMode: "environment" },
-          {
-            fps: 24,
-            qrbox: (width: number, height: number) => {
-              const size = Math.min(width, height) * 0.75;
-              return { width: size, height: size };
+        scanner
+          .start(
+            { facingMode: 'environment' },
+            {
+              fps: 24,
+              qrbox: (width: number, height: number) => {
+                const size = Math.min(width, height) * 0.75;
+                return { width: size, height: size };
+              },
+              aspectRatio: 1.0,
             },
-            aspectRatio: 1.0
-          },
-          (decodedText: string) => {
-            handleScanSuccess(decodedText);
-          },
-          (errorMessage: string) => {
-            // standard polling camera logs can be ignored
-          }
-        ).then(() => {
-          html5QrCodeScannerRef.current = scanner;
-        }).catch((err: any) => {
-          console.error("Camera Start Error:", err);
-          setScanResult({ status: 'error', message: `Camera access failed: ${err.message || err}. Please ensure camera permission is granted and you are using a secure connection (HTTPS).` });
-          setScannerActive(false);
-        });
+            (decodedText: string) => {
+              handleScanSuccess(decodedText);
+            },
+            (errorMessage: string) => {
+              // standard polling camera logs can be ignored
+            },
+          )
+          .then(() => {
+            html5QrCodeScannerRef.current = scanner;
+          })
+          .catch((err: any) => {
+            console.error('Camera Start Error:', err);
+            setScanResult({
+              status: 'error',
+              message: `Camera access failed: ${err.message || err}. Please ensure camera permission is granted and you are using a secure connection (HTTPS).`,
+            });
+            setScannerActive(false);
+          });
       } catch (err: any) {
-        console.error("Camera Init Error:", err);
+        console.error('Camera Init Error:', err);
         setScanResult({ status: 'error', message: `Camera access failed: ${err.message || err}` });
         setScannerActive(false);
       }
@@ -710,10 +870,10 @@ export default function UnitActivityPage() {
       html5QrCodeScannerRef.current = null;
       try {
         scanner.stop().catch((e: any) => {
-          console.warn("Scanner stop promise catch:", e);
+          console.warn('Scanner stop promise catch:', e);
         });
       } catch (e) {
-        console.error("Scanner stop error:", e);
+        console.error('Scanner stop error:', e);
       }
     }
     setScannerActive(false);
@@ -799,7 +959,10 @@ export default function UnitActivityPage() {
       }
 
       if (Date.now() - timestamp > 70000) {
-        setScanResult({ status: 'error', message: 'Rejected: Expired QR token. Use the rotating code from the active phone app.' });
+        setScanResult({
+          status: 'error',
+          message: 'Rejected: Expired QR token. Use the rotating code from the active phone app.',
+        });
         return;
       }
 
@@ -813,13 +976,19 @@ export default function UnitActivityPage() {
       const bindingSnap = await getDoc(bindingRef);
 
       if (!bindingSnap.exists()) {
-        setScanResult({ status: 'error', message: 'Rejected: Untracked Device Fingerprint. Binding registration required.' });
+        setScanResult({
+          status: 'error',
+          message: 'Rejected: Untracked Device Fingerprint. Binding registration required.',
+        });
         return;
       }
 
       const officialBinding = bindingSnap.data() as DeviceBinding;
       if (officialBinding.userId !== userId) {
-        setScanResult({ status: 'error', message: 'Security Rejection: Device Lock active. This phone is locked to another user.' });
+        setScanResult({
+          status: 'error',
+          message: 'Security Rejection: Device Lock active. This phone is locked to another user.',
+        });
         return;
       }
 
@@ -838,7 +1007,7 @@ export default function UnitActivityPage() {
       if (activeActivity.lateThresholdMinutes === 0) {
         logStatus = scanTime <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
       } else {
-        const lateCutoff = actStart + (activeActivity.lateThresholdMinutes * 60000);
+        const lateCutoff = actStart + activeActivity.lateThresholdMinutes * 60000;
         if (scanTime < actStart || scanTime <= lateCutoff) {
           logStatus = 'ON_TIME';
         } else if (scanTime <= actEnd) {
@@ -860,19 +1029,19 @@ export default function UnitActivityPage() {
           setScanResult({
             status: 'success',
             message: `Logout recorded for ${userName} (${session.label}).`,
-            details: { name: userName, office: unitName, time: format(logoutTime, 'hh:mm a'), status: 'LOGOUT' }
+            details: { name: userName, office: unitName, time: format(logoutTime, 'hh:mm a'), status: 'LOGOUT' },
           });
         } else if (activeActivity.requiresLogout && existingData.logoutAt) {
           setScanResult({
             status: 'warning',
             message: `${userName} has already logged in and out. Duplicate scan ignored.`,
-            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
+            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' },
           });
         } else {
           setScanResult({
             status: 'warning',
             message: `${userName} has already signed in for ${session.label}. Duplicate scan ignored.`,
-            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' }
+            details: { name: userName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' },
           });
         }
         return;
@@ -891,26 +1060,26 @@ export default function UnitActivityPage() {
         contactNumber: finalContact,
         sex: finalSex,
         sessionId: session.id,
-        sessionLabel: session.label
+        sessionLabel: session.label,
       };
 
       await setDoc(logRef, newLog);
 
       setScanResult({
         status: logStatus === 'ON_TIME' ? 'success' : 'warning',
-        message: logStatus === 'ON_TIME'
-          ? `Login verified! Signed in on time (${session.label}).${ activeActivity.requiresLogout ? ' Scan again to logout.' : '' }`
-          : logStatus === 'LATE'
-          ? `Late login recorded (${session.label}). Threshold was ${activeActivity.lateThresholdMinutes} mins.`
-          : `Scan outside session window — recorded as OUTSIDE WINDOW.`,
+        message:
+          logStatus === 'ON_TIME'
+            ? `Login verified! Signed in on time (${session.label}).${activeActivity.requiresLogout ? ' Scan again to logout.' : ''}`
+            : logStatus === 'LATE'
+              ? `Late login recorded (${session.label}). Threshold was ${activeActivity.lateThresholdMinutes} mins.`
+              : `Scan outside session window — recorded as OUTSIDE WINDOW.`,
         details: {
           name: userName,
           office: unitName,
           time: format(new Date(), 'hh:mm a'),
-          status: logStatus === 'ON_TIME' ? 'LOGIN ON TIME' : logStatus === 'LATE' ? 'LOGIN LATE' : 'OUTSIDE WINDOW'
-        }
+          status: logStatus === 'ON_TIME' ? 'LOGIN ON TIME' : logStatus === 'LATE' ? 'LOGIN LATE' : 'OUTSIDE WINDOW',
+        },
       });
-
     } catch (err: any) {
       console.error(err);
       setScanResult({ status: 'error', message: `Internal Verification Error: ${err.message}` });
@@ -919,7 +1088,8 @@ export default function UnitActivityPage() {
 
   // --- 4. EXPORT & RESET BINDINGS ACTIONS ---
   const handleResetBinding = async (fingerprint: string, userName: string) => {
-    if (!firestore || !window.confirm(`Are you sure you want to reset the device binding lock for ${userName}?`)) return;
+    if (!firestore || !window.confirm(`Are you sure you want to reset the device binding lock for ${userName}?`))
+      return;
     try {
       const docRef = doc(firestore, 'attendanceDeviceBindings', fingerprint);
       await deleteDoc(docRef);
@@ -938,34 +1108,48 @@ export default function UnitActivityPage() {
 
     const activityName = activeActivity?.name || 'All-Sessions';
     const hasLogout = activeActivity?.requiresLogout === true;
-    const headers = ['Name', 'Unit/Office', 'Contact Number', 'Sex', 'Login Time', ...(hasLogout ? ['Logout Time'] : []), 'Attendance Status', 'Device Fingerprint'];
+    const headers = [
+      'Name',
+      'Unit/Office',
+      'Contact Number',
+      'Sex',
+      'Login Time',
+      ...(hasLogout ? ['Logout Time'] : []),
+      'Attendance Status',
+      'Device Fingerprint',
+    ];
     const csvContent = [
       headers,
-      ...sortedLogs.map(log => {
-        const loginStr = log.scannedAt?.toDate 
-          ? format(log.scannedAt.toDate(), 'MM/dd/yyyy hh:mm a') 
-          : 'N/A';
+      ...sortedLogs.map((log) => {
+        const loginStr = log.scannedAt?.toDate ? format(log.scannedAt.toDate(), 'MM/dd/yyyy hh:mm a') : 'N/A';
         const logoutStr = log.logoutAt?.toDate
           ? format(log.logoutAt.toDate(), 'MM/dd/yyyy hh:mm a')
-          : log.logoutAt ? format(new Date(log.logoutAt), 'MM/dd/yyyy hh:mm a') : 'Not logged out';
+          : log.logoutAt
+            ? format(new Date(log.logoutAt), 'MM/dd/yyyy hh:mm a')
+            : 'Not logged out';
         return [
-          log.userName, 
-          log.unitName, 
-          log.contactNumber || 'N/A', 
-          log.sex || 'Did not specify', 
+          log.userName,
+          log.unitName,
+          log.contactNumber || 'N/A',
+          log.sex || 'Did not specify',
           loginStr,
           ...(hasLogout ? [logoutStr] : []),
-          log.status, 
-          log.deviceFingerprint
+          log.status,
+          log.deviceFingerprint,
         ];
-      })
-    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+      }),
+    ]
+      .map((row) => row.map((cell) => `"${cell}"`).join(','))
+      .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `RSU_Attendance_${activityName.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.csv`);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute(
+      'download',
+      `RSU_Attendance_${activityName.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.csv`,
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -973,33 +1157,49 @@ export default function UnitActivityPage() {
 
   const handlePrintAttendanceSheet = () => {
     if (!activeActivity) {
-      toast({ title: 'Print Error', description: 'Please select a specific active activity to print its attendance sheet.', variant: 'destructive' });
+      toast({
+        title: 'Print Error',
+        description: 'Please select a specific active activity to print its attendance sheet.',
+        variant: 'destructive',
+      });
       return;
     }
 
     if (activeActivity.status !== 'COMPLETED') {
-      toast({ title: 'Print Locked', description: 'Printing is only allowed once the activity attendance session has ended (status is COMPLETED).', variant: 'destructive' });
+      toast({
+        title: 'Print Locked',
+        description: 'Printing is only allowed once the activity attendance session has ended (status is COMPLETED).',
+        variant: 'destructive',
+      });
       return;
     }
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
-      toast({ title: 'Pop-up Blocked', description: 'Please allow pop-ups to print the attendance sheet.', variant: 'destructive' });
+      toast({
+        title: 'Pop-up Blocked',
+        description: 'Please allow pop-ups to print the attendance sheet.',
+        variant: 'destructive',
+      });
       return;
     }
 
     const activityName = activeActivity.name;
-    const unitName = activeActivity.unitId === 'all' ? 'University Wide' : (units?.find(u => u.id === activeActivity.unitId)?.name || 'Office/Unit');
-    let startStr = activeActivity.startDateTime?.toDate 
+    const unitName =
+      activeActivity.unitId === 'all'
+        ? 'University Wide'
+        : units?.find((u) => u.id === activeActivity.unitId)?.name || 'Office/Unit';
+    let startStr = activeActivity.startDateTime?.toDate
       ? format(activeActivity.startDateTime.toDate(), 'MMMM dd, yyyy')
       : format(new Date(activeActivity.startDateTime), 'MMMM dd, yyyy');
-    let timeStr = activeActivity.startDateTime?.toDate && activeActivity.endDateTime?.toDate
-      ? `${format(activeActivity.startDateTime.toDate(), 'hh:mm a')} - ${format(activeActivity.endDateTime.toDate(), 'hh:mm a')}`
-      : 'N/A';
+    let timeStr =
+      activeActivity.startDateTime?.toDate && activeActivity.endDateTime?.toDate
+        ? `${format(activeActivity.startDateTime.toDate(), 'hh:mm a')} - ${format(activeActivity.endDateTime.toDate(), 'hh:mm a')}`
+        : 'N/A';
     let printSessionLabel = '';
 
     if (selectedSessionIdFilter !== 'all' && activeActivity.sessions) {
-      const activeSess = activeActivity.sessions.find(s => s.id === selectedSessionIdFilter);
+      const activeSess = activeActivity.sessions.find((s) => s.id === selectedSessionIdFilter);
       if (activeSess) {
         printSessionLabel = `(${activeSess.label})`;
         const sessDate = new Date(`${activeSess.date}T00:00:00`);
@@ -1008,7 +1208,9 @@ export default function UnitActivityPage() {
           const tStart = format(new Date(`2000-01-01T${activeSess.startTime}:00`), 'hh:mm a');
           const tEnd = format(new Date(`2000-01-01T${activeSess.endTime}:00`), 'hh:mm a');
           timeStr = `${tStart} - ${tEnd}`;
-        } catch (e) {}
+        } catch (e) {
+          // Ignore formatting error for invalid session times
+        }
       }
     }
 
@@ -1036,14 +1238,14 @@ export default function UnitActivityPage() {
         const overallIndex = pageIdx * ROWS_PER_PAGE + i + 1;
 
         if (log) {
-          const checkInTime = log.scannedAt?.toDate 
-            ? format(log.scannedAt.toDate(), 'hh:mm a') 
-            : 'N/A';
+          const checkInTime = log.scannedAt?.toDate ? format(log.scannedAt.toDate(), 'hh:mm a') : 'N/A';
 
           if (isLogoutMode) {
             const checkOutTime = log.logoutAt?.toDate
               ? format(log.logoutAt.toDate(), 'hh:mm a')
-              : log.logoutAt ? format(new Date(log.logoutAt), 'hh:mm a') : 'Not logged out';
+              : log.logoutAt
+                ? format(new Date(log.logoutAt), 'hh:mm a')
+                : 'Not logged out';
 
             tableRowsHtml += `
               <tr>
@@ -1087,7 +1289,8 @@ export default function UnitActivityPage() {
         }
       }
 
-      const tableHeaderHtml = isLogoutMode ? `
+      const tableHeaderHtml = isLogoutMode
+        ? `
         <thead>
           <tr>
             <th style="width: 6%;">No.</th>
@@ -1098,7 +1301,8 @@ export default function UnitActivityPage() {
             <th style="width: 15%;">Logout Time</th>
           </tr>
         </thead>
-      ` : `
+      `
+        : `
         <thead>
           <tr>
             <th style="width: 6%;">No.</th>
@@ -1292,10 +1496,9 @@ export default function UnitActivityPage() {
     if (!deviceBindings) return [];
     if (!bindingSearch.trim()) return deviceBindings;
     const q = bindingSearch.toLowerCase();
-    return deviceBindings.filter(b => 
-      b.userName.toLowerCase().includes(q) || 
-      b.unitName.toLowerCase().includes(q) || 
-      b.id.toLowerCase().includes(q)
+    return deviceBindings.filter(
+      (b) =>
+        b.userName.toLowerCase().includes(q) || b.unitName.toLowerCase().includes(q) || b.id.toLowerCase().includes(q),
     );
   }, [deviceBindings, bindingSearch]);
 
@@ -1320,14 +1523,16 @@ export default function UnitActivityPage() {
         {/* Global Activity Selector */}
         <div className="flex items-center gap-3">
           <span className="text-xs font-black uppercase text-emerald-100 tracking-wider">Active Activity:</span>
-          <select 
-            value={selectedActivityId} 
+          <select
+            value={selectedActivityId}
             onChange={(e) => setSelectedActivityId(e.target.value)}
             className="h-9 px-3 bg-white dark:bg-slate-900 font-extrabold text-xs text-slate-800 dark:text-slate-200 border-none shadow-md rounded-xl outline-none"
           >
             <option value="all">📁 All activities / logs</option>
-            {sortedActivities?.map(act => (
-              <option key={act.id} value={act.id}>📍 {act.name}</option>
+            {sortedActivities?.map((act) => (
+              <option key={act.id} value={act.id}>
+                📍 {act.name}
+              </option>
             ))}
           </select>
         </div>
@@ -1356,20 +1561,25 @@ export default function UnitActivityPage() {
         {/* ==================== SUB-TAB 1: SESSION MANAGER ==================== */}
         <TabsContent value="activities" className="space-y-6 animate-in fade-in duration-500">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
             {/* Create Activity Form */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-1">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-4">
-                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Setup New Activity Session</CardTitle>
-                <CardDescription className="text-[10px] text-slate-500">Configure cutoff time and threshold values.</CardDescription>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Setup New Activity Session
+                </CardTitle>
+                <CardDescription className="text-[10px] text-slate-500">
+                  Configure cutoff time and threshold values.
+                </CardDescription>
               </CardHeader>
 
               <form onSubmit={handleCreateActivity}>
                 <CardContent className="space-y-4 pt-6">
                   {/* Name */}
                   <div className="space-y-1">
-                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Activity Name</label>
-                    <Input 
+                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">
+                      Activity Name
+                    </label>
+                    <Input
                       placeholder="e.g. QMS Audit Briefing"
                       value={newActivityName}
                       onChange={(e) => setNewActivityName(e.target.value)}
@@ -1379,8 +1589,10 @@ export default function UnitActivityPage() {
 
                   {/* Threshold */}
                   <div className="space-y-1">
-                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Late Threshold (minutes)</label>
-                    <Input 
+                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">
+                      Late Threshold (minutes)
+                    </label>
+                    <Input
                       type="number"
                       min="0"
                       value={lateThreshold}
@@ -1391,7 +1603,9 @@ export default function UnitActivityPage() {
 
                   {/* Documents Section */}
                   <div className="space-y-2 pt-2 border-t border-slate-150">
-                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Document Links (Google Drive)</label>
+                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">
+                      Document Links (Google Drive)
+                    </label>
                     <div className="flex gap-2">
                       <Input
                         placeholder="Description"
@@ -1409,7 +1623,10 @@ export default function UnitActivityPage() {
                         type="button"
                         onClick={() => {
                           if (!docDesc.trim() || !docLink.trim()) return;
-                          setNewActivityDocs([...newActivityDocs, { description: docDesc.trim(), googleDriveLink: docLink.trim() }]);
+                          setNewActivityDocs([
+                            ...newActivityDocs,
+                            { description: docDesc.trim(), googleDriveLink: docLink.trim() },
+                          ]);
                           setDocDesc('');
                           setDocLink('');
                         }}
@@ -1421,7 +1638,10 @@ export default function UnitActivityPage() {
                     {newActivityDocs.length > 0 && (
                       <div className="p-2 border rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-1">
                         {newActivityDocs.map((doc, idx) => (
-                          <div key={idx} className="flex justify-between items-center text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                          <div
+                            key={idx}
+                            className="flex justify-between items-center text-[10px] font-bold text-slate-700 dark:text-slate-300"
+                          >
                             <span className="truncate max-w-[180px]">{doc.description}</span>
                             <Button
                               type="button"
@@ -1440,7 +1660,9 @@ export default function UnitActivityPage() {
                   {/* Sessions Config Section */}
                   <div className="space-y-3 pt-2 border-t border-slate-150">
                     <div className="flex justify-between items-center">
-                      <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Sessions ({newActivitySessions.length})</label>
+                      <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">
+                        Sessions ({newActivitySessions.length})
+                      </label>
                       <Button
                         type="button"
                         variant="outline"
@@ -1452,11 +1674,16 @@ export default function UnitActivityPage() {
                     </div>
 
                     {newActivitySessions.length === 0 ? (
-                      <p className="text-[9.5px] text-slate-400 italic">No sessions added yet. Please add at least one session.</p>
+                      <p className="text-[9.5px] text-slate-400 italic">
+                        No sessions added yet. Please add at least one session.
+                      </p>
                     ) : (
                       <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
                         {newActivitySessions.map((session, idx) => (
-                          <div key={session.id} className="p-3 border rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-2 relative">
+                          <div
+                            key={session.id}
+                            className="p-3 border rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-2 relative"
+                          >
                             <button
                               type="button"
                               onClick={() => handleRemoveSession(session.id)}
@@ -1533,8 +1760,8 @@ export default function UnitActivityPage() {
                 </CardContent>
 
                 <CardFooter className="pb-6">
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={isCreatingActivity}
                     className="w-full h-10 bg-[#1B6535] hover:bg-[#154e29] border-none text-white font-black uppercase tracking-wider text-[10px] rounded-xl flex items-center justify-center gap-2"
                   >
@@ -1548,8 +1775,12 @@ export default function UnitActivityPage() {
             {/* Activities Table List */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-2">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-4">
-                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Registered Activities</CardTitle>
-                <CardDescription className="text-[10px] text-slate-500">Scheduled attendance sessions for your unit.</CardDescription>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Registered Activities
+                </CardTitle>
+                <CardDescription className="text-[10px] text-slate-500">
+                  Scheduled attendance sessions for your unit.
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -1568,17 +1799,22 @@ export default function UnitActivityPage() {
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-10">
                           <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-2 block">Loading activities...</span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-2 block">
+                            Loading activities...
+                          </span>
                         </TableCell>
                       </TableRow>
                     ) : !sortedActivities || sortedActivities.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-16 text-slate-400 font-bold uppercase italic text-xs">
+                        <TableCell
+                          colSpan={5}
+                          className="text-center py-16 text-slate-400 font-bold uppercase italic text-xs"
+                        >
                           No activities generated yet.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      sortedActivities.map(act => {
+                      sortedActivities.map((act) => {
                         const isEnded = act.status === 'COMPLETED' || act.status === 'CANCELLED';
                         return (
                           <TableRow key={act.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
@@ -1601,13 +1837,13 @@ export default function UnitActivityPage() {
                               )}
                             </TableCell>
                             <TableCell className="text-xs font-semibold text-slate-500">
-                              {act.startDateTime?.toDate 
-                                ? format(act.startDateTime.toDate(), 'MM/dd/yyyy hh:mm a') 
+                              {act.startDateTime?.toDate
+                                ? format(act.startDateTime.toDate(), 'MM/dd/yyyy hh:mm a')
                                 : format(new Date(act.startDateTime), 'MM/dd/yyyy hh:mm a')}
                             </TableCell>
                             <TableCell className="text-xs font-semibold text-slate-500">
-                              {act.endDateTime?.toDate 
-                                ? format(act.endDateTime.toDate(), 'MM/dd/yyyy hh:mm a') 
+                              {act.endDateTime?.toDate
+                                ? format(act.endDateTime.toDate(), 'MM/dd/yyyy hh:mm a')
                                 : format(new Date(act.endDateTime), 'MM/dd/yyyy hh:mm a')}
                             </TableCell>
                             <TableCell className="text-center py-3 text-xs font-bold text-[#1B6535]">
@@ -1615,13 +1851,15 @@ export default function UnitActivityPage() {
                             </TableCell>
                             {/* Status badge */}
                             <TableCell className="text-center py-3">
-                              <Badge className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full ${
-                                act.status === 'ACTIVE' || act.status === 'UPCOMING'
-                                  ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
-                                  : act.status === 'COMPLETED'
-                                  ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 border border-slate-300'
-                                  : 'bg-rose-100 text-rose-600 border border-rose-300'
-                              }`}>
+                              <Badge
+                                className={`text-[8.5px] font-black uppercase px-2 py-0.5 rounded-full ${
+                                  act.status === 'ACTIVE' || act.status === 'UPCOMING'
+                                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-300'
+                                    : act.status === 'COMPLETED'
+                                      ? 'bg-slate-100 dark:bg-slate-700 text-slate-500 border border-slate-300'
+                                      : 'bg-rose-100 text-rose-600 border border-rose-300'
+                                }`}
+                              >
                                 {act.status}
                               </Badge>
                             </TableCell>
@@ -1660,7 +1898,7 @@ export default function UnitActivityPage() {
                               ) : (
                                 <div className="flex items-center justify-end gap-1.5">
                                   {/* Open Scanner — disabled if ended */}
-                                  <Button 
+                                  <Button
                                     size="sm"
                                     variant="outline"
                                     disabled={isEnded}
@@ -1673,7 +1911,7 @@ export default function UnitActivityPage() {
                                     Scanner
                                   </Button>
                                   {/* Setup Evaluation Strategy */}
-                                  <Button 
+                                  <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => openEvalWizard(act)}
@@ -1684,7 +1922,7 @@ export default function UnitActivityPage() {
                                   </Button>
                                   {/* Launch Evaluation */}
                                   {act.evaluationStrategy && (
-                                    <Button 
+                                    <Button
                                       size="sm"
                                       variant="outline"
                                       onClick={() => {
@@ -1745,20 +1983,25 @@ export default function UnitActivityPage() {
         {/* ==================== SUB-TAB 2: LIVE QR SCANNER ==================== */}
         <TabsContent value="scanner" className="space-y-6 animate-in fade-in duration-500">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
             {/* Camera Viewport and Controller */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-2 overflow-hidden flex flex-col justify-between">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3 flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Scan Session Camera</CardTitle>
+                  <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                    Scan Session Camera
+                  </CardTitle>
                   <CardDescription className="text-[10px] text-slate-500">
-                    Active: <span className="font-extrabold text-[#1B6535]">{activeActivity ? activeActivity.name : "None selected"}</span>
+                    Active:{' '}
+                    <span className="font-extrabold text-[#1B6535]">
+                      {activeActivity ? activeActivity.name : 'None selected'}
+                    </span>
                   </CardDescription>
                 </div>
                 {activeActivity && (
                   <Badge className="bg-emerald-500/10 text-emerald-700 border-emerald-500/30 text-[8.5px] uppercase font-black px-2 py-0.5">
-                    Start time: {activeActivity.startDateTime?.toDate 
-                      ? format(activeActivity.startDateTime.toDate(), 'hh:mm a') 
+                    Start time:{' '}
+                    {activeActivity.startDateTime?.toDate
+                      ? format(activeActivity.startDateTime.toDate(), 'hh:mm a')
                       : 'N/A'}
                   </Badge>
                 )}
@@ -1770,18 +2013,23 @@ export default function UnitActivityPage() {
                     <ShieldAlert className="h-12 w-12 text-[#D4AF37] animate-pulse mx-auto" />
                     <h3 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200">Scanner Locked</h3>
                     <p className="text-[11px] font-bold text-slate-500 uppercase leading-normal">
-                      Please select an active activity session in the header dropdown list first to configure your scanner logic.
+                      Please select an active activity session in the header dropdown list first to configure your
+                      scanner logic.
                     </p>
                   </div>
                 ) : !scannerActive ? (
                   <div className="text-center max-w-sm space-y-4">
                     <Camera className="h-10 w-10 text-slate-400 mx-auto" />
                     <div>
-                      <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Camera stream offline</h4>
-                      <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Activate scanning permissions to capture codes.</p>
+                      <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                        Camera stream offline
+                      </h4>
+                      <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">
+                        Activate scanning permissions to capture codes.
+                      </p>
                     </div>
-                    <Button 
-                      onClick={startScanning} 
+                    <Button
+                      onClick={startScanning}
                       className="h-10 bg-[#1B6535] hover:bg-[#16542c] font-black uppercase tracking-wider text-[10px] rounded-xl px-6"
                     >
                       Initialize Scan Camera
@@ -1790,9 +2038,12 @@ export default function UnitActivityPage() {
                 ) : (
                   /* Scanner Reader element mount */
                   <div className="w-full max-w-sm space-y-4">
-                    <div id="reader-container" className="w-full bg-black rounded-2xl overflow-hidden shadow-xl border-2 border-emerald-500/30" />
-                    <Button 
-                      onClick={stopScanning} 
+                    <div
+                      id="reader-container"
+                      className="w-full bg-black rounded-2xl overflow-hidden shadow-xl border-2 border-emerald-500/30"
+                    />
+                    <Button
+                      onClick={stopScanning}
                       variant="destructive"
                       className="w-full h-10 font-black uppercase tracking-wider text-[10px] rounded-xl"
                     >
@@ -1806,10 +2057,14 @@ export default function UnitActivityPage() {
             {/* Validation Panel Feed */}
             <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-1 flex flex-col justify-between">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
-                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Scan Validation Result</CardTitle>
-                <CardDescription className="text-[10px] text-slate-500">Real-time authentication feedback.</CardDescription>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Scan Validation Result
+                </CardTitle>
+                <CardDescription className="text-[10px] text-slate-500">
+                  Real-time authentication feedback.
+                </CardDescription>
               </CardHeader>
-              
+
               <CardContent className="pt-6 flex-1 flex flex-col justify-center">
                 {scanResult.status === 'none' ? (
                   <div className="text-center py-10 space-y-2 opacity-40">
@@ -1821,13 +2076,15 @@ export default function UnitActivityPage() {
                 ) : (
                   <div className="space-y-4">
                     {/* Status Alert Graphic */}
-                    <div className={`p-4 rounded-2xl border text-center space-y-2 ${
-                      scanResult.status === 'success' 
-                        ? 'bg-emerald-50 border-emerald-200 text-emerald-800' 
-                        : scanResult.status === 'warning' 
-                        ? 'bg-amber-50 border-amber-250 text-amber-800' 
-                        : 'bg-rose-50 border-rose-200 text-rose-800'
-                    }`}>
+                    <div
+                      className={`p-4 rounded-2xl border text-center space-y-2 ${
+                        scanResult.status === 'success'
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                          : scanResult.status === 'warning'
+                            ? 'bg-amber-50 border-amber-250 text-amber-800'
+                            : 'bg-rose-50 border-rose-200 text-rose-800'
+                      }`}
+                    >
                       <div className="flex justify-center">
                         {scanResult.status === 'success' ? (
                           <CheckCircle2 className="h-10 w-10 text-emerald-600 animate-bounce" />
@@ -1838,11 +2095,13 @@ export default function UnitActivityPage() {
                         )}
                       </div>
                       <h4 className="text-xs font-black uppercase tracking-wider">
-                        {scanResult.status === 'success' ? 'Scanned Successfully' : scanResult.status === 'warning' ? 'Scan Warning' : 'Scan Rejected'}
+                        {scanResult.status === 'success'
+                          ? 'Scanned Successfully'
+                          : scanResult.status === 'warning'
+                            ? 'Scan Warning'
+                            : 'Scan Rejected'}
                       </h4>
-                      <p className="text-[11px] font-bold leading-normal italic">
-                        "{scanResult.message}"
-                      </p>
+                      <p className="text-[11px] font-bold leading-normal italic">"{scanResult.message}"</p>
                     </div>
 
                     {/* Attendee Details */}
@@ -1850,27 +2109,41 @@ export default function UnitActivityPage() {
                       <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl space-y-2.5">
                         <div className="flex justify-between items-center border-b pb-1.5 text-[9px] font-black uppercase text-slate-400">
                           <span>User Verified</span>
-                          <Badge className={`${
-                            scanResult.details.status === 'ON TIME' 
-                              ? 'bg-emerald-100 text-emerald-800 border-none' 
-                              : scanResult.details.status === 'LATE'
-                              ? 'bg-amber-100 text-amber-800 border-none'
-                              : 'bg-slate-200 text-slate-800 dark:text-slate-200 border-none'
-                          } text-[8px] font-black uppercase px-2`}>
+                          <Badge
+                            className={`${
+                              scanResult.details.status === 'ON TIME'
+                                ? 'bg-emerald-100 text-emerald-800 border-none'
+                                : scanResult.details.status === 'LATE'
+                                  ? 'bg-amber-100 text-amber-800 border-none'
+                                  : 'bg-slate-200 text-slate-800 dark:text-slate-200 border-none'
+                            } text-[8px] font-black uppercase px-2`}
+                          >
                             {scanResult.details.status}
                           </Badge>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Employee Name:</span>
-                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase block">{scanResult.details.name}</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                            Employee Name:
+                          </span>
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase block">
+                            {scanResult.details.name}
+                          </span>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Office / Unit:</span>
-                          <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase block">{scanResult.details.office}</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                            Office / Unit:
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-600 dark:text-slate-400 uppercase block">
+                            {scanResult.details.office}
+                          </span>
                         </div>
                         <div className="space-y-1">
-                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">Timestamp:</span>
-                          <span className="text-[10px] font-mono font-bold text-slate-500 block">{scanResult.details.time}</span>
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-wider block">
+                            Timestamp:
+                          </span>
+                          <span className="text-[10px] font-mono font-bold text-slate-500 block">
+                            {scanResult.details.time}
+                          </span>
                         </div>
                       </div>
                     )}
@@ -1878,7 +2151,9 @@ export default function UnitActivityPage() {
                 )}
               </CardContent>
               <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 justify-center">
-                <span className="text-[8.5px] font-black uppercase text-slate-400 tracking-wider">Verification engine active (2026 EOMS)</span>
+                <span className="text-[8.5px] font-black uppercase text-slate-400 tracking-wider">
+                  Verification engine active (2026 EOMS)
+                </span>
               </CardFooter>
             </Card>
           </div>
@@ -1889,9 +2164,14 @@ export default function UnitActivityPage() {
           <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
             <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Attendance Logbook Entries</CardTitle>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Attendance Logbook Entries
+                </CardTitle>
                 <CardDescription className="text-[10px] text-slate-500">
-                  Showing logs for: <span className="font-extrabold text-[#1B6535]">{activeActivity ? activeActivity.name : "All sessions"}</span>
+                  Showing logs for:{' '}
+                  <span className="font-extrabold text-[#1B6535]">
+                    {activeActivity ? activeActivity.name : 'All sessions'}
+                  </span>
                 </CardDescription>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
@@ -1904,23 +2184,31 @@ export default function UnitActivityPage() {
                       className="h-8 px-2 bg-white dark:bg-slate-900 font-extrabold text-[11px] text-slate-800 dark:text-slate-200 border shadow-sm rounded-xl outline-none"
                     >
                       <option value="all">📁 All Sessions</option>
-                      {activeActivity.sessions.map(s => (
-                        <option key={s.id} value={s.id}>📍 {s.label}</option>
+                      {activeActivity.sessions.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          📍 {s.label}
+                        </option>
                       ))}
                     </select>
                   </div>
                 )}
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   onClick={handlePrintAttendanceSheet}
                   disabled={!activeActivity || activeActivity.status !== 'COMPLETED'}
                   className="h-8 text-[9.5px] font-black uppercase tracking-wider bg-white border border-[#1B6535]/25 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-[#1B6535] shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-40"
-                  title={!activeActivity ? "Please select a specific completed activity from the dropdown above to print." : activeActivity.status !== 'COMPLETED' ? "Print attendance sheet is locked until the activity has ended." : "Print attendance sheet"}
+                  title={
+                    !activeActivity
+                      ? 'Please select a specific completed activity from the dropdown above to print.'
+                      : activeActivity.status !== 'COMPLETED'
+                        ? 'Print attendance sheet is locked until the activity has ended.'
+                        : 'Print attendance sheet'
+                  }
                 >
                   <Calendar className="h-3.5 w-3.5 mr-1 text-amber-500" /> Print Official Sheet
                 </Button>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   onClick={handleExportCSV}
                   className="h-8 text-[9.5px] font-black uppercase tracking-wider bg-emerald-700 hover:bg-emerald-800 text-white border-none"
                 >
@@ -1936,18 +2224,25 @@ export default function UnitActivityPage() {
                     <TableHead className="font-black text-[10px] uppercase">Unit/Office</TableHead>
                     <TableHead className="font-black text-[10px] uppercase">Contact Number</TableHead>
                     <TableHead className="font-black text-[10px] uppercase">Sex</TableHead>
-                    <TableHead className="font-black text-[10px] uppercase">{activeActivity?.requiresLogout ? 'Login Time' : 'Scanned Time'}</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase">
+                      {activeActivity?.requiresLogout ? 'Login Time' : 'Scanned Time'}
+                    </TableHead>
                     {activeActivity?.requiresLogout && (
                       <TableHead className="font-black text-[10px] uppercase">Logout Time</TableHead>
                     )}
-                    <TableHead className="font-black text-[10px] uppercase text-center font-bold">Device Binding</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase text-center font-bold">
+                      Device Binding
+                    </TableHead>
                     <TableHead className="font-black text-[10px] uppercase text-right pr-4">Lateness status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {!sortedLogs || sortedLogs.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={activeActivity?.requiresLogout ? 8 : 7} className="text-center py-16 text-slate-400 font-bold uppercase italic text-xs">
+                      <TableCell
+                        colSpan={activeActivity?.requiresLogout ? 8 : 7}
+                        className="text-center py-16 text-slate-400 font-bold uppercase italic text-xs"
+                      >
                         No attendance entries logged for this period.
                       </TableCell>
                     </TableRow>
@@ -1957,9 +2252,7 @@ export default function UnitActivityPage() {
                         <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 dark:text-slate-200 uppercase">
                           {log.userName}
                         </TableCell>
-                        <TableCell className="text-xs font-semibold text-slate-650 uppercase">
-                          {log.unitName}
-                        </TableCell>
+                        <TableCell className="text-xs font-semibold text-slate-650 uppercase">{log.unitName}</TableCell>
                         <TableCell className="text-xs font-bold text-slate-600 dark:text-slate-400">
                           {log.contactNumber || 'N/A'}
                         </TableCell>
@@ -1967,28 +2260,30 @@ export default function UnitActivityPage() {
                           {log.sex || 'Did not specify'}
                         </TableCell>
                         <TableCell className="text-xs font-semibold text-slate-500">
-                          {log.scannedAt?.toDate 
-                            ? format(log.scannedAt.toDate(), 'MM/dd/yyyy hh:mm a') 
-                            : 'N/A'}
+                          {log.scannedAt?.toDate ? format(log.scannedAt.toDate(), 'MM/dd/yyyy hh:mm a') : 'N/A'}
                         </TableCell>
                         {activeActivity?.requiresLogout && (
                           <TableCell className="text-xs font-semibold text-slate-500">
                             {log.logoutAt?.toDate
                               ? format(log.logoutAt.toDate(), 'MM/dd/yyyy hh:mm a')
-                              : log.logoutAt ? format(new Date(log.logoutAt), 'MM/dd/yyyy hh:mm a') : 'Not logged out'}
+                              : log.logoutAt
+                                ? format(new Date(log.logoutAt), 'MM/dd/yyyy hh:mm a')
+                                : 'Not logged out'}
                           </TableCell>
                         )}
                         <TableCell className="text-center py-3 text-[10px] font-mono text-slate-400">
                           {log.deviceFingerprint?.substring(0, 15)}...
                         </TableCell>
                         <TableCell className="text-right pr-4 py-3">
-                          <Badge className={`${
-                            log.status === 'ON_TIME' 
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
-                              : log.status === 'LATE'
-                              ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                              : 'bg-rose-50 text-rose-800 border border-rose-250'
-                          } text-[8.5px] font-black uppercase px-2.5 py-0.5 rounded-full`}>
+                          <Badge
+                            className={`${
+                              log.status === 'ON_TIME'
+                                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                                : log.status === 'LATE'
+                                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                                  : 'bg-rose-50 text-rose-800 border border-rose-250'
+                            } text-[8.5px] font-black uppercase px-2.5 py-0.5 rounded-full`}
+                          >
                             {log.status.replace('_', ' ')}
                           </Badge>
                         </TableCell>
@@ -2006,7 +2301,9 @@ export default function UnitActivityPage() {
           <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
             <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
-                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Official Device Registry</CardTitle>
+                <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Official Device Registry
+                </CardTitle>
                 <CardDescription className="text-[10px] text-slate-500">
                   Enforces strict one account per physical device lock mapping.
                 </CardDescription>
@@ -2037,12 +2334,17 @@ export default function UnitActivityPage() {
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-10">
                         <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-2 block">Loading device bindings...</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-2 block">
+                          Loading device bindings...
+                        </span>
                       </TableCell>
                     </TableRow>
                   ) : filteredBindings.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-16 text-slate-400 font-bold uppercase italic text-xs">
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-16 text-slate-400 font-bold uppercase italic text-xs"
+                      >
                         No registered device bindings matching criteria.
                       </TableCell>
                     </TableRow>
@@ -2052,18 +2354,16 @@ export default function UnitActivityPage() {
                         <TableCell className="pl-4 py-3 font-extrabold text-xs text-slate-800 dark:text-slate-200 uppercase flex items-center gap-2">
                           <Smartphone className="h-4 w-4 text-[#D4AF37]" /> {bind.userName}
                         </TableCell>
-                        <TableCell className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">{bind.unitName}</TableCell>
-                        <TableCell className="text-xs font-mono font-bold text-slate-400">
-                          {bind.id}
+                        <TableCell className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">
+                          {bind.unitName}
                         </TableCell>
+                        <TableCell className="text-xs font-mono font-bold text-slate-400">{bind.id}</TableCell>
                         <TableCell className="text-xs font-semibold text-slate-500">
-                          {bind.boundAt?.toDate 
-                            ? format(bind.boundAt.toDate(), 'MM/dd/yyyy hh:mm a') 
-                            : 'N/A'}
+                          {bind.boundAt?.toDate ? format(bind.boundAt.toDate(), 'MM/dd/yyyy hh:mm a') : 'N/A'}
                         </TableCell>
                         <TableCell className="text-right pr-4 py-3">
-                          <Button 
-                            size="sm" 
+                          <Button
+                            size="sm"
                             variant="destructive"
                             onClick={() => handleResetBinding(bind.id, bind.userName)}
                             className="h-8 text-[9px] font-black uppercase tracking-widest px-3 flex items-center gap-1.5"
@@ -2087,7 +2387,8 @@ export default function UnitActivityPage() {
               <Sparkles className="h-12 w-12 text-amber-500 animate-pulse mx-auto" />
               <h3 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200">Analytics Lock</h3>
               <p className="text-[11px] font-bold text-slate-500 uppercase leading-normal max-w-md mx-auto">
-                Please select a specific activity from the dropdown at the top of the page to unlock session analytics, demographics profiling, and participant feedback evaluations.
+                Please select a specific activity from the dropdown at the top of the page to unlock session analytics,
+                demographics profiling, and participant feedback evaluations.
               </p>
             </Card>
           ) : (
@@ -2106,29 +2407,35 @@ export default function UnitActivityPage() {
                   { id: 'objectives', title: 'Objectives Met', val: averageRatingsObj.objectives },
                   { id: 'speaker', title: 'Speaker Delivery', val: averageRatingsObj.speaker },
                   { id: 'topic', title: 'Topic Relevance', val: averageRatingsObj.topic },
-                ].filter(item => {
-                  if (item.id === 'topic') return focusList.includes('speaker');
-                  return focusList.includes(item.id);
-                }).map((item, idx) => (
-                  <Card key={idx} className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
-                    <CardHeader className="p-4 pb-2">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.title}</p>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-black text-slate-800 dark:text-slate-200 tracking-tight">{item.val > 0 ? item.val.toFixed(1) : 'N/A'}</span>
-                        {item.val > 0 && <span className="text-xs text-amber-500">★</span>}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                ]
+                  .filter((item) => {
+                    if (item.id === 'topic') return focusList.includes('speaker');
+                    return focusList.includes(item.id);
+                  })
+                  .map((item, idx) => (
+                    <Card key={idx} className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
+                      <CardHeader className="p-4 pb-2">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.title}</p>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-2xl font-black text-slate-800 dark:text-slate-200 tracking-tight">
+                            {item.val > 0 ? item.val.toFixed(1) : 'N/A'}
+                          </span>
+                          {item.val > 0 && <span className="text-xs text-amber-500">★</span>}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Chart 1: Punctuality */}
                 <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
                   <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
-                    <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Attendee Punctuality Distribution</CardTitle>
+                    <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                      Attendee Punctuality Distribution
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 h-[250px] flex items-center justify-center">
                     {punctualityData.length === 0 ? (
@@ -2159,7 +2466,9 @@ export default function UnitActivityPage() {
                 {/* Chart 2: Demographics */}
                 <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
                   <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
-                    <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Gender/Sex Demographics</CardTitle>
+                    <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                      Gender/Sex Demographics
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 h-[250px] flex items-center justify-center">
                     {genderData.length === 0 ? (
@@ -2190,22 +2499,34 @@ export default function UnitActivityPage() {
                 {/* Chart 3: Evaluation Ratings */}
                 <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white md:col-span-2">
                   <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
-                    <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Evaluation Categories Ratings</CardTitle>
+                    <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                      Evaluation Categories Ratings
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 h-[250px]">
                     {averageRatings.length === 0 ? (
                       <div className="h-full flex items-center justify-center">
-                        <p className="text-xs font-bold text-slate-400 uppercase italic">No participant reviews submitted</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase italic">
+                          No participant reviews submitted
+                        </p>
                       </div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={averageRatings} layout="vertical">
                           <XAxis type="number" domain={[0, 5]} />
-                          <YAxis dataKey="category" type="category" width={150} tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                          <YAxis
+                            dataKey="category"
+                            type="category"
+                            width={150}
+                            tick={{ fontSize: 10, fontWeight: 'bold' }}
+                          />
                           <Tooltip />
                           <Bar dataKey="rating" fill="#3b82f6" radius={[0, 4, 4, 0]}>
                             {averageRatings.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={index === averageRatings.length - 1 ? '#10b981' : '#3b82f6'} />
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={index === averageRatings.length - 1 ? '#10b981' : '#3b82f6'}
+                              />
                             ))}
                           </Bar>
                         </BarChart>
@@ -2231,8 +2552,12 @@ export default function UnitActivityPage() {
               {/* Feedback Comments list */}
               <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
                 <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3 flex flex-row justify-between items-center">
-                  <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Participant Feedback Remarks</CardTitle>
-                  <Badge className="bg-amber-100 text-amber-800 border-none text-[9px] font-black">{filteredEvaluations.length} Reviews</Badge>
+                  <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                    Participant Feedback Remarks
+                  </CardTitle>
+                  <Badge className="bg-amber-100 text-amber-800 border-none text-[9px] font-black">
+                    {filteredEvaluations.length} Reviews
+                  </Badge>
                 </CardHeader>
                 <CardContent className="p-0 max-h-[300px] overflow-y-auto">
                   {filteredEvaluations.length === 0 ? (
@@ -2242,8 +2567,8 @@ export default function UnitActivityPage() {
                   ) : (
                     <div className="divide-y divide-slate-100">
                       {filteredEvaluations.map((evalItem) => (
-                        <div 
-                          key={evalItem.id} 
+                        <div
+                          key={evalItem.id}
                           className="p-4 space-y-1 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors"
                           onClick={() => setSelectedEvaluation(evalItem)}
                         >
@@ -2263,7 +2588,10 @@ export default function UnitActivityPage() {
                             </span>
                           </div>
                           <p className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-2">
-                            {evalItem.comments || evalItem.commentsOverall || evalItem.ansTakeaways || "Click to view detailed feedback ratings & open-ended comments."}
+                            {evalItem.comments ||
+                              evalItem.commentsOverall ||
+                              evalItem.ansTakeaways ||
+                              'Click to view detailed feedback ratings & open-ended comments.'}
                           </p>
                         </div>
                       ))}
@@ -2304,7 +2632,9 @@ export default function UnitActivityPage() {
               <div className="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                 {/* Activity Name */}
                 <div className="space-y-1">
-                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Activity Name</label>
+                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">
+                    Activity Name
+                  </label>
                   <Input
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
@@ -2315,7 +2645,9 @@ export default function UnitActivityPage() {
 
                 {/* Late Threshold */}
                 <div className="space-y-1">
-                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Late Threshold (minutes)</label>
+                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">
+                    Late Threshold (minutes)
+                  </label>
                   <Input
                     type="number"
                     min="0"
@@ -2327,7 +2659,9 @@ export default function UnitActivityPage() {
 
                 {/* Edit Documents Section */}
                 <div className="space-y-2 pt-2 border-t border-slate-150">
-                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Document Links (Google Drive)</label>
+                  <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">
+                    Document Links (Google Drive)
+                  </label>
                   <div className="flex gap-2">
                     <Input
                       placeholder="Description"
@@ -2345,7 +2679,10 @@ export default function UnitActivityPage() {
                       type="button"
                       onClick={() => {
                         if (!editDocDesc.trim() || !editDocLink.trim()) return;
-                        setEditActivityDocs([...editActivityDocs, { description: editDocDesc.trim(), googleDriveLink: editDocLink.trim() }]);
+                        setEditActivityDocs([
+                          ...editActivityDocs,
+                          { description: editDocDesc.trim(), googleDriveLink: editDocLink.trim() },
+                        ]);
                         setEditDocDesc('');
                         setEditDocLink('');
                       }}
@@ -2357,7 +2694,10 @@ export default function UnitActivityPage() {
                   {editActivityDocs.length > 0 && (
                     <div className="p-2 border rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-1">
                       {editActivityDocs.map((doc, idx) => (
-                        <div key={idx} className="flex justify-between items-center text-[10px] font-bold text-slate-700 dark:text-slate-300">
+                        <div
+                          key={idx}
+                          className="flex justify-between items-center text-[10px] font-bold text-slate-700 dark:text-slate-300"
+                        >
                           <span className="truncate max-w-[300px]">{doc.description}</span>
                           <Button
                             type="button"
@@ -2376,7 +2716,9 @@ export default function UnitActivityPage() {
                 {/* Edit Sessions Section */}
                 <div className="space-y-3 pt-2 border-t border-slate-150">
                   <div className="flex justify-between items-center">
-                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">Sessions ({editActivitySessions.length})</label>
+                    <label className="text-[9.5px] font-black text-slate-500 uppercase tracking-wider pl-0.5">
+                      Sessions ({editActivitySessions.length})
+                    </label>
                     <Button
                       type="button"
                       variant="outline"
@@ -2388,11 +2730,16 @@ export default function UnitActivityPage() {
                   </div>
 
                   {editActivitySessions.length === 0 ? (
-                    <p className="text-[9.5px] text-slate-400 italic">No sessions added yet. Please add at least one session.</p>
+                    <p className="text-[9.5px] text-slate-400 italic">
+                      No sessions added yet. Please add at least one session.
+                    </p>
                   ) : (
                     <div className="space-y-3 max-h-[200px] overflow-y-auto pr-1">
                       {editActivitySessions.map((session, idx) => (
-                        <div key={session.id} className="p-3 border rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-2 relative">
+                        <div
+                          key={session.id}
+                          className="p-3 border rounded-xl bg-slate-50 dark:bg-slate-800/50 space-y-2 relative"
+                        >
                           <button
                             type="button"
                             onClick={() => handleRemoveEditSession(session.id)}
@@ -2508,7 +2855,7 @@ export default function UnitActivityPage() {
           {/* Wizard step progress indicator */}
           <div className="px-6 pt-4 flex items-center gap-3">
             <div className="flex-1 h-1 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden">
-              <div 
+              <div
                 className="h-full bg-[#D4AF37] transition-all duration-300"
                 style={{ width: `${(wizardStep / 3) * 100}%` }}
               />
@@ -2521,8 +2868,12 @@ export default function UnitActivityPage() {
               /* Step 1: Security & PIN Settings */
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">Step 1: Security & Identity Strategy</h4>
-                  <p className="text-[10px] text-slate-400">Establish access credentials to prevent unauthorized or spam feedback submissions.</p>
+                  <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">
+                    Step 1: Security & Identity Strategy
+                  </h4>
+                  <p className="text-[10px] text-slate-400">
+                    Establish access credentials to prevent unauthorized or spam feedback submissions.
+                  </p>
                 </div>
 
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl space-y-4">
@@ -2533,9 +2884,12 @@ export default function UnitActivityPage() {
                       className="mt-0.5"
                     />
                     <div className="space-y-0.5">
-                      <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Require Submission PIN</span>
+                      <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">
+                        Require Submission PIN
+                      </span>
                       <p className="text-[9.5px] text-slate-400 leading-normal">
-                        Participants must enter a 4-digit PIN code displayed on screen/projector to submit their reviews.
+                        Participants must enter a 4-digit PIN code displayed on screen/projector to submit their
+                        reviews.
                       </p>
                     </div>
                   </label>
@@ -2566,16 +2920,18 @@ export default function UnitActivityPage() {
                 </div>
 
                 <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl space-y-3">
-                  <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 block">Demographics Identity Strategy</span>
+                  <span className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 block">
+                    Demographics Identity Strategy
+                  </span>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => setEvalFormMode('open')}
                       className={cn(
-                        "p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5",
-                        evalFormMode === 'open' 
-                          ? "bg-amber-50 border-[#D4AF37] text-amber-900 shadow-sm"
-                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        'p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5',
+                        evalFormMode === 'open'
+                          ? 'bg-amber-50 border-[#D4AF37] text-amber-900 shadow-sm'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50',
                       )}
                     >
                       <span className="text-[10px] font-black uppercase">Open/Anonymous</span>
@@ -2585,10 +2941,10 @@ export default function UnitActivityPage() {
                       type="button"
                       onClick={() => setEvalFormMode('strict')}
                       className={cn(
-                        "p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5",
-                        evalFormMode === 'strict' 
-                          ? "bg-amber-50 border-[#D4AF37] text-amber-900 shadow-sm"
-                          : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                        'p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1.5',
+                        evalFormMode === 'strict'
+                          ? 'bg-amber-50 border-[#D4AF37] text-amber-900 shadow-sm'
+                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50',
                       )}
                     >
                       <span className="text-[10px] font-black uppercase">Strict Verification</span>
@@ -2603,32 +2959,68 @@ export default function UnitActivityPage() {
               /* Step 2: Custom Focus Areas */
               <div className="space-y-5">
                 <div className="space-y-1">
-                  <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">Step 2: Customize Feedback Focus</h4>
-                  <p className="text-[10px] text-slate-400">Select the specific evaluation aspects you want participants to rate for this activity.</p>
+                  <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">
+                    Step 2: Customize Feedback Focus
+                  </h4>
+                  <p className="text-[10px] text-slate-400">
+                    Select the specific evaluation aspects you want participants to rate for this activity.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 gap-2.5">
                   {[
-                    { id: 'perfQuality', label: '1. Quality of Delivery of Service', desc: 'Assess if the service provided was high quality.' },
-                    { id: 'perfTimeliness', label: '2. Timeliness of Service', desc: 'Assess the speed and timeliness of the service.' },
-                    { id: 'perfStaff', label: '3. Staff Behavior', desc: 'Assess professional attitude and helpfulness of the team.' },
+                    {
+                      id: 'perfQuality',
+                      label: '1. Quality of Delivery of Service',
+                      desc: 'Assess if the service provided was high quality.',
+                    },
+                    {
+                      id: 'perfTimeliness',
+                      label: '2. Timeliness of Service',
+                      desc: 'Assess the speed and timeliness of the service.',
+                    },
+                    {
+                      id: 'perfStaff',
+                      label: '3. Staff Behavior',
+                      desc: 'Assess professional attitude and helpfulness of the team.',
+                    },
                     { id: 'venue', label: '4. Venue Quality', desc: 'Assess physical venue and comfort level.' },
-                    { id: 'facility', label: '5. Facility Quality', desc: 'Assess equipment, tools, and technical amenities.' },
+                    {
+                      id: 'facility',
+                      label: '5. Facility Quality',
+                      desc: 'Assess equipment, tools, and technical amenities.',
+                    },
                     { id: 'food', label: '6. Food Quality', desc: 'Assess food and refreshments served.' },
-                    { id: 'materials', label: '7. Material Quality', desc: 'Assess references, digital guides, and printed handouts.' },
-                    { id: 'overall', label: '8. Overall Satisfaction', desc: 'Capture net satisfaction with this activity.' },
-                    { id: 'objectives', label: 'Legacy: Objectives Met', desc: 'Assess objectives met (legacy schema).' },
-                    { id: 'speaker', label: 'Legacy: Speaker & Facilitator', desc: 'Assess speakers and facilitators (legacy schema).' }
+                    {
+                      id: 'materials',
+                      label: '7. Material Quality',
+                      desc: 'Assess references, digital guides, and printed handouts.',
+                    },
+                    {
+                      id: 'overall',
+                      label: '8. Overall Satisfaction',
+                      desc: 'Capture net satisfaction with this activity.',
+                    },
+                    {
+                      id: 'objectives',
+                      label: 'Legacy: Objectives Met',
+                      desc: 'Assess objectives met (legacy schema).',
+                    },
+                    {
+                      id: 'speaker',
+                      label: 'Legacy: Speaker & Facilitator',
+                      desc: 'Assess speakers and facilitators (legacy schema).',
+                    },
                   ].map((cat) => {
                     const isChecked = evalFeedbackFocus.includes(cat.id);
                     return (
-                      <label 
+                      <label
                         key={cat.id}
                         className={cn(
-                          "p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3.5",
-                          isChecked 
-                            ? "bg-slate-50 dark:bg-slate-800/50 border-slate-300"
-                            : "bg-white border-slate-100 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
+                          'p-3.5 rounded-xl border transition-all cursor-pointer flex items-start gap-3.5',
+                          isChecked
+                            ? 'bg-slate-50 dark:bg-slate-800/50 border-slate-300'
+                            : 'bg-white border-slate-100 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-800/50',
                         )}
                       >
                         <Checkbox
@@ -2639,12 +3031,12 @@ export default function UnitActivityPage() {
                             } else {
                               // Always keep at least one category checked to prevent empty forms
                               if (evalFeedbackFocus.length > 1) {
-                                setEvalFeedbackFocus(evalFeedbackFocus.filter(f => f !== cat.id));
+                                setEvalFeedbackFocus(evalFeedbackFocus.filter((f) => f !== cat.id));
                               } else {
                                 toast({
                                   title: 'Selection Locked',
                                   description: 'At least one focus category must be selected.',
-                                  variant: 'destructive'
+                                  variant: 'destructive',
                                 });
                               }
                             }
@@ -2669,7 +3061,9 @@ export default function UnitActivityPage() {
                   <Check className="h-8 w-8" />
                 </div>
                 <div className="space-y-1.5">
-                  <h4 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight">Evaluation Strategy Deployed!</h4>
+                  <h4 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 tracking-tight">
+                    Evaluation Strategy Deployed!
+                  </h4>
                   <p className="text-[10.5px] text-slate-500 leading-relaxed font-semibold max-w-xs mx-auto">
                     Your evaluation settings have been synchronized. The portal is ready to receive structured ratings.
                   </p>
@@ -2682,11 +3076,15 @@ export default function UnitActivityPage() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Submission Mode:</span>
-                    <span className="font-bold uppercase text-slate-700 dark:text-slate-300">{evalFormMode === 'strict' ? 'Verified Demographics' : 'Anonymous Open'}</span>
+                    <span className="font-bold uppercase text-slate-700 dark:text-slate-300">
+                      {evalFormMode === 'strict' ? 'Verified Demographics' : 'Anonymous Open'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">PIN Security:</span>
-                    <span className="font-bold text-slate-700 dark:text-slate-300">{evalRequirePin ? `Required (Code: ${evalPinCode})` : 'Disabled'}</span>
+                    <span className="font-bold text-slate-700 dark:text-slate-300">
+                      {evalRequirePin ? `Required (Code: ${evalPinCode})` : 'Disabled'}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Aspects Selected:</span>
@@ -2748,7 +3146,11 @@ export default function UnitActivityPage() {
                   onClick={handleSaveStrategy}
                   className="h-10 px-6 bg-[#1B6535] hover:bg-[#154e29] border-none text-white text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5"
                 >
-                  {isSavingStrategy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                  {isSavingStrategy ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Check className="h-3.5 w-3.5" />
+                  )}
                   Deploy Strategy
                 </Button>
               )}
@@ -2803,20 +3205,26 @@ export default function UnitActivityPage() {
           </DialogHeader>
 
           {/* Scrollable content */}
-          <div id="eval-summary-content" className="overflow-y-auto flex-1 p-6 space-y-8 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">
-
+          <div
+            id="eval-summary-content"
+            className="overflow-y-auto flex-1 p-6 space-y-8 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200"
+          >
             {/* ---- Cover / Title Block ---- */}
             <div className="text-center space-y-2 pb-6 border-b-2 border-emerald-600">
               <div className="flex justify-center mb-3">
                 <img src="/rsulogo.png" alt="RSU" className="h-16 w-16 object-contain opacity-80" />
               </div>
-              <h1 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Activity Evaluation Summary Report</h1>
+              <h1 className="text-xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
+                Activity Evaluation Summary Report
+              </h1>
               <h2 className="text-base font-bold text-emerald-700 uppercase">{activeActivity?.name}</h2>
               <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                Total Respondents: {filteredEvaluations.length} &nbsp;|&nbsp; Report Generated: {format(new Date(), 'MMMM d, yyyy')}
+                Total Respondents: {filteredEvaluations.length} &nbsp;|&nbsp; Report Generated:{' '}
+                {format(new Date(), 'MMMM d, yyyy')}
               </p>
               <p className="text-[10px] text-slate-400 italic">
-                Note: Individual respondent identities are withheld in this report to ensure impartial and candid evaluation.
+                Note: Individual respondent identities are withheld in this report to ensure impartial and candid
+                evaluation.
               </p>
             </div>
 
@@ -2826,8 +3234,11 @@ export default function UnitActivityPage() {
                 I. Summary of Evaluation Ratings
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                The table below presents the mean ratings per evaluation category based on responses gathered from {filteredEvaluations.length} participant{filteredEvaluations.length !== 1 ? 's' : ''}.
-                Ratings are on a 5-point scale where <strong>1 = Poor</strong>, <strong>2 = Fair</strong>, <strong>3 = Satisfactory</strong>, <strong>4 = Very Satisfactory</strong>, and <strong>5 = Excellent</strong>.
+                The table below presents the mean ratings per evaluation category based on responses gathered from{' '}
+                {filteredEvaluations.length} participant{filteredEvaluations.length !== 1 ? 's' : ''}. Ratings are on a
+                5-point scale where <strong>1 = Poor</strong>, <strong>2 = Fair</strong>,{' '}
+                <strong>3 = Satisfactory</strong>, <strong>4 = Very Satisfactory</strong>, and{' '}
+                <strong>5 = Excellent</strong>.
               </p>
               <div className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700">
                 <table className="w-full text-xs">
@@ -2835,38 +3246,72 @@ export default function UnitActivityPage() {
                     <tr className="bg-emerald-600 text-white">
                       <th className="text-left px-4 py-2.5 font-black uppercase tracking-wide">Evaluation Category</th>
                       <th className="text-center px-4 py-2.5 font-black uppercase tracking-wide">Mean Rating</th>
-                      <th className="text-center px-4 py-2.5 font-black uppercase tracking-wide">Verbal Interpretation</th>
+                      <th className="text-center px-4 py-2.5 font-black uppercase tracking-wide">
+                        Verbal Interpretation
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {([
-                      { id: 'objectives', label: 'Objectives Met', val: averageRatingsObj.objectives },
-                      { id: 'speaker', label: 'Speaker & Facilitator Delivery', val: averageRatingsObj.speaker },
-                      { id: 'topic', label: 'Topic Relevance & Presentation', val: averageRatingsObj.topic },
-                      { id: 'perfQuality', label: 'Quality of Delivery of Service', val: averageRatingsObj.perfQuality },
-                      { id: 'perfTimeliness', label: 'Timeliness of Service', val: averageRatingsObj.perfTimeliness },
-                      { id: 'perfStaff', label: 'Staff Behavior', val: averageRatingsObj.perfStaff },
-                      { id: 'venue', label: 'Venue', val: averageRatingsObj.venue },
-                      { id: 'facility', label: 'Facility', val: averageRatingsObj.facility },
-                      { id: 'food', label: 'Food & Catering', val: averageRatingsObj.food },
-                      { id: 'materials', label: 'Learning Materials', val: averageRatingsObj.materials },
-                      { id: 'overall', label: 'Overall Satisfaction', val: averageRatingsObj.overall },
-                    ] as { id: string; label: string; val: number }[]).filter(item => {
-                      if (item.id === 'topic') return focusList.includes('speaker');
-                      return focusList.includes(item.id);
-                    }).map((item, idx) => {
-                      const vi = item.val >= 4.5 ? 'Excellent' : item.val >= 3.5 ? 'Very Satisfactory' : item.val >= 2.5 ? 'Satisfactory' : item.val >= 1.5 ? 'Fair' : item.val > 0 ? 'Poor' : 'N/A';
-                      const viColor = item.val >= 4.5 ? 'text-emerald-700' : item.val >= 3.5 ? 'text-blue-700' : item.val >= 2.5 ? 'text-amber-700' : item.val > 0 ? 'text-rose-700' : 'text-slate-400';
-                      return (
-                        <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50 dark:bg-slate-800/50'}>
-                          <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300">{item.label}</td>
-                          <td className="px-4 py-2.5 text-center font-black text-slate-800 dark:text-slate-200">
-                            {item.val > 0 ? item.val.toFixed(2) : '—'}
-                          </td>
-                          <td className={`px-4 py-2.5 text-center font-black uppercase tracking-wide ${viColor}`}>{vi}</td>
-                        </tr>
-                      );
-                    })}
+                    {(
+                      [
+                        { id: 'objectives', label: 'Objectives Met', val: averageRatingsObj.objectives },
+                        { id: 'speaker', label: 'Speaker & Facilitator Delivery', val: averageRatingsObj.speaker },
+                        { id: 'topic', label: 'Topic Relevance & Presentation', val: averageRatingsObj.topic },
+                        {
+                          id: 'perfQuality',
+                          label: 'Quality of Delivery of Service',
+                          val: averageRatingsObj.perfQuality,
+                        },
+                        { id: 'perfTimeliness', label: 'Timeliness of Service', val: averageRatingsObj.perfTimeliness },
+                        { id: 'perfStaff', label: 'Staff Behavior', val: averageRatingsObj.perfStaff },
+                        { id: 'venue', label: 'Venue', val: averageRatingsObj.venue },
+                        { id: 'facility', label: 'Facility', val: averageRatingsObj.facility },
+                        { id: 'food', label: 'Food & Catering', val: averageRatingsObj.food },
+                        { id: 'materials', label: 'Learning Materials', val: averageRatingsObj.materials },
+                        { id: 'overall', label: 'Overall Satisfaction', val: averageRatingsObj.overall },
+                      ] as { id: string; label: string; val: number }[]
+                    )
+                      .filter((item) => {
+                        if (item.id === 'topic') return focusList.includes('speaker');
+                        return focusList.includes(item.id);
+                      })
+                      .map((item, idx) => {
+                        const vi =
+                          item.val >= 4.5
+                            ? 'Excellent'
+                            : item.val >= 3.5
+                              ? 'Very Satisfactory'
+                              : item.val >= 2.5
+                                ? 'Satisfactory'
+                                : item.val >= 1.5
+                                  ? 'Fair'
+                                  : item.val > 0
+                                    ? 'Poor'
+                                    : 'N/A';
+                        const viColor =
+                          item.val >= 4.5
+                            ? 'text-emerald-700'
+                            : item.val >= 3.5
+                              ? 'text-blue-700'
+                              : item.val >= 2.5
+                                ? 'text-amber-700'
+                                : item.val > 0
+                                  ? 'text-rose-700'
+                                  : 'text-slate-400';
+                        return (
+                          <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50 dark:bg-slate-800/50'}>
+                            <td className="px-4 py-2.5 font-semibold text-slate-700 dark:text-slate-300">
+                              {item.label}
+                            </td>
+                            <td className="px-4 py-2.5 text-center font-black text-slate-800 dark:text-slate-200">
+                              {item.val > 0 ? item.val.toFixed(2) : '—'}
+                            </td>
+                            <td className={`px-4 py-2.5 text-center font-black uppercase tracking-wide ${viColor}`}>
+                              {vi}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     {/* Overall weighted average */}
                     {(() => {
                       const vals = [
@@ -2881,14 +3326,29 @@ export default function UnitActivityPage() {
                         focusList.includes('food') ? averageRatingsObj.food : null,
                         focusList.includes('materials') ? averageRatingsObj.materials : null,
                         focusList.includes('overall') ? averageRatingsObj.overall : null,
-                      ].filter(v => v !== null && v > 0) as number[];
+                      ].filter((v) => v !== null && v > 0) as number[];
                       const grand = vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
-                      const vi = grand >= 4.5 ? 'Excellent' : grand >= 3.5 ? 'Very Satisfactory' : grand >= 2.5 ? 'Satisfactory' : grand >= 1.5 ? 'Fair' : 'Poor';
+                      const vi =
+                        grand >= 4.5
+                          ? 'Excellent'
+                          : grand >= 3.5
+                            ? 'Very Satisfactory'
+                            : grand >= 2.5
+                              ? 'Satisfactory'
+                              : grand >= 1.5
+                                ? 'Fair'
+                                : 'Poor';
                       return grand > 0 ? (
                         <tr className="bg-emerald-50 border-t-2 border-emerald-200">
-                          <td className="px-4 py-2.5 font-black uppercase text-emerald-800">Grand Mean (All Categories)</td>
-                          <td className="px-4 py-2.5 text-center font-black text-emerald-800 text-sm">{grand.toFixed(2)}</td>
-                          <td className="px-4 py-2.5 text-center font-black text-emerald-700 uppercase tracking-wide">{vi}</td>
+                          <td className="px-4 py-2.5 font-black uppercase text-emerald-800">
+                            Grand Mean (All Categories)
+                          </td>
+                          <td className="px-4 py-2.5 text-center font-black text-emerald-800 text-sm">
+                            {grand.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2.5 text-center font-black text-emerald-700 uppercase tracking-wide">
+                            {vi}
+                          </td>
                         </tr>
                       ) : null;
                     })()}
@@ -2903,89 +3363,145 @@ export default function UnitActivityPage() {
                 II. Evaluation Discussion by Category
               </h3>
               <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                The following discussion presents a synthesis of the quantitative ratings and qualitative comments per evaluation category.
-                Comments are listed verbatim as submitted by respondents and analyzed to surface common themes and patterns.
+                The following discussion presents a synthesis of the quantitative ratings and qualitative comments per
+                evaluation category. Comments are listed verbatim as submitted by respondents and analyzed to surface
+                common themes and patterns.
               </p>
 
-              {([
-                {
-                  id: 'objectives', label: 'Objectives Met', val: averageRatingsObj.objectives,
-                  comments: filteredEvaluations.map(e => e.commentsObjectives).filter(Boolean) as string[],
-                },
-                {
-                  id: 'speaker', label: 'Speaker & Facilitator Delivery', val: averageRatingsObj.speaker,
-                  comments: filteredEvaluations.map(e => e.commentsSpeaker).filter(Boolean) as string[],
-                  extra: averageRatingsObj.topic > 0 ? `Topic Relevance & Presentation Content sub-criterion received a mean of ${averageRatingsObj.topic.toFixed(2)}.` : null,
-                },
-                {
-                  id: 'perfQuality', label: 'Quality of Delivery of Service', val: averageRatingsObj.perfQuality,
-                  comments: filteredEvaluations.map(e => e.commentsPerfQuality).filter(Boolean) as string[],
-                },
-                {
-                  id: 'perfTimeliness', label: 'Timeliness of Service', val: averageRatingsObj.perfTimeliness,
-                  comments: filteredEvaluations.map(e => e.commentsPerfTimeliness).filter(Boolean) as string[],
-                },
-                {
-                  id: 'perfStaff', label: 'Staff Behavior', val: averageRatingsObj.perfStaff,
-                  comments: filteredEvaluations.map(e => e.commentsPerfStaff).filter(Boolean) as string[],
-                },
-                {
-                  id: 'venue', label: 'Venue', val: averageRatingsObj.venue,
-                  comments: filteredEvaluations.map(e => e.commentsVenue).filter(Boolean) as string[],
-                },
-                {
-                  id: 'facility', label: 'Facility', val: averageRatingsObj.facility,
-                  comments: filteredEvaluations.map(e => e.commentsFacility).filter(Boolean) as string[],
-                },
-                {
-                  id: 'food', label: 'Food & Catering', val: averageRatingsObj.food,
-                  comments: filteredEvaluations.map(e => e.commentsFood).filter(Boolean) as string[],
-                },
-                {
-                  id: 'materials', label: 'Learning Materials', val: averageRatingsObj.materials,
-                  comments: filteredEvaluations.map(e => e.commentsMaterials).filter(Boolean) as string[],
-                },
-                {
-                  id: 'overall', label: 'Overall Satisfaction', val: averageRatingsObj.overall,
-                  comments: [
-                    ...filteredEvaluations.map(e => e.commentsOverall).filter(Boolean) as string[],
-                    ...filteredEvaluations.map(e => e.comments).filter(Boolean) as string[],
-                  ],
-                },
-              ] as { id: string; label: string; val: number; comments: string[]; extra?: string | null }[])
-                .filter(cat => {
+              {(
+                [
+                  {
+                    id: 'objectives',
+                    label: 'Objectives Met',
+                    val: averageRatingsObj.objectives,
+                    comments: filteredEvaluations.map((e) => e.commentsObjectives).filter(Boolean) as string[],
+                  },
+                  {
+                    id: 'speaker',
+                    label: 'Speaker & Facilitator Delivery',
+                    val: averageRatingsObj.speaker,
+                    comments: filteredEvaluations.map((e) => e.commentsSpeaker).filter(Boolean) as string[],
+                    extra:
+                      averageRatingsObj.topic > 0
+                        ? `Topic Relevance & Presentation Content sub-criterion received a mean of ${averageRatingsObj.topic.toFixed(2)}.`
+                        : null,
+                  },
+                  {
+                    id: 'perfQuality',
+                    label: 'Quality of Delivery of Service',
+                    val: averageRatingsObj.perfQuality,
+                    comments: filteredEvaluations.map((e) => e.commentsPerfQuality).filter(Boolean) as string[],
+                  },
+                  {
+                    id: 'perfTimeliness',
+                    label: 'Timeliness of Service',
+                    val: averageRatingsObj.perfTimeliness,
+                    comments: filteredEvaluations.map((e) => e.commentsPerfTimeliness).filter(Boolean) as string[],
+                  },
+                  {
+                    id: 'perfStaff',
+                    label: 'Staff Behavior',
+                    val: averageRatingsObj.perfStaff,
+                    comments: filteredEvaluations.map((e) => e.commentsPerfStaff).filter(Boolean) as string[],
+                  },
+                  {
+                    id: 'venue',
+                    label: 'Venue',
+                    val: averageRatingsObj.venue,
+                    comments: filteredEvaluations.map((e) => e.commentsVenue).filter(Boolean) as string[],
+                  },
+                  {
+                    id: 'facility',
+                    label: 'Facility',
+                    val: averageRatingsObj.facility,
+                    comments: filteredEvaluations.map((e) => e.commentsFacility).filter(Boolean) as string[],
+                  },
+                  {
+                    id: 'food',
+                    label: 'Food & Catering',
+                    val: averageRatingsObj.food,
+                    comments: filteredEvaluations.map((e) => e.commentsFood).filter(Boolean) as string[],
+                  },
+                  {
+                    id: 'materials',
+                    label: 'Learning Materials',
+                    val: averageRatingsObj.materials,
+                    comments: filteredEvaluations.map((e) => e.commentsMaterials).filter(Boolean) as string[],
+                  },
+                  {
+                    id: 'overall',
+                    label: 'Overall Satisfaction',
+                    val: averageRatingsObj.overall,
+                    comments: [
+                      ...(filteredEvaluations.map((e) => e.commentsOverall).filter(Boolean) as string[]),
+                      ...(filteredEvaluations.map((e) => e.comments).filter(Boolean) as string[]),
+                    ],
+                  },
+                ] as { id: string; label: string; val: number; comments: string[]; extra?: string | null }[]
+              )
+                .filter((cat) => {
                   if (cat.id === 'topic') return false;
                   return focusList.includes(cat.id);
                 })
                 .map((cat, catIdx) => {
-                  const vi = cat.val >= 4.5 ? 'Excellent' : cat.val >= 3.5 ? 'Very Satisfactory' : cat.val >= 2.5 ? 'Satisfactory' : cat.val >= 1.5 ? 'Fair' : cat.val > 0 ? 'Poor' : null;
-                  const tone = cat.val >= 4.5 ? 'an excellent' : cat.val >= 3.5 ? 'a very satisfactory' : cat.val >= 2.5 ? 'a satisfactory' : cat.val >= 1.5 ? 'a fair' : 'a poor';
-                  const discussion = cat.val > 0
-                    ? `The ${cat.label} category obtained a mean rating of ${cat.val.toFixed(2)}, which is interpreted as ${vi} (${tone} level of performance). ${
-                        cat.comments.length > 0
-                          ? `Qualitative feedback from respondents further substantiates this rating. A review of the comments reveals that participants generally ${
-                              cat.val >= 3.5
-                                ? 'expressed positive sentiments and satisfaction with this aspect of the activity.'
-                                : cat.val >= 2.5
-                                ? 'found this aspect to be adequate, though some areas for improvement were noted.'
-                                : 'identified specific concerns and areas requiring attention and improvement.'
-                            } The comments, listed below for reference, provide additional context and specific observations from the respondents.`
-                          : 'No specific written comments were provided for this category.'
-                      }${ cat.extra ? ' ' + cat.extra : '' }`
-                    : null;
+                  const vi =
+                    cat.val >= 4.5
+                      ? 'Excellent'
+                      : cat.val >= 3.5
+                        ? 'Very Satisfactory'
+                        : cat.val >= 2.5
+                          ? 'Satisfactory'
+                          : cat.val >= 1.5
+                            ? 'Fair'
+                            : cat.val > 0
+                              ? 'Poor'
+                              : null;
+                  const tone =
+                    cat.val >= 4.5
+                      ? 'an excellent'
+                      : cat.val >= 3.5
+                        ? 'a very satisfactory'
+                        : cat.val >= 2.5
+                          ? 'a satisfactory'
+                          : cat.val >= 1.5
+                            ? 'a fair'
+                            : 'a poor';
+                  const discussion =
+                    cat.val > 0
+                      ? `The ${cat.label} category obtained a mean rating of ${cat.val.toFixed(2)}, which is interpreted as ${vi} (${tone} level of performance). ${
+                          cat.comments.length > 0
+                            ? `Qualitative feedback from respondents further substantiates this rating. A review of the comments reveals that participants generally ${
+                                cat.val >= 3.5
+                                  ? 'expressed positive sentiments and satisfaction with this aspect of the activity.'
+                                  : cat.val >= 2.5
+                                    ? 'found this aspect to be adequate, though some areas for improvement were noted.'
+                                    : 'identified specific concerns and areas requiring attention and improvement.'
+                              } The comments, listed below for reference, provide additional context and specific observations from the respondents.`
+                            : 'No specific written comments were provided for this category.'
+                        }${cat.extra ? ' ' + cat.extra : ''}`
+                      : null;
 
                   return (
                     <div key={cat.id} className="space-y-3">
                       <div className="flex items-baseline gap-3">
-                        <span className="text-[10px] font-black text-slate-400 uppercase w-6 shrink-0">{catIdx + 1}.</span>
-                        <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">{cat.label}</h4>
+                        <span className="text-[10px] font-black text-slate-400 uppercase w-6 shrink-0">
+                          {catIdx + 1}.
+                        </span>
+                        <h4 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                          {cat.label}
+                        </h4>
                         {cat.val > 0 && (
-                          <span className={`ml-auto text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shrink-0 ${
-                            cat.val >= 4.5 ? 'bg-emerald-100 text-emerald-700' :
-                            cat.val >= 3.5 ? 'bg-blue-100 text-blue-700' :
-                            cat.val >= 2.5 ? 'bg-amber-100 text-amber-700' :
-                            'bg-rose-100 text-rose-700'
-                          }`}>
+                          <span
+                            className={`ml-auto text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full shrink-0 ${
+                              cat.val >= 4.5
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : cat.val >= 3.5
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : cat.val >= 2.5
+                                    ? 'bg-amber-100 text-amber-700'
+                                    : 'bg-rose-100 text-rose-700'
+                            }`}
+                          >
                             {cat.val.toFixed(2)} — {vi}
                           </span>
                         )}
@@ -3001,11 +3517,18 @@ export default function UnitActivityPage() {
                       {/* Anonymous comments */}
                       {cat.comments.length > 0 && (
                         <div className="pl-9 space-y-1.5">
-                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">Respondent Comments ({cat.comments.length}):</p>
+                          <p className="text-[10px] font-black text-slate-500 uppercase tracking-wider">
+                            Respondent Comments ({cat.comments.length}):
+                          </p>
                           <ul className="space-y-1.5">
                             {cat.comments.map((c, ci) => (
-                              <li key={ci} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
-                                <span className="shrink-0 h-4 w-4 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-[9px] font-black text-slate-500 mt-0.5">{ci + 1}</span>
+                              <li
+                                key={ci}
+                                className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400"
+                              >
+                                <span className="shrink-0 h-4 w-4 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-[9px] font-black text-slate-500 mt-0.5">
+                                  {ci + 1}
+                                </span>
                                 <span className="leading-relaxed italic">&ldquo;{c}&rdquo;</span>
                               </li>
                             ))}
@@ -3018,17 +3541,20 @@ export default function UnitActivityPage() {
             </section>
 
             {/* ---- III. OPEN-ENDED FEEDBACK ---- */}
-            {filteredEvaluations.some(e => e.ansTakeaways || e.ansExpectations || e.ansMissed || e.ansSuggestions) && (
+            {filteredEvaluations.some(
+              (e) => e.ansTakeaways || e.ansExpectations || e.ansMissed || e.ansSuggestions,
+            ) && (
               <section className="space-y-6">
                 <h3 className="text-sm font-black uppercase text-emerald-700 border-b border-emerald-200 pb-1 tracking-wider">
                   III. Open-Ended Qualitative Feedback
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                  The following section compiles verbatim responses to the open-ended questions included in the evaluation form.
-                  These responses offer deeper qualitative insights into participant experiences, expectations, and suggestions.
+                  The following section compiles verbatim responses to the open-ended questions included in the
+                  evaluation form. These responses offer deeper qualitative insights into participant experiences,
+                  expectations, and suggestions.
                 </p>
 
-                {([
+                {[
                   {
                     q: '1. What was your single biggest takeaway or most valuable part of this activity, and why?',
                     key: 'ansTakeaways' as keyof ActivityEvaluation,
@@ -3045,9 +3571,9 @@ export default function UnitActivityPage() {
                     q: '4. If you could change one thing, or what suggestions do you have for next time?',
                     key: 'ansSuggestions' as keyof ActivityEvaluation,
                   },
-                ]).map((item, qi) => {
+                ].map((item, qi) => {
                   const answers = filteredEvaluations
-                    .map(e => (e[item.key] as string | undefined)?.trim())
+                    .map((e) => (e[item.key] as string | undefined)?.trim())
                     .filter(Boolean) as string[];
                   if (answers.length === 0) return null;
                   return (
@@ -3056,7 +3582,9 @@ export default function UnitActivityPage() {
                       <ul className="space-y-1.5 pl-4">
                         {answers.map((ans, ai) => (
                           <li key={ai} className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400">
-                            <span className="shrink-0 h-4 w-4 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center text-[9px] font-black text-emerald-700 mt-0.5">{ai + 1}</span>
+                            <span className="shrink-0 h-4 w-4 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center text-[9px] font-black text-emerald-700 mt-0.5">
+                              {ai + 1}
+                            </span>
                             <span className="leading-relaxed">{ans}</span>
                           </li>
                         ))}
@@ -3084,9 +3612,18 @@ export default function UnitActivityPage() {
                   focusList.includes('food') ? averageRatingsObj.food : 0,
                   focusList.includes('materials') ? averageRatingsObj.materials : 0,
                   focusList.includes('overall') ? averageRatingsObj.overall : 0,
-                ].filter(v => v > 0);
+                ].filter((v) => v > 0);
                 const grand = allVals.length > 0 ? allVals.reduce((a, b) => a + b, 0) / allVals.length : 0;
-                const vi = grand >= 4.5 ? 'Excellent' : grand >= 3.5 ? 'Very Satisfactory' : grand >= 2.5 ? 'Satisfactory' : grand >= 1.5 ? 'Fair' : 'Poor';
+                const vi =
+                  grand >= 4.5
+                    ? 'Excellent'
+                    : grand >= 3.5
+                      ? 'Very Satisfactory'
+                      : grand >= 2.5
+                        ? 'Satisfactory'
+                        : grand >= 1.5
+                          ? 'Fair'
+                          : 'Poor';
                 const lowest = [
                   { label: 'Objectives', val: averageRatingsObj.objectives, id: 'objectives' },
                   { label: 'Speaker & Facilitation', val: averageRatingsObj.speaker, id: 'speaker' },
@@ -3098,33 +3635,50 @@ export default function UnitActivityPage() {
                   { label: 'Food & Catering', val: averageRatingsObj.food, id: 'food' },
                   { label: 'Materials', val: averageRatingsObj.materials, id: 'materials' },
                   { label: 'Overall Satisfaction', val: averageRatingsObj.overall, id: 'overall' },
-                ].filter(x => focusList.includes(x.id) && x.val > 0 && x.val < 3.5)
+                ]
+                  .filter((x) => focusList.includes(x.id) && x.val > 0 && x.val < 3.5)
                   .sort((a, b) => a.val - b.val)
                   .slice(0, 3);
                 return (
                   <div className="space-y-3 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                     <p>
-                      Based on the evaluation results gathered from <strong>{filteredEvaluations.length}</strong> respondent{filteredEvaluations.length !== 1 ? 's' : ''}, the
-                      activity <strong>&ldquo;{activeActivity?.name}&rdquo;</strong> obtained a grand mean rating of <strong>{grand.toFixed(2)}</strong>,
-                      which is interpreted as <strong>{vi}</strong>. This indicates that the activity was {grand >= 3.5 ? 'well-received and effectively delivered,' : grand >= 2.5 ? 'moderately received by participants, though improvements are warranted,' : 'in need of significant review and improvement,'} as
-                      reflected in the overall satisfaction of the participants.
+                      Based on the evaluation results gathered from <strong>{filteredEvaluations.length}</strong>{' '}
+                      respondent{filteredEvaluations.length !== 1 ? 's' : ''}, the activity{' '}
+                      <strong>&ldquo;{activeActivity?.name}&rdquo;</strong> obtained a grand mean rating of{' '}
+                      <strong>{grand.toFixed(2)}</strong>, which is interpreted as <strong>{vi}</strong>. This indicates
+                      that the activity was{' '}
+                      {grand >= 3.5
+                        ? 'well-received and effectively delivered,'
+                        : grand >= 2.5
+                          ? 'moderately received by participants, though improvements are warranted,'
+                          : 'in need of significant review and improvement,'}{' '}
+                      as reflected in the overall satisfaction of the participants.
                     </p>
                     {lowest.length > 0 && (
                       <div className="space-y-2">
-                        <p>The following area{lowest.length > 1 ? 's' : ''} obtained ratings below the Very Satisfactory threshold and are recommended for improvement in future activities:</p>
+                        <p>
+                          The following area{lowest.length > 1 ? 's' : ''} obtained ratings below the Very Satisfactory
+                          threshold and are recommended for improvement in future activities:
+                        </p>
                         <ul className="list-disc pl-5 space-y-1">
-                          {lowest.map(l => (
-                            <li key={l.id}><strong>{l.label}</strong> — Mean: {l.val.toFixed(2)} ({l.val >= 2.5 ? 'Satisfactory' : l.val >= 1.5 ? 'Fair' : 'Poor'})</li>
+                          {lowest.map((l) => (
+                            <li key={l.id}>
+                              <strong>{l.label}</strong> — Mean: {l.val.toFixed(2)} (
+                              {l.val >= 2.5 ? 'Satisfactory' : l.val >= 1.5 ? 'Fair' : 'Poor'})
+                            </li>
                           ))}
                         </ul>
                       </div>
                     )}
                     <p>
-                      It is recommended that the unit consider the qualitative feedback provided by participants when planning the next activity,
-                      particularly the open-ended responses which offer constructive insights on what participants found most valuable and areas they wish were addressed.
+                      It is recommended that the unit consider the qualitative feedback provided by participants when
+                      planning the next activity, particularly the open-ended responses which offer constructive
+                      insights on what participants found most valuable and areas they wish were addressed.
                     </p>
                     <p className="text-slate-500 italic">
-                      <em>Prepared by: _____________________________ &nbsp;&nbsp; Position: _____________________________</em>
+                      <em>
+                        Prepared by: _____________________________ &nbsp;&nbsp; Position: _____________________________
+                      </em>
                     </p>
                     <p className="text-slate-500 italic">
                       <em>Date: _______________________ &nbsp;&nbsp; Approved by: _____________________________</em>
@@ -3133,11 +3687,14 @@ export default function UnitActivityPage() {
                 );
               })()}
             </section>
-
           </div>
 
           <DialogFooter className="px-6 py-3 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
-            <Button variant="outline" onClick={() => setShowSummaryModal(false)} className="text-xs font-black uppercase">
+            <Button
+              variant="outline"
+              onClick={() => setShowSummaryModal(false)}
+              className="text-xs font-black uppercase"
+            >
               Close
             </Button>
             <Button
@@ -3150,7 +3707,12 @@ export default function UnitActivityPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!selectedEvaluation} onOpenChange={(open) => { if (!open) setSelectedEvaluation(null); }}>
+      <Dialog
+        open={!!selectedEvaluation}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEvaluation(null);
+        }}
+      >
         <DialogContent className="max-w-2xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-2xl shadow-2xl p-0 overflow-hidden">
           <DialogHeader className="bg-[#D4AF37]/5 border-b border-[#D4AF37]/10 p-6">
             <DialogTitle className="text-base font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-2">
@@ -3158,7 +3720,10 @@ export default function UnitActivityPage() {
               Participant Evaluation Details
             </DialogTitle>
             <DialogDescription className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
-              Submitted by {selectedEvaluation?.participantName || 'Anonymous'} on {selectedEvaluation?.submittedAt?.toDate ? format(selectedEvaluation.submittedAt.toDate(), 'MM/dd/yyyy hh:mm a') : 'N/A'}
+              Submitted by {selectedEvaluation?.participantName || 'Anonymous'} on{' '}
+              {selectedEvaluation?.submittedAt?.toDate
+                ? format(selectedEvaluation.submittedAt.toDate(), 'MM/dd/yyyy hh:mm a')
+                : 'N/A'}
             </DialogDescription>
           </DialogHeader>
 
@@ -3167,72 +3732,142 @@ export default function UnitActivityPage() {
             <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700 grid grid-cols-3 gap-4">
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Participant Name</p>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase mt-0.5">{selectedEvaluation?.participantName || 'Anonymous'}</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase mt-0.5">
+                  {selectedEvaluation?.participantName || 'Anonymous'}
+                </p>
               </div>
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Office</p>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase mt-0.5">{selectedEvaluation?.participantOffice || 'Not Provided'}</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase mt-0.5">
+                  {selectedEvaluation?.participantOffice || 'Not Provided'}
+                </p>
               </div>
               <div>
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Position</p>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase mt-0.5">{selectedEvaluation?.participantPosition || 'Not Provided'}</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase mt-0.5">
+                  {selectedEvaluation?.participantPosition || 'Not Provided'}
+                </p>
               </div>
             </div>
 
             {/* Structured Ratings */}
             <div className="space-y-4">
-              <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">Structured Category Ratings</h4>
+              <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">
+                Structured Category Ratings
+              </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  { label: 'Quality of Service', rating: selectedEvaluation?.ratingPerfQuality, comment: selectedEvaluation?.commentsPerfQuality },
-                  { label: 'Timeliness of Service', rating: selectedEvaluation?.ratingPerfTimeliness, comment: selectedEvaluation?.commentsPerfTimeliness },
-                  { label: 'Staff Behavior', rating: selectedEvaluation?.ratingPerfStaff, comment: selectedEvaluation?.commentsPerfStaff },
-                  { label: 'Venue Quality', rating: selectedEvaluation?.ratingVenue, comment: selectedEvaluation?.commentsVenue },
-                  { label: 'Facility Quality', rating: selectedEvaluation?.ratingFacility, comment: selectedEvaluation?.commentsFacility },
-                  { label: 'Food Quality', rating: selectedEvaluation?.ratingFood, comment: selectedEvaluation?.commentsFood },
-                  { label: 'Material Quality', rating: selectedEvaluation?.ratingMaterials, comment: selectedEvaluation?.commentsMaterials },
-                  { label: 'Overall Satisfaction', rating: selectedEvaluation?.ratingOverall, comment: selectedEvaluation?.commentsOverall },
+                  {
+                    label: 'Quality of Service',
+                    rating: selectedEvaluation?.ratingPerfQuality,
+                    comment: selectedEvaluation?.commentsPerfQuality,
+                  },
+                  {
+                    label: 'Timeliness of Service',
+                    rating: selectedEvaluation?.ratingPerfTimeliness,
+                    comment: selectedEvaluation?.commentsPerfTimeliness,
+                  },
+                  {
+                    label: 'Staff Behavior',
+                    rating: selectedEvaluation?.ratingPerfStaff,
+                    comment: selectedEvaluation?.commentsPerfStaff,
+                  },
+                  {
+                    label: 'Venue Quality',
+                    rating: selectedEvaluation?.ratingVenue,
+                    comment: selectedEvaluation?.commentsVenue,
+                  },
+                  {
+                    label: 'Facility Quality',
+                    rating: selectedEvaluation?.ratingFacility,
+                    comment: selectedEvaluation?.commentsFacility,
+                  },
+                  {
+                    label: 'Food Quality',
+                    rating: selectedEvaluation?.ratingFood,
+                    comment: selectedEvaluation?.commentsFood,
+                  },
+                  {
+                    label: 'Material Quality',
+                    rating: selectedEvaluation?.ratingMaterials,
+                    comment: selectedEvaluation?.commentsMaterials,
+                  },
+                  {
+                    label: 'Overall Satisfaction',
+                    rating: selectedEvaluation?.ratingOverall,
+                    comment: selectedEvaluation?.commentsOverall,
+                  },
                   // Legacy Fallbacks
-                  { label: 'Objectives Met', rating: selectedEvaluation?.ratingObjectives, comment: selectedEvaluation?.commentsObjectives },
-                  { label: 'Speaker & Facilitator', rating: selectedEvaluation?.ratingSpeaker, comment: selectedEvaluation?.commentsSpeaker },
-                  { label: 'Topic Relevance (Speaker Sub-Criteria)', rating: selectedEvaluation?.ratingTopic }
-                ].filter(r => r.rating !== undefined && r.rating > 0).map((r, idx) => (
-                  <div key={idx} className="bg-white p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{r.label}</span>
-                      <div className="flex gap-0.5">
-                        {[1, 2, 3, 4, 5].map((s) => (
-                          <Star 
-                            key={s} 
-                            className={cn(
-                              "h-3.5 w-3.5", 
-                              s <= (r.rating || 0) ? "text-amber-400 fill-amber-400" : "text-slate-200"
-                            )} 
-                          />
-                        ))}
+                  {
+                    label: 'Objectives Met',
+                    rating: selectedEvaluation?.ratingObjectives,
+                    comment: selectedEvaluation?.commentsObjectives,
+                  },
+                  {
+                    label: 'Speaker & Facilitator',
+                    rating: selectedEvaluation?.ratingSpeaker,
+                    comment: selectedEvaluation?.commentsSpeaker,
+                  },
+                  { label: 'Topic Relevance (Speaker Sub-Criteria)', rating: selectedEvaluation?.ratingTopic },
+                ]
+                  .filter((r) => r.rating !== undefined && r.rating > 0)
+                  .map((r, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white p-3 rounded-xl border border-slate-100 dark:border-slate-700 shadow-sm space-y-2"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs font-extrabold text-slate-700 dark:text-slate-300">{r.label}</span>
+                        <div className="flex gap-0.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={cn(
+                                'h-3.5 w-3.5',
+                                s <= (r.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-slate-200',
+                              )}
+                            />
+                          ))}
+                        </div>
                       </div>
+                      {r.comment && (
+                        <p className="text-[11px] text-slate-600 dark:text-slate-400 italic bg-slate-50/50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-50">
+                          "{r.comment}"
+                        </p>
+                      )}
                     </div>
-                    {r.comment && (
-                      <p className="text-[11px] text-slate-600 dark:text-slate-400 italic bg-slate-50/50 dark:bg-slate-800/50 p-2 rounded-lg border border-slate-50">
-                        "{r.comment}"
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
 
             {/* Qualitative Feedback Answers */}
             <div className="space-y-4">
-              <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">Qualitative Feedback Responses</h4>
+              <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">
+                Qualitative Feedback Responses
+              </h4>
               <div className="divide-y divide-slate-100 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
                 {[
-                  { q: '1. What was your single biggest takeaway or most valuable part of this activity, and why?', val: selectedEvaluation?.ansTakeaways || selectedEvaluation?.ansValuable },
-                  { q: '2. Did this activity meet your expectations and how did it make you feel? Why or why not?', val: selectedEvaluation?.ansExpectations || selectedEvaluation?.ansFeelings },
-                  { q: '3. Was there a specific topic or activity you wish had been included?', val: selectedEvaluation?.ansMissed },
-                  { q: '4. If you could change one thing, or what suggestions do you have to make our next activity even better?', val: selectedEvaluation?.ansSuggestions || selectedEvaluation?.ansChange }
+                  {
+                    q: '1. What was your single biggest takeaway or most valuable part of this activity, and why?',
+                    val: selectedEvaluation?.ansTakeaways || selectedEvaluation?.ansValuable,
+                  },
+                  {
+                    q: '2. Did this activity meet your expectations and how did it make you feel? Why or why not?',
+                    val: selectedEvaluation?.ansExpectations || selectedEvaluation?.ansFeelings,
+                  },
+                  {
+                    q: '3. Was there a specific topic or activity you wish had been included?',
+                    val: selectedEvaluation?.ansMissed,
+                  },
+                  {
+                    q: '4. If you could change one thing, or what suggestions do you have to make our next activity even better?',
+                    val: selectedEvaluation?.ansSuggestions || selectedEvaluation?.ansChange,
+                  },
                 ].map((item, idx) => (
-                  <div key={idx} className="p-4 space-y-1.5 hover:bg-slate-100/30 dark:hover:bg-slate-700/30 transition-colors">
+                  <div
+                    key={idx}
+                    className="p-4 space-y-1.5 hover:bg-slate-100/30 dark:hover:bg-slate-700/30 transition-colors"
+                  >
                     <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{item.q}</p>
                     {item.val ? (
                       <p className="text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-2.5 rounded-lg border shadow-sm whitespace-pre-line leading-relaxed font-medium">
@@ -3249,7 +3884,9 @@ export default function UnitActivityPage() {
             {/* General comments */}
             {selectedEvaluation?.comments && (
               <div className="space-y-2">
-                <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">General Comments & Suggestions</h4>
+                <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">
+                  General Comments & Suggestions
+                </h4>
                 <p className="text-xs text-slate-600 dark:text-slate-400 italic bg-amber-500/5 border border-amber-500/10 p-4 rounded-xl shadow-inner whitespace-pre-line leading-relaxed font-semibold">
                   "{selectedEvaluation.comments}"
                 </p>

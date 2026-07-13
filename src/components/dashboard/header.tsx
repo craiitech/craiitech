@@ -1,44 +1,51 @@
-
 'use client';
 
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useFirebase, useUser } from '@/firebase';
 import { UserNav } from '@/components/dashboard/user-nav';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ContextualHelp } from './contextual-help';
 import { useVoice } from '@/components/voice/voice-provider';
 import { Button } from '@/components/ui/button';
-import { PanelRightClose, PanelRightOpen, Wifi, WifiOff, Lock, Sun, Moon, Volume2, VolumeX, Calendar } from 'lucide-react';
+import {
+  PanelRightClose,
+  PanelRightOpen,
+  Wifi,
+  WifiOff,
+  Lock,
+  Sun,
+  Moon,
+  Volume2,
+  VolumeX,
+  Calendar,
+  GraduationCap,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Badge } from '@/components/ui/badge';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/context/theme-provider';
 import { useYear } from '@/lib/year-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface HeaderProps {
-    notificationCount: number;
-    totalNotificationsCount?: number;
-    notificationsList?: any[];
-    isGuidanceVisible: boolean;
-    onToggleGuidance: () => void;
-    availableYears?: number[];
+  notificationCount: number;
+  totalNotificationsCount?: number;
+  notificationsList?: any[];
+  isGuidanceVisible: boolean;
+  onToggleGuidance: () => void;
+  availableYears?: number[];
 }
 
-export function Header({ 
-  notificationCount, 
-  totalNotificationsCount = 0, 
-  notificationsList = [], 
-  isGuidanceVisible, 
+export function Header({
+  notificationCount,
+  totalNotificationsCount = 0,
+  notificationsList = [],
+  isGuidanceVisible,
   onToggleGuidance,
-  availableYears = []
+  availableYears = [],
 }: HeaderProps) {
   const firebaseState = useFirebase();
   const pathname = usePathname();
@@ -53,7 +60,7 @@ export function Header({
 
   useEffect(() => {
     const checkState = () => {
-        setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
+      setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
     };
     checkState();
     window.addEventListener('storage', checkState);
@@ -63,137 +70,163 @@ export function Header({
   const getPageTitle = (path: string) => {
     if (path === '/dashboard') return 'Home';
     if (path.startsWith('/submissions')) return 'EOMS SUBMISSION HUB';
-    
+    if (path.startsWith('/eoms-academy')) return 'EOMS ACADEMY';
+
     if (path.startsWith('/audit')) {
-        if (path === '/audit') return 'Internal Quality Audit';
-        return 'IQA Details';
+      if (path === '/audit') return 'Internal Quality Audit';
+      return 'IQA Details';
     }
 
     const lastSegment = path.split('/').pop();
     if (!lastSegment) return '';
-    
+
     if (lastSegment.match(/^[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}$/i)) {
       const segments = path.split('/');
       const parentSegment = segments[segments.length - 2];
       return parentSegment ? parentSegment.charAt(0).toUpperCase() + parentSegment.slice(1, -1) + ' Detail' : 'Detail';
     }
     return lastSegment ? lastSegment.charAt(0).toUpperCase() + lastSegment.slice(1) : '';
-  }
+  };
 
   return (
-    <header className={cn("flex h-16 items-center justify-between px-4 lg:px-8 bg-card sticky top-0 z-30 institutional-header")}>
-        <div className="flex items-center gap-2 min-w-0">
-            <SidebarTrigger className="shrink-0" />
-            <h1 className="font-black text-lg truncate pr-2 uppercase tracking-tight text-slate-800 dark:text-slate-200">{getPageTitle(pathname)}</h1>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-4">
-            {pathname === '/dashboard' && availableYears.length > 0 && (
-                <div className="hidden sm:flex items-center gap-2 mr-2">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                        <SelectTrigger className="h-9 w-[120px] bg-white font-bold text-xs shadow-sm border-primary/20">
-                            <SelectValue placeholder="Year" />
-                        </SelectTrigger>
-                        <SelectContent modal={false}>
-                            {availableYears.map(y => (
-                                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+    <header
+      className={cn(
+        'flex h-16 items-center justify-between px-4 lg:px-8 bg-card sticky top-0 z-30 institutional-header',
+      )}
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <SidebarTrigger className="shrink-0" />
+        <h1 className="font-black text-lg truncate pr-2 uppercase tracking-tight text-slate-800 dark:text-slate-200">
+          {getPageTitle(pathname)}
+        </h1>
+      </div>
+      <div className="flex items-center gap-2 sm:gap-4">
+        <Link href="/eoms-academy" passHref legacyBehavior>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'flex items-center gap-2 font-black uppercase text-xs tracking-wider transition-all px-2 md:px-3 h-9',
+              pathname.startsWith('/eoms-academy')
+                ? 'text-primary bg-primary/10 font-black shadow-sm'
+                : 'text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary hover:bg-primary/5',
             )}
-            {/* Global Offline Mode Indicator for Auditors */}
-            {isAuditor && (
-                <Badge 
-                    variant={isOnline && !isForcedOffline ? "outline" : "destructive"} 
-                    className={cn(
-                        "hidden sm:flex h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 shadow-sm transition-all duration-500",
-                        isOnline && !isForcedOffline ? "bg-white text-primary" : "bg-destructive text-white animate-in zoom-in"
-                    )}
-                >
-                    {isForcedOffline ? (
-                        <Lock className="h-3 w-3" />
-                    ) : isOnline ? (
-                        <Wifi className="h-3 w-3 text-emerald-500" />
-                    ) : (
-                        <WifiOff className="h-3 w-3 animate-pulse" />
-                    )}
-                    {isForcedOffline ? 'FORCED OFFLINE' : isOnline ? 'Online Registry' : 'Offline Mode Active'}
-                </Badge>
+            title="EOMS Academy"
+          >
+            <GraduationCap className="h-4.5 w-4.5" />
+            <span className="hidden md:inline">EOMS Academy</span>
+          </Button>
+        </Link>
+
+        {pathname === '/dashboard' && availableYears.length > 0 && (
+          <div className="hidden sm:flex items-center gap-2 mr-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+              <SelectTrigger className="h-9 w-[120px] bg-white font-bold text-xs shadow-sm border-primary/20">
+                <SelectValue placeholder="Year" />
+              </SelectTrigger>
+              <SelectContent modal={false}>
+                {availableYears.map((y) => (
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+        {/* Global Offline Mode Indicator for Auditors */}
+        {isAuditor && (
+          <Badge
+            variant={isOnline && !isForcedOffline ? 'outline' : 'destructive'}
+            className={cn(
+              'hidden sm:flex h-9 px-4 font-black uppercase text-[9px] gap-2 border-primary/20 shadow-sm transition-all duration-500',
+              isOnline && !isForcedOffline ? 'bg-white text-primary' : 'bg-destructive text-white animate-in zoom-in',
             )}
+          >
+            {isForcedOffline ? (
+              <Lock className="h-3 w-3" />
+            ) : isOnline ? (
+              <Wifi className="h-3 w-3 text-emerald-500" />
+            ) : (
+              <WifiOff className="h-3 w-3 animate-pulse" />
+            )}
+            {isForcedOffline ? 'FORCED OFFLINE' : isOnline ? 'Online Registry' : 'Offline Mode Active'}
+          </Badge>
+        )}
 
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={cn(
-                                "hidden lg:flex h-9 w-9 rounded-full transition-all",
-                                isGuidanceVisible ? "text-primary bg-primary/5" : "text-muted-foreground"
-                            )}
-                            onClick={onToggleGuidance}
-                            title={isGuidanceVisible ? "Hide Guide" : "Show Guide"}
-                        >
-                            {isGuidanceVisible ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p className="text-[10px] font-black uppercase">{isGuidanceVisible ? 'Hide Guide' : 'Show Guide'}</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'hidden lg:flex h-9 w-9 rounded-full transition-all',
+                  isGuidanceVisible ? 'text-primary bg-primary/5' : 'text-muted-foreground',
+                )}
+                onClick={onToggleGuidance}
+                title={isGuidanceVisible ? 'Hide Guide' : 'Show Guide'}
+              >
+                {isGuidanceVisible ? <PanelRightClose className="h-5 w-5" /> : <PanelRightOpen className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-[10px] font-black uppercase">{isGuidanceVisible ? 'Hide Guide' : 'Show Guide'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="hidden lg:flex h-9 w-9 rounded-full transition-all text-muted-foreground hover:text-primary hover:bg-primary/5"
-                            onClick={toggleTheme}
-                            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                        >
-                            {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p className="text-[10px] font-black uppercase">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden lg:flex h-9 w-9 rounded-full transition-all text-muted-foreground hover:text-primary hover:bg-primary/5"
+                onClick={toggleTheme}
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              >
+                {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-[10px] font-black uppercase">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-            <TooltipProvider>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn(
-                                "h-9 w-9 rounded-full transition-all",
-                                voiceEnabled ? "text-primary bg-primary/5" : "text-muted-foreground"
-                            )}
-                            onClick={() => setVoiceEnabled(!voiceEnabled)}
-                            title={voiceEnabled ? 'Disable Voice' : 'Enable Voice'}
-                        >
-                            {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
-                        </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <p className="text-[10px] font-black uppercase">{voiceEnabled ? 'Disable Voice' : 'Enable Voice'}</p>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-9 w-9 rounded-full transition-all',
+                  voiceEnabled ? 'text-primary bg-primary/5' : 'text-muted-foreground',
+                )}
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                title={voiceEnabled ? 'Disable Voice' : 'Enable Voice'}
+              >
+                {voiceEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-[10px] font-black uppercase">{voiceEnabled ? 'Disable Voice' : 'Enable Voice'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
-            <ContextualHelp />
-            <UserNav 
-                user={user} 
-                userProfile={userProfile} 
-                notificationCount={notificationCount} 
-                totalNotificationsCount={totalNotificationsCount}
-                notificationsList={notificationsList}
-            />
-        </div>
+        <ContextualHelp />
+        <UserNav
+          user={user}
+          userProfile={userProfile}
+          notificationCount={notificationCount}
+          totalNotificationsCount={totalNotificationsCount}
+          notificationsList={notificationsList}
+        />
+      </div>
     </header>
   );
 }

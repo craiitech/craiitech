@@ -451,6 +451,15 @@ export type EomsPolicyManual = {
   updatedAt: any; // serverTimestamp()
 };
 
+export type EomsAcademyTopic = {
+  id: string;
+  title: string;
+  description: string;
+  googleDriveLink: string;
+  order: number;
+  updatedAt?: any;
+};
+
 export type ObservationItem = {
   item: string;
   status: 'Available' | 'Not Available' | 'For Improvement' | 'Not Applicable' | 'Need to revisit' | 'Needs Updating';
