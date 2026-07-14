@@ -1,15 +1,35 @@
-
 'use client';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import {
-  useUser,
-  useFirestore,
-  useDoc,
-  useMemoFirebase,
-} from '@/firebase';
-import { LayoutDashboard, FileText, CheckSquare, Settings, HelpCircle, LogOut, BarChart, History as HistoryIcon, ShieldCheck, BookOpen, BookMarked, ClipboardList, FolderKanban, ListChecks, HandHeart, UserCheck, WifiOff, Mail, Loader2, Calendar, Sun, Moon, QrCode, ExternalLink, Download } from 'lucide-react';
+  LayoutDashboard,
+  FileText,
+  CheckSquare,
+  Settings,
+  HelpCircle,
+  LogOut,
+  BarChart,
+  History as HistoryIcon,
+  ShieldCheck,
+  BookOpen,
+  BookMarked,
+  ClipboardList,
+  FolderKanban,
+  ListChecks,
+  HandHeart,
+  UserCheck,
+  WifiOff,
+  Mail,
+  Loader2,
+  Calendar,
+  Sun,
+  Moon,
+  QrCode,
+  ExternalLink,
+  Download,
+} from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -58,7 +78,7 @@ export function SidebarNav({
   const { isAdmin, userRole, isSupervisor, userProfile, isDoi: isDoiUser } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
   const { theme, toggleTheme } = useTheme();
-  
+
   const [isVisitorDialogOpen, setIsVisitorDialogOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [csmQrUrl, setCsmQrUrl] = useState('');
@@ -82,7 +102,7 @@ export function SidebarNav({
 
   useEffect(() => {
     const checkState = () => {
-        setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
+      setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
     };
     checkState();
     window.addEventListener('storage', checkState);
@@ -97,12 +117,9 @@ export function SidebarNav({
     if (!firestore || !userProfile) return;
     setIsPrinting(true);
     try {
-      const q = query(
-        collection(firestore, 'visitorLogs'),
-        where('unitId', '==', userProfile.unitId || 'N/A')
-      );
+      const q = query(collection(firestore, 'visitorLogs'), where('unitId', '==', userProfile.unitId || 'N/A'));
       const querySnapshot = await getDocs(q);
-      
+
       if (querySnapshot.empty) {
         toast({
           title: 'No Logs Found',
@@ -145,22 +162,18 @@ export function SidebarNav({
           campusName = c.name || '';
           campusLocation = c.location || '';
         }
-      } catch { /* fallback silently */ }
+      } catch {
+        /* fallback silently */
+      }
 
       const unitName = unitDoc?.name || userProfile.unitName || 'Office/Unit';
       const formattedDate = format(new Date(), 'MMMM dd, yyyy');
 
       let tableRows = '';
       logs.forEach((log) => {
-        const dateStr = log.createdAt?.toDate 
-          ? format(log.createdAt.toDate(), 'MM/dd/yyyy') 
-          : 'N/A';
-        const timeInStr = log.createdAt?.toDate 
-          ? format(log.createdAt.toDate(), 'hh:mm a') 
-          : 'N/A';
-        const timeOutStr = log.loggedOutAt?.toDate 
-          ? format(log.loggedOutAt.toDate(), 'hh:mm a') 
-          : '—';
+        const dateStr = log.createdAt?.toDate ? format(log.createdAt.toDate(), 'MM/dd/yyyy') : 'N/A';
+        const timeInStr = log.createdAt?.toDate ? format(log.createdAt.toDate(), 'hh:mm a') : 'N/A';
+        const timeOutStr = log.loggedOutAt?.toDate ? format(log.loggedOutAt.toDate(), 'hh:mm a') : '—';
 
         tableRows += `
           <tr>
@@ -256,7 +269,10 @@ export function SidebarNav({
                     <div style="font-size: 11px; font-weight: bold; text-transform: uppercase;">
                       <span>CAMPUS / UNIT: </span>
                       <span style="font-weight: normal; margin-left: 5px;">
-                        ${[campusLocation, campusName, unitName].filter(Boolean).map(s => s.toUpperCase()).join(' — ')}
+                        ${[campusLocation, campusName, unitName]
+                          .filter(Boolean)
+                          .map((s) => s.toUpperCase())
+                          .join(' — ')}
                       </span>
                     </div>
                   </td>
@@ -299,24 +315,19 @@ export function SidebarNav({
    * OFFLINE CONDUCT PROTOCOL
    * When offline (actual or forced), we allow navigation to the core conduct routes.
    */
-  const ALLOWED_OFFLINE_ROUTES = [
-    '/dashboard',
-    '/audit',
-    '/activity-log',
-    '/visitor-logbook'
-  ];
+  const ALLOWED_OFFLINE_ROUTES = ['/dashboard', '/audit', '/activity-log', '/visitor-logbook'];
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     if (!isOnline || isForcedOffline) {
-        const isAllowed = ALLOWED_OFFLINE_ROUTES.some(r => href.startsWith(r));
-        if (!isAllowed) {
-            e.preventDefault();
-            toast({
-                title: "Focused Conduct Mode Active",
-                description: "While offline or locked, only the Home, IQA Conduct, and Activity Log modules are enabled.",
-                variant: "destructive"
-            });
-        }
+      const isAllowed = ALLOWED_OFFLINE_ROUTES.some((r) => href.startsWith(r));
+      if (!isAllowed) {
+        e.preventDefault();
+        toast({
+          title: 'Focused Conduct Mode Active',
+          description: 'While offline or locked, only the Home, IQA Conduct, and Activity Log modules are enabled.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
@@ -334,7 +345,6 @@ export function SidebarNav({
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <UserCheck />,
     },
-
 
     {
       href: '/audit',
@@ -354,7 +364,16 @@ export function SidebarNav({
       href: '/academic-programs',
       label: 'CHED Programs Monitoring',
       active: pathname.startsWith('/academic-programs'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Auditor', 'Unit Coordinator', 'Unit ODIMO', 'Dean of Instruction', 'DOI'],
+      roles: [
+        'Admin',
+        'Campus Director',
+        'Campus ODIMO',
+        'Auditor',
+        'Unit Coordinator',
+        'Unit ODIMO',
+        'Dean of Instruction',
+        'DOI',
+      ],
       icon: <BookOpen />,
       showBadge: true,
     },
@@ -369,7 +388,15 @@ export function SidebarNav({
       href: '/submissions',
       label: 'EOMS SUBMISSION HUB',
       active: pathname.startsWith('/submissions'),
-      roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO', 'Auditor'],
+      roles: [
+        'Admin',
+        'Campus Director',
+        'Campus ODIMO',
+        'Vice President',
+        'Unit Coordinator',
+        'Unit ODIMO',
+        'Auditor',
+      ],
       icon: <FileText />,
       showBadge: true,
     },
@@ -381,7 +408,7 @@ export function SidebarNav({
       icon: <CheckSquare />,
       showBadge: true,
     },
-     {
+    {
       href: '/manuals',
       label: 'Unit Procedure Manuals',
       active: pathname.startsWith('/manuals'),
@@ -422,7 +449,13 @@ export function SidebarNav({
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <BookOpen />,
     },
-     {
+    {
+      href: '/pbb-submissions',
+      label: 'PBB Submissions',
+      active: pathname.startsWith('/pbb-submissions'),
+      icon: <ClipboardList />,
+    },
+    {
       href: '/reports',
       label: 'Reports',
       active: pathname.startsWith('/reports'),
@@ -437,11 +470,11 @@ export function SidebarNav({
       icon: <Calendar />,
     },
     {
-        href: '/settings',
-        label: 'Settings',
-        active: pathname.startsWith('/settings'),
-        roles: ['Admin', 'Campus Director'],
-        icon: <Settings />,
+      href: '/settings',
+      label: 'Settings',
+      active: pathname.startsWith('/settings'),
+      roles: ['Admin', 'Campus Director'],
+      icon: <Settings />,
     },
     {
       href: '/audit-log',
@@ -463,46 +496,67 @@ export function SidebarNav({
     if (!route.roles) return true;
     if (isAdmin && route.roles.includes('Admin')) return true;
     if (userRole) {
-        const roleLower = userRole.toLowerCase();
-        const isVp = roleLower.includes('vice president');
-        const isPresident = roleLower.includes('president');
-        const isQmsHead = roleLower.includes('quality management system head') || roleLower.includes('qms head');
-        
-        if (route.roles.some(r => r.toLowerCase() === roleLower)) return true;
-        if (isVp && route.roles.some(r => r.toLowerCase() === 'vice president')) return true;
-        if (isPresident && route.roles.some(r => {
+      const roleLower = userRole.toLowerCase();
+      const isVp = roleLower.includes('vice president');
+      const isPresident = roleLower.includes('president');
+      const isQmsHead = roleLower.includes('quality management system head') || roleLower.includes('qms head');
+
+      if (route.roles.some((r) => r.toLowerCase() === roleLower)) return true;
+      if (isVp && route.roles.some((r) => r.toLowerCase() === 'vice president')) return true;
+      if (
+        isPresident &&
+        route.roles.some((r) => {
           const rLower = r.toLowerCase();
           return rLower === 'vice president' || rLower === 'campus director' || rLower === 'admin';
-        })) return true;
-        if (isQmsHead && route.roles.some(r => {
+        })
+      )
+        return true;
+      if (
+        isQmsHead &&
+        route.roles.some((r) => {
           const rLower = r.toLowerCase();
           return rLower === 'campus director' || rLower === 'admin';
-        })) return true;
-        if (roleLower === 'faculty' && route.roles.some(r => {
+        })
+      )
+        return true;
+      if (
+        roleLower === 'faculty' &&
+        route.roles.some((r) => {
           const rLower = r.toLowerCase();
           return rLower === 'unit coordinator' || rLower === 'unit odimo';
-        })) return true;
-        const isDoi = isDoiUser || roleLower.includes('dean of instruction') || roleLower === 'doi';
-        if (isDoi && route.roles.some(r => {
+        })
+      )
+        return true;
+      const isDoi = isDoiUser || roleLower.includes('dean of instruction') || roleLower === 'doi';
+      if (
+        isDoi &&
+        route.roles.some((r) => {
           const rLower = r.toLowerCase();
-          return rLower === 'dean of instruction' || rLower === 'doi' || rLower === 'campus director' || rLower === 'campus odimo';
-        })) return true;
+          return (
+            rLower === 'dean of instruction' ||
+            rLower === 'doi' ||
+            rLower === 'campus director' ||
+            rLower === 'campus odimo'
+          );
+        })
+      )
+        return true;
     }
     return false;
   });
 
   return (
-    <div className={cn("flex flex-col h-full", className)} {...props}>
+    <div className={cn('flex flex-col h-full', className)} {...props}>
       <SidebarMenu className="flex-1">
         {visibleRoutes.map((route) => {
-          const isAllowedOffline = ALLOWED_OFFLINE_ROUTES.some(r => route.href.startsWith(r));
+          const isAllowedOffline = ALLOWED_OFFLINE_ROUTES.some((r) => route.href.startsWith(r));
           const isDisabled = (!isOnline || isForcedOffline) && !isAllowedOffline;
 
           return (
             <SidebarMenuItem key={route.href}>
               {route.href === '/visitor-logbook' ? (
-                <SidebarMenuButton 
-                  isActive={route.active} 
+                <SidebarMenuButton
+                  isActive={route.active}
                   tooltip={route.label}
                   onClick={() => setIsVisitorDialogOpen(true)}
                   className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent"
@@ -511,64 +565,62 @@ export function SidebarNav({
                   <span>{route.label}</span>
                 </SidebarMenuButton>
               ) : (
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={route.active} 
+                <SidebarMenuButton
+                  asChild
+                  isActive={route.active}
                   tooltip={route.label}
                   onClick={(e) => handleNavClick(e, route.href)}
                   className={cn(
-                      "[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent",
-                      isDisabled && "opacity-20 cursor-not-allowed grayscale pointer-events-auto"
+                    '[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent',
+                    isDisabled && 'opacity-20 cursor-not-allowed grayscale pointer-events-auto',
                   )}
                 >
                   <Link href={route.href}>
-                      {isDisabled ? <WifiOff className="h-4 w-4" /> : route.icon}
-                      <span>{route.label}</span>
-                      {route.showBadge && !isDisabled && (
-                        route.href === '/communications' ? (
-                          commNotificationCount > 0 && (
+                    {isDisabled ? <WifiOff className="h-4 w-4" /> : route.icon}
+                    <span>{route.label}</span>
+                    {route.showBadge &&
+                      !isDisabled &&
+                      (route.href === '/communications'
+                        ? commNotificationCount > 0 && (
                             <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
                               {commNotificationCount}
                             </SidebarMenuBadge>
                           )
-                        ) : route.href === '/unit-forms' ? (
-                          formRequestNotificationsCount > 0 && (
-                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                              {formRequestNotificationsCount}
-                            </SidebarMenuBadge>
-                          )
-                        ) : route.href === '/manuals' ? (
-                          manualsNotificationCount > 0 && (
-                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                              {manualsNotificationCount}
-                            </SidebarMenuBadge>
-                          )
-                        ) : route.href === '/risk-register' ? (
-                          riskNotificationsCount > 0 && (
-                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                              {riskNotificationsCount}
-                            </SidebarMenuBadge>
-                          )
-                        ) : route.href === '/qa-reports' ? (
-                          qaReportsNotificationCount > 0 && (
-                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                              {qaReportsNotificationCount}
-                            </SidebarMenuBadge>
-                          )
-                        ) : route.href === '/academic-programs' ? (
-                          accreditationNotificationsCount > 0 && (
-                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                              {accreditationNotificationsCount}
-                            </SidebarMenuBadge>
-                          )
-                        ) : (
-                          notificationCount > 0 && (
-                            <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                              {notificationCount}
-                            </SidebarMenuBadge>
-                          )
-                        )
-                      )}
+                        : route.href === '/unit-forms'
+                          ? formRequestNotificationsCount > 0 && (
+                              <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                {formRequestNotificationsCount}
+                              </SidebarMenuBadge>
+                            )
+                          : route.href === '/manuals'
+                            ? manualsNotificationCount > 0 && (
+                                <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                  {manualsNotificationCount}
+                                </SidebarMenuBadge>
+                              )
+                            : route.href === '/risk-register'
+                              ? riskNotificationsCount > 0 && (
+                                  <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                    {riskNotificationsCount}
+                                  </SidebarMenuBadge>
+                                )
+                              : route.href === '/qa-reports'
+                                ? qaReportsNotificationCount > 0 && (
+                                    <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                      {qaReportsNotificationCount}
+                                    </SidebarMenuBadge>
+                                  )
+                                : route.href === '/academic-programs'
+                                  ? accreditationNotificationsCount > 0 && (
+                                      <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                        {accreditationNotificationsCount}
+                                      </SidebarMenuBadge>
+                                    )
+                                  : notificationCount > 0 && (
+                                      <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                        {notificationCount}
+                                      </SidebarMenuBadge>
+                                    ))}
                   </Link>
                 </SidebarMenuButton>
               )}
@@ -577,59 +629,64 @@ export function SidebarNav({
         })}
       </SidebarMenu>
       <div className="mt-auto">
-         <SidebarMenu>
-            <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={pathname.startsWith('/communications')}
-                  tooltip="Communication"
-                  onClick={(e) => handleNavClick(e, '/communications')}
-                  className={cn(
-                    "rounded-md hover:bg-sky-950/40 hover:text-sky-200 text-sky-300 [&_svg]:text-sky-300",
-                    "[&[data-active=true]]:bg-sky-500 [&[data-active=true]]:text-slate-950 dark:text-white [&[data-active=true]_svg]:text-slate-950 dark:text-white [&[data-active=true]]:hover:bg-sky-400 [&[data-active=true]]:hover:text-slate-950 dark:text-white",
-                    (!isOnline || isForcedOffline) && "opacity-20 cursor-not-allowed"
-                  )}
-                >
-                  <Link href="/communications">
-                    <Mail />
-                    <span>Communication</span>
-                    {commNotificationCount > 0 && !(!isOnline || isForcedOffline) && (
-                      <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                        {commNotificationCount}
-                      </SidebarMenuBadge>
-                    )}
-                  </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
-                  isActive={pathname.startsWith('/help')}
-                  tooltip="Help"
-                  onClick={(e) => handleNavClick(e, '/help')}
-                  className={cn(
-                    "[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent",
-                    (!isOnline || isForcedOffline) && "opacity-20 cursor-not-allowed"
-                  )}
-                >
-                  <Link href="/help">
-                    <HelpCircle />
-                    <span>Help</span>
-                  </Link>
-                </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-                 <SidebarMenuButton onClick={toggleTheme} tooltip={theme === 'dark' ? 'Light Mode' : 'Dark Mode'} data-tour="dark-mode-toggle" className="hover:bg-sidebar-accent">
-                     {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                     <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
-                 </SidebarMenuButton>
-             </SidebarMenuItem>
-             <SidebarMenuItem>
-                 <SidebarMenuButton onClick={handleLogout} tooltip="Logout" className="hover:bg-sidebar-accent">
-                     <LogOut />
-                     <span>Logout</span>
-                 </SidebarMenuButton>
-             </SidebarMenuItem>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/communications')}
+              tooltip="Communication"
+              onClick={(e) => handleNavClick(e, '/communications')}
+              className={cn(
+                'rounded-md hover:bg-sky-950/40 hover:text-sky-200 text-sky-300 [&_svg]:text-sky-300',
+                '[&[data-active=true]]:bg-sky-500 [&[data-active=true]]:text-slate-950 dark:text-white [&[data-active=true]_svg]:text-slate-950 dark:text-white [&[data-active=true]]:hover:bg-sky-400 [&[data-active=true]]:hover:text-slate-950 dark:text-white',
+                (!isOnline || isForcedOffline) && 'opacity-20 cursor-not-allowed',
+              )}
+            >
+              <Link href="/communications">
+                <Mail />
+                <span>Communication</span>
+                {commNotificationCount > 0 && !(!isOnline || isForcedOffline) && (
+                  <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                    {commNotificationCount}
+                  </SidebarMenuBadge>
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith('/help')}
+              tooltip="Help"
+              onClick={(e) => handleNavClick(e, '/help')}
+              className={cn(
+                '[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent',
+                (!isOnline || isForcedOffline) && 'opacity-20 cursor-not-allowed',
+              )}
+            >
+              <Link href="/help">
+                <HelpCircle />
+                <span>Help</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={toggleTheme}
+              tooltip={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+              data-tour="dark-mode-toggle"
+              className="hover:bg-sidebar-accent"
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={handleLogout} tooltip="Logout" className="hover:bg-sidebar-accent">
+              <LogOut />
+              <span>Logout</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </div>
 
@@ -649,7 +706,7 @@ export function SidebarNav({
             {/* Left column: Action buttons */}
             <div className="flex-1 flex flex-col gap-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Actions</p>
-              <Button 
+              <Button
                 onClick={() => {
                   window.open('/visitor-logbook?fullscreen=true', '_blank');
                   setIsVisitorDialogOpen(false);
@@ -658,7 +715,7 @@ export function SidebarNav({
               >
                 Open Kiosk Sign-In Page
               </Button>
-              <Button 
+              <Button
                 onClick={handlePrintVisitorLogs}
                 disabled={isPrinting}
                 className="w-full h-12 bg-white hover:bg-slate-50 dark:hover:bg-slate-800/50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
@@ -668,12 +725,10 @@ export function SidebarNav({
                     <Loader2 className="h-4 w-4 animate-spin" /> Fetching Logs...
                   </>
                 ) : (
-                  <>
-                    Print Logbook Records
-                  </>
+                  <>Print Logbook Records</>
                 )}
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   router.push('/visitor-logbook/settings');
                   setIsVisitorDialogOpen(false);
@@ -689,15 +744,16 @@ export function SidebarNav({
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Online CSM Link</p>
 
               <p className="text-[9px] text-slate-500 font-medium text-center leading-relaxed">
-                Download the QR code or copy the link below and send it to your online clients so they can evaluate your unit&apos;s service through the CSM survey.
+                Download the QR code or copy the link below and send it to your online clients so they can evaluate your
+                unit&apos;s service through the CSM survey.
               </p>
 
               <div className="bg-white p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner w-[180px] h-[180px] flex items-center justify-center">
                 {csmQrUrl ? (
                   <img
-                     src={csmQrUrl}
-                     alt="CSM Online Evaluation QR Code"
-                     className="w-[164px] h-[164px] object-contain"
+                    src={csmQrUrl}
+                    alt="CSM Online Evaluation QR Code"
+                    className="w-[164px] h-[164px] object-contain"
                   />
                 ) : (
                   <div className="w-[164px] h-[164px] flex items-center justify-center">
@@ -808,4 +864,3 @@ export function SidebarNav({
     </div>
   );
 }
-

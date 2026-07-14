@@ -230,6 +230,26 @@ export type GadSettings = {
   updatedBy?: string;
 };
 
+export type PbbSettings = {
+  authorizedUnitIds?: string[];
+  updatedAt?: any;
+  updatedBy?: string;
+};
+
+export type PbbSubmission = {
+  id: string;
+  unitId: string;
+  unitName: string;
+  campusId: string;
+  campusName: string;
+  year: number;
+  submittedAt: any;
+  title: string;
+  googleLink: string;
+  submittedBy: string;
+  submittedByName: string;
+};
+
 export type BackupSettings = {
   targetDriveLink?: string;
   lastConfiguredAt?: any;

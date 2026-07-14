@@ -57,6 +57,10 @@ service cloud.firestore {
     match /submissions/{id} {
       allow get, list, write: if isSignedIn();
     }
+
+    match /pbbSubmissions/{id} {
+      allow read, write: if isSignedIn();
+    }
     
     match /risks/{id} {
       allow get, list, write: if isSignedIn();

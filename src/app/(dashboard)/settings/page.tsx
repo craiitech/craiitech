@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserManagement } from '@/components/admin/user-management';
 import { CampusManagement } from '@/components/admin/campus-management';
 import { RoleManagement } from '@/components/admin/role-management';
@@ -21,6 +16,7 @@ import { ErrorReportManagement } from '@/components/admin/error-report-managemen
 import { ProcedureManualManagement } from '@/components/admin/procedure-manual-management';
 import { EomsPolicyManualManagement } from '@/components/admin/eoms-policy-manual-management';
 import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer';
+import { PbbSettingsManagement } from '@/components/admin/pbb-settings-management';
 
 import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
@@ -45,56 +41,108 @@ export default function SettingsPage() {
     params.set('tab', value);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
-  
+
   if (isUserLoading) {
-     return (
-       <div className="space-y-4">
+    return (
+      <div className="space-y-4">
         <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
-        <p className="text-muted-foreground">
-            Loading settings...
-        </p>
+        <p className="text-muted-foreground">Loading settings...</p>
         <div className="space-y-4 pt-4">
-            <Skeleton className="h-10 w-full md:w-[400px]" />
-            <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-10 w-full md:w-[400px]" />
+          <Skeleton className="h-64 w-full" />
         </div>
       </div>
     );
   }
-  
+
   if (isAdmin) {
     return (
       <div className="space-y-4">
         <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-4">
           <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b space-y-4">
-              <div>
-                <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
-                <p className="text-muted-foreground">
-                  Manage users, campuses, units, roles, permissions, and institutional signatories.
-                </p>
-              </div>
-              <ScrollArea className="w-full">
-                  <TabsList className="inline-flex w-max h-auto bg-muted p-1 animate-tab-highlight rounded-md whitespace-nowrap">
-                    <TabsTrigger value="users" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Users</TabsTrigger>
-                    <TabsTrigger value="logo" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">System Logo</TabsTrigger>
-                    <TabsTrigger value="signatories" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Signatories</TabsTrigger>
-                    <TabsTrigger value="gad" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">GAD Corner</TabsTrigger>
-                    <TabsTrigger value="csm" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">CSM Settings</TabsTrigger>
-                    <TabsTrigger value="campuses" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Campuses</TabsTrigger>
-                    <TabsTrigger value="units" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Units</TabsTrigger>
-                    <TabsTrigger value="unit-grouping" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Unit Explorer</TabsTrigger>
-                    <TabsTrigger value="roles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Roles</TabsTrigger>
-                    <TabsTrigger value="permissions" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Permissions</TabsTrigger>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">System Settings</h2>
+              <p className="text-muted-foreground">
+                Manage users, campuses, units, roles, permissions, and institutional signatories.
+              </p>
+            </div>
+            <ScrollArea className="w-full">
+              <TabsList className="inline-flex w-max h-auto bg-muted p-1 animate-tab-highlight rounded-md whitespace-nowrap">
+                <TabsTrigger value="users" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  Users
+                </TabsTrigger>
+                <TabsTrigger value="logo" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  System Logo
+                </TabsTrigger>
+                <TabsTrigger value="signatories" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  Signatories
+                </TabsTrigger>
+                <TabsTrigger value="gad" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  GAD Corner
+                </TabsTrigger>
+                <TabsTrigger value="csm" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  CSM Settings
+                </TabsTrigger>
+                <TabsTrigger value="campuses" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  Campuses
+                </TabsTrigger>
+                <TabsTrigger value="units" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  Units
+                </TabsTrigger>
+                <TabsTrigger
+                  value="unit-grouping"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  Unit Explorer
+                </TabsTrigger>
+                <TabsTrigger value="roles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  Roles
+                </TabsTrigger>
+                <TabsTrigger value="permissions" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  Permissions
+                </TabsTrigger>
 
-
-                    <TabsTrigger value="procedure-manuals" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Procedure Manuals</TabsTrigger>
-                    <TabsTrigger value="eoms-policy-manual" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">RSU EOMS Manual</TabsTrigger>
-                    <TabsTrigger value="cycles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Cycles & Deadlines</TabsTrigger>
-                    <TabsTrigger value="campus-settings" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Campus Settings</TabsTrigger>
-                    <TabsTrigger value="backups" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Data & Backups</TabsTrigger>
-                    <TabsTrigger value="error-reports" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">Error Reports</TabsTrigger>
-                    <TabsTrigger value="kpi-definitions" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">KPI Definitions</TabsTrigger>
-                  </TabsList>
-              </ScrollArea>
+                <TabsTrigger
+                  value="procedure-manuals"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  Procedure Manuals
+                </TabsTrigger>
+                <TabsTrigger
+                  value="eoms-policy-manual"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  RSU EOMS Manual
+                </TabsTrigger>
+                <TabsTrigger value="cycles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  Cycles & Deadlines
+                </TabsTrigger>
+                <TabsTrigger
+                  value="campus-settings"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  Campus Settings
+                </TabsTrigger>
+                <TabsTrigger value="backups" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  Data & Backups
+                </TabsTrigger>
+                <TabsTrigger
+                  value="error-reports"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  Error Reports
+                </TabsTrigger>
+                <TabsTrigger
+                  value="kpi-definitions"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  KPI Definitions
+                </TabsTrigger>
+                <TabsTrigger value="pbb-settings" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  PBB Settings
+                </TabsTrigger>
+              </TabsList>
+            </ScrollArea>
           </div>
 
           <TabsContent value="users" className="space-y-4 animate-in fade-in duration-500">
@@ -134,10 +182,10 @@ export default function SettingsPage() {
           <TabsContent value="eoms-policy-manual" className="space-y-4 animate-in fade-in duration-500">
             <EomsPolicyManualManagement />
           </TabsContent>
-           <TabsContent value="cycles" className="space-y-4 animate-in fade-in duration-500">
+          <TabsContent value="cycles" className="space-y-4 animate-in fade-in duration-500">
             <CycleManagement />
           </TabsContent>
-           <TabsContent value="campus-settings" className="space-y-6 animate-in fade-in duration-500">
+          <TabsContent value="campus-settings" className="space-y-6 animate-in fade-in duration-500">
             <CampusSettingsManagement />
             <Separator />
             <AnnouncementManagement />
@@ -145,49 +193,48 @@ export default function SettingsPage() {
           <TabsContent value="backups" className="space-y-4 animate-in fade-in duration-500">
             <DataBackupManagement />
           </TabsContent>
-           <TabsContent value="error-reports" className="space-y-4 animate-in fade-in duration-500">
+          <TabsContent value="error-reports" className="space-y-4 animate-in fade-in duration-500">
             <ErrorReportManagement />
           </TabsContent>
           <TabsContent value="kpi-definitions" className="space-y-4 animate-in fade-in duration-500">
             <KpiDefinitionsManager />
           </TabsContent>
+          <TabsContent value="pbb-settings" className="space-y-4 animate-in fade-in duration-500">
+            <PbbSettingsManagement />
+          </TabsContent>
         </Tabs>
       </div>
     );
   }
-  
+
   if (userRole === 'Campus Director') {
-      return (
-         <div className="space-y-6">
-            <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b">
-              <h2 className="text-2xl font-bold tracking-tight">Campus Settings</h2>
-              <p className="text-muted-foreground">
-                Manage settings and resources specific to your campus.
-              </p>
-            </div>
-            <div className="space-y-8 pt-4">
-                <div>
-                    <h3 className="text-lg font-black uppercase tracking-tight mb-4 text-primary">Unit Management</h3>
-                    <DirectorUnitManagement />
-                </div>
-                <Separator />
-                <div>
-                    <h3 className="text-lg font-black uppercase tracking-tight mb-4 text-primary">Campus Announcement</h3>
-                    <CampusSettingsManagement />
-                </div>
-            </div>
+    return (
+      <div className="space-y-6">
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b">
+          <h2 className="text-2xl font-bold tracking-tight">Campus Settings</h2>
+          <p className="text-muted-foreground">Manage settings and resources specific to your campus.</p>
         </div>
-      )
+        <div className="space-y-8 pt-4">
+          <div>
+            <h3 className="text-lg font-black uppercase tracking-tight mb-4 text-primary">Unit Management</h3>
+            <DirectorUnitManagement />
+          </div>
+          <Separator />
+          <div>
+            <h3 className="text-lg font-black uppercase tracking-tight mb-4 text-primary">Campus Announcement</h3>
+            <CampusSettingsManagement />
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-     <div className="space-y-4">
-        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b">
-          <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
-          <p className="text-muted-foreground">
-            You do not have permission to modify system settings.
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b">
+        <h2 className="text-2xl font-bold tracking-tight">Access Denied</h2>
+        <p className="text-muted-foreground">You do not have permission to modify system settings.</p>
       </div>
-  )
+    </div>
+  );
 }
