@@ -45,8 +45,6 @@ export default function PbbSubmissionsPage() {
   const [formTitle, setFormTitle] = useState('');
   const [formYear, setFormYear] = useState<string>('');
   const [formGoogleLink, setFormGoogleLink] = useState('');
-  const [formCampusId, setFormCampusId] = useState<string>('');
-  const [formUnitId, setFormUnitId] = useState<string>('');
 
   // Fetch PBB Settings for authorized units list
   const pbbSettingsRef = useMemoFirebase(
@@ -102,12 +100,6 @@ export default function PbbSubmissionsPage() {
   }, [firestore, userProfile, isUserLoading, hasGlobalAccess]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<PbbSubmission>(pbbSubmissionsQuery);
-
-  // Form unit list filtered by campus selection for admin/global submission overrides
-  const formFilteredUnits = useMemo(() => {
-    if (!units || !formCampusId) return [];
-    return units.filter((u) => u.campusIds?.includes(formCampusId)).sort((a, b) => a.name.localeCompare(b.name));
-  }, [units, formCampusId]);
 
   // Filtered Submissions list based on Search Term and Year Filter
   const filteredSubmissions = useMemo(() => {
@@ -189,9 +181,8 @@ export default function PbbSubmissionsPage() {
 
     setIsSubmitting(true);
     try {
-      // Determine unit and campus info (admin can submit for other units if they specified, otherwise use user's unit)
-      const targetUnitId = hasGlobalAccess && formUnitId ? formUnitId : userProfile.unitId;
-      const targetCampusId = hasGlobalAccess && formCampusId ? formCampusId : userProfile.campusId;
+      const targetUnitId = userProfile.unitId;
+      const targetCampusId = userProfile.campusId;
 
       const targetUnit = targetUnitId ? unitMap.get(targetUnitId) : null;
       const targetCampusName = targetCampusId ? campusMap.get(targetCampusId) || 'Unknown Campus' : 'Unknown Campus';
@@ -222,8 +213,6 @@ export default function PbbSubmissionsPage() {
       setFormTitle('');
       setFormYear('');
       setFormGoogleLink('');
-      setFormCampusId('');
-      setFormUnitId('');
       setShowSubmitForm(false);
     } catch (error) {
       console.error('Error submitting PBB document:', error);
@@ -277,10 +266,6 @@ export default function PbbSubmissionsPage() {
             onClick={() => {
               setShowSubmitForm(true);
               setFormYear(systemYear.toString());
-              if (hasGlobalAccess) {
-                setFormCampusId(userProfile?.campusId || '');
-                setFormUnitId(userProfile?.unitId || '');
-              }
             }}
             className="shadow-lg shadow-primary/20 font-black uppercase tracking-wider text-[10px]"
           >
@@ -289,13 +274,38 @@ export default function PbbSubmissionsPage() {
         )}
       </div>
 
-      {/* REQUIRED RESEARCH INSTRUCTION BANNER */}
-      <div className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20 rounded-lg p-4 flex items-start gap-3">
-        <Info className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
-        <div className="space-y-1">
-          <p className="text-xs font-black uppercase tracking-wider">Required Research Mandate</p>
-          <p className="text-sm font-bold italic">"Please research about performance based bunot of the philippines"</p>
+      {/* REQUIRED RESEARCH INSTRUCTION BANNER & SUBMISSION STEPS */}
+      <div className="space-y-4">
+        <div className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border border-yellow-500/20 rounded-lg p-4 flex items-start gap-3">
+          <Info className="h-5 w-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-xs font-black uppercase tracking-wider">Required Research Mandate</p>
+            <p className="text-sm font-bold italic">
+              "Please research about performance based bunot of the philippines"
+            </p>
+          </div>
         </div>
+
+        <Card className="border-primary/10 bg-primary/5">
+          <CardHeader className="py-3 px-4 border-b border-primary/10">
+            <CardTitle className="text-xs font-black uppercase tracking-wider text-primary">
+              Instructions on how to submit
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-3 px-4 text-xs space-y-2 text-muted-foreground font-medium">
+            <ol className="list-decimal pl-4 space-y-1.5 leading-relaxed">
+              <li>
+                Upload the file to be submitted on your own{' '}
+                <strong className="text-slate-900 dark:text-slate-100">RSU Google Drive</strong>, set the sharing
+                permissions (e.g. "Anyone with the link can view"), and copy the sharing link.
+              </li>
+              <li>
+                Set the correct year of submission, provide the document title, and paste the copied Google Drive link
+                into the Google link field.
+              </li>
+            </ol>
+          </CardContent>
+        </Card>
       </div>
 
       {/* INLINE SUBMISSION FORM AREA (NOT ALERTDIALOG) */}
@@ -356,55 +366,6 @@ export default function PbbSubmissionsPage() {
                   className="font-medium"
                 />
               </div>
-
-              {/* ADMIN OVERRIDES (CHOOSE CAMPUS & UNIT) */}
-              {hasGlobalAccess && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 rounded-lg bg-slate-50 dark:bg-slate-900 border">
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
-                      Target Campus
-                    </label>
-                    <Select
-                      value={formCampusId}
-                      onValueChange={(val) => {
-                        setFormCampusId(val);
-                        setFormUnitId('');
-                      }}
-                    >
-                      <SelectTrigger className="font-medium">
-                        <SelectValue placeholder="Select Campus" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {campuses
-                          ?.sort((a, b) => a.name.localeCompare(b.name))
-                          .map((c) => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
-                      Target Unit / Office
-                    </label>
-                    <Select value={formUnitId} onValueChange={setFormUnitId} disabled={!formCampusId}>
-                      <SelectTrigger className="font-medium">
-                        <SelectValue placeholder={formCampusId ? 'Select Unit / Office' : 'Select Campus first...'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formFilteredUnits.map((u) => (
-                          <SelectItem key={u.id} value={u.id}>
-                            {u.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
 
               {/* DATES INFO */}
               <div className="p-3 rounded bg-slate-100 dark:bg-slate-800 border text-xs text-muted-foreground italic flex items-center gap-2">
