@@ -4,7 +4,7 @@ import React, { createContext, useContext, ReactNode, useMemo, useState, useEffe
 import { FirebaseApp } from 'firebase/app';
 import { Firestore, doc, collection } from '@/firebase/firestore-wrapper';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener'
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { useDoc } from './firestore/use-doc';
 import { useCollection, type WithId } from './firestore/use-collection';
 import { useGetCollection } from './firestore/use-get-collection';
@@ -12,7 +12,6 @@ import type { User as AppUser, Role, Campus, SystemSettings } from '@/lib/types'
 import { useMemoFirebase } from './';
 import { useSessionActivity, ActivityLogProvider } from '@/lib/activity-log-provider';
 import { useToast } from '@/hooks/use-toast';
-
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -102,12 +101,7 @@ export const FirebaseContext = createContext<FirebaseContextState | undefined>(u
 /**
  * FirebaseProvider manages and provides Firebase services and user authentication state.
  */
-export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
-  children,
-  firebaseApp,
-  firestore,
-  auth,
-}) => {
+export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, firebaseApp, firestore, auth }) => {
   const [userAuthState, setUserAuthState] = useState<UserAuthState>({
     user: null,
     isAuthLoading: true, // Start loading until first auth event
@@ -121,7 +115,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
   // Effect to subscribe to Firebase auth state changes
   useEffect(() => {
     if (!auth) {
-      setUserAuthState({ user: null, isAuthLoading: false, userError: new Error("Auth service not provided.") });
+      setUserAuthState({ user: null, isAuthLoading: false, userError: new Error('Auth service not provided.') });
       return;
     }
 
@@ -143,17 +137,16 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
           description: error.message || 'An unknown authentication error occurred.',
           variant: 'destructive',
         });
-      }
+      },
     );
     return () => unsubscribe();
   }, [auth, toast]);
-
 
   const userDocRef = useMemoFirebase(() => {
     if (!userAuthState.user || !firestore) return null;
     return doc(firestore, 'users', userAuthState.user.uid);
   }, [userAuthState.user, firestore]);
-  
+
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userDocRef);
 
   const unitDocRef = useMemoFirebase(() => {
@@ -182,7 +175,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     if (!firestore || !userAuthState.user) return null;
     return doc(firestore, 'system', 'settings');
   }, [firestore, userAuthState.user]);
-  
+
   const { data: systemSettings } = useDoc<SystemSettings>(systemSettingsRef);
 
   const campusesQuery = useMemoFirebase(() => {
@@ -197,32 +190,41 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const servicesAvailable = !!(firebaseApp && firestore && auth);
     const userRole = userProfile?.role || null;
     const unitLower = (unitDoc?.name || userProfile?.unitName || '').toLowerCase();
-    
+
     // Robust Role Detection
     const roleLower = userRole?.toLowerCase() || '';
-    
+
     const isAdmin = !!adminRoleDoc || roleLower.includes('admin');
     const isVp = roleLower.includes('vice president');
     const isAuditor = roleLower.includes('auditor');
-    
-    const isDOI = roleLower.includes('dean of instruction') || roleLower === 'doi' || unitLower.includes('dean of instruction') || unitLower === 'doi' || userProfile?.unitId === 'W61XJkVKga3ra2JaLINg';
-    
-    // Anyone with "Director", "ODIMO", "President", "Head", or "Dean of Instruction / DOI" in their role is an oversight supervisor
-    const isSupervisor = isAdmin || isVp || roleLower.includes('director') || roleLower.includes('odimo') || roleLower.includes('president') || roleLower.includes('head') || isDOI;
 
-    const mainCampus = campuses?.find(c => c.name === 'Main Campus');
+    const isDOI =
+      roleLower.includes('dean of instruction') ||
+      roleLower === 'doi' ||
+      ((unitLower.includes('dean of instruction') ||
+        unitLower === 'doi' ||
+        userProfile?.unitId === 'W61XJkVKga3ra2JaLINg') &&
+        !roleLower.includes('coordinator') &&
+        roleLower !== 'faculty');
+
+    // Anyone with "Director", "ODIMO", "President", "Head", or "Dean of Instruction / DOI" in their role is an oversight supervisor
+    const isSupervisor =
+      isAdmin ||
+      isVp ||
+      roleLower.includes('director') ||
+      roleLower.includes('odimo') ||
+      roleLower.includes('president') ||
+      roleLower.includes('head') ||
+      isDOI;
+
+    const mainCampus = campuses?.find((c) => c.name === 'Main Campus');
     const isMainCampusCoordinator = !!(
       userProfile &&
       mainCampus &&
       userProfile.campusId === mainCampus.id &&
       (roleLower.includes('coordinator') || roleLower.includes('odimo'))
     );
-    const isMainCampusDOI = !!(
-      userProfile &&
-      mainCampus &&
-      userProfile.campusId === mainCampus.id &&
-      isDOI
-    );
+    const isMainCampusDOI = !!(userProfile && mainCampus && userProfile.campusId === mainCampus.id && isDOI);
 
     const rolePermissions = roleDoc?.permissions || {};
 
@@ -232,8 +234,9 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     };
 
     // The user is fully loaded only when auth state is determined AND the Firestore profile is loaded.
-    const isUserLoading = userAuthState.isAuthLoading || (!!userAuthState.user && (isProfileLoading || isAdminRoleLoading || isLoadingCampuses || isUnitDocLoading));
-
+    const isUserLoading =
+      userAuthState.isAuthLoading ||
+      (!!userAuthState.user && (isProfileLoading || isAdminRoleLoading || isLoadingCampuses || isUnitDocLoading));
 
     return {
       areServicesAvailable: servicesAvailable,
@@ -257,8 +260,23 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
       systemSettings: systemSettings || null,
       can,
     };
-  }, [firebaseApp, firestore, auth, userAuthState, userProfile, isProfileLoading, adminRoleDoc, isAdminRoleLoading, campuses, isLoadingCampuses, systemSettings, roleDoc, unitDoc, isUnitDocLoading]);
-  
+  }, [
+    firebaseApp,
+    firestore,
+    auth,
+    userAuthState,
+    userProfile,
+    isProfileLoading,
+    adminRoleDoc,
+    isAdminRoleLoading,
+    campuses,
+    isLoadingCampuses,
+    systemSettings,
+    roleDoc,
+    unitDoc,
+    isUnitDocLoading,
+  ]);
+
   // A separate component or hook is needed to use the Activity Log context
   function ActivityLogger() {
     const { logSessionActivity } = useSessionActivity();
@@ -277,7 +295,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
 
     return null; // This component does not render anything
   }
-
 
   return (
     <FirebaseContext.Provider value={contextValue}>
@@ -332,7 +349,7 @@ export const useFirebase = (): UseFirebaseResult | { areServicesAvailable: false
 /** Hook to access Firebase Auth instance. */
 export const useAuth = (): Auth | null => {
   const context = useFirebase();
-   if (!context.areServicesAvailable) {
+  if (!context.areServicesAvailable) {
     return null;
   }
   return context.auth;
@@ -350,7 +367,7 @@ export const useFirestore = (): Firestore | null => {
 /** Hook to access Firebase App instance. */
 export const useFirebaseApp = (): FirebaseApp | null => {
   const context = useFirebase();
-   if (!context.areServicesAvailable) {
+  if (!context.areServicesAvailable) {
     return null;
   }
   return context.firebaseApp;
@@ -361,11 +378,59 @@ export const useFirebaseApp = (): FirebaseApp | null => {
  * This provides the User object, loading status, and any auth errors.
  * @returns {UseUserResult} Object with user, isUserLoading, userError.
  */
-export const useUser = (): UseUserResult => { 
+export const useUser = (): UseUserResult => {
   const context = useFirebase();
-   if (!context.areServicesAvailable) {
-      return { user: null, userProfile: null, isUserLoading: true, userError: null, isAdmin: false, isAuditor: false, userRole: null, isSupervisor: false, isVp: false, isMainCampusCoordinator: false, isMainCampusDOI: false, isDoi: false, systemSettings: null, firestore: null, can: () => false };
+  if (!context.areServicesAvailable) {
+    return {
+      user: null,
+      userProfile: null,
+      isUserLoading: true,
+      userError: null,
+      isAdmin: false,
+      isAuditor: false,
+      userRole: null,
+      isSupervisor: false,
+      isVp: false,
+      isMainCampusCoordinator: false,
+      isMainCampusDOI: false,
+      isDoi: false,
+      systemSettings: null,
+      firestore: null,
+      can: () => false,
+    };
   }
-  const { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, isDoi, systemSettings, can } = context; 
-  return { user, userProfile, isUserLoading, userError, isAdmin, isAuditor, userRole, isSupervisor, isVp, firestore, isMainCampusCoordinator, isMainCampusDOI, isDoi, systemSettings, can };
+  const {
+    user,
+    userProfile,
+    isUserLoading,
+    userError,
+    isAdmin,
+    isAuditor,
+    userRole,
+    isSupervisor,
+    isVp,
+    firestore,
+    isMainCampusCoordinator,
+    isMainCampusDOI,
+    isDoi,
+    systemSettings,
+    can,
+  } = context;
+  return {
+    user,
+    userProfile,
+    isUserLoading,
+    userError,
+    isAdmin,
+    isAuditor,
+    userRole,
+    isSupervisor,
+    isVp,
+    firestore,
+    isMainCampusCoordinator,
+    isMainCampusDOI,
+    isDoi,
+    systemSettings,
+    can,
+  };
 };
