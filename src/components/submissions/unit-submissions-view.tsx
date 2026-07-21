@@ -1,53 +1,48 @@
-
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import type { 
-    Submission, 
-    Unit, 
-    User as AppUser, 
-    Signatories, 
-    Campus, 
-    Risk, 
-    UnitMonitoringRecord,
-    ProgramComplianceRecord,
-    AuditFinding,
-    CorrectiveActionRequest,
-    ManagementReviewOutput,
-    Cycle
+import type {
+  Submission,
+  Unit,
+  User as AppUser,
+  Signatories,
+  Campus,
+  Risk,
+  UnitMonitoringRecord,
+  ProgramComplianceRecord,
+  AuditFinding,
+  CorrectiveActionRequest,
+  ManagementReviewOutput,
+  Cycle,
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { 
-    Loader2, 
-    Building, 
-    Eye, 
-    Calendar as CalendarIcon, 
-    FileWarning, 
-    CheckCircle2, 
-    PieChart as PieIcon, 
-    AlertTriangle, 
-    Printer, 
-    ShieldCheck, 
-    ChevronLeft,
-    TrendingUp,
-    Info,
-    Search,
-    Circle
+import {
+  Loader2,
+  Building,
+  Eye,
+  Calendar as CalendarIcon,
+  FileWarning,
+  CheckCircle2,
+  PieChart as PieIcon,
+  AlertTriangle,
+  Printer,
+  ShieldCheck,
+  ChevronLeft,
+  TrendingUp,
+  Info,
+  Search,
+  Circle,
+  HelpCircle,
+  ArrowRight,
+  ExternalLink,
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
 import { cn, isCycleActive } from '@/lib/utils';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   DropdownMenu,
@@ -67,42 +62,42 @@ import { StrategicSwotAnalysis } from './strategic-swot-analysis';
 import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 
 const COLORS: Record<string, string> = {
-    Approved: 'hsl(142 71% 45%)',
-    'Awaiting Approval': 'hsl(var(--chart-1))',
-    Missing: 'hsl(var(--destructive))',
-    Rejected: 'hsl(var(--chart-3))',
+  Approved: 'hsl(142 71% 45%)',
+  'Awaiting Approval': 'hsl(var(--chart-1))',
+  Missing: 'hsl(var(--destructive))',
+  Rejected: 'hsl(var(--chart-3))',
 };
 
 const getYearCycleRowColor = (year: number, cycle: string) => {
   const isFinal = cycle.toLowerCase() === 'final';
-  const colors: Record<number, { first: string, final: string }> = {
-    2024: { 
-      first: 'bg-blue-50/20 hover:bg-blue-100/40', 
-      final: 'bg-blue-100/40 hover:bg-blue-200/50' 
+  const colors: Record<number, { first: string; final: string }> = {
+    2024: {
+      first: 'bg-blue-50/20 hover:bg-blue-100/40',
+      final: 'bg-blue-100/40 hover:bg-blue-200/50',
     },
-    2025: { 
-      first: 'bg-green-50/20 hover:bg-green-100/40', 
-      final: 'bg-green-100/40 hover:bg-blue-200/50' 
+    2025: {
+      first: 'bg-green-50/20 hover:bg-green-100/40',
+      final: 'bg-green-100/40 hover:bg-blue-200/50',
     },
-    2026: { 
-      first: 'bg-amber-50/20 hover:bg-amber-100/40', 
-      final: 'bg-amber-100/40 hover:bg-blue-200/50' 
+    2026: {
+      first: 'bg-amber-50/20 hover:bg-amber-100/40',
+      final: 'bg-amber-100/40 hover:bg-blue-200/50',
     },
-    2027: { 
-      first: 'bg-purple-50/20 hover:bg-purple-100/40', 
-      final: 'bg-purple-100/40 hover:bg-blue-200/50' 
+    2027: {
+      first: 'bg-purple-50/20 hover:bg-purple-100/40',
+      final: 'bg-purple-100/40 hover:bg-blue-200/50',
     },
-    2028: { 
-      first: 'bg-rose-50/20 hover:bg-rose-100/40', 
-      final: 'bg-rose-100/40 hover:bg-rose-200/50' 
+    2028: {
+      first: 'bg-rose-50/20 hover:bg-rose-100/40',
+      final: 'bg-rose-100/40 hover:bg-rose-200/50',
     },
   };
-  
-  const yearColor = colors[year] || { 
-    first: 'bg-slate-50/20 dark:bg-slate-800/20 hover:bg-slate-100/40 dark:hover:bg-slate-700/40', 
-    final: 'bg-slate-100/40 dark:bg-slate-700/40 hover:bg-blue-200/50' 
+
+  const yearColor = colors[year] || {
+    first: 'bg-slate-50/20 dark:bg-slate-800/20 hover:bg-slate-100/40 dark:hover:bg-slate-700/40',
+    final: 'bg-slate-100/40 dark:bg-slate-700/40 hover:bg-blue-200/50',
   };
-  
+
   return isFinal ? yearColor.final : yearColor.first;
 };
 
@@ -127,24 +122,21 @@ export function UnitSubmissionsView({
   const firestore = useFirestore();
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
 
-  const signatoryRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
-    [firestore]
-  );
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   useEffect(() => {
     if (userProfile?.unitId && !selectedUnitId) {
-        setSelectedUnitId(userProfile.unitId);
+      setSelectedUnitId(userProfile.unitId);
     }
   }, [userProfile, selectedUnitId]);
 
   const unitsToShow = useMemo(() => {
     if (!allUnits || !userProfile?.campusId) return [];
-    let filtered = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
+    let filtered = allUnits.filter((u) => u.campusIds?.includes(userProfile.campusId));
     const isUnitLevelOnly = userProfile.role === 'Unit Coordinator' || userProfile.role === 'Unit ODIMO';
     if (isUnitLevelOnly && userProfile.unitId) {
-        filtered = filtered.filter(u => u.id === userProfile.unitId);
+      filtered = filtered.filter((u) => u.id === userProfile.unitId);
     }
     return filtered.sort((a, b) => a.name.localeCompare(b.name));
   }, [allUnits, userProfile]);
@@ -152,7 +144,11 @@ export function UnitSubmissionsView({
   // Fetch contextual data for SWOT analysis
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !selectedUnitId || !selectedYear) return null;
-    return query(collection(firestore, 'risks'), where('unitId', '==', selectedUnitId), where('year', '==', Number(selectedYear)));
+    return query(
+      collection(firestore, 'risks'),
+      where('unitId', '==', selectedUnitId),
+      where('year', '==', Number(selectedYear)),
+    );
   }, [firestore, selectedUnitId, selectedYear]);
   const { data: unitRisks } = useCollection<Risk>(risksQuery);
 
@@ -164,16 +160,20 @@ export function UnitSubmissionsView({
 
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || !selectedUnitId || !selectedYear) return null;
-    return query(collection(firestore, 'programCompliances'), where('unitId', '==', selectedUnitId), where('academicYear', '==', Number(selectedYear)));
+    return query(
+      collection(firestore, 'programCompliances'),
+      where('unitId', '==', selectedUnitId),
+      where('academicYear', '==', Number(selectedYear)),
+    );
   }, [firestore, selectedUnitId, selectedYear]);
   const { data: unitCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !selectedUnitId || !userProfile?.campusId) return null;
     return query(
-        collection(firestore, 'correctiveActionRequests'), 
-        where('unitId', '==', selectedUnitId),
-        where('campusId', '==', userProfile.campusId)
+      collection(firestore, 'correctiveActionRequests'),
+      where('unitId', '==', selectedUnitId),
+      where('campusId', '==', userProfile.campusId),
     );
   }, [firestore, selectedUnitId, userProfile?.campusId]);
   const { data: unitCars } = useCollection<CorrectiveActionRequest>(carQuery);
@@ -184,97 +184,106 @@ export function UnitSubmissionsView({
   }, [firestore, selectedUnitId]);
   const { data: mrOutputs } = useCollection<ManagementReviewOutput>(mrOutputsQuery);
 
-  const cyclesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'cycles') : null),
-    [firestore]
-  );
+  const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles } = useCollection<Cycle>(cyclesQuery);
 
   const unitData = useMemo(() => {
     if (!selectedUnitId || !allSubmissions || !userProfile?.campusId) return null;
-    
-    const yearSubmissions = allSubmissions.filter(s => 
-        s.unitId === selectedUnitId && 
-        s.campusId === userProfile.campusId && 
-        s.year.toString() === selectedYear
+
+    const yearSubmissions = allSubmissions.filter(
+      (s) => s.unitId === selectedUnitId && s.campusId === userProfile.campusId && s.year.toString() === selectedYear,
     );
 
-    const firstSubs = yearSubmissions.filter(s => s.cycleId === 'first');
-    const finalSubs = yearSubmissions.filter(s => s.cycleId === 'final');
+    const firstSubs = yearSubmissions.filter((s) => s.cycleId === 'first');
+    const finalSubs = yearSubmissions.filter((s) => s.cycleId === 'final');
 
-    const firstRegistry = firstSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
+    const firstRegistry = firstSubs.find((s) => s.reportType === 'Risk and Opportunity Registry');
     const isFirstActionPlanNA = firstRegistry?.riskRating === 'low';
 
-    const finalRegistry = finalSubs.find(s => s.reportType === 'Risk and Opportunity Registry');
+    const finalRegistry = finalSubs.find((s) => s.reportType === 'Risk and Opportunity Registry');
     const isFinalActionPlanNA = finalRegistry?.riskRating === 'low';
 
     const getMissingOrUnapproved = (cycleSubs: Submission[], isActionPlanNA: boolean, cycleId: 'first' | 'final') => {
-        if (!isCycleActive(cycleId, selectedYear, allCycles)) return [];
-        const approvedSet = new Set(cycleSubs.filter(s => s.statusId === 'approved').map(s => s.reportType));
-        return submissionTypes.filter(type => {
-            if (approvedSet.has(type)) return false;
-            if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) return false;
-            return true;
-        });
+      if (!isCycleActive(cycleId, selectedYear, allCycles)) return [];
+      const approvedSet = new Set(cycleSubs.filter((s) => s.statusId === 'approved').map((s) => s.reportType));
+      return submissionTypes.filter((type) => {
+        if (approvedSet.has(type)) return false;
+        if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) return false;
+        return true;
+      });
     };
 
     const missingFirst = getMissingOrUnapproved(firstSubs, isFirstActionPlanNA, 'first');
     const missingFinal = getMissingOrUnapproved(finalSubs, isFinalActionPlanNA, 'final');
 
-    const approved = yearSubmissions.filter(s => s.statusId === 'approved').length;
-    const pending = yearSubmissions.filter(s => s.statusId === 'submitted').length;
-    const rejected = yearSubmissions.filter(s => s.statusId === 'rejected').length;
-    
+    const approved = yearSubmissions.filter((s) => s.statusId === 'approved').length;
+    const pending = yearSubmissions.filter((s) => s.statusId === 'submitted').length;
+    const rejected = yearSubmissions.filter((s) => s.statusId === 'rejected').length;
+
     const isFirstActive = isCycleActive('first', selectedYear, allCycles);
     const isFinalActive = isCycleActive('final', selectedYear, allCycles);
     let totalPossible = 0;
     if (isFirstActive) totalPossible += submissionTypes.length - (isFirstActionPlanNA ? 1 : 0);
     if (isFinalActive) totalPossible += submissionTypes.length - (isFinalActionPlanNA ? 1 : 0);
-    
+
     const missingTotal = Math.max(0, totalPossible - approved - pending - rejected);
 
     const chartData = [
-        { name: 'Approved', value: approved, fill: COLORS.Approved },
-        { name: 'Awaiting Approval', value: pending, fill: COLORS['Awaiting Approval'] },
-        { name: 'Rejected', value: rejected, fill: COLORS.Rejected },
-        { name: 'Missing', value: missingTotal, fill: COLORS.Missing }
-    ].filter(d => d.value >= 0);
+      { name: 'Approved', value: approved, fill: COLORS.Approved },
+      { name: 'Awaiting Approval', value: pending, fill: COLORS['Awaiting Approval'] },
+      { name: 'Rejected', value: rejected, fill: COLORS.Rejected },
+      { name: 'Missing', value: missingTotal, fill: COLORS.Missing },
+    ].filter((d) => d.value >= 0);
 
     const score = Math.round((approved / (totalPossible || 1)) * 100);
 
-    return { firstCycle: firstSubs, finalCycle: finalSubs, isFirstActionPlanNA, isFinalActionPlanNA, missingFirst, missingFinal, chartData, score, totalPossible, approved, yearSubmissions };
+    return {
+      firstCycle: firstSubs,
+      finalCycle: finalSubs,
+      isFirstActionPlanNA,
+      isFinalActionPlanNA,
+      missingFirst,
+      missingFinal,
+      chartData,
+      score,
+      totalPossible,
+      approved,
+      yearSubmissions,
+    };
   }, [selectedUnitId, allSubmissions, userProfile, selectedYear, allCycles]);
 
   const handlePrintNotice = (type: 'Compliance' | 'Non-Compliance', cycleOverride?: 'first' | 'final' | 'both') => {
     if (!unitData || !selectedUnitId || !allUnits || !userProfile || !allCampuses) return;
-    const unit = allUnits.find(u => u.id === selectedUnitId);
-    const campus = allCampuses.find(c => c.id === userProfile.campusId);
-    
+    const unit = allUnits.find((u) => u.id === selectedUnitId);
+    const campus = allCampuses.find((c) => c.id === userProfile.campusId);
+
     let cycleText = undefined;
     if (type === 'Compliance') {
-        if (cycleOverride === 'first') cycleText = 'First Submission Cycle';
-        else if (cycleOverride === 'final') cycleText = 'Final Submission Cycle';
-        else if (cycleOverride === 'both') cycleText = 'First & Final Submission Cycles';
+      if (cycleOverride === 'first') cycleText = 'First Submission Cycle';
+      else if (cycleOverride === 'final') cycleText = 'Final Submission Cycle';
+      else if (cycleOverride === 'both') cycleText = 'First & Final Submission Cycles';
     }
 
     const props = {
-        unitName: unit?.name || 'Unknown Unit',
-        campusName: campus?.name || 'Institutional Campus',
-        year: Number(selectedYear),
-        missingFirst: unitData.missingFirst,
-        missingFinal: unitData.missingFinal,
-        totalApproved: unitData.approved,
-        totalPossible: unitData.totalPossible,
-        qaoDirector: signatories?.qaoDirector || '____________________',
-        qmsHead: signatories?.qmsHead || 'QMS Head',
-        cycle: cycleText
+      unitName: unit?.name || 'Unknown Unit',
+      campusName: campus?.name || 'Institutional Campus',
+      year: Number(selectedYear),
+      missingFirst: unitData.missingFirst,
+      missingFinal: unitData.missingFinal,
+      totalApproved: unitData.approved,
+      totalPossible: unitData.totalPossible,
+      qaoDirector: signatories?.qaoDirector || '____________________',
+      qmsHead: signatories?.qmsHead || 'QMS Head',
+      cycle: cycleText,
     };
     try {
-        const reportHtml = renderToStaticMarkup(type === 'Compliance' ? <NoticeOfCompliance {...props} /> : <NoticeOfNonCompliance {...props} />);
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`
+      const reportHtml = renderToStaticMarkup(
+        type === 'Compliance' ? <NoticeOfCompliance {...props} /> : <NoticeOfNonCompliance {...props} />,
+      );
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(`
                 <html>
                     <head>
                         <title>QA Notice - ${unit?.name}</title>
@@ -301,199 +310,395 @@ export function UnitSubmissionsView({
                     </body>
                 </html>
             `);
-            printWindow.document.close();
-        }
-    } catch (err) { console.error("Print error:", err); }
+        printWindow.document.close();
+      }
+    } catch (err) {
+      console.error('Print error:', err);
+    }
   };
 
-  if (isLoading) return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (isLoading)
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
 
-  const currentUnit = allUnits?.find(u => u.id === selectedUnitId);
+  const currentUnit = allUnits?.find((u) => u.id === selectedUnitId);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 border-none">
       <Card className="border-primary/10 shadow-sm bg-muted/10">
         <CardContent className="p-4 flex flex-col md:flex-row items-center gap-4">
-            <div className="flex-1 w-full space-y-1.5">
-                <label className="text-[10px] font-black uppercase text-primary tracking-widest ml-1 flex items-center gap-1.5">
-                    <Building className="h-3 w-3" /> Select Unit / Office to View Profile
-                </label>
-                <Select value={selectedUnitId || ""} onValueChange={setSelectedUnitId}>
-                    <SelectTrigger className="bg-white h-11 font-bold shadow-sm">
-                        <SelectValue placeholder="Select Unit..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {unitsToShow.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-            </div>
+          <div className="flex-1 w-full space-y-1.5">
+            <label className="text-[10px] font-black uppercase text-primary tracking-widest ml-1 flex items-center gap-1.5">
+              <Building className="h-3 w-3" /> Select Unit / Office to View Profile
+            </label>
+            <Select value={selectedUnitId || ''} onValueChange={setSelectedUnitId}>
+              <SelectTrigger className="bg-white h-11 font-bold shadow-sm">
+                <SelectValue placeholder="Select Unit..." />
+              </SelectTrigger>
+              <SelectContent>
+                {unitsToShow.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    {u.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
       {selectedUnitId && unitData && currentUnit ? (
-          <div className="space-y-8 pb-20">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
-                  <div className="space-y-1">
-                      <h3 className="font-black text-xl uppercase tracking-tight text-primary">{currentUnit.name}</h3>
-                      <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                          <span className="flex items-center gap-1.5"><CalendarIcon className="h-3 w-3" /> Monitoring Cycle: {selectedYear}</span>
-                      </div>
-                  </div>
-                  
-                  <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                          <Button size="sm" variant="outline" className={cn("h-9 text-[10px] font-black uppercase shadow-sm bg-white", unitData.score >= 100 ? "text-emerald-600 border-emerald-200" : "text-rose-600 border-rose-200")}>
-                              <Printer className="h-4 w-4 mr-2" /> Print QA Notice
-                          </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-1.5 z-[100]">
-                          <DropdownMenuLabel className="text-[9px] uppercase font-black tracking-wider text-slate-400 px-2.5 py-2">Select Notice Type</DropdownMenuLabel>
-                          
-                          {unitData.missingFirst.length === 0 && (
-                              <DropdownMenuItem 
-                                  onClick={() => handlePrintNotice('Compliance', 'first')}
-                                  className="text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
-                              >
-                                  Notice of Compliance (First Cycle)
-                              </DropdownMenuItem>
-                          )}
-                          {unitData.missingFinal.length === 0 && (
-                              <DropdownMenuItem 
-                                  onClick={() => handlePrintNotice('Compliance', 'final')}
-                                  className="text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
-                              >
-                                  Notice of Compliance (Final Cycle)
-                              </DropdownMenuItem>
-                          )}
-                          {unitData.score >= 100 && (
-                              <DropdownMenuItem 
-                                  onClick={() => handlePrintNotice('Compliance', 'both')}
-                                  className="text-[11px] font-black text-emerald-600 focus:bg-emerald-50 focus:text-emerald-800 cursor-pointer rounded-lg px-2.5 py-2"
-                              >
-                                  Notice of Compliance (Full Year)
-                              </DropdownMenuItem>
-                          )}
-                          
-                          {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
-                              <>
-                                  <DropdownMenuSeparator className="my-1.5" />
-                                  <DropdownMenuItem 
-                                      onClick={() => handlePrintNotice('Non-Compliance')}
-                                      className="text-[11px] font-bold text-rose-600 focus:bg-rose-50 focus:text-rose-700 cursor-pointer rounded-lg px-2.5 py-2"
-                                  >
-                                      Notice of Non-Compliance
-                                  </DropdownMenuItem>
-                              </>
-                          )}
-                      </DropdownMenuContent>
-                  </DropdownMenu>
+        <div className="space-y-8 pb-20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4">
+            <div className="space-y-1">
+              <h3 className="font-black text-xl uppercase tracking-tight text-primary">{currentUnit.name}</h3>
+              <div className="flex items-center gap-4 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                <span className="flex items-center gap-1.5">
+                  <CalendarIcon className="h-3 w-3" /> Monitoring Cycle: {selectedYear}
+                </span>
               </div>
+            </div>
 
-              <StrategicSwotAnalysis 
-                submissions={unitData.yearSubmissions}
-                risks={unitRisks || []}
-                monitoringRecords={unitMonitoring || []}
-                programCompliances={unitCompliances || []}
-                correctiveActionRequests={unitCars || []}
-                mrOutputs={mrOutputs?.filter(o => o.assignments?.some(a => a.unitId === selectedUnitId)) || []}
-                scope="unit"
-                name={currentUnit.name}
-                selectedYear={Number(selectedYear)}
-                cycles={allCycles}
-              />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className={cn(
+                    'h-9 text-[10px] font-black uppercase shadow-sm bg-white',
+                    unitData.score >= 100 ? 'text-emerald-600 border-emerald-200' : 'text-rose-600 border-rose-200',
+                  )}
+                >
+                  <Printer className="h-4 w-4 mr-2" /> Print QA Notice
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="w-64 bg-white rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-1.5 z-[100]"
+              >
+                <DropdownMenuLabel className="text-[9px] uppercase font-black tracking-wider text-slate-400 px-2.5 py-2">
+                  Select Notice Type
+                </DropdownMenuLabel>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <Card className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-4 opacity-5"><PieIcon className="h-20 w-20" /></div>
-                      <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-6">Unit Verified Maturity</span>
-                      <ChartContainer config={{}} className="h-[180px] w-[180px]">
-                          <ResponsiveContainer>
-                              <PieChart>
-                                  <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                                  <Pie data={unitData.chartData} cx="50%" cy="50%" innerRadius={45} outerRadius={65} paddingAngle={5} dataKey="value" label={({ percent }) => `${(percent * 100).toFixed(0)}%`}>
-                                      {unitData.chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />)}
-                                  </Pie>
-                              </PieChart>
-                          </ResponsiveContainer>
-                      </ChartContainer>
-                      <div className="mt-6 text-center space-y-1">
-                          <span className="text-5xl font-black tabular-nums tracking-tighter text-primary">{unitData.score}%</span>
-                          <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.1em]">Quality Achievement Index</p>
-                      </div>
-                  </Card>
+                {unitData.missingFirst.length === 0 && (
+                  <DropdownMenuItem
+                    onClick={() => handlePrintNotice('Compliance', 'first')}
+                    className="text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                  >
+                    Notice of Compliance (First Cycle)
+                  </DropdownMenuItem>
+                )}
+                {unitData.missingFinal.length === 0 && (
+                  <DropdownMenuItem
+                    onClick={() => handlePrintNotice('Compliance', 'final')}
+                    className="text-[11px] font-bold text-slate-700 dark:text-slate-300 focus:bg-emerald-50 focus:text-emerald-700 cursor-pointer rounded-lg px-2.5 py-2"
+                  >
+                    Notice of Compliance (Final Cycle)
+                  </DropdownMenuItem>
+                )}
+                {unitData.score >= 100 && (
+                  <DropdownMenuItem
+                    onClick={() => handlePrintNotice('Compliance', 'both')}
+                    className="text-[11px] font-black text-emerald-600 focus:bg-emerald-50 focus:text-emerald-800 cursor-pointer rounded-lg px-2.5 py-2"
+                  >
+                    Notice of Compliance (Full Year)
+                  </DropdownMenuItem>
+                )}
 
-                  <div className="lg:col-span-2 space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <Card className="shadow-none border-dashed bg-primary/5 border-primary/20 p-5">
-                              <div className="flex items-center gap-2 mb-2"><CheckCircle2 className="h-4 w-4 text-primary" /><span className="text-[10px] font-black uppercase text-primary/70">Verified Archive</span></div>
-                              <p className="text-3xl font-black text-primary">{unitData.approved} / {unitData.totalPossible}</p>
-                              <p className="text-[11px] text-muted-foreground mt-2 font-medium">Documents successfully reviewed and approved for this cycle.</p>
-                          </Card>
-                          <Card className={cn("shadow-none border-dashed p-5", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "bg-rose-50 border-rose-200" : "bg-emerald-50 border-emerald-200")}>
-                              <div className="flex items-center gap-2 mb-2">{unitData.missingFirst.length + unitData.missingFinal.length > 0 ? <AlertTriangle className="h-4 w-4 text-rose-600" /> : <ShieldCheck className="h-4 w-4 text-emerald-600" />}<span className={cn("text-[10px] font-black uppercase", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-rose-700" : "text-emerald-700")}>Outstanding Gaps</span></div>
-                              <p className={cn("text-3xl font-black", unitData.missingFirst.length + unitData.missingFinal.length > 0 ? "text-rose-600" : "text-emerald-600")}>{unitData.missingFirst.length + unitData.missingFinal.length} Items</p>
-                              <p className="text-[11px] text-muted-foreground mt-2 font-medium">Requirements either missing or requiring corrective resubmission.</p>
-                          </Card>
-                      </div>
+                {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
+                  <>
+                    <DropdownMenuSeparator className="my-1.5" />
+                    <DropdownMenuItem
+                      onClick={() => handlePrintNotice('Non-Compliance')}
+                      className="text-[11px] font-bold text-rose-600 focus:bg-rose-50 focus:text-rose-700 cursor-pointer rounded-lg px-2.5 py-2"
+                    >
+                      Notice of Non-Compliance
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
-                      {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
-                          <div className="space-y-4">
-                              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 text-rose-600"><FileWarning className="h-4 w-4" /> Compliance Gap Audit</h4>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                  {unitData.missingFirst.length > 0 && (
-                                      <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-100">
-                                          <p className="text-[9px] font-black uppercase text-rose-600 mb-3 bg-white w-fit px-2 py-0.5 rounded border border-rose-100">1st Cycle To-Do</p>
-                                          <ul className="space-y-1.5">{unitData.missingFirst.map(doc => <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700 dark:text-slate-300"><div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}</li>)}</ul>
-                                      </div>
-                                  )}
-                                  {unitData.missingFinal.length > 0 && (
-                                      <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-100">
-                                          <p className="text-[9px] font-black uppercase text-rose-600 mb-3 bg-white w-fit px-2 py-0.5 rounded border border-rose-100">Final Cycle To-Do</p>
-                                          <ul className="space-y-1.5">{unitData.missingFinal.map(doc => <li key={doc} className="flex items-center gap-2 text-[11px] font-bold text-slate-700 dark:text-slate-300"><div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}</li>)}</ul>
-                                      </div>
-                                  )}
-                              </div>
-                          </div>
+          <StrategicSwotAnalysis
+            submissions={unitData.yearSubmissions}
+            risks={unitRisks || []}
+            monitoringRecords={unitMonitoring || []}
+            programCompliances={unitCompliances || []}
+            correctiveActionRequests={unitCars || []}
+            mrOutputs={mrOutputs?.filter((o) => o.assignments?.some((a) => a.unitId === selectedUnitId)) || []}
+            scope="unit"
+            name={currentUnit.name}
+            selectedYear={Number(selectedYear)}
+            cycles={allCycles}
+          />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <PieIcon className="h-20 w-20" />
+              </div>
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-6">
+                Unit Verified Maturity
+              </span>
+              <ChartContainer config={{}} className="h-[180px] w-[180px]">
+                <ResponsiveContainer>
+                  <PieChart>
+                    <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                    <Pie
+                      data={unitData.chartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={45}
+                      outerRadius={65}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                    >
+                      {unitData.chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+              <div className="mt-6 text-center space-y-1">
+                <span className="text-5xl font-black tabular-nums tracking-tighter text-primary">
+                  {unitData.score}%
+                </span>
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.1em]">
+                  Quality Achievement Index
+                </p>
+              </div>
+            </Card>
+
+            <div className="lg:col-span-2 space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Card className="shadow-none border-dashed bg-primary/5 border-primary/20 p-5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                    <span className="text-[10px] font-black uppercase text-primary/70">Verified Archive</span>
+                  </div>
+                  <p className="text-3xl font-black text-primary">
+                    {unitData.approved} / {unitData.totalPossible}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-2 font-medium">
+                    Documents successfully reviewed and approved for this cycle.
+                  </p>
+                </Card>
+                <Card
+                  className={cn(
+                    'shadow-none border-dashed p-5',
+                    unitData.missingFirst.length + unitData.missingFinal.length > 0
+                      ? 'bg-rose-50 border-rose-200'
+                      : 'bg-emerald-50 border-emerald-200',
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {unitData.missingFirst.length + unitData.missingFinal.length > 0 ? (
+                      <AlertTriangle className="h-4 w-4 text-rose-600" />
+                    ) : (
+                      <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                    )}
+                    <span
+                      className={cn(
+                        'text-[10px] font-black uppercase',
+                        unitData.missingFirst.length + unitData.missingFinal.length > 0
+                          ? 'text-rose-700'
+                          : 'text-emerald-700',
                       )}
+                    >
+                      Outstanding Gaps
+                    </span>
                   </div>
+                  <p
+                    className={cn(
+                      'text-3xl font-black',
+                      unitData.missingFirst.length + unitData.missingFinal.length > 0
+                        ? 'text-rose-600'
+                        : 'text-emerald-600',
+                    )}
+                  >
+                    {unitData.missingFirst.length + unitData.missingFinal.length} Items
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-2 font-medium">
+                    Requirements either missing or requiring corrective resubmission.
+                  </p>
+                </Card>
               </div>
 
-              <div className="space-y-6">
-                  <div className="flex items-center gap-3 border-b pb-2"><CalendarIcon className="h-5 w-5 text-primary" /><h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100">Submission Registry Logs</h4></div>
-                  <div className="space-y-8">
-                      <div className="space-y-3"><Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 px-4 h-6 font-black text-[9px] uppercase">1st Cycle Registry</Badge><UnitTable cycleSubs={unitData.firstCycle} onView={(id) => router.push(`/submissions/${id}`)} /></div>
-                      <div className="space-y-3"><Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-4 h-6 font-black text-[9px] uppercase">Final Cycle Registry</Badge><UnitTable cycleSubs={unitData.finalCycle} onView={(id) => router.push(`/submissions/${id}`)} /></div>
+              {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 text-rose-600">
+                    <FileWarning className="h-4 w-4" /> Compliance Gap Audit
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {unitData.missingFirst.length > 0 && (
+                      <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-100">
+                        <p className="text-[9px] font-black uppercase text-rose-600 mb-3 bg-white w-fit px-2 py-0.5 rounded border border-rose-100">
+                          1st Cycle To-Do
+                        </p>
+                        <ul className="space-y-1.5">
+                          {unitData.missingFirst.map((doc) => (
+                            <li
+                              key={doc}
+                              className="flex items-center gap-2 text-[11px] font-bold text-slate-700 dark:text-slate-300"
+                            >
+                              <div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {unitData.missingFinal.length > 0 && (
+                      <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-100">
+                        <p className="text-[9px] font-black uppercase text-rose-600 mb-3 bg-white w-fit px-2 py-0.5 rounded border border-rose-100">
+                          Final Cycle To-Do
+                        </p>
+                        <ul className="space-y-1.5">
+                          {unitData.missingFinal.map((doc) => (
+                            <li
+                              key={doc}
+                              className="flex items-center gap-2 text-[11px] font-bold text-slate-700 dark:text-slate-300"
+                            >
+                              <div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
+
+                  <div className="bg-white rounded-xl p-4 border border-rose-200 dark:border-rose-900/50 space-y-2 shadow-sm">
+                    <div className="flex items-center gap-1.5 text-rose-700 dark:text-rose-400 font-extrabold text-[10px] uppercase tracking-wider">
+                      <HelpCircle className="h-4 w-4 text-rose-600" />
+                      <span>How the Unit Should Solve the Problem:</span>
+                    </div>
+                    <ol className="list-decimal pl-5 space-y-1 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                      <li>
+                        Click the <strong>Submit New Document</strong> button below to open the submission portal.
+                      </li>
+                      <li>
+                        Select Academic Year <strong>{selectedYear}</strong> and select the target submission cycle
+                        (First or Final Cycle).
+                      </li>
+                      <li>Choose the missing report type from the list and download the template if needed.</li>
+                      <li>
+                        Upload your unit's finalized signed document PDF to Google Drive, set permissions to{' '}
+                        <strong>"Anyone with the link can view"</strong>, and submit the link.
+                      </li>
+                    </ol>
+                    <Button
+                      size="sm"
+                      onClick={() => router.push('/submissions/new')}
+                      className="w-full h-8 text-[10px] font-black uppercase tracking-wider bg-rose-600 hover:bg-rose-700 text-white shadow-sm mt-2"
+                    >
+                      Submit New Document <ArrowRight className="ml-1.5 h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 border-b pb-2">
+              <CalendarIcon className="h-5 w-5 text-primary" />
+              <h4 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-slate-100">
+                Submission Registry Logs
+              </h4>
+            </div>
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <Badge
+                  variant="outline"
+                  className="bg-blue-50 text-blue-700 border-blue-200 px-4 h-6 font-black text-[9px] uppercase"
+                >
+                  1st Cycle Registry
+                </Badge>
+                <UnitTable cycleSubs={unitData.firstCycle} onView={(id) => router.push(`/submissions/${id}`)} />
               </div>
+              <div className="space-y-3">
+                <Badge
+                  variant="outline"
+                  className="bg-green-50 text-green-700 border-green-200 px-4 h-6 font-black text-[9px] uppercase"
+                >
+                  Final Cycle Registry
+                </Badge>
+                <UnitTable cycleSubs={unitData.finalCycle} onView={(id) => router.push(`/submissions/${id}`)} />
+              </div>
+            </div>
           </div>
+        </div>
       ) : (
-          <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-muted-foreground py-20 border-dashed border-2 rounded-2xl">
-              <Building className="h-12 w-12 opacity-10" />
-              <p className="text-sm font-medium">Select a unit from the dropdown above to view its compliance history.</p>
-          </div>
+        <div className="h-full flex flex-col items-center justify-center text-center gap-2 text-muted-foreground py-20 border-dashed border-2 rounded-2xl">
+          <Building className="h-12 w-12 opacity-10" />
+          <p className="text-sm font-medium">Select a unit from the dropdown above to view its compliance history.</p>
+        </div>
       )}
     </div>
   );
 }
 
-function UnitTable({ cycleSubs, onView }: { cycleSubs: any[], onView: (id: string) => void }) {
-    if (cycleSubs.length === 0) return <div className="rounded-xl border border-dashed p-10 text-center bg-muted/5"><p className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-40">No entries recorded</p></div>;
+function UnitTable({ cycleSubs, onView }: { cycleSubs: any[]; onView: (id: string) => void }) {
+  if (cycleSubs.length === 0)
     return (
-        <div className="rounded-xl border shadow-sm overflow-hidden bg-white">
-            <Table>
-                <TableHeader className="bg-muted/30">
-                    <TableRow><TableHead className="text-[10px] font-black uppercase pl-6 py-3">Report Details</TableHead><TableHead className="text-center text-[10px] font-black uppercase py-3">Status</TableHead><TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Action</TableHead></TableRow>
-                </TableHeader>
-                <TableBody>
-                    {cycleSubs.map(sub => (
-                        <TableRow key={sub.id} className="transition-colors hover:bg-muted/10">
-                            <TableCell className="pl-6 py-4"><div className="flex flex-col gap-1"><span className="font-bold text-sm text-slate-900 dark:text-slate-100">{sub.reportType}</span><span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{sub.controlNumber}</span></div></TableCell>
-                            <TableCell className="text-center"><Badge className={cn("capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm", sub.statusId === 'approved' && "bg-emerald-600 text-white", sub.statusId === 'rejected' && "bg-rose-600 text-white", sub.statusId === 'submitted' && "bg-amber-50 text-amber-950")}>{sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}</Badge></TableCell>
-                            <TableCell className="text-right pr-6"><Button variant="default" size="sm" onClick={() => onView(sub.id)} className="h-8 text-[10px] font-bold bg-primary shadow-sm">VIEW RECORD</Button></TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+      <div className="rounded-xl border border-dashed p-10 text-center bg-muted/5">
+        <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest opacity-40">
+          No entries recorded
+        </p>
+      </div>
     );
+  return (
+    <div className="rounded-xl border shadow-sm overflow-hidden bg-white">
+      <Table>
+        <TableHeader className="bg-muted/30">
+          <TableRow>
+            <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Report Details</TableHead>
+            <TableHead className="text-center text-[10px] font-black uppercase py-3">Status</TableHead>
+            <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Action</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {cycleSubs.map((sub) => (
+            <TableRow key={sub.id} className="transition-colors hover:bg-muted/10">
+              <TableCell className="pl-6 py-4">
+                <div className="flex flex-col gap-1">
+                  <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{sub.reportType}</span>
+                  <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">
+                    {sub.controlNumber}
+                  </span>
+                </div>
+              </TableCell>
+              <TableCell className="text-center">
+                <Badge
+                  className={cn(
+                    'capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm',
+                    sub.statusId === 'approved' && 'bg-emerald-600 text-white',
+                    sub.statusId === 'rejected' && 'bg-rose-600 text-white',
+                    sub.statusId === 'submitted' && 'bg-amber-50 text-amber-950',
+                  )}
+                >
+                  {sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}
+                </Badge>
+              </TableCell>
+              <TableCell className="text-right pr-6">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => onView(sub.id)}
+                  className="h-8 text-[10px] font-bold bg-primary shadow-sm"
+                >
+                  VIEW RECORD
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }

@@ -24,6 +24,9 @@ import {
   Image as ImageIcon,
   LayoutList,
   FileText,
+  HelpCircle,
+  ExternalLink,
+  ArrowRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -502,6 +505,95 @@ export default function NewSubmissionPage() {
                   </p>
                 </div>
               )}
+
+              {/* Resolution Instructions */}
+              <div className="mt-4 pt-3 border-t border-rose-300 dark:border-rose-900/50 space-y-3">
+                <div className="flex items-center gap-1.5 text-rose-800 dark:text-rose-300 font-extrabold text-xs uppercase tracking-wider">
+                  <HelpCircle className="h-4 w-4 text-rose-600" />
+                  <span>How the Unit Should Solve the Problem:</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {missingPrevYearSubmissions.some((s) => s.isRequired) && (
+                    <div className="bg-white/90 dark:bg-slate-900/90 p-3 rounded-xl border border-rose-200 dark:border-rose-900/60 space-y-2 shadow-sm">
+                      <p className="font-black text-[10px] uppercase text-rose-700 dark:text-rose-400 tracking-wider flex items-center gap-1.5">
+                        <FileText className="h-3.5 w-3.5 text-rose-600" /> Resolution 1: Submitting Missing EOMS
+                        Documents
+                      </p>
+                      <ol className="list-decimal pl-4 space-y-1 text-slate-700 dark:text-slate-300 font-medium text-[11px] leading-relaxed">
+                        <li>
+                          Change the <strong>Year</strong> dropdown (top left) to <strong>{selectedYear - 1}</strong>.
+                        </li>
+                        <li>
+                          Select the unsubmitted report (e.g.,{' '}
+                          <span className="font-bold text-rose-700 dark:text-rose-400">
+                            {missingPrevYearSubmissions.find((s) => s.isRequired)?.docName}
+                          </span>
+                          ) from the report list.
+                        </li>
+                        <li>Download the official report template from the Google Drive link if needed.</li>
+                        <li>
+                          Upload the final signed PDF to your unit's Google Drive folder and set sharing permissions to{' '}
+                          <strong>"Anyone with the link can view"</strong>.
+                        </li>
+                        <li>Paste the link into the submission form and submit for approval.</li>
+                      </ol>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setSelectedYear(selectedYear - 1)}
+                        className="w-full text-[10px] h-7 font-black text-rose-700 border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 uppercase tracking-wider mt-1"
+                      >
+                        Switch Year to {selectedYear - 1} <ArrowRight className="ml-1.5 h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+
+                  {openPrevYearRisks.length > 0 && (
+                    <div className="bg-white/90 dark:bg-slate-900/90 p-3 rounded-xl border border-rose-200 dark:border-rose-900/60 space-y-2 shadow-sm">
+                      <p className="font-black text-[10px] uppercase text-rose-700 dark:text-rose-400 tracking-wider flex items-center gap-1.5">
+                        <ShieldAlert className="h-3.5 w-3.5 text-rose-600" /> Resolution 2: Closing Open Risk Statements
+                      </p>
+                      <ol className="list-decimal pl-4 space-y-1 text-slate-700 dark:text-slate-300 font-medium text-[11px] leading-relaxed">
+                        <li>
+                          Open the <strong>Digital Risk Register</strong> (`/risk-register`).
+                        </li>
+                        <li>
+                          Find each open risk item (e.g.,{' '}
+                          <span className="font-bold text-rose-700 dark:text-rose-400">
+                            [{openPrevYearRisks[0]?.type}] {openPrevYearRisks[0]?.description.substring(0, 45)}...
+                          </span>
+                          ).
+                        </li>
+                        <li>
+                          Click the <strong>Edit</strong> icon on the risk row/card.
+                        </li>
+                        <li>
+                          Navigate to <strong>Section 4: Treatment & Monitoring / Post-Treatment Analysis</strong>.
+                        </li>
+                        <li>
+                          Re-assess post-treatment likelihood/impact and provide treatment implementation details &
+                          evidence.
+                        </li>
+                        <li>
+                          Change <strong>Execution Status</strong> to <strong>"Closed"</strong> and click{' '}
+                          <strong>Save Risk</strong>.
+                        </li>
+                      </ol>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        asChild
+                        className="w-full text-[10px] h-7 font-black bg-rose-600 hover:bg-rose-700 text-white uppercase tracking-wider mt-1 shadow-sm"
+                      >
+                        <Link href="/risk-register">
+                          Open Digital Register to Close Risks <ExternalLink className="ml-1.5 h-3 w-3" />
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </AlertDescription>
           </Alert>
         )}
@@ -741,13 +833,41 @@ export default function NewSubmissionPage() {
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Validation Blocked</AlertTitle>
-                    <AlertDescription>
-                      The system needs your Registry submission first to determine if this Action Plan is mandatory or
-                      if your unit is exempt (Low Risk).
+                    <AlertDescription className="space-y-3">
+                      <p>
+                        The system needs your Registry submission first to determine if this Action Plan is mandatory or
+                        if your unit is exempt (Low Risk).
+                      </p>
+
+                      <div className="pt-2 border-t border-destructive/20 space-y-2">
+                        <p className="font-black text-[10px] uppercase text-rose-800 dark:text-rose-300 tracking-wider flex items-center gap-1.5">
+                          <HelpCircle className="h-3.5 w-3.5 text-rose-600" /> How the Unit Should Solve the Problem:
+                        </p>
+                        <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-700 dark:text-slate-300 font-medium">
+                          <li>
+                            Click <strong>Go to Registry Submission</strong> below or select{' '}
+                            <strong>Risk and Opportunity Registry</strong> from the left panel.
+                          </li>
+                          <li>Upload and submit your unit's official Risk & Opportunity Registry document.</li>
+                          <li>
+                            The system will automatically read your submitted Risk Rating:
+                            <ul className="list-disc pl-4 mt-0.5 space-y-0.5 text-[10px] text-slate-600 dark:text-slate-400">
+                              <li>
+                                <strong>Low Risk:</strong> This Action Plan will automatically be marked{' '}
+                                <strong>N/A (Exempt)</strong>.
+                              </li>
+                              <li>
+                                <strong>Medium / High Risk:</strong> This Action Plan will unlock for your unit to
+                                submit required treatments.
+                              </li>
+                            </ul>
+                          </li>
+                        </ol>
+                      </div>
                     </AlertDescription>
                   </Alert>
                   <Button
-                    className="mt-6 w-full md:w-auto"
+                    className="mt-6 w-full md:w-auto font-black uppercase text-[10px] tracking-wider"
                     onClick={() => setSelectedReport('Risk and Opportunity Registry')}
                   >
                     Go to Registry Submission
@@ -772,9 +892,9 @@ export default function NewSubmissionPage() {
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Prerequisite Not Met</AlertTitle>
-                    <AlertDescription className="space-y-2">
+                    <AlertDescription className="space-y-3">
                       <p>To continue with the Final Cycle, your unit must have:</p>
-                      <ul className="list-decimal pl-5 font-bold">
+                      <ul className="list-decimal pl-5 font-bold space-y-1">
                         <li
                           className={cn(
                             firstCycleStatusMap.has('Risk and Opportunity Registry')
@@ -799,14 +919,69 @@ export default function NewSubmissionPage() {
                           Encoded individual **Opportunities** in the Digital Register
                         </li>
                       </ul>
+
+                      <div className="pt-3 border-t border-destructive/20 space-y-2">
+                        <p className="font-black text-[10px] uppercase text-rose-800 dark:text-rose-300 tracking-wider flex items-center gap-1.5">
+                          <HelpCircle className="h-3.5 w-3.5 text-rose-600" /> How the Unit Should Solve the Problem:
+                        </p>
+                        <div className="space-y-2 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                          {!firstCycleStatusMap.has('Risk and Opportunity Registry') && (
+                            <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-lg border border-rose-200 dark:border-rose-900/50">
+                              <p className="font-bold text-rose-700 dark:text-rose-400">
+                                Step 1: Submit First Cycle ROR Document
+                              </p>
+                              <p className="mt-0.5">
+                                Click <strong>Go to First Cycle Submission</strong> below, select Risk & Opportunity
+                                Registry, and upload your First Cycle baseline PDF link.
+                              </p>
+                            </div>
+                          )}
+
+                          {(!digitalRisks?.some((r) => r.type === 'Risk') ||
+                            !digitalRisks?.some((r) => r.type === 'Opportunity')) && (
+                            <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-lg border border-rose-200 dark:border-rose-900/50 space-y-1">
+                              <p className="font-bold text-rose-700 dark:text-rose-400">
+                                Step 2: Register Risks & Opportunities in Digital ROR
+                              </p>
+                              <ol className="list-decimal pl-4 space-y-0.5 leading-relaxed">
+                                <li>
+                                  Click <strong>Open Digital Register</strong> (`/risk-register`).
+                                </li>
+                                <li>
+                                  Click <strong>"+ Add New Risk / Opportunity"</strong>.
+                                </li>
+                                <li>
+                                  Register at least one <strong>Risk</strong> entry (encode Risk statement, root cause,
+                                  likelihood/impact ratings, mitigation plan, and owner).
+                                </li>
+                                <li>
+                                  Register at least one <strong>Opportunity</strong> entry (encode Opportunity
+                                  statement, benefit, action plan, and owner).
+                                </li>
+                                <li>Save entries in the Digital Register.</li>
+                              </ol>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </AlertDescription>
                   </Alert>
-                  <div className="flex gap-3">
-                    <Button className="flex-1" variant="outline" onClick={() => setSelectedCycle('first')}>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button
+                      className="flex-1 font-black uppercase text-[10px] tracking-wider"
+                      variant="outline"
+                      onClick={() => setSelectedCycle('first')}
+                    >
                       Go to First Cycle Submission
                     </Button>
-                    <Button className="flex-1" variant="default" asChild>
-                      <Link href="/risk-register">Open Digital Register</Link>
+                    <Button
+                      className="flex-1 font-black uppercase text-[10px] tracking-wider"
+                      variant="default"
+                      asChild
+                    >
+                      <Link href="/risk-register">
+                        Open Digital Register <ExternalLink className="ml-1.5 h-3 w-3" />
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>
@@ -825,15 +1000,43 @@ export default function NewSubmissionPage() {
                       <AlertDescription className="space-y-4 pt-1">
                         <p className="text-xs font-bold leading-relaxed text-primary">
                           Before uploading your formal registry document, please ensure each individual entry in the
-                          Digital Risk Register has been updated with its **Final Assessment (Post-Treatment
-                          Analysis)**.
+                          Digital Risk Register has been updated with its{' '}
+                          <strong>Final Assessment (Post-Treatment Analysis)</strong>.
                         </p>
+
+                        <div className="pt-3 border-t border-primary/20 space-y-2">
+                          <p className="font-black text-[10px] uppercase text-primary tracking-wider flex items-center gap-1.5">
+                            <HelpCircle className="h-3.5 w-3.5 text-primary" /> How the Unit Should Solve the Problem:
+                          </p>
+                          <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-700 dark:text-slate-300 font-medium">
+                            <li>
+                              Click <strong>Update Digital Register Now</strong> below to open the register.
+                            </li>
+                            <li>
+                              Locate each risk/opportunity entry and click <strong>Edit</strong>.
+                            </li>
+                            <li>
+                              Navigate to <strong>Section 4: Treatment & Monitoring / Post-Treatment Analysis</strong>.
+                            </li>
+                            <li>
+                              Re-assess residual likelihood & consequence ratings and enter treatment implementation
+                              details/evidence.
+                            </li>
+                            <li>
+                              Set status to <strong>"Closed"</strong> and click <strong>Save Risk</strong>.
+                            </li>
+                            <li>Return to this page to upload your updated Final Cycle ROR document.</li>
+                          </ol>
+                        </div>
+
                         <Button
                           size="sm"
                           asChild
                           className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
                         >
-                          <Link href="/risk-register?highlightSection=4">Update Digital Register Now</Link>
+                          <Link href="/risk-register?highlightSection=4">
+                            Update Digital Register Now <ExternalLink className="ml-1.5 h-3 w-3" />
+                          </Link>
                         </Button>
                       </AlertDescription>
                     </Alert>
@@ -897,6 +1100,56 @@ export default function NewSubmissionPage() {
                                 </ul>
                               </div>
                             )}
+
+                            <div className="pt-3 border-t border-destructive/20 space-y-2">
+                              <p className="font-black text-[10px] uppercase text-rose-800 dark:text-rose-300 tracking-wider flex items-center gap-1.5">
+                                <HelpCircle className="h-3.5 w-3.5 text-rose-600" /> How the Unit Should Solve the
+                                Problem:
+                              </p>
+                              <div className="space-y-2 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+                                {missingPrevYearSubmissions.some((s) => s.isRequired) && (
+                                  <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-lg border border-rose-200 dark:border-rose-900/50 space-y-1.5">
+                                    <p className="font-bold text-rose-700 dark:text-rose-400">
+                                      1. Clear Missing EOMS Documents
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground leading-normal">
+                                      Switch selector year to <strong>{selectedYear - 1}</strong>, submit missing report
+                                      PDF links, and get QAO approval.
+                                    </p>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setSelectedYear(selectedYear - 1)}
+                                      className="w-full text-[10px] h-7 font-black text-rose-700 border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 uppercase tracking-wider"
+                                    >
+                                      Switch Year to {selectedYear - 1} <ArrowRight className="ml-1.5 h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+
+                                {openPrevYearRisks.length > 0 && (
+                                  <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-lg border border-rose-200 dark:border-rose-900/50 space-y-1.5">
+                                    <p className="font-bold text-rose-700 dark:text-rose-400">
+                                      2. Close Open Risk Statements
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground leading-normal">
+                                      Open `/risk-register`, edit risks, complete Section 4 Post-Treatment Analysis &
+                                      ratings, change status to <strong>"Closed"</strong>, and save.
+                                    </p>
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      asChild
+                                      className="w-full text-[10px] h-7 font-black bg-rose-600 hover:bg-rose-700 text-white uppercase tracking-wider shadow-sm"
+                                    >
+                                      <Link href="/risk-register">
+                                        Open Digital Register to Close Risks <ExternalLink className="ml-1.5 h-3 w-3" />
+                                      </Link>
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </AlertDescription>
                         </Alert>
                         <Button
