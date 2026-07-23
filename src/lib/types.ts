@@ -236,6 +236,12 @@ export type PbbSettings = {
   updatedBy?: string;
 };
 
+export type CommunicationSettings = {
+  authorizedUnitIds?: string[];
+  updatedAt?: any;
+  updatedBy?: string;
+};
+
 export type PbbSubmission = {
   id: string;
   unitId: string;

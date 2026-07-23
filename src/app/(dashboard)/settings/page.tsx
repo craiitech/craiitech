@@ -17,6 +17,7 @@ import { ProcedureManualManagement } from '@/components/admin/procedure-manual-m
 import { EomsPolicyManualManagement } from '@/components/admin/eoms-policy-manual-management';
 import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer';
 import { PbbSettingsManagement } from '@/components/admin/pbb-settings-management';
+import { CommunicationSettingsManagement } from '@/components/admin/communication-settings-management';
 
 import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
@@ -141,6 +142,9 @@ export default function SettingsPage() {
                 <TabsTrigger value="pbb-settings" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   PBB Settings
                 </TabsTrigger>
+                <TabsTrigger value="comm-settings" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  Comm Settings
+                </TabsTrigger>
               </TabsList>
             </ScrollArea>
           </div>
@@ -201,6 +205,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="pbb-settings" className="space-y-4 animate-in fade-in duration-500">
             <PbbSettingsManagement />
+          </TabsContent>
+          <TabsContent value="comm-settings" className="space-y-4 animate-in fade-in duration-500">
+            <CommunicationSettingsManagement />
           </TabsContent>
         </Tabs>
       </div>

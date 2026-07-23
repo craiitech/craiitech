@@ -2,9 +2,9 @@
 
 import { useState, useMemo, useEffect } from 'react';
 
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, addDoc, doc, updateDoc, arrayUnion, Timestamp, getDocs, where, limit, deleteDoc } from '@/firebase/firestore-wrapper';
-import type { Campus, Unit, Communication, CommunicationKind } from '@/lib/types';
+import type { Campus, Unit, Communication, CommunicationKind, CommunicationSettings } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -155,6 +155,18 @@ export default function CommunicationsPage() {
     roleLower.includes('coordinator');
   const isCampusOdimo = roleLower === 'campus odimo';
   const isPresident = roleLower.includes('president') || isAdmin;
+
+  const commSettingsRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'communicationSettings') : null),
+    [firestore]
+  );
+  const { data: commSettings } = useDoc<CommunicationSettings>(commSettingsRef);
+
+  const isAuthorizedForUniversityWide = useMemo(() => {
+    if (isPresident) return true;
+    if (!userProfile?.unitId || !commSettings?.authorizedUnitIds) return false;
+    return commSettings.authorizedUnitIds.includes(userProfile.unitId);
+  }, [isPresident, userProfile?.unitId, commSettings?.authorizedUnitIds]);
 
   /**
    * receivingKey: the Firestore field key used inside recipientRefNums.
@@ -1431,8 +1443,8 @@ export default function CommunicationsPage() {
                             <SelectItem value="unit" className="text-xs font-medium">Academic & Oversight Units</SelectItem>
                             <SelectItem value="campus" className="text-xs font-medium">Campus Sites</SelectItem>
                             <SelectItem value="individual" className="text-xs font-medium">Individual Users (Direct)</SelectItem>
-                            <SelectItem value="all" disabled={!isPresident} className="text-xs font-medium">
-                              University-Wide (All Officers) {!isPresident && '(President Only)'}
+                            <SelectItem value="all" disabled={!isAuthorizedForUniversityWide} className="text-xs font-medium">
+                              University-Wide (All Officers) {!isAuthorizedForUniversityWide && '(President / Authorized Units Only)'}
                             </SelectItem>
                           </>
                         )}
