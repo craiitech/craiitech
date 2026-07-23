@@ -161,7 +161,7 @@ export default function NewSubmissionPage() {
   const { data: prevYearRisks } = useCollection<Risk>(prevYearRisksQuery);
 
   const hasPrevYearConfig = useMemo(() => {
-    if (!selectedYear) return false;
+    if (!selectedYear || selectedYear <= 2025) return false;
     return years.includes(selectedYear - 1);
   }, [years, selectedYear]);
 

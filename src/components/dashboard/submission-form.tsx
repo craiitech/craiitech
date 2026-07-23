@@ -163,8 +163,9 @@ export function SubmissionForm({
   const isPostTreatmentIncomplete = useMemo(() => {
     if (!isRorForm || cycleId !== 'final' || !digitalRisks) return false;
     return digitalRisks.some(r => {
-      // If the risk is initially Low, it doesn't require treatment/re-assessment
-      if (r.preTreatment?.rating?.toLowerCase() === 'low') return false;
+      // If final assessment is marked N/A or the risk is initially Low, it doesn't require treatment/re-assessment
+      const isLow = r.preTreatment?.rating?.toLowerCase() === 'low' || (r.preTreatment?.magnitude != null && r.preTreatment.magnitude < 5);
+      if (r.isFinalAssessmentNA || isLow) return false;
       
       return !r.postTreatment?.likelihood || !r.postTreatment?.consequence || !r.postTreatment?.evidence;
     });
@@ -181,7 +182,7 @@ export function SubmissionForm({
     const tUnitId = isAdmin ? watchAdminUnit : userProfile?.unitId;
     const tCampusId = isAdmin ? watchAdminCampus : userProfile?.campusId;
     
-    if (!firestore || !tUnitId || !tCampusId || !year || !isRorForm) return null;
+    if (!firestore || !tUnitId || !tCampusId || !year || year <= 2025 || !isRorForm) return null;
     return query(
       collection(firestore, 'risks'),
       where('unitId', '==', tUnitId),
