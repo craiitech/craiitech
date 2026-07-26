@@ -38,7 +38,10 @@ export function useNotifications() {
     description: '',
   });
 
-  // Check initial permission & service worker support
+  const [deletedIds, setDeletedIds] = useState<string[]>([]);
+  const [readIds, setReadIds] = useState<string[]>([]);
+
+  // Check initial permission & service worker support & load persisted state
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermission(Notification.permission);
@@ -53,8 +56,16 @@ export function useNotifications() {
       if (savedInbox) {
         setInbox(JSON.parse(savedInbox));
       }
+      const savedDeleted = localStorage.getItem('rsu_eoms_notification_deleted_ids');
+      if (savedDeleted) {
+        setDeletedIds(JSON.parse(savedDeleted));
+      }
+      const savedRead = localStorage.getItem('rsu_eoms_notification_read_ids');
+      if (savedRead) {
+        setReadIds(JSON.parse(savedRead));
+      }
     } catch (e) {
-      console.warn('Could not parse notification inbox from localStorage', e);
+      console.warn('Could not parse notification state from localStorage', e);
     }
   }, []);
 
@@ -65,6 +76,26 @@ export function useNotifications() {
       localStorage.setItem('rsu_eoms_notification_inbox', JSON.stringify(items));
     } catch (e) {
       console.warn('Failed to save notification inbox', e);
+    }
+  }, []);
+
+  // Save deleted IDs to localStorage
+  const saveDeletedIds = useCallback((ids: string[]) => {
+    setDeletedIds(ids);
+    try {
+      localStorage.setItem('rsu_eoms_notification_deleted_ids', JSON.stringify(ids));
+    } catch (e) {
+      console.warn('Failed to save deleted notification IDs', e);
+    }
+  }, []);
+
+  // Save read IDs to localStorage
+  const saveReadIds = useCallback((ids: string[]) => {
+    setReadIds(ids);
+    try {
+      localStorage.setItem('rsu_eoms_notification_read_ids', JSON.stringify(ids));
+    } catch (e) {
+      console.warn('Failed to save read notification IDs', e);
     }
   }, []);
 
@@ -105,8 +136,6 @@ export function useNotifications() {
 
   /**
    * 1A. LOCAL NOTIFICATIONS (Foreground Native OS Popup)
-   * Uses Notification API in active browser tab.
-   * Use cases: Active timers, live chat alerts, upload completion notices.
    */
   const triggerLocalNotification = useCallback(
     async (
@@ -120,7 +149,6 @@ export function useNotifications() {
         onClick?: () => void;
       },
     ) => {
-      // Always record in inbox
       const newItem: AppNotificationItem = {
         id: `local-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         title,
@@ -162,7 +190,6 @@ export function useNotifications() {
         }
       }
 
-      // Fallback to in-app toast if OS notifications are denied or unsupported
       toast({
         title: `[Foreground OS Alert] ${title}`,
         description: options.body,
@@ -172,9 +199,7 @@ export function useNotifications() {
   );
 
   /**
-   * 1B. WEB PUSH NOTIFICATIONS (Background & App Closed Native OS Popup)
-   * Uses Service Worker showNotification to present popups even when tab is backgrounded/closed.
-   * Use cases: Breaking news, abandoned reminders, incoming messages, order status updates.
+   * 1B. WEB PUSH NOTIFICATIONS
    */
   const triggerWebPushNotification = useCallback(
     async (
@@ -187,7 +212,6 @@ export function useNotifications() {
         link?: string;
       },
     ) => {
-      // Record in inbox
       const newItem: AppNotificationItem = {
         id: `push-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         title,
@@ -227,7 +251,6 @@ export function useNotifications() {
         }
       }
 
-      // Fallback to toast
       toast({
         title: `[Background Web Push] ${title}`,
         description: options.body,
@@ -237,8 +260,7 @@ export function useNotifications() {
   );
 
   /**
-   * 2A. TOAST NOTIFICATION (In-App Non-Intrusive Banner)
-   * Pops up in a corner and fades after 3-5 seconds.
+   * 2A. TOAST NOTIFICATION
    */
   const triggerToast = useCallback(
     (
@@ -277,8 +299,7 @@ export function useNotifications() {
   );
 
   /**
-   * 2B. MODAL / DIALOG ALERT (In-App Intrusive Overlay)
-   * Forces user interaction with confirm/cancel buttons.
+   * 2B. MODAL / DIALOG ALERT
    */
   const triggerModalAlert = useCallback(
     (options: {
@@ -331,20 +352,89 @@ export function useNotifications() {
 
   const markAsRead = useCallback(
     (id: string) => {
-      const updated = inbox.map((item) => (item.id === id ? { ...item, read: true } : item));
-      saveInbox(updated);
+      const updatedInbox = inbox.map((item) => (item.id === id ? { ...item, read: true } : item));
+      saveInbox(updatedInbox);
+
+      if (!readIds.includes(id)) {
+        saveReadIds([...readIds, id]);
+      }
     },
-    [inbox, saveInbox],
+    [inbox, readIds, saveInbox, saveReadIds],
   );
 
-  const markAllAsRead = useCallback(() => {
-    const updated = inbox.map((item) => ({ ...item, read: true }));
-    saveInbox(updated);
-  }, [inbox, saveInbox]);
+  const toggleRead = useCallback(
+    (id: string, isCurrentlyRead?: boolean) => {
+      const targetReadState = isCurrentlyRead !== undefined ? !isCurrentlyRead : !readIds.includes(id);
 
-  const clearInbox = useCallback(() => {
-    saveInbox([]);
-  }, [saveInbox]);
+      const updatedInbox = inbox.map((item) => (item.id === id ? { ...item, read: targetReadState } : item));
+      saveInbox(updatedInbox);
+
+      if (targetReadState) {
+        if (!readIds.includes(id)) {
+          saveReadIds([...readIds, id]);
+        }
+        toast({
+          title: 'Marked as Read',
+          description: 'Notification status updated to read.',
+        });
+      } else {
+        const updatedReadIds = readIds.filter((rId) => rId !== id);
+        saveReadIds(updatedReadIds);
+        toast({
+          title: 'Marked as Unread',
+          description: 'Notification status updated to unread.',
+        });
+      }
+    },
+    [inbox, readIds, saveInbox, saveReadIds, toast],
+  );
+
+  const markAllAsRead = useCallback(
+    (allItemIds?: string[]) => {
+      const updatedInbox = inbox.map((item) => ({ ...item, read: true }));
+      saveInbox(updatedInbox);
+
+      const targetIds = Array.from(new Set([...readIds, ...inbox.map((i) => i.id), ...(allItemIds || [])]));
+      saveReadIds(targetIds);
+
+      toast({
+        title: 'All Notifications Checked',
+        description: 'All notifications marked as read.',
+      });
+    },
+    [inbox, readIds, saveInbox, saveReadIds, toast],
+  );
+
+  const deleteNotification = useCallback(
+    (id: string) => {
+      const updatedInbox = inbox.filter((item) => item.id !== id);
+      saveInbox(updatedInbox);
+
+      if (!deletedIds.includes(id)) {
+        saveDeletedIds([...deletedIds, id]);
+      }
+
+      toast({
+        title: 'Notification Deleted',
+        description: 'The notification was removed from your hub.',
+      });
+    },
+    [inbox, deletedIds, saveInbox, saveDeletedIds, toast],
+  );
+
+  const clearInbox = useCallback(
+    (allItemIds?: string[]) => {
+      const currentIds = [...inbox.map((i) => i.id), ...(allItemIds || [])];
+      saveInbox([]);
+      saveDeletedIds(Array.from(new Set([...deletedIds, ...currentIds])));
+
+      toast({
+        title: 'Notification Hub Cleared',
+        description: 'All notifications have been removed.',
+      });
+    },
+    [inbox, deletedIds, saveInbox, saveDeletedIds, toast],
+  );
 
   const unreadCount = inbox.filter((item) => !item.read).length;
 
@@ -359,9 +449,13 @@ export function useNotifications() {
     modalState,
     closeModalAlert,
     inbox,
+    deletedIds,
+    readIds,
     unreadCount,
     markAsRead,
+    toggleRead,
     markAllAsRead,
+    deleteNotification,
     clearInbox,
   };
 }

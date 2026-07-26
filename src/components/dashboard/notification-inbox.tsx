@@ -8,7 +8,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,8 +16,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import {
   Bell,
   Check,
+  CheckCircle2,
   Trash2,
-  ExternalLink,
   MessageSquare,
   FileCheck,
   AlertTriangle,
@@ -40,29 +39,52 @@ interface NotificationInboxProps {
 
 export function NotificationInbox({ initialNotifications = [], totalNotificationsCount = 0 }: NotificationInboxProps) {
   const router = useRouter();
-  const { inbox, unreadCount, markAsRead, markAllAsRead, clearInbox, triggerLocalNotification, triggerToast } =
-    useNotifications();
+  const {
+    inbox,
+    deletedIds,
+    readIds,
+    markAsRead,
+    toggleRead,
+    markAllAsRead,
+    deleteNotification,
+    clearInbox,
+    triggerLocalNotification,
+  } = useNotifications();
 
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'submissions' | 'communications'>('all');
 
-  // Merge hook inbox state with server/layout notifications
-  const combinedItems: AppNotificationItem[] = [
-    ...inbox,
-    ...initialNotifications.map((item: any) => ({
-      id: item.id || `sys-${Math.random()}`,
+  // Convert system notifications with deterministic IDs and persistent read status
+  const sysItems: AppNotificationItem[] = initialNotifications.map((item: any, idx: number) => {
+    const stableId =
+      item.id || `sys-${item.module || 'mod'}-${item.label ? item.label.replace(/\s+/g, '-').toLowerCase() : idx}`;
+    return {
+      id: stableId,
       title: item.label || 'System Notification',
       description: item.description || '',
       category: (item.module || 'system') as AppNotificationItem['category'],
       type: 'toast' as const,
       timestamp: new Date().toISOString(),
-      read: false,
+      read: readIds.includes(stableId),
       link: item.link || '/dashboard',
+    };
+  });
+
+  // Combine inbox items and system notifications
+  const combinedItems: AppNotificationItem[] = [
+    ...inbox.map((item) => ({
+      ...item,
+      read: item.read || readIds.includes(item.id),
     })),
+    ...sysItems,
   ];
 
-  // Deduplicate items by ID
+  // Deduplicate and filter out deleted notifications
   const uniqueItemsMap = new Map<string, AppNotificationItem>();
-  combinedItems.forEach((item) => uniqueItemsMap.set(item.id, item));
+  combinedItems.forEach((item) => {
+    if (!deletedIds.includes(item.id)) {
+      uniqueItemsMap.set(item.id, item);
+    }
+  });
   const allItems = Array.from(uniqueItemsMap.values());
 
   const filteredItems = allItems.filter((item) => {
@@ -72,7 +94,7 @@ export function NotificationInbox({ initialNotifications = [], totalNotification
     return true;
   });
 
-  const displayUnreadCount = unreadCount + totalNotificationsCount;
+  const displayUnreadCount = allItems.filter((item) => !item.read).length;
 
   return (
     <DropdownMenu>
@@ -126,7 +148,7 @@ export function NotificationInbox({ initialNotifications = [], totalNotification
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={markAllAsRead}
+                  onClick={() => markAllAsRead(allItems.map((i) => i.id))}
                   className="h-6 w-6 text-muted-foreground hover:text-primary"
                   title="Mark all as read"
                 >
@@ -137,7 +159,7 @@ export function NotificationInbox({ initialNotifications = [], totalNotification
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={clearInbox}
+                  onClick={() => clearInbox(allItems.map((i) => i.id))}
                   className="h-6 w-6 text-muted-foreground hover:text-destructive"
                   title="Clear notification inbox"
                 >
@@ -202,13 +224,13 @@ export function NotificationInbox({ initialNotifications = [], totalNotification
                   if (item.link) router.push(item.link);
                 }}
                 className={cn(
-                  'p-3.5 hover:bg-muted/50 cursor-pointer transition-colors focus:bg-muted/50 flex items-start justify-between gap-3',
+                  'p-3.5 hover:bg-muted/50 cursor-pointer transition-colors focus:bg-muted/50 flex items-start justify-between gap-3 group',
                   !item.read && 'bg-primary/[0.03]',
                 )}
               >
-                <div className="flex items-start gap-3 min-w-0">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
                   <div className={`h-8 w-8 rounded-lg shrink-0 flex items-center justify-center ${iconBg}`}>{icon}</div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <p className="text-[11px] font-black uppercase text-foreground leading-tight truncate">
                         {item.title}
@@ -224,7 +246,7 @@ export function NotificationInbox({ initialNotifications = [], totalNotification
                   </div>
                 </div>
 
-                <div className="shrink-0 flex flex-col items-end gap-1">
+                <div className="shrink-0 flex flex-col items-end gap-1.5">
                   <Badge
                     variant="outline"
                     className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0 rounded-md border-primary/20"
@@ -234,6 +256,42 @@ export function NotificationInbox({ initialNotifications = [], totalNotification
                     {item.type === 'toast' && <Sparkles className="h-2.5 w-2.5 mr-1 text-amber-500" />}
                     {item.type}
                   </Badge>
+
+                  {/* Row Actions: Check (Mark/Toggle Read) & Delete */}
+                  <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleRead(item.id, item.read);
+                      }}
+                      className="h-6 w-6 text-muted-foreground hover:text-emerald-500 rounded-full p-0"
+                      title={item.read ? 'Mark as unread' : 'Mark as read'}
+                    >
+                      <CheckCircle2
+                        className={cn(
+                          'h-3.5 w-3.5',
+                          item.read ? 'text-emerald-500 fill-emerald-500/20' : 'text-muted-foreground/60',
+                        )}
+                      />
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        deleteNotification(item.id);
+                      }}
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive rounded-full p-0"
+                      title="Delete notification"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </DropdownMenuItem>
             );
