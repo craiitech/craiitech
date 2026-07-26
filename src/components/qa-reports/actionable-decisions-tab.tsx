@@ -774,24 +774,26 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                           </TableCell>
                           <TableCell className="text-right pr-6 whitespace-nowrap">
                             <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={notifyingId === output.id}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleNotify(output);
-                                }}
-                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm text-amber-600 border-amber-300 hover:bg-amber-50"
-                                title="Notify Responsible Units"
-                              >
-                                {notifyingId === output.id ? (
-                                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                                ) : (
-                                  <Bell className="h-3.5 w-3.5 mr-1" />
-                                )}
-                                NOTIFY
-                              </Button>
+                              {isAdmin && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={notifyingId === output.id}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNotify(output);
+                                  }}
+                                  className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm text-amber-600 border-amber-300 hover:bg-amber-50"
+                                  title="Notify Responsible Units"
+                                >
+                                  {notifyingId === output.id ? (
+                                    <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                  ) : (
+                                    <Bell className="h-3.5 w-3.5 mr-1" />
+                                  )}
+                                  NOTIFY
+                                </Button>
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
