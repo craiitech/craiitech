@@ -50,6 +50,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/use-notifications';
 import { format } from 'date-fns';
 import {
   Dialog,
@@ -109,6 +110,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { triggerLocalNotification } = useNotifications();
 
   const [selectedOutput, setSelectedOutput] = useState<ManagementReviewOutput | null>(null);
   const [previewOutput, setPreviewOutput] = useState<ManagementReviewOutput | null>(null);
@@ -146,37 +148,25 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
       });
 
       const formattedUnits = unitNamesList.length > 0 ? unitNamesList.join(', ') : 'Responsible Units';
-      const mrTitle = reviewMap.get(output.mrId)?.title || 'Management Review Session';
-
-      await addDoc(collection(firestore, 'communications'), {
-        kind: 'Memorandum Order',
-        subject: `[MR Decision Directive] ${output.description?.substring(0, 90)}`,
-        driveLink: null,
-        createdAt: serverTimestamp(),
-        manual: false,
-        readBy: [],
-        senderUnitId: userProfile?.unitId || 'system',
-        senderText: 'Quality Assurance Office / Management Review',
-        toText: formattedUnits,
-        recipientType: 'unit',
-        recipientIds: targetUnitIds.length > 0 ? targetUnitIds : ['all'],
-        manualType: 'outgoing',
-        senderName: userProfile
-          ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
-          : 'QA Administrator',
-      });
+      const senderName = userProfile
+        ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
+        : 'QA Administrator';
 
       const outputRef = doc(firestore, 'managementReviewOutputs', output.id);
       await updateDoc(outputRef, {
         lastNotifiedAt: serverTimestamp(),
-        lastNotifiedBy: userProfile
-          ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
-          : 'QA Admin',
+        lastNotifiedBy: senderName,
+      });
+
+      triggerLocalNotification(`[MR Decision Alert] ${output.description?.substring(0, 70)}`, {
+        body: `Management Review directive notification sent to: ${formattedUnits}.`,
+        category: 'system',
+        link: '/qa-reports?tab=decisions',
       });
 
       toast({
         title: 'Responsible Units Notified!',
-        description: `Notification dispatched to ${formattedUnits}. Direct link & info provided to access Actionable Decisions (/qa-reports?tab=decisions).`,
+        description: `On-device notification and toast dispatched for ${formattedUnits}. Direct link provided to access Actionable Decisions (/qa-reports?tab=decisions).`,
       });
     } catch (err: any) {
       console.error('Error notifying responsible units:', err);

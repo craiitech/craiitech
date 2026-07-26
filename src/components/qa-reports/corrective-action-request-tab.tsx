@@ -68,6 +68,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/use-notifications';
 import { format } from 'date-fns';
 import {
   Dialog,
@@ -177,6 +178,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const { triggerLocalNotification } = useNotifications();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<CorrectiveActionRequest | null>(null);
@@ -197,36 +199,28 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       const deadlineStr = car.timeLimitForReply?.toDate
         ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy')
         : car.timeLimitForReply || 'N/A';
-
-      await addDoc(collection(firestore, 'communications'), {
-        kind: 'Memorandum Order',
-        subject: `[CAR Notice] CAR ${car.carNumber} — ${car.procedureTitle || 'Non-conformance Notice'}`,
-        driveLink: null,
-        createdAt: serverTimestamp(),
-        manual: false,
-        readBy: [],
-        senderUnitId: userProfile?.unitId || 'system',
-        senderText: 'Quality Assurance Office / CAR Control',
-        toText: formattedRecipient,
-        recipientType: 'unit',
-        recipientIds: car.unitId ? [car.unitId] : ['all'],
-        manualType: 'outgoing',
-        senderName: userProfile
-          ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
-          : 'QA Administrator',
-      });
+      const senderName = userProfile
+        ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
+        : 'QA Administrator';
 
       const carRef = doc(firestore, 'correctiveActionRequests', car.id);
       await updateDoc(carRef, {
         lastNotifiedAt: serverTimestamp(),
-        lastNotifiedBy: userProfile
-          ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
-          : 'QA Admin',
+        lastNotifiedBy: senderName,
       });
+
+      triggerLocalNotification(
+        `[CAR Notice] CAR ${car.carNumber} — ${car.procedureTitle || 'Non-conformance Notice'}`,
+        {
+          body: `Corrective action notice sent to: ${formattedRecipient}. Reply deadline: ${deadlineStr}.`,
+          category: 'car',
+          link: '/qa-reports?tab=car',
+        },
+      );
 
       toast({
         title: 'Accountable Unit Notified!',
-        description: `Notification dispatched to ${formattedRecipient} for CAR ${car.carNumber}. Reply deadline: ${deadlineStr}. Direct link & info provided to access CAR Registry (/qa-reports?tab=car).`,
+        description: `On-device notification and toast dispatched to ${formattedRecipient} for CAR ${car.carNumber}. Direct link provided to access CAR Registry (/qa-reports?tab=car).`,
       });
     } catch (err: any) {
       console.error('Error notifying accountable unit for CAR:', err);
