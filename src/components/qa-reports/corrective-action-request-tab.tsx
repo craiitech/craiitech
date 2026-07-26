@@ -65,6 +65,7 @@ import {
   MessageCircle,
   Info,
   School,
+  Bell,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -184,6 +185,60 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState('all');
+  const [notifyingCarId, setNotifyingCarId] = useState<string | null>(null);
+
+  const handleNotifyCar = async (car: CorrectiveActionRequest) => {
+    if (!firestore) return;
+    setNotifyingCarId(car.id);
+    try {
+      const unitName = unitMap.get(car.unitId) || car.unitId || 'Accountable Unit';
+      const campusName = campusMap.get(car.campusId) || car.campusId || 'Campus';
+      const formattedRecipient = `${unitName} (${campusName})`;
+      const deadlineStr = car.timeLimitForReply?.toDate
+        ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy')
+        : car.timeLimitForReply || 'N/A';
+
+      await addDoc(collection(firestore, 'communications'), {
+        kind: 'Memorandum Order',
+        subject: `[CAR Notice] CAR ${car.carNumber} — ${car.procedureTitle || 'Non-conformance Notice'}`,
+        driveLink: null,
+        createdAt: serverTimestamp(),
+        manual: false,
+        readBy: [],
+        senderUnitId: userProfile?.unitId || 'system',
+        senderText: 'Quality Assurance Office / CAR Control',
+        toText: formattedRecipient,
+        recipientType: 'unit',
+        recipientIds: car.unitId ? [car.unitId] : ['all'],
+        manualType: 'outgoing',
+        senderName: userProfile
+          ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
+          : 'QA Administrator',
+      });
+
+      const carRef = doc(firestore, 'correctiveActionRequests', car.id);
+      await updateDoc(carRef, {
+        lastNotifiedAt: serverTimestamp(),
+        lastNotifiedBy: userProfile
+          ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
+          : 'QA Admin',
+      });
+
+      toast({
+        title: 'Accountable Unit Notified!',
+        description: `Notification dispatched to ${formattedRecipient} for CAR ${car.carNumber}. Reply deadline: ${deadlineStr}. Direct link & info provided to access CAR Registry (/qa-reports?tab=car).`,
+      });
+    } catch (err: any) {
+      console.error('Error notifying accountable unit for CAR:', err);
+      toast({
+        title: 'Notification Failed',
+        description: err?.message || 'Could not send notification to accountable unit.',
+        variant: 'destructive',
+      });
+    } finally {
+      setNotifyingCarId(null);
+    }
+  };
 
   const isInstitutionalViewer =
     isAdmin ||
@@ -905,6 +960,24 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                           <Button
                             variant="outline"
                             size="sm"
+                            disabled={notifyingCarId === car.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNotifyCar(car);
+                            }}
+                            className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
+                            title="Notify Accountable Unit"
+                          >
+                            {notifyingCarId === car.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Bell className="h-3 w-3" />
+                            )}
+                            NOTIFY
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="h-8 text-[9px] font-bold bg-white gap-1.5"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -982,13 +1055,33 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right pr-6">
-                        <Button
-                          size="sm"
-                          className="h-8 font-black uppercase text-[10px] shadow-sm bg-amber-600"
-                          onClick={() => handleEdit(car)}
-                        >
-                          Manage
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={notifyingCarId === car.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNotifyCar(car);
+                            }}
+                            className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
+                            title="Notify Accountable Unit"
+                          >
+                            {notifyingCarId === car.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Bell className="h-3 w-3" />
+                            )}
+                            NOTIFY
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-8 font-black uppercase text-[10px] shadow-sm bg-amber-600"
+                            onClick={() => handleEdit(car)}
+                          >
+                            Manage
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -1050,6 +1143,24 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                       </TableCell>
                       <TableCell className="text-right pr-6">
                         <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={notifyingCarId === car.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleNotifyCar(car);
+                            }}
+                            className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
+                            title="Notify Accountable Unit"
+                          >
+                            {notifyingCarId === car.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Bell className="h-3 w-3" />
+                            )}
+                            NOTIFY
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
