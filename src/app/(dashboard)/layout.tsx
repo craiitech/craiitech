@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { YearProvider } from '@/lib/year-provider';
+import { WebLlmProvider } from '@/context/web-llm-provider';
 import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
 import { useToast } from '@/hooks/use-toast';
@@ -890,117 +891,122 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <ActivityLogProvider>
-      <YearProvider>
-        <div className={cn('flex min-h-screen w-full', accessibilityClasses)}>
-          <SidebarProvider>
-            <Sidebar variant="sidebar" collapsible="icon">
-              <SidebarHeader className="p-4">
-                <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-xl group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden card-3d">
-                  <div className="absolute inset-0 rounded-2xl animate-gold-green-bg group-data-[collapsible=icon]:hidden" />
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-transparent via-white/5 to-white/10 group-data-[collapsible=icon]:hidden" />
-                  <div className="absolute top-0 -left-6 w-24 h-24 bg-white/30 rounded-full blur-3xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" />
-                  <div
-                    className="absolute bottom-0 -right-6 w-20 h-20 bg-accent/30 rounded-full blur-3xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10"
-                    style={{ animationDelay: '3s' }}
-                  />
-                  <div className="absolute -top-4 -right-4 w-28 h-28 bg-green-500/20 rounded-full blur-[60px] animate-green-float group-data-[collapsible=icon]:hidden -z-10" />
-                  <div
-                    className="absolute -bottom-4 -left-4 w-24 h-24 bg-yellow-500/20 rounded-full blur-[50px] animate-gold-float group-data-[collapsible=icon]:hidden -z-10"
-                    style={{ animationDelay: '2s' }}
-                  />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-yellow-400/10 rounded-full blur-[70px] animate-glow-pulse group-data-[collapsible=icon]:hidden -z-10" />
+    <WebLlmProvider>
+      <ActivityLogProvider>
+        <YearProvider>
+          <div className={cn('flex min-h-screen w-full', accessibilityClasses)}>
+            <SidebarProvider>
+              <Sidebar variant="sidebar" collapsible="icon">
+                <SidebarHeader className="p-4">
+                  <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-2xl bg-white/10 backdrop-blur-2xl border border-white/20 shadow-xl group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden card-3d">
+                    <div className="absolute inset-0 rounded-2xl animate-gold-green-bg group-data-[collapsible=icon]:hidden" />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-transparent via-white/5 to-white/10 group-data-[collapsible=icon]:hidden" />
+                    <div className="absolute top-0 -left-6 w-24 h-24 bg-white/30 rounded-full blur-3xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10" />
+                    <div
+                      className="absolute bottom-0 -right-6 w-20 h-20 bg-accent/30 rounded-full blur-3xl animate-float-blob group-data-[collapsible=icon]:hidden -z-10"
+                      style={{ animationDelay: '3s' }}
+                    />
+                    <div className="absolute -top-4 -right-4 w-28 h-28 bg-green-500/20 rounded-full blur-[60px] animate-green-float group-data-[collapsible=icon]:hidden -z-10" />
+                    <div
+                      className="absolute -bottom-4 -left-4 w-24 h-24 bg-yellow-500/20 rounded-full blur-[50px] animate-gold-float group-data-[collapsible=icon]:hidden -z-10"
+                      style={{ animationDelay: '2s' }}
+                    />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-yellow-400/10 rounded-full blur-[70px] animate-glow-pulse group-data-[collapsible=icon]:hidden -z-10" />
 
-                  <div className="relative z-10 animate-avatar-float" style={{ transformStyle: 'preserve-3d' }}>
-                    {displayAvatar ? (
-                      <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 border-2 border-white/20 shadow-lg">
-                        <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
-                        <AvatarFallback>{fallbackAvatar}</AvatarFallback>
-                      </Avatar>
-                    ) : (
-                      <Logo className="h-12 w-12 transition-all group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
-                    )}
-                  </div>
-                  <div
-                    className="mt-3 text-center group-data-[collapsible=icon]:hidden relative z-10 animate-text-float"
-                    style={{ transformStyle: 'preserve-3d' }}
-                  >
-                    <p className="font-black text-sm leading-tight text-white text-shadow-3d">{displayName}</p>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mt-1 text-shadow-3d-sm">
-                      {displayRole}
-                    </p>
-                    <div className="mt-2 space-y-1">
-                      {userProfile?.unitId && (
-                        <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-900 dark:text-slate-100 font-bold uppercase tracking-tight text-shadow-3d-sm">
-                          <Building2 className="h-3 w-3 text-slate-900/40 dark:text-slate-100/40 shrink-0" />
-                          <span className="truncate max-w-[150px]">
-                            {allUnits?.find((u) => u.id === userProfile.unitId)?.name || 'Loading Unit...'}
-                          </span>
-                        </div>
-                      )}
-                      {userProfile?.campusId && (
-                        <div className="flex items-center justify-center gap-1.5 text-[9px] text-slate-900/60 dark:text-slate-100/60 italic font-bold text-shadow-3d-sm">
-                          <School className="h-3 w-3 shrink-0 opacity-40" />
-                          <span className="truncate max-w-[150px]">
-                            {allCampuses?.find((c) => c.id === userProfile.campusId)?.name || 'Loading Site...'}
-                          </span>
-                        </div>
+                    <div className="relative z-10 animate-avatar-float" style={{ transformStyle: 'preserve-3d' }}>
+                      {displayAvatar ? (
+                        <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 border-2 border-white/20 shadow-lg">
+                          <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
+                          <AvatarFallback>{fallbackAvatar}</AvatarFallback>
+                        </Avatar>
+                      ) : (
+                        <Logo className="h-12 w-12 transition-all group-data-[collapsible=icon]:h-8 group-data-[collapsible=icon]:w-8" />
                       )}
                     </div>
-                    <SidebarEomsPoints
-                      eomsSubmissions={eomsSubmissions}
-                      cycles={cycles}
-                      userProfile={userProfile}
-                      allUnits={allUnits}
-                    />
+                    <div
+                      className="mt-3 text-center group-data-[collapsible=icon]:hidden relative z-10 animate-text-float"
+                      style={{ transformStyle: 'preserve-3d' }}
+                    >
+                      <p className="font-black text-sm leading-tight text-white text-shadow-3d">{displayName}</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-slate-100 mt-1 text-shadow-3d-sm">
+                        {displayRole}
+                      </p>
+                      <div className="mt-2 space-y-1">
+                        {userProfile?.unitId && (
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-900 dark:text-slate-100 font-bold uppercase tracking-tight text-shadow-3d-sm">
+                            <Building2 className="h-3 w-3 text-slate-900/40 dark:text-slate-100/40 shrink-0" />
+                            <span className="truncate max-w-[150px]">
+                              {allUnits?.find((u) => u.id === userProfile.unitId)?.name || 'Loading Unit...'}
+                            </span>
+                          </div>
+                        )}
+                        {userProfile?.campusId && (
+                          <div className="flex items-center justify-center gap-1.5 text-[9px] text-slate-900/60 dark:text-slate-100/60 italic font-bold text-shadow-3d-sm">
+                            <School className="h-3 w-3 shrink-0 opacity-40" />
+                            <span className="truncate max-w-[150px]">
+                              {allCampuses?.find((c) => c.id === userProfile.campusId)?.name || 'Loading Site...'}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <SidebarEomsPoints
+                        eomsSubmissions={eomsSubmissions}
+                        cycles={cycles}
+                        userProfile={userProfile}
+                        allUnits={allUnits}
+                      />
+                    </div>
                   </div>
-                </div>
-              </SidebarHeader>
-              <SidebarContent className="p-4 pt-2">
-                <SidebarNav
-                  notificationCount={notificationCount}
-                  commNotificationCount={commNotificationsCount}
-                  formRequestNotificationsCount={formRequestNotificationsCount}
-                  manualsNotificationCount={revisionRequestsNotificationsCount}
-                />
-              </SidebarContent>
-            </Sidebar>
-            <SidebarInset className="overflow-hidden h-dvh max-h-dvh flex flex-col">
-              <VoiceProvider>
-                <Header
-                  notificationCount={notificationCount}
-                  totalNotificationsCount={totalNotificationsCount}
-                  notificationsList={notificationsList}
-                  isGuidanceVisible={isGuidanceVisible}
-                  onToggleGuidance={handleToggleGuidance}
-                  availableYears={availableYears}
-                />
-                <main className="flex-1 flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 min-h-0 overflow-hidden">
-                  <div className="flex-1 min-w-0 overflow-auto h-full pr-2">{children}</div>
+                </SidebarHeader>
+                <SidebarContent className="p-4 pt-2">
+                  <SidebarNav
+                    notificationCount={notificationCount}
+                    commNotificationCount={commNotificationsCount}
+                    formRequestNotificationsCount={formRequestNotificationsCount}
+                    manualsNotificationCount={revisionRequestsNotificationsCount}
+                  />
+                </SidebarContent>
+              </Sidebar>
+              <SidebarInset className="overflow-hidden h-dvh max-h-dvh flex flex-col">
+                <VoiceProvider>
+                  <Header
+                    notificationCount={notificationCount}
+                    totalNotificationsCount={totalNotificationsCount}
+                    notificationsList={notificationsList}
+                    isGuidanceVisible={isGuidanceVisible}
+                    onToggleGuidance={handleToggleGuidance}
+                    availableYears={availableYears}
+                  />
+                  <main className="flex-1 flex flex-col lg:flex-row gap-6 p-4 lg:p-8 bg-background/90 min-h-0 overflow-hidden">
+                    <div className="flex-1 min-w-0 overflow-auto h-full pr-2">{children}</div>
 
-                  {hasHydrated && isGuidanceVisible && (
-                    <Suspense fallback={<div className="w-80 shrink-0" />}>
-                      <PageGuidance className="hidden lg:block h-full" />
-                    </Suspense>
-                  )}
-                </main>
-                <Chatbot />
-                <GuidedTour />
-              </VoiceProvider>
-            </SidebarInset>
-          </SidebarProvider>
-        </div>
+                    {hasHydrated && isGuidanceVisible && (
+                      <Suspense fallback={<div className="w-80 shrink-0" />}>
+                        <PageGuidance className="hidden lg:block h-full" />
+                      </Suspense>
+                    )}
+                  </main>
+                  <Chatbot />
+                  <GuidedTour />
+                </VoiceProvider>
+              </SidebarInset>
+            </SidebarProvider>
+          </div>
 
-        {!showEvalGate && <InstallPwaDialog />}
-        <WhatsNewDialog
-          isOpen={isWhatsNewOpen}
-          onOpenChange={setIsWhatsNewOpen}
-          onAcknowledge={handleAcknowledgeUpdates}
-        />
-        {showEvalGate && (
-          <SoftwareEvaluationGate required={!isAdmin && accountAgeDays > 30} onDismiss={() => setIsEvalSkipped(true)} />
-        )}
-      </YearProvider>
-    </ActivityLogProvider>
+          {!showEvalGate && <InstallPwaDialog />}
+          <WhatsNewDialog
+            isOpen={isWhatsNewOpen}
+            onOpenChange={setIsWhatsNewOpen}
+            onAcknowledge={handleAcknowledgeUpdates}
+          />
+          {showEvalGate && (
+            <SoftwareEvaluationGate
+              required={!isAdmin && accountAgeDays > 30}
+              onDismiss={() => setIsEvalSkipped(true)}
+            />
+          )}
+        </YearProvider>
+      </ActivityLogProvider>
+    </WebLlmProvider>
   );
 }

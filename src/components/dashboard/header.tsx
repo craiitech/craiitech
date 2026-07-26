@@ -8,6 +8,8 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ContextualHelp } from './contextual-help';
 import { useVoice } from '@/components/voice/voice-provider';
 import { Button } from '@/components/ui/button';
+import { useWebLlm } from '@/context/web-llm-provider';
+import { WebLlmModelDialog } from '@/components/ai/web-llm-model-dialog';
 import {
   PanelRightClose,
   PanelRightOpen,
@@ -20,6 +22,8 @@ import {
   VolumeX,
   Calendar,
   GraduationCap,
+  Sparkles,
+  Bot,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -57,6 +61,7 @@ export function Header({
 
   const isAuditor = userRole === 'Auditor';
   const { enabled: voiceEnabled, setEnabled: setVoiceEnabled } = useVoice();
+  const { isAdminOnly, isAiEnabled, status: webLlmStatus, toggleAi } = useWebLlm();
 
   useEffect(() => {
     const checkState = () => {
@@ -217,6 +222,54 @@ export function Header({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+
+        {/* Admin-Only WebLLM AI Engine Toggle (Header Only) */}
+        {isAdminOnly && (
+          <>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      'relative h-9 w-9 rounded-full transition-all',
+                      isAiEnabled
+                        ? 'text-primary bg-primary/10 hover:bg-primary/15 shadow-sm'
+                        : 'text-muted-foreground hover:text-primary hover:bg-primary/5',
+                    )}
+                    onClick={toggleAi}
+                    title={isAiEnabled ? `WebLLM AI Active (${webLlmStatus})` : 'Enable WebLLM AI (Admin)'}
+                  >
+                    <Sparkles className="h-5 w-5" />
+                    {isAiEnabled && (
+                      <span className="absolute top-1 right-1 flex h-2 w-2">
+                        <span
+                          className={cn(
+                            'animate-ping absolute inline-flex h-full w-full rounded-full opacity-75',
+                            webLlmStatus === 'ready' ? 'bg-emerald-400' : 'bg-amber-400',
+                          )}
+                        />
+                        <span
+                          className={cn(
+                            'relative inline-flex rounded-full h-2 w-2',
+                            webLlmStatus === 'ready' ? 'bg-emerald-500' : 'bg-amber-500',
+                          )}
+                        />
+                      </span>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-[10px] font-black uppercase">
+                    {isAiEnabled ? `WebLLM AI: ${webLlmStatus.toUpperCase()}` : 'Enable Local AI (Admin)'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <WebLlmModelDialog />
+          </>
+        )}
 
         <ContextualHelp />
         <UserNav

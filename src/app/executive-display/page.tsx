@@ -38,7 +38,9 @@ import {
   LogOut,
   Lock,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
+import { useWebLlm } from '@/context/web-llm-provider';
 import type {
   Submission,
   Unit,
@@ -257,16 +259,44 @@ function CampusRow({
   );
 }
 
-// ─── Narrative Card ──────────────────────────────────────────────────────────
-function NarrativeCard({ title, text, color }: { title: string; text: string; color: string }) {
+// ─── Narrative Card (AI Discussion Powered) ──────────────────────────────────
+function NarrativeCard({
+  title,
+  text,
+  color,
+  contextData,
+}: {
+  title: string;
+  text: string;
+  color: string;
+  contextData?: any;
+}) {
+  const { generateDiscussion } = useWebLlm();
+  const [aiText, setAiText] = useState<string>(text);
+
+  useEffect(() => {
+    let isMounted = true;
+    generateDiscussion(title, contextData).then((res) => {
+      if (isMounted && res) setAiText(res);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [title, text, JSON.stringify(contextData)]);
+
   return (
     <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-4 flex flex-col gap-2 shadow-md flex-1 min-h-0">
-      <div className="flex items-center gap-2 shrink-0">
-        <div className="h-2 w-2 rounded-full shrink-0" style={{ background: color }} />
-        <p className="text-xs font-black uppercase tracking-[0.15em] text-white/75">{title}</p>
+      <div className="flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full shrink-0" style={{ background: color }} />
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/75">{title}</p>
+        </div>
+        <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-amber-400/20 text-yellow-300 flex items-center gap-1">
+          <Sparkles className="h-2.5 w-2.5" /> Executive AI Discussion
+        </span>
       </div>
       <AutoScrollContainer className="flex-1">
-        <p className="text-sm text-white/80 leading-relaxed">{text}</p>
+        <p className="text-xs text-white/90 leading-relaxed font-normal">{aiText}</p>
       </AutoScrollContainer>
     </div>
   );

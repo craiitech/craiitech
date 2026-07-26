@@ -18,6 +18,7 @@ import { EomsPolicyManualManagement } from '@/components/admin/eoms-policy-manua
 import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer';
 import { PbbSettingsManagement } from '@/components/admin/pbb-settings-management';
 import { CommunicationSettingsManagement } from '@/components/admin/communication-settings-management';
+import { NotificationSettingsManagement } from '@/components/notifications/notification-settings';
 
 import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
@@ -142,8 +143,17 @@ export default function SettingsPage() {
                 <TabsTrigger value="pbb-settings" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   PBB Settings
                 </TabsTrigger>
-                <TabsTrigger value="comm-settings" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <TabsTrigger
+                  value="comm-settings"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
                   Comm Settings
+                </TabsTrigger>
+                <TabsTrigger
+                  value="notifications"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  Notifications & Push
                 </TabsTrigger>
               </TabsList>
             </ScrollArea>
@@ -208,6 +218,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="comm-settings" className="space-y-4 animate-in fade-in duration-500">
             <CommunicationSettingsManagement />
+          </TabsContent>
+          <TabsContent value="notifications" className="space-y-4 animate-in fade-in duration-500">
+            <NotificationSettingsManagement />
           </TabsContent>
         </Tabs>
       </div>

@@ -141,6 +141,64 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// ─── Web Push & Background OS Notification Handlers ───
+self.addEventListener('push', (event) => {
+  let data = {
+    title: 'RSU EOMS Notification',
+    body: 'You have a new institutional update.',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    data: { url: '/dashboard' },
+  };
+
+  try {
+    if (event.data) {
+      const payload = event.data.json();
+      data = { ...data, ...payload };
+    }
+  } catch (e) {
+    if (event.data) {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon || '/favicon.ico',
+    badge: data.badge || '/favicon.ico',
+    vibrate: [100, 50, 100],
+    data: data.data || { url: '/dashboard' },
+    actions: data.actions || [
+      { action: 'open', title: 'Open App' },
+      { action: 'dismiss', title: 'Dismiss' },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'dismiss') return;
+
+  const targetUrl = event.notification.data?.url || '/dashboard';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
 // ─── Message handler: pre-cache a list of URLs sent from the app ───
 // The Deep Mirroring process sends chunk URLs here to cache them proactively.
 self.addEventListener('message', (event) => {
@@ -149,13 +207,16 @@ self.addEventListener('message', (event) => {
     event.waitUntil(
       caches.open(STATIC_CHUNKS_CACHE).then((cache) => {
         return Promise.allSettled(
-          urls.map(url =>
-            fetch(url).then(res => {
-              if (res && res.status === 200) cache.put(url, res);
-            }).catch(() => console.warn('[SW] Pre-cache failed for:', url))
-          )
+          urls.map((url) =>
+            fetch(url)
+              .then((res) => {
+                if (res && res.status === 200) cache.put(url, res);
+              })
+              .catch(() => console.warn('[SW] Pre-cache failed for:', url)),
+          ),
         );
-      })
+      }),
     );
   }
 });
+
