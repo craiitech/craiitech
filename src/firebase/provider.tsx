@@ -12,6 +12,7 @@ import type { User as AppUser, Role, Campus, SystemSettings } from '@/lib/types'
 import { useMemoFirebase } from './';
 import { useSessionActivity, ActivityLogProvider } from '@/lib/activity-log-provider';
 import { useToast } from '@/hooks/use-toast';
+import { getDefaultPermissions } from '@/lib/permissions';
 
 interface FirebaseProviderProps {
   children: ReactNode;
@@ -230,7 +231,14 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
 
     const can = (permission: string): boolean => {
       if (isAdmin) return true;
-      return rolePermissions[permission] === true;
+      if (rolePermissions[permission] !== undefined) {
+        return rolePermissions[permission] === true;
+      }
+      if (userRole) {
+        const defaults = getDefaultPermissions(userRole);
+        return defaults[permission] === true;
+      }
+      return false;
     };
 
     // The user is fully loaded only when auth state is determined AND the Firestore profile is loaded.

@@ -519,8 +519,9 @@ export function SidebarNav({
         })
       )
         return true;
+      const isUnitCoordinator = roleLower.includes('coordinator') || roleLower.includes('head');
       if (
-        roleLower === 'faculty' &&
+        (isUnitCoordinator || roleLower === 'faculty') &&
         route.roles.some((r) => {
           const rLower = r.toLowerCase();
           return rLower === 'unit coordinator' || rLower === 'unit odimo';
