@@ -236,8 +236,10 @@ export function ChedProgramMonitoringTable({
 
       const accRecords = c.accreditationRecords || [];
       accRecords.forEach((rec) => {
+        const surveyYear = rec.dateOfSurvey ? parseInt(rec.dateOfSurvey.match(/\d{4}/)?.[0] || '0') : 0;
+        if (!surveyYear) return;
         rows.push({
-          year: c.academicYear,
+          year: surveyYear,
           programId: c.programId,
           programName: p.name,
           abbreviation: p.abbreviation,
@@ -249,11 +251,7 @@ export function ChedProgramMonitoringTable({
       });
     });
 
-    return rows.sort((a, b) => {
-      if (a.dateOfSurvey === '—') return 1;
-      if (b.dateOfSurvey === '—') return -1;
-      return b.dateOfSurvey.localeCompare(a.dateOfSurvey);
-    });
+    return rows.sort((a, b) => b.year - a.year || a.programName.localeCompare(b.programName));
   }, [compliances, programs, campusMap]);
 
   const accredYears = useMemo(() => {
