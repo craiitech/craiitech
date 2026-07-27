@@ -24,9 +24,6 @@ import {
   Landmark,
   Calculator,
   ShieldCheck,
-  Link as LinkIcon,
-  FolderGit2,
-  ExternalLink,
 } from 'lucide-react';
 import {
   Dialog,
@@ -79,7 +76,6 @@ const planSchema = z.object({
   implementationStatus: z
     .enum(['Done', 'Partially Done', 'On-going', 'Yet to be implemented', 'Not Done'])
     .default('Done'),
-  driveLink: z.string().optional(),
 });
 
 export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnitId }: GADPlansTabProps) {
@@ -284,20 +280,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                       </div>
                     </TableCell>
                     <TableCell className="max-w-xs font-bold text-xs">
-                      <div className="space-y-1">
-                        <p className="font-bold text-xs">{plan.pap}</p>
-                        {plan.driveLink && (
-                          <a
-                            href={plan.driveLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-[8px] font-black text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800 uppercase transition-colors"
-                          >
-                            <FolderGit2 className="h-3 w-3" /> Drive Folder{' '}
-                            <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
-                          </a>
-                        )}
-                      </div>
+                      <p className="font-bold text-xs">{plan.pap}</p>
                     </TableCell>
                     <TableCell>
                       <div className="space-y-1 text-xs">
@@ -613,35 +596,6 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                                 ))}
                             </SelectContent>
                           </Select>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="space-y-4 pt-6 border-t border-dashed">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-2 border-b pb-2">
-                      <FolderGit2 className="h-4 w-4" /> Supporting Evidences & Documentation (Google Drive)
-                    </h4>
-                    <FormField
-                      control={form.control}
-                      name="driveLink"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-black uppercase flex items-center gap-1.5 text-blue-700">
-                            <LinkIcon className="h-3.5 w-3.5" /> Google Drive Link (Folder / Document)
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="https://drive.google.com/drive/folders/... or https://drive.google.com/file/d/..."
-                              className="h-11 bg-blue-50/20 border-blue-200 font-mono text-xs font-medium"
-                            />
-                          </FormControl>
-                          <FormDescription className="text-[10px] italic text-muted-foreground">
-                            Paste the public Google Drive URL containing proposal documents, approvals, or GPB targets
-                            support. Saved directly to Firestore.
-                          </FormDescription>
-                          <FormMessage />
                         </FormItem>
                       )}
                     />
