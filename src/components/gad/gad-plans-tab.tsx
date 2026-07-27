@@ -383,7 +383,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                         name="genderIssue"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-black uppercase">Gender Issue</FormLabel>
+                            <FormLabel className="text-xs font-black uppercase">Gender Issue / GAD Mandate</FormLabel>
                             <FormControl>
                               <Textarea
                                 {...field}
@@ -401,7 +401,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                         name="causeOfIssue"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-black uppercase">Cause of Issue</FormLabel>
+                            <FormLabel className="text-xs font-black uppercase">Cause of Gender Issue</FormLabel>
                             <FormControl>
                               <Textarea
                                 {...field}
@@ -426,7 +426,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                       name="objective"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-black uppercase">GAD Objective</FormLabel>
+                          <FormLabel className="text-xs font-black uppercase">GAD Result / GAD Objective</FormLabel>
                           <FormControl>
                             <Input
                               {...field}
@@ -443,11 +443,13 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                       name="pap"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-black uppercase">Program/Activity/Project (PAP)</FormLabel>
+                          <FormLabel className="text-xs font-black uppercase">
+                            Relevant Organization MFO/PAP or PPA
+                          </FormLabel>
                           <FormControl>
                             <Input
                               {...field}
-                              placeholder="Name of the activity..."
+                              placeholder="e.g. MFO1: Research Services – GAD-Related Research Output"
                               className="bg-slate-50 dark:bg-slate-800/50 font-bold"
                             />
                           </FormControl>
@@ -461,7 +463,9 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                         name="performanceIndicators"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-black uppercase">Performance Indicators</FormLabel>
+                            <FormLabel className="text-xs font-black uppercase">
+                              Performance Indicators / Targets
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 {...field}
@@ -501,7 +505,9 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                         name="budget"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-xs font-black uppercase">GAD Budget Allocation (â‚±)</FormLabel>
+                            <FormLabel className="text-xs font-black uppercase">
+                              Total Agency Approved Budget (₱)
+                            </FormLabel>
                             <FormControl>
                               <Input
                                 type="number"
@@ -564,7 +570,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                               form.setValue('responsibleOfficeId', '');
                             }}
                             value={field.value}
-                            disabled={!isAdmin && !!userProfile?.campusId}
+                            disabled={!isAdmin && !isGadLeader && !!userProfile?.campusId}
                           >
                             <FormControl>
                               <SelectTrigger className="h-9">
@@ -587,7 +593,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                       name="responsibleOfficeId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="text-xs font-black uppercase">Responsible Office</FormLabel>
+                          <FormLabel className="text-xs font-black uppercase">Responsible Unit/Office</FormLabel>
                           <Select onValueChange={field.onChange} value={field.value} disabled={!watchCampusId}>
                             <FormControl>
                               <SelectTrigger className="h-9">
