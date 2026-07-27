@@ -1,4 +1,3 @@
-
 'use client';
 
 import React from 'react';
@@ -33,11 +32,9 @@ export function CARControlRegisterTemplate({ cars, unitMap, campusMap, year }: C
         <h1 className="text-sm font-bold uppercase leading-none">Romblon State University</h1>
         <h2 className="text-xs font-bold uppercase leading-none mt-1">Quality Assurance Office</h2>
         <p className="text-[10px] italic">Odiongan, Romblon</p>
-        
+
         <h2 className="text-xl font-black uppercase tracking-tight mt-6">CAR Control Register</h2>
-        {year !== 'all' && (
-            <p className="text-[10px] font-bold uppercase tracking-widest mt-1">FISCAL YEAR {year}</p>
-        )}
+        {year !== 'all' && <p className="text-[10px] font-bold uppercase tracking-widest mt-1">FISCAL YEAR {year}</p>}
       </div>
 
       <table className="w-full border-collapse border-2 border-black text-[9px]">
@@ -57,10 +54,10 @@ export function CARControlRegisterTemplate({ cars, unitMap, campusMap, year }: C
         <tbody>
           {displayRows.map((car, i) => {
             const hasData = !!car.id;
-            const latestFollowUp = car.followUpLogs && car.followUpLogs.length > 0 
-                ? car.followUpLogs[car.followUpLogs.length - 1] 
-                : null;
-            const latestEffectiveness = car.effectivenessAudits && car.effectivenessAudits.length > 0
+            const latestFollowUp =
+              car.followUpLogs && car.followUpLogs.length > 0 ? car.followUpLogs[car.followUpLogs.length - 1] : null;
+            const latestEffectiveness =
+              car.effectivenessAudits && car.effectivenessAudits.length > 0
                 ? car.effectivenessAudits[car.effectivenessAudits.length - 1]
                 : null;
 
@@ -69,13 +66,32 @@ export function CARControlRegisterTemplate({ cars, unitMap, campusMap, year }: C
                 <td className="border border-black p-1 text-center font-bold">{car.carNumber || ''}</td>
                 <td className="border border-black p-1 text-left align-top">{car.procedureTitle || ''}</td>
                 <td className="border border-black p-1 text-center align-top font-bold uppercase">
-                    {hasData ? unitMap.get(car.unitId) : ''}
+                  {hasData ? (
+                    <div className="flex flex-col items-center justify-center">
+                      <span>{unitMap.get(car.unitId) || car.unitId || ''}</span>
+                      {campusMap.get(car.campusId) && (
+                        <span className="text-[8px] font-semibold text-slate-600 dark:text-slate-400 tracking-tight normal-case">
+                          ({campusMap.get(car.campusId)})
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    ''
+                  )}
                 </td>
-                <td className="border border-black p-1 text-center whitespace-nowrap">{safeDate(car.timeLimitForReply)}</td>
+                <td className="border border-black p-1 text-center whitespace-nowrap">
+                  {safeDate(car.timeLimitForReply)}
+                </td>
                 <td className="border border-black p-1 text-center whitespace-nowrap">{safeDate(car.requestDate)}</td>
-                <td className="border border-black p-1 text-center whitespace-nowrap">{safeDate(latestFollowUp?.date)}</td>
-                <td className="border border-black p-1 text-center whitespace-nowrap">{safeDate(latestEffectiveness?.date)}</td>
-                <td className="border border-black p-1 text-center font-black uppercase text-[7px]">{latestEffectiveness?.action || car.status}</td>
+                <td className="border border-black p-1 text-center whitespace-nowrap">
+                  {safeDate(latestFollowUp?.date)}
+                </td>
+                <td className="border border-black p-1 text-center whitespace-nowrap">
+                  {safeDate(latestEffectiveness?.date)}
+                </td>
+                <td className="border border-black p-1 text-center font-black uppercase text-[7px]">
+                  {latestEffectiveness?.action || car.status}
+                </td>
                 <td className="border border-black p-1 text-[8px] italic">{latestEffectiveness?.remarks || ''}</td>
               </tr>
             );
@@ -89,7 +105,9 @@ export function CARControlRegisterTemplate({ cars, unitMap, campusMap, year }: C
           <p className="font-normal opacity-60">Creation Date: 2021-02-14</p>
         </div>
         <div className="text-right">
-          <p className="text-sm font-black">CCR No.: <span className="underline ml-1">________________</span></p>
+          <p className="text-sm font-black">
+            CCR No.: <span className="underline ml-1">________________</span>
+          </p>
         </div>
       </div>
     </div>
