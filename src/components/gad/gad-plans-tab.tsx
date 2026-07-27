@@ -70,6 +70,15 @@ const planSchema = z.object({
   sourceOfBudget: z.string().min(1, 'Required'),
   responsibleOfficeId: z.string().min(1, 'Required'),
   campusId: z.string().min(1, 'Required'),
+  category: z
+    .enum(['CLIENT-FOCUSED ACTIVITIES', 'ORGANIZATION-FOCUSED ACTIVITIES', 'ATTRIBUTED PROGRAM'])
+    .default('CLIENT-FOCUSED ACTIVITIES'),
+  hgdgScore: z.coerce.number().min(0).max(20).optional(),
+  psCost: z.coerce.number().min(0).optional(),
+  mooeCost: z.coerce.number().min(0).optional(),
+  implementationStatus: z
+    .enum(['Done', 'Partially Done', 'On-going', 'Yet to be implemented', 'Not Done'])
+    .default('Done'),
   driveLink: z.string().optional(),
 });
 

@@ -615,6 +615,8 @@ export type Signatories = {
   qaoDirector: string;
   qmsHead: string;
   accreditationHead: string;
+  gadDirector?: string;
+  universityPresident?: string;
   updatedAt?: any;
 };
 
@@ -985,6 +987,13 @@ export type WfhActivity = {
   updatedAt: any;
 };
 
+// Sector definition for GAD SDD
+export type GADSector =
+  'Solo Parent' | 'PWD' | 'Senior Citizen' | 'Youth/Student' | 'Employee' | 'LGBTQA++' | 'Indigenous People';
+
+export type GADCategory = 'CLIENT-FOCUSED ACTIVITIES' | 'ORGANIZATION-FOCUSED ACTIVITIES' | 'ATTRIBUTED PROGRAM';
+export type GADImplementationStatus = 'Done' | 'Partially Done' | 'On-going' | 'Yet to be implemented' | 'Not Done';
+
 // GAD Plan & Budget types
 export type GADPlan = {
   id: string;
@@ -1001,14 +1010,17 @@ export type GADPlan = {
   sourceOfBudget: string;
   responsibleOffice: string;
   status: 'Draft' | 'Finalized';
+  category?: GADCategory;
+  hgdgScore?: number;
+  hgdgAttributionRate?: number;
+  psCost?: number;
+  mooeCost?: number;
+  coCost?: number;
+  gadActivityName?: string;
   driveLink?: string;
   createdAt: any;
   updatedAt: any;
 };
-
-// Sector definition for GAD SDD
-export type GADSector =
-  'Solo Parent' | 'PWD' | 'Senior Citizen' | 'Youth/Student' | 'Employee' | 'LGBTQA++' | 'Indigenous People';
 
 export type GADActivity = {
   id: string;
@@ -1030,8 +1042,12 @@ export type GADActivity = {
   };
   planId?: string; // Optional link to a GPB entry for AR reporting
   actualBudgetUsed?: number;
+  psCost?: number;
+  mooeCost?: number;
+  coCost?: number;
   actualOutput?: string;
   varianceAnalysis?: string;
+  implementationStatus?: GADImplementationStatus;
   driveLink?: string; // Google Drive link for documentation and evidence
   deviceFingerprint: string; // For unauthenticated identification
   createdAt: any;

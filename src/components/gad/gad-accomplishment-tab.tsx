@@ -74,14 +74,21 @@ export function GADAccomplishmentTab({
 
         const actualMale = linkedActivities.reduce((acc, a) => acc + (a.participants?.male || 0), 0);
         const actualFemale = linkedActivities.reduce((acc, a) => acc + (a.participants?.female || 0), 0);
-        const actualBudget = linkedActivities.reduce((acc, a) => acc + (a.actualBudgetUsed || 0), 0);
+        const actualBudgetFromActivities = linkedActivities.reduce((acc, a) => acc + (a.actualBudgetUsed || 0), 0);
 
-        const varianceBudget = plan.budget - actualBudget;
+        const actualBudget = actualBudgetFromActivities > 0 ? actualBudgetFromActivities : plan.budget || 0;
+
+        const varianceBudget = (plan.budget || 0) - actualBudget;
 
         // Extract implementation details from the latest activity
         const latestActivity = linkedActivities.length > 0 ? linkedActivities[linkedActivities.length - 1] : null;
         const driveLink =
           latestActivity?.driveLink || plan.driveLink || linkedActivities.find((a) => a.driveLink)?.driveLink || '';
+
+        const implementationStatus =
+          latestActivity?.implementationStatus ||
+          (plan as any).implementationStatus ||
+          (linkedActivities.length > 0 ? 'Done' : 'On-going');
 
         return {
           ...plan,
@@ -89,15 +96,50 @@ export function GADAccomplishmentTab({
           actualFemale,
           actualBudget,
           varianceBudget,
-          actualOutput: latestActivity?.actualOutput || '',
+          actualOutput: latestActivity?.actualOutput || plan.targets || '',
           varianceAnalysis: latestActivity?.varianceAnalysis || '',
+          implementationStatus,
           driveLink,
           activitiesCount: linkedActivities.length,
-          isCompleted: linkedActivities.length > 0,
+          isCompleted: linkedActivities.length > 0 || implementationStatus === 'Done',
+          isAuditRisk: implementationStatus === 'Yet to be implemented' && actualBudget > 0,
         };
       })
       .filter((d) => d.pap && d.pap.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [plans, activities, searchTerm]);
+
+  const auditSummary = useMemo(() => {
+    const totalReported = arData.reduce((acc, item) => acc + item.actualBudget, 0);
+    const totalRecognized = arData
+      .filter(
+        (item) => item.implementationStatus !== 'Yet to be implemented' && item.implementationStatus !== 'Not Done',
+      )
+      .reduce((acc, item) => acc + item.actualBudget, 0);
+    const unfulfilledRiskAmount = arData
+      .filter(
+        (item) => item.implementationStatus === 'Yet to be implemented' || item.implementationStatus === 'Not Done',
+      )
+      .reduce((acc, item) => acc + item.actualBudget, 0);
+
+    const clientTotal = arData
+      .filter((item) => !item.category || item.category === 'CLIENT-FOCUSED ACTIVITIES')
+      .reduce((acc, item) => acc + item.actualBudget, 0);
+    const orgTotal = arData
+      .filter((item) => item.category === 'ORGANIZATION-FOCUSED ACTIVITIES')
+      .reduce((acc, item) => acc + item.actualBudget, 0);
+    const attributedTotal = arData
+      .filter((item) => item.category === 'ATTRIBUTED PROGRAM')
+      .reduce((acc, item) => acc + item.actualBudget, 0);
+
+    return {
+      totalReported,
+      totalRecognized,
+      unfulfilledRiskAmount,
+      clientTotal,
+      orgTotal,
+      attributedTotal,
+    };
+  }, [arData]);
 
   const handlePrint = () => {
     if (!arData.length) {
@@ -137,16 +179,16 @@ export function GADAccomplishmentTab({
                     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                     <style>
                         @media print { 
-                            @page { size: landscape; margin: 0.5in; }
+                            @page { size: landscape; margin: 0.4in; }
                             body { margin: 0; padding: 0; background: white; } 
                             .no-print { display: none !important; }
                         }
-                        body { font-family: serif; background: #f9fafb; padding: 40px; color: black; }
+                        body { font-family: serif; background: #f9fafb; padding: 20px; color: black; }
                     </style>
                 </head>
                 <body>
                     <div class="no-print mb-8 flex justify-center">
-                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print GAD AR</button>
+                        <button onclick="window.print()" class="bg-blue-600 text-white px-8 py-3 rounded shadow-xl hover:bg-blue-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Official 12-Column GAD AR</button>
                     </div>
                     <div id="print-content">
                         ${reportHtml}
@@ -168,6 +210,75 @@ export function GADAccomplishmentTab({
 
   return (
     <div className="space-y-6">
+      {/* AUDIT SUMMARY METRICS */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="bg-slate-900 text-white shadow-md">
+          <CardContent className="p-4 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                Total Reported Actual
+              </span>
+              <TrendingUp className="h-4 w-4 text-emerald-400" />
+            </div>
+            <div className="mt-2">
+              <p className="text-xl font-black tabular-nums">₱{auditSummary.totalReported.toLocaleString()}</p>
+              <p className="text-[9px] text-slate-400 italic">Combined reported expenditure</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-emerald-950 text-white border-emerald-800/40 shadow-md">
+          <CardContent className="p-4 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
+                PCW Recognized Actual
+              </span>
+              <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+            </div>
+            <div className="mt-2">
+              <p className="text-xl font-black tabular-nums text-emerald-200">
+                ₱{auditSummary.totalRecognized.toLocaleString()}
+              </p>
+              <p className="text-[9px] text-emerald-300/80 italic">Excludes unimplemented infrastructure</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-rose-950 text-white border-rose-800/40 shadow-md">
+          <CardContent className="p-4 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-rose-300">
+                COA / PCW Audit Risk
+              </span>
+              <Info className="h-4 w-4 text-rose-300" />
+            </div>
+            <div className="mt-2">
+              <p className="text-xl font-black tabular-nums text-rose-200">
+                ₱{auditSummary.unfulfilledRiskAmount.toLocaleString()}
+              </p>
+              <p className="text-[9px] text-rose-300/80 italic">Unimplemented / Not done entries</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-blue-950 text-white border-blue-800/40 shadow-md">
+          <CardContent className="p-4 flex flex-col justify-between h-full">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-wider text-blue-300">
+                Attributed Program Share
+              </span>
+              <Target className="h-4 w-4 text-blue-300" />
+            </div>
+            <div className="mt-2">
+              <p className="text-xl font-black tabular-nums text-blue-200">
+                ₱{auditSummary.attributedTotal.toLocaleString()}
+              </p>
+              <p className="text-[9px] text-blue-300/80 italic">HGDG Attributed Infrastructure</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -200,7 +311,7 @@ export function GADAccomplishmentTab({
             className="h-10 px-5 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary gap-2 shadow-sm"
           >
             <Printer className="h-4 w-4" />
-            Print GAD AR
+            Print PCW 12-Col GAD AR
           </Button>
         </div>
       </div>
@@ -210,7 +321,7 @@ export function GADAccomplishmentTab({
           <div className="flex items-center gap-2">
             <History className="h-5 w-5 text-primary" />
             <CardTitle className="text-sm font-black uppercase tracking-tight">
-              GAD Accomplishment Registry (Actuals)
+              GAD Accomplishment Registry (PCW Audit View)
             </CardTitle>
           </div>
         </CardHeader>
@@ -219,18 +330,24 @@ export function GADAccomplishmentTab({
             <Table>
               <TableHeader className="bg-muted/30 sticky top-0 z-10">
                 <TableRow>
-                  <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Program / Activity (PAP)</TableHead>
+                  <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Category & PAP</TableHead>
                   <TableHead className="text-[10px] font-black uppercase">Planned vs Actual Output</TableHead>
                   <TableHead className="text-center text-[10px] font-black uppercase">Actual Reach (M/F)</TableHead>
                   <TableHead className="text-right text-[10px] font-black uppercase">Budget Utilization</TableHead>
-                  <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status</TableHead>
+                  <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Status & PCW Audit</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {arData.map((item) => (
                   <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
                     <TableCell className="pl-8 py-5">
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
+                        <Badge
+                          variant="outline"
+                          className="text-[8px] font-black uppercase bg-slate-100 dark:bg-slate-800 border-slate-300"
+                        >
+                          {item.category || 'CLIENT-FOCUSED ACTIVITIES'}
+                        </Badge>
                         <p className="font-black text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">
                           {item.pap}
                         </p>
@@ -264,7 +381,7 @@ export function GADAccomplishmentTab({
                           <div className="pt-1.5 flex items-center gap-2">
                             <CheckCircle2 className="h-3 w-3 text-emerald-600" />
                             <span className="text-[9px] font-black text-emerald-700 uppercase">
-                              Fulfillment Detected
+                              Fulfillment Verified
                             </span>
                           </div>
                         )}
@@ -292,14 +409,25 @@ export function GADAccomplishmentTab({
                       </div>
                     </TableCell>
                     <TableCell className="text-right pr-8">
-                      <Badge
-                        className={cn(
-                          'h-5 text-[9px] font-black uppercase border-none px-2 shadow-sm',
-                          item.isCompleted ? 'bg-emerald-600 text-white' : 'bg-amber-50 text-amber-950',
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge
+                          className={cn(
+                            'h-5 text-[9px] font-black uppercase border-none px-2 shadow-sm',
+                            item.implementationStatus === 'Done'
+                              ? 'bg-emerald-600 text-white'
+                              : item.implementationStatus === 'Yet to be implemented'
+                                ? 'bg-rose-700 text-white'
+                                : 'bg-amber-500 text-white',
+                          )}
+                        >
+                          {item.implementationStatus || 'Done'}
+                        </Badge>
+                        {item.isAuditRisk && (
+                          <Badge variant="destructive" className="text-[7.5px] font-black uppercase animate-pulse">
+                            ⚠️ COA/PCW Risk: Unimplemented
+                          </Badge>
                         )}
-                      >
-                        {item.isCompleted ? 'COMPLETED' : 'INCOMPLETE'}
-                      </Badge>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -344,9 +472,10 @@ export function GADAccomplishmentTab({
           <div className="flex items-start gap-4">
             <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
             <p className="text-[9px] text-muted-foreground italic leading-relaxed">
-              <strong>Automatic Synchronization:</strong> This report dynamically aggregates participant data from
-              activity registries. Ensure all project codes in Section 1 match the official GAD activities logged via
-              device-based entry.
+              <strong>PCW Compliance Audit Notice:</strong> Under PCW-NEDA-DBM Joint Circulars, infrastructure projects
+              tagged as
+              <em> "Yet to be implemented"</em> cannot claim actual expenditure accomplishments. CRAIITECH automatically
+              calculates your recognized GAD expenditure to safeguard against COA audit disallowances.
             </p>
           </div>
         </CardFooter>
