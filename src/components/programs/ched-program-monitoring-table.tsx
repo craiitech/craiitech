@@ -55,6 +55,7 @@ export function ChedProgramMonitoringTable({
   const [detailCampusFilter, setDetailCampusFilter] = useState('all');
   const [detailUnitFilter, setDetailUnitFilter] = useState('all');
   const [detailSortBy, setDetailSortBy] = useState<string>('name');
+  const [accredYearFilter, setAccredYearFilter] = useState<number | 'all'>('all');
 
   const activePrograms = useMemo(() => programs.filter((p) => p.isActive), [programs]);
 
@@ -255,6 +256,16 @@ export function ChedProgramMonitoringTable({
     });
   }, [compliances, programs, campusMap]);
 
+  const accredYears = useMemo(() => {
+    const years = new Set(accreditationPerYear.map((r) => r.year));
+    return Array.from(years).sort((a, b) => b - a);
+  }, [accreditationPerYear]);
+
+  const filteredAccredPerYear = useMemo(() => {
+    if (accredYearFilter === 'all') return accreditationPerYear;
+    return accreditationPerYear.filter((r) => r.year === accredYearFilter);
+  }, [accreditationPerYear, accredYearFilter]);
+
   const copcBadge = (status: string) => {
     switch (status) {
       case 'With COPC':
@@ -354,6 +365,86 @@ export function ChedProgramMonitoringTable({
                 <th>Accred. (A/NA)</th>
                 <th>Accred. Rate</th>
                 <th>Level Distribution</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          <div class="footer">Generated from RSU EOMS Decision Support System</div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(printHtml);
+      printWindow.document.close();
+    }
+  };
+
+  const handlePrintAccredPerYear = () => {
+    const data = filteredAccredPerYear;
+    const yearGroups: Record<number, typeof data> = {};
+    data.forEach((row) => {
+      if (!yearGroups[row.year]) yearGroups[row.year] = [];
+      yearGroups[row.year].push(row);
+    });
+    const sortedYears = Object.keys(yearGroups)
+      .map(Number)
+      .sort((a, b) => b - a);
+
+    const rowsHtml = sortedYears
+      .map((year) => {
+        const rows = yearGroups[year];
+        return rows
+          .map(
+            (row, idx) => `
+          <tr>
+            <td style="padding: 10px 16px; font-weight: 900; font-size: 14px; border-bottom: 1px solid #e2e8f0;${idx !== 0 ? ' border-top: 1px solid #e2e8f0;' : ''}">${idx === 0 ? `AY ${row.year}` : ''}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #e2e8f0;"><span style="font-weight: 900; font-size: 13px;">${row.programName}</span><br><span style="font-size: 10px; color: #94a3b8; font-weight: 700;">${row.abbreviation}</span></td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 600; color: #475569;">${row.campus}</td>
+            <td style="padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.level}</td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;${idx === 0 ? ' font-weight: 900;' : ''}">${idx === 0 ? `<span style="display:inline-block; background:#4f46e5; color:white; font-size:11px; font-weight:900; padding:4px 14px; border-radius:999px;">${rows.length} program${rows.length !== 1 ? 's' : ''}</span>` : ''}</td>
+          </tr>
+        `,
+          )
+          .join('');
+      })
+      .join('');
+
+    const printHtml = `
+      <html>
+        <head>
+          <title>Programs Undergone Accreditation per Year</title>
+          <style>
+            @page { size: 14in 8.5in landscape !important; margin: 0.5in !important; }
+            @media print { body { background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } }
+            body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; padding: 20px; color: #0f172a; }
+            h1 { font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #0f172a; margin-bottom: 4px; }
+            p.subtitle { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px; }
+            table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            th { background: #f1f5f9; padding: 12px 16px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
+            th:nth-child(4) { text-align: left; }
+            th:nth-child(5) { text-align: center; }
+            .footer { margin-top: 20px; font-size: 10px; color: #94a3b8; text-align: center; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="text-align:center; margin-bottom: 20px;">
+            <button onclick="window.print()" style="background:#4f46e5; color:white; border:none; padding:12px 32px; border-radius:8px; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; box-shadow:0 4px 12px rgba(79,70,229,0.3);">Print Accreditation per Year</button>
+          </div>
+          <h1>Programs that Undergone Accreditation per Year</h1>
+          <p class="subtitle">${accredYearFilter === 'all' ? 'All Years' : `AY ${accredYearFilter}`}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Academic Year</th>
+                <th>Program Title</th>
+                <th>Campus</th>
+                <th>Accreditation Level</th>
+                <th style="text-align:center;">Total</th>
               </tr>
             </thead>
             <tbody>
@@ -868,22 +959,56 @@ export function ChedProgramMonitoringTable({
 
       <Card className="border-primary/10 shadow-lg overflow-hidden bg-white">
         <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-b py-5">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-white shadow-sm border border-primary/10">
-              <ListChecks className="h-5 w-5 text-indigo-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-white shadow-sm border border-primary/10">
+                <ListChecks className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                  Programs that Undergone Accreditation per Year
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  List of programs accredited each year with total count
+                </CardDescription>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                Programs that Undergone Accreditation per Year
-              </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                List of programs accredited each year with total count
-              </CardDescription>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Year</label>
+                <Select
+                  value={String(accredYearFilter)}
+                  onValueChange={(v) => setAccredYearFilter(v === 'all' ? 'all' : Number(v))}
+                >
+                  <SelectTrigger className="h-8 w-[110px] text-xs bg-white border-slate-200">
+                    <SelectValue placeholder="All Years" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-[10px] font-bold">
+                      All Years
+                    </SelectItem>
+                    {accredYears.map((y) => (
+                      <SelectItem key={y} value={String(y)} className="text-[10px] font-bold">
+                        AY {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                onClick={handlePrintAccredPerYear}
+                variant="outline"
+                size="sm"
+                className="h-8 bg-white border-indigo-200 text-indigo-700 font-black uppercase text-[9px] tracking-widest gap-1.5 shadow-sm hover:bg-indigo-50"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Print
+              </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          {accreditationPerYear.length === 0 ? (
+          {filteredAccredPerYear.length === 0 ? (
             <div className="py-16 text-center">
               <Award className="h-10 w-10 mx-auto text-slate-300 mb-3 stroke-[1.5]" />
               <p className="text-xs font-black text-slate-500 uppercase tracking-wider">
@@ -892,7 +1017,7 @@ export function ChedProgramMonitoringTable({
               <p className="text-[10px] text-slate-400 mt-1">Submit accreditation data to populate this view.</p>
             </div>
           ) : (
-            <ScrollArea className="max-h-[600px]">
+            <div className="h-[600px] overflow-y-auto">
               <Table>
                 <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
                   <TableRow>
@@ -917,8 +1042,8 @@ export function ChedProgramMonitoringTable({
                 </TableHeader>
                 <TableBody>
                   {(() => {
-                    const yearGroups: Record<number, typeof accreditationPerYear> = {};
-                    accreditationPerYear.forEach((row) => {
+                    const yearGroups: Record<number, typeof filteredAccredPerYear> = {};
+                    filteredAccredPerYear.forEach((row) => {
                       if (!yearGroups[row.year]) yearGroups[row.year] = [];
                       yearGroups[row.year].push(row);
                     });
@@ -969,7 +1094,7 @@ export function ChedProgramMonitoringTable({
                   })()}
                 </TableBody>
               </Table>
-            </ScrollArea>
+            </div>
           )}
         </CardContent>
       </Card>
