@@ -86,8 +86,16 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
   const [editingPlan, setEditingPlan] = useState<GADPlan | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const isGadLeader = useMemo(
+    () => !!(gadSettings?.leadershipUnitId && userProfile?.unitId === gadSettings.leadershipUnitId),
+    [gadSettings, userProfile],
+  );
+
   const canManage =
-    isAdmin || userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('director');
+    isAdmin ||
+    isGadLeader ||
+    userRole?.toLowerCase().includes('coordinator') ||
+    userRole?.toLowerCase().includes('director');
 
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
