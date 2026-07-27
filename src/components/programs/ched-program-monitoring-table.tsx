@@ -78,21 +78,12 @@ export function ChedProgramMonitoringTable({
       }
     >();
 
-    const programMap = new Map(programs.map((p) => [p.id, p]));
-
-    compliances.forEach((c) => {
-      const p = programMap.get(c.programId);
-      if (!p) return;
-
-      const accRecords = c.accreditationRecords || [];
-      if (accRecords.length === 0) return;
-
-      accRecords.forEach((rec) => {
-        const surveyYear = rec.dateOfSurvey ? parseInt(rec.dateOfSurvey.match(/\d{4}/)?.[0] || '0') : 0;
-        if (!surveyYear) return;
-
-        if (!yearMap.has(surveyYear)) {
-          yearMap.set(surveyYear, {
+    activePrograms.forEach((p) => {
+      const programCompliances = compliances.filter((c) => c.programId === p.id);
+      programCompliances.forEach((c) => {
+        const yr = c.academicYear;
+        if (!yearMap.has(yr)) {
+          yearMap.set(yr, {
             total: 0,
             newProgram: 0,
             withCopc: 0,
@@ -108,7 +99,7 @@ export function ChedProgramMonitoringTable({
             totalWithRecord: 0,
           });
         }
-        const entry = yearMap.get(surveyYear)!;
+        const entry = yearMap.get(yr)!;
         entry.total++;
         entry.totalWithRecord++;
         if (p.isNewProgram) entry.newProgram++;
@@ -118,8 +109,11 @@ export function ChedProgramMonitoringTable({
         else if (copc === 'In Progress') entry.inProgress++;
         else entry.noCopc++;
 
-        const level = rec.level || 'Non Accredited';
-        if (level !== 'Non Accredited' && !level.includes('PSV') && level !== 'AWAITING RESULT') {
+        const accRecords = c.accreditationRecords || [];
+        const current = accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
+        const level = current?.level || 'Non Accredited';
+
+        if (current && level !== 'Non Accredited' && !level.includes('PSV') && level !== 'AWAITING RESULT') {
           entry.accredited++;
           if (level.includes('Level IV')) entry.levelIV++;
           else if (level.includes('Level III')) entry.levelIII++;
@@ -145,7 +139,7 @@ export function ChedProgramMonitoringTable({
         };
       })
       .sort((a, b) => b.year - a.year);
-  }, [programs, compliances]);
+  }, [activePrograms, compliances]);
 
   const programDetailData = useMemo(() => {
     const currentYearCompliances = compliances.filter((c) => c.academicYear === selectedYear);
@@ -396,567 +390,589 @@ export function ChedProgramMonitoringTable({
   }
 
   return (
-    <Card className="border-primary/10 shadow-lg overflow-hidden bg-white">
-      <CardHeader className="bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-950/30 dark:to-blue-950/30 border-b py-5">
-        <div className="flex items-center justify-between">
+    <>
+      <Card className="border-primary/10 shadow-lg overflow-hidden bg-white">
+        <CardHeader className="bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-950/30 dark:to-blue-950/30 border-b py-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-white shadow-sm border border-primary/10">
+                <BarChart3 className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                  CHED Program Monitoring — Decision Support
+                </CardTitle>
+                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  Year-over-year COPC &amp; Accreditation performance summary
+                </CardDescription>
+              </div>
+            </div>
+            <div className="hidden lg:flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200">
+                <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+                <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider">
+                  {yearlySummary.length} Years Tracked
+                </span>
+              </div>
+              <Button
+                onClick={handlePrintYearlyTrend}
+                variant="outline"
+                size="sm"
+                className="h-8 bg-white border-primary/20 text-primary font-black uppercase text-[9px] tracking-widest gap-1.5 shadow-sm"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Print Trend
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Tabs defaultValue="yearly-summary" className="flex flex-col lg:flex-row">
+            <div className="bg-slate-50/50 border-b lg:border-b-0 lg:border-r px-3 py-4 lg:py-0 flex items-center justify-center">
+              <TabsList className="bg-transparent h-auto flex-row lg:flex-col gap-1 w-full">
+                <TabsTrigger
+                  value="yearly-summary"
+                  className="text-[9px] font-black uppercase tracking-widest px-4 py-2 h-auto data-[state=active]:bg-white data-[state=active]:shadow-sm w-full justify-center"
+                >
+                  <CalendarDays className="h-3.5 w-3.5 lg:mr-0 lg:mb-1.5" />
+                  <span className="hidden lg:inline">Yearly Trend</span>
+                  <span className="lg:hidden">Yearly Trend Summary</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="program-detail"
+                  className="text-[9px] font-black uppercase tracking-widest px-4 py-2 h-auto data-[state=active]:bg-white data-[state=active]:shadow-sm w-full justify-center"
+                >
+                  <LayoutList className="h-3.5 w-3.5 lg:mr-0 lg:mb-1.5" />
+                  <span className="hidden lg:inline">Program Detail</span>
+                  <span className="lg:hidden">Program Detail (AY {selectedYear})</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+            <div className="flex-1 min-w-0">
+              <TabsContent value="yearly-summary" className="m-0">
+                <ScrollArea className="max-h-[500px]">
+                  <Table>
+                    <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
+                      <TableRow>
+                        <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider w-[120px]">
+                          Academic Year
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
+                          Active Programs
+                        </TableHead>
+                        <TableHead
+                          className="text-[9px] font-black uppercase text-emerald-700 tracking-wider text-center"
+                          colSpan={3}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <ShieldCheck className="h-3 w-3" /> COPC Status
+                          </div>
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
+                          COPC Rate
+                        </TableHead>
+                        <TableHead
+                          className="text-[9px] font-black uppercase text-indigo-700 tracking-wider text-center"
+                          colSpan={2}
+                        >
+                          <div className="flex items-center justify-center gap-1">
+                            <Award className="h-3 w-3" /> Accreditation
+                          </div>
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
+                          Accred. Rate{' '}
+                          <span className="text-[7px] font-medium text-slate-400 block">excl. new programs</span>
+                        </TableHead>
+                        <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                          Level Distribution
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {yearlySummary.map((row) => {
+                        const prevYear = yearlySummary.find((y) => y.year === row.year - 1);
+                        const copcChange = prevYear ? row.copcRate - prevYear.copcRate : null;
+                        const accredChange = prevYear ? row.accreditationRate - prevYear.accreditationRate : null;
+
+                        return (
+                          <TableRow key={row.year} className="hover:bg-slate-50/80 transition-all border-b group">
+                            <TableCell className="pl-6 py-4">
+                              <span className="font-black text-sm text-slate-900 dark:text-slate-100">
+                                AY {row.year}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center">
+                                <span className="font-black text-sm text-slate-800">{row.total}</span>
+                                {row.newProgram > 0 && (
+                                  <span className="text-[7px] font-bold text-purple-500 uppercase tracking-wider">
+                                    {row.newProgram} NEW
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center">
+                                <span className="font-black text-emerald-600 text-sm">{row.withCopc}</span>
+                                <span className="text-[7px] font-bold text-emerald-500 uppercase tracking-wider">
+                                  COPC
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center">
+                                <span className="font-black text-amber-600 text-sm">{row.inProgress}</span>
+                                <span className="text-[7px] font-bold text-amber-500 uppercase tracking-wider">
+                                  IN PROG
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center">
+                                <span className="font-black text-red-600 text-sm">{row.noCopc}</span>
+                                <span className="text-[7px] font-bold text-red-500 uppercase tracking-wider">
+                                  NO COPC
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span
+                                  className={cn(
+                                    'text-sm font-black tabular-nums',
+                                    row.copcRate >= 80
+                                      ? 'text-emerald-600'
+                                      : row.copcRate >= 50
+                                        ? 'text-amber-600'
+                                        : 'text-red-600',
+                                  )}
+                                >
+                                  {row.copcRate}%
+                                </span>
+                                {copcChange !== null && (
+                                  <span
+                                    className={cn(
+                                      'text-[8px] font-bold',
+                                      copcChange > 0
+                                        ? 'text-emerald-500'
+                                        : copcChange < 0
+                                          ? 'text-red-500'
+                                          : 'text-slate-400',
+                                    )}
+                                  >
+                                    {copcChange > 0 ? '+' : ''}
+                                    {copcChange}pp
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center">
+                                <span className="font-black text-indigo-600 text-sm">{row.accredited}</span>
+                                <span className="text-[7px] font-bold text-indigo-500 uppercase tracking-wider">
+                                  ACCRED
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center">
+                                <span className="font-black text-slate-500 text-sm">{row.nonAccredited}</span>
+                                <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">
+                                  NON-ACCRED
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <span
+                                  className={cn(
+                                    'text-sm font-black tabular-nums',
+                                    row.accreditationRate >= 80
+                                      ? 'text-emerald-600'
+                                      : row.accreditationRate >= 50
+                                        ? 'text-amber-600'
+                                        : 'text-red-600',
+                                  )}
+                                >
+                                  {row.accreditationRate}%
+                                </span>
+                                <span className="text-[7px] font-bold text-slate-400 tabular-nums">
+                                  {row.accredited}/{row.accreditable}
+                                </span>
+                                {accredChange !== null && (
+                                  <span
+                                    className={cn(
+                                      'text-[8px] font-bold',
+                                      accredChange > 0
+                                        ? 'text-emerald-500'
+                                        : accredChange < 0
+                                          ? 'text-red-500'
+                                          : 'text-slate-400',
+                                    )}
+                                  >
+                                    {accredChange > 0 ? '+' : ''}
+                                    {accredChange}pp
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right pr-6">
+                              <div className="flex items-center justify-end gap-1 flex-wrap">
+                                {row.levelIV > 0 && (
+                                  <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[7px] font-black px-1.5 py-0">
+                                    IV:{row.levelIV}
+                                  </Badge>
+                                )}
+                                {row.levelIII > 0 && (
+                                  <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[7px] font-black px-1.5 py-0">
+                                    III:{row.levelIII}
+                                  </Badge>
+                                )}
+                                {row.levelII > 0 && (
+                                  <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[7px] font-black px-1.5 py-0">
+                                    II:{row.levelII}
+                                  </Badge>
+                                )}
+                                {row.levelI > 0 && (
+                                  <Badge className="bg-green-100 text-green-800 border-green-200 text-[7px] font-black px-1.5 py-0">
+                                    I:{row.levelI}
+                                  </Badge>
+                                )}
+                                {row.candidate > 0 && (
+                                  <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[7px] font-black px-1.5 py-0">
+                                    C:{row.candidate}
+                                  </Badge>
+                                )}
+                                {row.newProgram > 0 && (
+                                  <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[7px] font-black px-1.5 py-0">
+                                    NEW:{row.newProgram}
+                                  </Badge>
+                                )}
+                                {row.nonAccredited > 0 && (
+                                  <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[7px] font-black px-1.5 py-0">
+                                    NA:{row.nonAccredited}
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="program-detail" className="m-0">
+                <div className="p-4 border-b bg-slate-50/50">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative flex-1 min-w-[200px] max-w-xs">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                      <Input
+                        placeholder="Search program..."
+                        value={detailSearch}
+                        onChange={(e) => setDetailSearch(e.target.value)}
+                        className="pl-9 h-8 text-xs bg-white border-slate-200"
+                      />
+                    </div>
+                    <Select value={detailCampusFilter} onValueChange={setDetailCampusFilter}>
+                      <SelectTrigger className="h-8 w-[150px] text-xs bg-white border-slate-200">
+                        <SelectValue placeholder="All Campuses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all" className="text-[10px] font-bold">
+                          All Campuses
+                        </SelectItem>
+                        {campuses.map((c) => (
+                          <SelectItem key={c.id} value={c.id} className="text-[10px] font-medium">
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={detailUnitFilter} onValueChange={setDetailUnitFilter}>
+                      <SelectTrigger className="h-8 w-[150px] text-xs bg-white border-slate-200">
+                        <SelectValue placeholder="All Units" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all" className="text-[10px] font-bold">
+                          All Units
+                        </SelectItem>
+                        {units
+                          .filter((u) => u.category === 'Academic')
+                          .map((u) => (
+                            <SelectItem key={u.id} value={u.id} className="text-[10px] font-medium">
+                              {u.name}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <Select value={detailSortBy} onValueChange={setDetailSortBy}>
+                      <SelectTrigger className="h-8 w-[130px] text-xs bg-white border-slate-200">
+                        <SelectValue placeholder="Sort by" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="name" className="text-[10px] font-bold">
+                          Sort: Name
+                        </SelectItem>
+                        <SelectItem value="campus" className="text-[10px] font-bold">
+                          Sort: Campus
+                        </SelectItem>
+                        <SelectItem value="copc" className="text-[10px] font-bold">
+                          Sort: COPC
+                        </SelectItem>
+                        <SelectItem value="accreditation" className="text-[10px] font-bold">
+                          Sort: Accreditation
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <span className="text-[10px] text-slate-400 font-medium ml-auto">
+                      {programDetailData.length} program{programDetailData.length !== 1 ? 's' : ''} shown
+                    </span>
+                  </div>
+                </div>
+                <ScrollArea className="max-h-[600px]">
+                  <Table>
+                    <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
+                      <TableRow>
+                        <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                          Program
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                          Campus
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                          Level
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-emerald-700 tracking-wider">
+                          <div className="flex items-center gap-1">
+                            <ShieldCheck className="h-3 w-3" /> COPC
+                          </div>
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-indigo-700 tracking-wider">
+                          <div className="flex items-center gap-1">
+                            <Award className="h-3 w-3" /> Accreditation
+                          </div>
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                          Lifecycle
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                          Validity / Award
+                        </TableHead>
+                        <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                          Open Recs
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {programDetailData.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-16">
+                            <GraduationCap className="h-8 w-8 text-slate-300 mx-auto mb-2 stroke-[1.5]" />
+                            <p className="text-xs font-bold text-slate-500">No programs match your filters</p>
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              Try adjusting the search or filter criteria.
+                            </p>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        programDetailData.map((item) => (
+                          <TableRow key={item.id} className="hover:bg-slate-50/80 transition-all border-b group">
+                            <TableCell className="pl-6 py-3">
+                              <div className="flex flex-col">
+                                <span className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">
+                                  {item.name}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-mono font-bold">
+                                  {item.abbreviation}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                              <div className="flex items-center gap-1">
+                                <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
+                                {item.campus}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className="text-[8px] font-black text-slate-600 border-slate-300 bg-white"
+                              >
+                                {item.level}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {item.hasRecord ? (
+                                copcBadge(item.copcStatus)
+                              ) : (
+                                <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-[8px] font-black">
+                                  <Clock className="h-3 w-3 mr-1" /> No Data
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {item.hasRecord ? (
+                                accreditationBadge(item.accreditationLevel)
+                              ) : (
+                                <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-[8px] font-black">
+                                  No Data
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  'text-[8px] font-black',
+                                  item.lifecycle === 'Current'
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                    : item.lifecycle === 'Undergoing'
+                                      ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                      : 'bg-slate-100 text-slate-500 border-slate-200',
+                                )}
+                              >
+                                {item.lifecycle}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-[10px] font-mono font-bold text-slate-500 tabular-nums whitespace-nowrap">
+                              {item.validityDate}
+                            </TableCell>
+                            <TableCell className="text-right pr-6">
+                              {item.hasRecord ? (
+                                item.openRecs > 0 ? (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-black text-rose-600">
+                                    <AlertTriangle className="h-3 w-3" /> {item.openRecs}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600">
+                                    <CheckCircle2 className="h-3 w-3" /> 0
+                                  </span>
+                                )
+                              ) : (
+                                <span className="text-[10px] text-slate-300 font-black">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
+              </TabsContent>
+            </div>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      <Card className="border-primary/10 shadow-lg overflow-hidden bg-white">
+        <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-b py-5">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-white shadow-sm border border-primary/10">
-              <BarChart3 className="h-5 w-5 text-primary" />
+              <ListChecks className="h-5 w-5 text-indigo-600" />
             </div>
             <div>
               <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
-                CHED Program Monitoring — Decision Support
+                Programs that Undergone Accreditation per Year
               </CardTitle>
               <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                Year-over-year COPC &amp; Accreditation performance summary
+                List of programs accredited each year with total count
               </CardDescription>
             </div>
           </div>
-          <div className="hidden lg:flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200">
-              <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
-              <span className="text-[9px] font-black text-emerald-700 uppercase tracking-wider">
-                {yearlySummary.length} Years Tracked
-              </span>
+        </CardHeader>
+        <CardContent className="p-0">
+          {accreditationPerYear.length === 0 ? (
+            <div className="py-16 text-center">
+              <Award className="h-10 w-10 mx-auto text-slate-300 mb-3 stroke-[1.5]" />
+              <p className="text-xs font-black text-slate-500 uppercase tracking-wider">
+                No accreditation records found
+              </p>
+              <p className="text-[10px] text-slate-400 mt-1">Submit accreditation data to populate this view.</p>
             </div>
-            <Button
-              onClick={handlePrintYearlyTrend}
-              variant="outline"
-              size="sm"
-              className="h-8 bg-white border-primary/20 text-primary font-black uppercase text-[9px] tracking-widest gap-1.5 shadow-sm"
-            >
-              <Printer className="h-3.5 w-3.5" />
-              Print Trend
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <Tabs defaultValue="yearly-summary" className="flex flex-col lg:flex-row">
-          <div className="bg-slate-50/50 border-b lg:border-b-0 lg:border-r px-3 py-4 lg:py-0 flex items-center justify-center">
-            <TabsList className="bg-transparent h-auto flex-row lg:flex-col gap-1 w-full">
-              <TabsTrigger
-                value="yearly-summary"
-                className="text-[9px] font-black uppercase tracking-widest px-4 py-2 h-auto data-[state=active]:bg-white data-[state=active]:shadow-sm w-full justify-center"
-              >
-                <CalendarDays className="h-3.5 w-3.5 lg:mr-0 lg:mb-1.5" />
-                <span className="hidden lg:inline">Yearly Trend</span>
-                <span className="lg:hidden">Yearly Trend Summary</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="program-detail"
-                className="text-[9px] font-black uppercase tracking-widest px-4 py-2 h-auto data-[state=active]:bg-white data-[state=active]:shadow-sm w-full justify-center"
-              >
-                <LayoutList className="h-3.5 w-3.5 lg:mr-0 lg:mb-1.5" />
-                <span className="hidden lg:inline">Program Detail</span>
-                <span className="lg:hidden">Program Detail (AY {selectedYear})</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="accreditation-per-year"
-                className="text-[9px] font-black uppercase tracking-widest px-4 py-2 h-auto data-[state=active]:bg-white data-[state=active]:shadow-sm w-full justify-center"
-              >
-                <ListChecks className="h-3.5 w-3.5 lg:mr-0 lg:mb-1.5" />
-                <span className="hidden lg:inline">Accred. per Year</span>
-                <span className="lg:hidden">Accred. per Year</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-          <div className="flex-1 min-w-0">
-            <TabsContent value="yearly-summary" className="m-0">
-              <ScrollArea className="max-h-[500px]">
-                <Table>
-                  <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
-                    <TableRow>
-                      <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider w-[120px]">
-                        Academic Year
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
-                        Active Programs
-                      </TableHead>
-                      <TableHead
-                        className="text-[9px] font-black uppercase text-emerald-700 tracking-wider text-center"
-                        colSpan={3}
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          <ShieldCheck className="h-3 w-3" /> COPC Status
-                        </div>
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
-                        COPC Rate
-                      </TableHead>
-                      <TableHead
-                        className="text-[9px] font-black uppercase text-indigo-700 tracking-wider text-center"
-                        colSpan={2}
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          <Award className="h-3 w-3" /> Accreditation
-                        </div>
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
-                        Accred. Rate{' '}
-                        <span className="text-[7px] font-medium text-slate-400 block">excl. new programs</span>
-                      </TableHead>
-                      <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Level Distribution
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {yearlySummary.map((row) => {
-                      const prevYear = yearlySummary.find((y) => y.year === row.year - 1);
-                      const copcChange = prevYear ? row.copcRate - prevYear.copcRate : null;
-                      const accredChange = prevYear ? row.accreditationRate - prevYear.accreditationRate : null;
-
-                      return (
-                        <TableRow key={row.year} className="hover:bg-slate-50/80 transition-all border-b group">
-                          <TableCell className="pl-6 py-4">
-                            <span className="font-black text-sm text-slate-900 dark:text-slate-100">AY {row.year}</span>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center">
-                              <span className="font-black text-sm text-slate-800">{row.total}</span>
-                              {row.newProgram > 0 && (
-                                <span className="text-[7px] font-bold text-purple-500 uppercase tracking-wider">
-                                  {row.newProgram} NEW
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center">
-                              <span className="font-black text-emerald-600 text-sm">{row.withCopc}</span>
-                              <span className="text-[7px] font-bold text-emerald-500 uppercase tracking-wider">
-                                COPC
+          ) : (
+            <ScrollArea className="max-h-[600px]">
+              <Table>
+                <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
+                  <TableRow>
+                    <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Academic Year
+                    </TableHead>
+                    <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Program Title
+                    </TableHead>
+                    <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Campus
+                    </TableHead>
+                    <TableHead className="text-[9px] font-black uppercase text-indigo-700 tracking-wider">
+                      <div className="flex items-center gap-1">
+                        <Award className="h-3 w-3" /> Accreditation Level
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Total
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(() => {
+                    const yearGroups: Record<number, typeof accreditationPerYear> = {};
+                    accreditationPerYear.forEach((row) => {
+                      if (!yearGroups[row.year]) yearGroups[row.year] = [];
+                      yearGroups[row.year].push(row);
+                    });
+                    const sortedYears = Object.keys(yearGroups)
+                      .map(Number)
+                      .sort((a, b) => b - a);
+                    return sortedYears.flatMap((year) => {
+                      const rows = yearGroups[year];
+                      return rows.map((row, idx) => (
+                        <TableRow
+                          key={`${row.programId}-${row.year}-${idx}`}
+                          className="hover:bg-slate-50/80 transition-all border-b group"
+                        >
+                          <TableCell className="pl-6 py-3 align-top">
+                            {idx === 0 ? (
+                              <span className="font-black text-sm text-slate-900 dark:text-slate-100">
+                                AY {row.year}
                               </span>
-                            </div>
+                            ) : null}
                           </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center">
-                              <span className="font-black text-amber-600 text-sm">{row.inProgress}</span>
-                              <span className="text-[7px] font-bold text-amber-500 uppercase tracking-wider">
-                                IN PROG
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center">
-                              <span className="font-black text-red-600 text-sm">{row.noCopc}</span>
-                              <span className="text-[7px] font-bold text-red-500 uppercase tracking-wider">
-                                NO COPC
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center gap-0.5">
-                              <span
-                                className={cn(
-                                  'text-sm font-black tabular-nums',
-                                  row.copcRate >= 80
-                                    ? 'text-emerald-600'
-                                    : row.copcRate >= 50
-                                      ? 'text-amber-600'
-                                      : 'text-red-600',
-                                )}
-                              >
-                                {row.copcRate}%
-                              </span>
-                              {copcChange !== null && (
-                                <span
-                                  className={cn(
-                                    'text-[8px] font-bold',
-                                    copcChange > 0
-                                      ? 'text-emerald-500'
-                                      : copcChange < 0
-                                        ? 'text-red-500'
-                                        : 'text-slate-400',
-                                  )}
-                                >
-                                  {copcChange > 0 ? '+' : ''}
-                                  {copcChange}pp
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center">
-                              <span className="font-black text-indigo-600 text-sm">{row.accredited}</span>
-                              <span className="text-[7px] font-bold text-indigo-500 uppercase tracking-wider">
-                                ACCRED
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center">
-                              <span className="font-black text-slate-500 text-sm">{row.nonAccredited}</span>
-                              <span className="text-[7px] font-bold text-slate-400 uppercase tracking-wider">
-                                NON-ACCRED
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-center">
-                            <div className="flex flex-col items-center gap-0.5">
-                              <span
-                                className={cn(
-                                  'text-sm font-black tabular-nums',
-                                  row.accreditationRate >= 80
-                                    ? 'text-emerald-600'
-                                    : row.accreditationRate >= 50
-                                      ? 'text-amber-600'
-                                      : 'text-red-600',
-                                )}
-                              >
-                                {row.accreditationRate}%
-                              </span>
-                              <span className="text-[7px] font-bold text-slate-400 tabular-nums">
-                                {row.accredited}/{row.accreditable}
-                              </span>
-                              {accredChange !== null && (
-                                <span
-                                  className={cn(
-                                    'text-[8px] font-bold',
-                                    accredChange > 0
-                                      ? 'text-emerald-500'
-                                      : accredChange < 0
-                                        ? 'text-red-500'
-                                        : 'text-slate-400',
-                                  )}
-                                >
-                                  {accredChange > 0 ? '+' : ''}
-                                  {accredChange}pp
-                                </span>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <div className="flex items-center justify-end gap-1 flex-wrap">
-                              {row.levelIV > 0 && (
-                                <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[7px] font-black px-1.5 py-0">
-                                  IV:{row.levelIV}
-                                </Badge>
-                              )}
-                              {row.levelIII > 0 && (
-                                <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[7px] font-black px-1.5 py-0">
-                                  III:{row.levelIII}
-                                </Badge>
-                              )}
-                              {row.levelII > 0 && (
-                                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[7px] font-black px-1.5 py-0">
-                                  II:{row.levelII}
-                                </Badge>
-                              )}
-                              {row.levelI > 0 && (
-                                <Badge className="bg-green-100 text-green-800 border-green-200 text-[7px] font-black px-1.5 py-0">
-                                  I:{row.levelI}
-                                </Badge>
-                              )}
-                              {row.candidate > 0 && (
-                                <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[7px] font-black px-1.5 py-0">
-                                  C:{row.candidate}
-                                </Badge>
-                              )}
-                              {row.newProgram > 0 && (
-                                <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[7px] font-black px-1.5 py-0">
-                                  NEW:{row.newProgram}
-                                </Badge>
-                              )}
-                              {row.nonAccredited > 0 && (
-                                <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[7px] font-black px-1.5 py-0">
-                                  NA:{row.nonAccredited}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="program-detail" className="m-0">
-              <div className="p-4 border-b bg-slate-50/50">
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="relative flex-1 min-w-[200px] max-w-xs">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                    <Input
-                      placeholder="Search program..."
-                      value={detailSearch}
-                      onChange={(e) => setDetailSearch(e.target.value)}
-                      className="pl-9 h-8 text-xs bg-white border-slate-200"
-                    />
-                  </div>
-                  <Select value={detailCampusFilter} onValueChange={setDetailCampusFilter}>
-                    <SelectTrigger className="h-8 w-[150px] text-xs bg-white border-slate-200">
-                      <SelectValue placeholder="All Campuses" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all" className="text-[10px] font-bold">
-                        All Campuses
-                      </SelectItem>
-                      {campuses.map((c) => (
-                        <SelectItem key={c.id} value={c.id} className="text-[10px] font-medium">
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={detailUnitFilter} onValueChange={setDetailUnitFilter}>
-                    <SelectTrigger className="h-8 w-[150px] text-xs bg-white border-slate-200">
-                      <SelectValue placeholder="All Units" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all" className="text-[10px] font-bold">
-                        All Units
-                      </SelectItem>
-                      {units
-                        .filter((u) => u.category === 'Academic')
-                        .map((u) => (
-                          <SelectItem key={u.id} value={u.id} className="text-[10px] font-medium">
-                            {u.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                  <Select value={detailSortBy} onValueChange={setDetailSortBy}>
-                    <SelectTrigger className="h-8 w-[130px] text-xs bg-white border-slate-200">
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="name" className="text-[10px] font-bold">
-                        Sort: Name
-                      </SelectItem>
-                      <SelectItem value="campus" className="text-[10px] font-bold">
-                        Sort: Campus
-                      </SelectItem>
-                      <SelectItem value="copc" className="text-[10px] font-bold">
-                        Sort: COPC
-                      </SelectItem>
-                      <SelectItem value="accreditation" className="text-[10px] font-bold">
-                        Sort: Accreditation
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <span className="text-[10px] text-slate-400 font-medium ml-auto">
-                    {programDetailData.length} program{programDetailData.length !== 1 ? 's' : ''} shown
-                  </span>
-                </div>
-              </div>
-              <ScrollArea className="max-h-[600px]">
-                <Table>
-                  <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
-                    <TableRow>
-                      <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Program
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Campus
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Level
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-emerald-700 tracking-wider">
-                        <div className="flex items-center gap-1">
-                          <ShieldCheck className="h-3 w-3" /> COPC
-                        </div>
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-indigo-700 tracking-wider">
-                        <div className="flex items-center gap-1">
-                          <Award className="h-3 w-3" /> Accreditation
-                        </div>
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Lifecycle
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Validity / Award
-                      </TableHead>
-                      <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Open Recs
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {programDetailData.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-16">
-                          <GraduationCap className="h-8 w-8 text-slate-300 mx-auto mb-2 stroke-[1.5]" />
-                          <p className="text-xs font-bold text-slate-500">No programs match your filters</p>
-                          <p className="text-[10px] text-slate-400 mt-1">
-                            Try adjusting the search or filter criteria.
-                          </p>
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      programDetailData.map((item) => (
-                        <TableRow key={item.id} className="hover:bg-slate-50/80 transition-all border-b group">
-                          <TableCell className="pl-6 py-3">
+                          <TableCell className="py-3">
                             <div className="flex flex-col">
                               <span className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">
-                                {item.name}
+                                {row.programName}
                               </span>
-                              <span className="text-[9px] text-slate-400 font-mono font-bold">{item.abbreviation}</span>
+                              <span className="text-[9px] text-slate-400 font-mono font-bold">{row.abbreviation}</span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                          <TableCell className="py-3">
                             <div className="flex items-center gap-1">
                               <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
-                              {item.campus}
+                              <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                                {row.campus}
+                              </span>
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className="text-[8px] font-black text-slate-600 border-slate-300 bg-white"
-                            >
-                              {item.level}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {item.hasRecord ? (
-                              copcBadge(item.copcStatus)
-                            ) : (
-                              <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-[8px] font-black">
-                                <Clock className="h-3 w-3 mr-1" /> No Data
+                          <TableCell className="py-3">{accreditationBadge(row.level)}</TableCell>
+                          <TableCell className="text-right pr-6 py-3 align-top">
+                            {idx === 0 ? (
+                              <Badge className="bg-indigo-600 text-white text-[9px] font-black px-3 py-1">
+                                {rows.length} program{rows.length !== 1 ? 's' : ''}
                               </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {item.hasRecord ? (
-                              accreditationBadge(item.accreditationLevel)
-                            ) : (
-                              <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-[8px] font-black">
-                                No Data
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                'text-[8px] font-black',
-                                item.lifecycle === 'Current'
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : item.lifecycle === 'Undergoing'
-                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                    : 'bg-slate-100 text-slate-500 border-slate-200',
-                              )}
-                            >
-                              {item.lifecycle}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-[10px] font-mono font-bold text-slate-500 tabular-nums whitespace-nowrap">
-                            {item.validityDate}
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            {item.hasRecord ? (
-                              item.openRecs > 0 ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-rose-600">
-                                  <AlertTriangle className="h-3 w-3" /> {item.openRecs}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600">
-                                  <CheckCircle2 className="h-3 w-3" /> 0
-                                </span>
-                              )
-                            ) : (
-                              <span className="text-[10px] text-slate-300 font-black">—</span>
-                            )}
+                            ) : null}
                           </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </TabsContent>
-
-            <TabsContent value="accreditation-per-year" className="m-0 h-[600px] overflow-y-auto">
-              {accreditationPerYear.length === 0 ? (
-                <div className="py-16 text-center">
-                  <Award className="h-10 w-10 mx-auto text-slate-300 mb-3 stroke-[1.5]" />
-                  <p className="text-xs font-black text-slate-500 uppercase tracking-wider">
-                    No accreditation records found
-                  </p>
-                  <p className="text-[10px] text-slate-400 mt-1">Submit accreditation data to populate this view.</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
-                    <TableRow>
-                      <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider w-[120px]">
-                        Academic Year
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Program Title
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Campus
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-indigo-700 tracking-wider">
-                        <div className="flex items-center gap-1">
-                          <Award className="h-3 w-3" /> Accreditation Level
-                        </div>
-                      </TableHead>
-                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Survey Date
-                      </TableHead>
-                      <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                        Lifecycle
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {accreditationPerYear.map((row, idx) => (
-                      <TableRow
-                        key={`${row.programId}-${row.year}-${idx}`}
-                        className="hover:bg-slate-50/80 transition-all border-b group"
-                      >
-                        <TableCell className="pl-6 py-3">
-                          <span className="font-black text-sm text-slate-900 dark:text-slate-100">AY {row.year}</span>
-                        </TableCell>
-                        <TableCell className="py-3">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">
-                              {row.programName}
-                            </span>
-                            <span className="text-[9px] text-slate-400 font-mono font-bold">{row.abbreviation}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3">
-                          <div className="flex items-center gap-1">
-                            <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
-                            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">{row.campus}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-3">{accreditationBadge(row.level)}</TableCell>
-                        <TableCell className="py-3 text-[10px] font-mono font-bold text-slate-500 tabular-nums">
-                          {row.dateOfSurvey}
-                        </TableCell>
-                        <TableCell className="text-right pr-6 py-3">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              'text-[8px] font-black',
-                              row.lifecycleStatus === 'Current'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : row.lifecycleStatus === 'Undergoing'
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : 'bg-slate-100 text-slate-500 border-slate-200',
-                            )}
-                          >
-                            {row.lifecycleStatus}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </TabsContent>
-          </div>
-        </Tabs>
-      </CardContent>
-    </Card>
+                      ));
+                    });
+                  })()}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }
