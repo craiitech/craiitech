@@ -18,22 +18,30 @@ interface GADPlanReportTemplateProps {
 }
 
 interface GADAccomplishmentReportTemplateProps {
-  data: any[]; // Extended with actuals
+  data: any[];
   unitName: string;
   campusName: string;
   year: number;
   signatories?: Signatories;
 }
 
-/**
- * GAD PLAN AND BUDGET (GPB) PRINT TEMPLATE
- * PCW Standard Landscape Format
- */
+function groupByCategory(items: GADPlan[]): { label: string; items: GADPlan[] }[] {
+  const groups: { label: string; items: GADPlan[] }[] = [];
+  const client = items.filter(i => !i.category || i.category === 'CLIENT-FOCUSED ACTIVITIES');
+  const org = items.filter(i => i.category === 'ORGANIZATION-FOCUSED ACTIVITIES');
+  const attr = items.filter(i => i.category === 'ATTRIBUTED PROGRAM');
+  if (client.length) groups.push({ label: 'CLIENT-FOCUSED ACTIVITIES', items: client });
+  if (org.length) groups.push({ label: 'ORGANIZATION-FOCUSED ACTIVITIES', items: org });
+  if (attr.length) groups.push({ label: 'ATTRIBUTED PROGRAM', items: attr });
+  return groups.length ? groups : [{ label: 'GAD PLAN ENTRIES', items }];
+}
+
 export function GADPlanReportTemplate({ data, unitName, campusName, year, signatories }: GADPlanReportTemplateProps) {
   const directorName = signatories?.qaoDirector || '____________________';
+  const categoryGroups = groupByCategory(data);
 
   return (
-    <div className="p-4 text-black dark:text-white bg-white max-w-[11in] mx-auto font-sans leading-tight">
+    <div className="p-4 text-black dark:text-white bg-white max-w-[13in] mx-auto font-sans leading-tight">
       <div className="text-center mb-8 border-b-2 border-black pb-4">
         <h1 className="text-lg font-bold uppercase">Romblon State University</h1>
         <h2 className="text-md font-bold uppercase mt-1">ANNUAL GAD PLAN AND BUDGET (GPB)</h2>
@@ -43,45 +51,81 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
         </p>
       </div>
 
-      <table className="w-full border-collapse border-[1.5px] border-black text-[9px]">
+      <table className="w-full border-collapse border-[1.5px] border-black text-[8px]">
         <thead>
           <tr className="bg-slate-100 dark:bg-slate-700 text-center font-black uppercase">
-            <th className="border border-black p-2 w-[15%]">Gender Issue / GAD Mandate</th>
-            <th className="border border-black p-2 w-[15%]">Cause of Gender Issue</th>
-            <th className="border border-black p-2 w-[15%]">GAD Objective</th>
-            <th className="border border-black p-2 w-[15%]">Relevant GAD PAP</th>
-            <th className="border border-black p-2 w-[15%]">Performance Indicators / Targets</th>
-            <th className="border border-black p-2 w-[10%]">GAD Budget</th>
-            <th className="border border-black p-2 w-[15%]">Source of Budget / Office</th>
+            <th className="border border-black p-1.5 w-[2%]">#</th>
+            <th className="border border-black p-1.5 w-[12%]">Gender Issue / GAD Mandate</th>
+            <th className="border border-black p-1.5 w-[10%]">Cause of Gender Issue</th>
+            <th className="border border-black p-1.5 w-[10%]">GAD Objective</th>
+            <th className="border border-black p-1.5 w-[12%]">GAD Activity</th>
+            <th className="border border-black p-1.5 w-[12%]">Relevant MFO/PAP</th>
+            <th className="border border-black p-1.5 w-[12%]">Performance Indicators / Targets</th>
+            <th className="border border-black p-1.5 w-[8%]">GAD Budget</th>
+            <th className="border border-black p-1.5 w-[10%]">Source / Responsible Office</th>
+            <th className="border border-black p-1.5 w-[6%]">Status</th>
           </tr>
         </thead>
         <tbody>
-          {data.map((item, i) => (
-            <tr key={i} className="align-top">
-              <td className="border border-black p-2 font-bold">{item.genderIssue}</td>
-              <td className="border border-black p-2 italic">{item.causeOfIssue}</td>
-              <td className="border border-black p-2">{item.objective}</td>
-              <td className="border border-black p-2 font-black uppercase">{item.pap}</td>
-              <td className="border border-black p-2">
-                <p className="font-bold underline">{item.performanceIndicators}</p>
-                <p className="mt-1 italic">{item.targets}</p>
-              </td>
-              <td className="border border-black p-2 text-right font-black tabular-nums">
-                ₱{item.budget.toLocaleString()}
-              </td>
-              <td className="border border-black p-2 text-center font-bold">
-                <p>{item.sourceOfBudget}</p>
-                <p className="mt-2 text-[8px] opacity-60">RESP: {item.responsibleOffice}</p>
-              </td>
-            </tr>
+          {categoryGroups.map((group) => (
+            <React.Fragment key={group.label}>
+              <tr className="bg-slate-200 dark:bg-slate-800 font-black text-[8px] uppercase">
+                <td colSpan={10} className="border border-black p-1.5 text-left">{group.label}</td>
+              </tr>
+              {group.items.map((item, idx) => (
+                <tr key={item.id || idx} className="align-top">
+                  <td className="border border-black p-1 text-center font-bold">{idx + 1}</td>
+                  <td className="border border-black p-1 font-bold">{item.genderIssue}</td>
+                  <td className="border border-black p-1 italic">{item.causeOfIssue}</td>
+                  <td className="border border-black p-1">{item.objective}</td>
+                  <td className="border border-black p-1 font-medium">{item.gadActivityName || item.pap}</td>
+                  <td className="border border-black p-1 font-black uppercase">{item.pap}</td>
+                  <td className="border border-black p-1">
+                    <p className="font-bold underline">{item.performanceIndicators}</p>
+                    <p className="mt-0.5 italic">{item.targets}</p>
+                  </td>
+                  <td className="border border-black p-1 text-right font-black tabular-nums">
+                    ₱{item.budget.toLocaleString()}
+                  </td>
+                  <td className="border border-black p-1 text-center font-bold">
+                    <p>{item.sourceOfBudget}</p>
+                    <p className="mt-1 text-[7px] opacity-60">RESP: {item.responsibleOffice}</p>
+                    {(item.psCost || item.mooeCost || item.coCost) ? (
+                      <div className="mt-0.5 text-[6px] font-mono opacity-50">
+                        PS: ₱{(item.psCost || 0).toLocaleString()} |
+                        MOOE: ₱{(item.mooeCost || 0).toLocaleString()} |
+                        CO: ₱{(item.coCost || 0).toLocaleString()}
+                      </div>
+                    ) : null}
+                  </td>
+                  <td className="border border-black p-1 text-center font-bold text-[7px] uppercase">
+                    {item.implementationStatus === 'Yet to be implemented' ? 'PENDING' : item.implementationStatus || 'DONE'}
+                  </td>
+                </tr>
+              ))}
+              <tr className="bg-slate-100 font-bold text-[8px]">
+                <td colSpan={7} className="border border-black p-1 text-right uppercase">SUB-TOTAL ({group.label}):</td>
+                <td className="border border-black p-1 text-right font-black">
+                  ₱{group.items.reduce((s, i) => s + (i.budget || 0), 0).toLocaleString()}
+                </td>
+                <td colSpan={2} className="border border-black p-1"></td>
+              </tr>
+            </React.Fragment>
           ))}
           {data.length === 0 && (
             <tr>
-              <td colSpan={7} className="border border-black p-8 text-center text-slate-400 italic">
+              <td colSpan={10} className="border border-black p-8 text-center text-slate-400 italic">
                 No plan entries defined for this unit.
               </td>
             </tr>
           )}
+          <tr className="bg-slate-300 font-black text-[9px] uppercase border-t-2 border-black">
+            <td colSpan={7} className="border border-black p-1.5 text-right">TOTAL GAD BUDGET:</td>
+            <td className="border border-black p-1.5 text-right font-black">
+              ₱{data.reduce((s, i) => s + (i.budget || 0), 0).toLocaleString()}
+            </td>
+            <td colSpan={2} className="border border-black p-1.5"></td>
+          </tr>
         </tbody>
       </table>
 

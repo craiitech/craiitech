@@ -1017,6 +1017,7 @@ export type GADPlan = {
   mooeCost?: number;
   coCost?: number;
   gadActivityName?: string;
+  implementationStatus?: GADImplementationStatus;
   driveLink?: string;
   createdAt: any;
   updatedAt: any;

@@ -60,6 +60,7 @@ const planSchema = z.object({
   genderIssue: z.string().min(5, 'Required'),
   causeOfIssue: z.string().min(5, 'Required'),
   objective: z.string().min(5, 'Required'),
+  gadActivityName: z.string().min(1, 'Required'),
   pap: z.string().min(1, 'Required'),
   performanceIndicators: z.string().min(1, 'Required'),
   targets: z.string().min(1, 'Required'),
@@ -73,6 +74,7 @@ const planSchema = z.object({
   hgdgScore: z.coerce.number().min(0).max(20).optional(),
   psCost: z.coerce.number().min(0).optional(),
   mooeCost: z.coerce.number().min(0).optional(),
+  coCost: z.coerce.number().min(0).optional(),
   implementationStatus: z
     .enum(['Done', 'Partially Done', 'On-going', 'Yet to be implemented', 'Not Done'])
     .default('Done'),
@@ -266,85 +268,141 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
       <Card className="shadow-lg border-primary/10 overflow-hidden">
         <CardContent className="p-0">
           <ScrollArea className="h-[60dvh]">
-            <Table>
-              <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                <TableRow>
-                  <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Gender Issue / Objective</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase">Activity (PAP)</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase">Indicators & Targets</TableHead>
-                  <TableHead className="text-right text-[10px] font-black uppercase">Allocation</TableHead>
-                  <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {plans.map((plan) => (
-                  <TableRow key={plan.id} className="hover:bg-muted/20 transition-colors group">
-                    <TableCell className="pl-8 py-5">
-                      <div className="space-y-1 max-w-xs">
-                        <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">
-                          {plan.genderIssue}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground font-medium italic">Obj: {plan.objective}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-xs font-bold text-xs">
-                      <p className="font-bold text-xs">{plan.pap}</p>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1 text-xs">
-                        <p className="font-bold text-slate-700 dark:text-slate-300">{plan.targets}</p>
-                        <p className="text-[10px] text-muted-foreground italic leading-tight">
-                          {plan.performanceIndicators}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs font-black text-primary tabular-nums">
-                          ₱{plan.budget.toLocaleString()}
-                        </span>
+<Table>
+                <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                  <TableRow>
+                    <TableHead className="pl-8 py-4 text-[10px] font-black uppercase w-[18%]">Gender Issue / GAD Mandate</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase w-[8%]">Category</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase w-[14%]">GAD Activity / PAP</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase w-[14%]">Objective / Indicators & Targets</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase w-[14%]">Cause of Issue</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase w-[12%]">Budget & Source</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase w-[10%]">Status</TableHead>
+                    <TableHead className="text-right pr-8 text-[10px] font-black uppercase w-[10%]">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {plans.map((plan) => (
+                    <TableRow key={plan.id} className="hover:bg-muted/20 transition-colors group">
+                      <TableCell className="pl-8 py-5">
+                        <div className="space-y-1 max-w-xs">
+                          <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">
+                            {plan.genderIssue}
+                          </p>
+                          {plan.causeOfIssue && (
+                            <p className="text-[9px] text-muted-foreground italic line-clamp-2">{plan.causeOfIssue}</p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
                         <Badge
                           variant="outline"
-                          className="h-4 text-[8px] font-black uppercase border-none bg-primary/5 text-primary mt-1"
+                          className={cn(
+                            "text-[7px] font-black uppercase tracking-wider whitespace-nowrap",
+                            plan.category === 'CLIENT-FOCUSED ACTIVITIES' && "border-blue-200 bg-blue-50 text-blue-700",
+                            plan.category === 'ORGANIZATION-FOCUSED ACTIVITIES' && "border-amber-200 bg-amber-50 text-amber-700",
+                            plan.category === 'ATTRIBUTED PROGRAM' && "border-violet-200 bg-violet-50 text-violet-700",
+                            !plan.category && "border-slate-200 bg-slate-50 text-slate-500"
+                          )}
                         >
-                          {plan.sourceOfBudget}
+                          {plan.category === 'CLIENT-FOCUSED ACTIVITIES' ? 'CLIENT' :
+                           plan.category === 'ORGANIZATION-FOCUSED ACTIVITIES' ? 'ORG' :
+                           plan.category === 'ATTRIBUTED PROGRAM' ? 'ATTR' : 'GPB'}
                         </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right pr-8">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-primary"
-                          onClick={() => handleEdit(plan)}
+                        {plan.hgdgScore != null && (
+                          <p className="text-[8px] font-bold text-violet-600 mt-1">HGDG: {plan.hgdgScore}/20</p>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <p className="font-bold text-xs">{plan.gadActivityName || plan.pap}</p>
+                        <p className="text-[9px] text-muted-foreground italic mt-0.5 line-clamp-2">{plan.pap}</p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1 text-xs">
+                          <p className="font-bold text-[10px] text-primary leading-tight">{plan.objective}</p>
+                          <p className="font-bold text-slate-700 dark:text-slate-300 text-[10px]">{plan.targets}</p>
+                          <p className="text-[9px] text-muted-foreground italic leading-tight">
+                            {plan.performanceIndicators}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-[10px] italic text-muted-foreground leading-snug line-clamp-3">{plan.causeOfIssue}</p>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs font-black text-primary tabular-nums">
+                            ₱{plan.budget.toLocaleString()}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="h-4 text-[7px] font-black uppercase border-none bg-primary/5 text-primary mt-1"
+                          >
+                            {plan.sourceOfBudget}
+                          </Badge>
+                          {(plan.psCost || plan.mooeCost || plan.coCost) ? (
+                            <div className="text-[8px] font-mono text-muted-foreground mt-1 space-y-0.5">
+                              {plan.psCost ? <span>PS: ₱{plan.psCost.toLocaleString()}</span> : null}
+                              {plan.mooeCost ? <span>{plan.psCost ? ' | ' : ''}MOOE: ₱{plan.mooeCost.toLocaleString()}</span> : null}
+                              {plan.coCost ? <span>{(plan.psCost || plan.mooeCost) ? ' | ' : ''}CO: ₱{plan.coCost.toLocaleString()}</span> : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[8px] font-black uppercase",
+                            plan.implementationStatus === 'Done' && "border-emerald-200 bg-emerald-50 text-emerald-700",
+                            plan.implementationStatus === 'Partially Done' && "border-amber-200 bg-amber-50 text-amber-700",
+                            plan.implementationStatus === 'On-going' && "border-blue-200 bg-blue-50 text-blue-700",
+                            plan.implementationStatus === 'Yet to be implemented' && "border-slate-200 bg-slate-50 text-slate-500",
+                            plan.implementationStatus === 'Not Done' && "border-red-200 bg-red-50 text-red-700",
+                          )}
                         >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {isAdmin && (
+                          {plan.implementationStatus === 'Yet to be implemented' ? 'PENDING' :
+                           plan.implementationStatus === 'Partially Done' ? 'PARTIAL' :
+                           (plan.implementationStatus || 'DONE')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-8">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => handleDelete(plan.id)}
+                            className="h-8 w-8 text-primary"
+                            onClick={() => handleEdit(plan)}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Edit className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {plans.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-40 text-center opacity-20">
-                      <Target className="h-10 w-10 mx-auto mb-2" />
-                      <p className="text-[10px] font-black uppercase tracking-widest">No plan entries recorded</p>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleDelete(plan.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-[8px] text-muted-foreground mt-1 truncate max-w-[100px]">
+                          {plan.responsibleOffice}
+                        </p>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {plans.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={8} className="h-40 text-center opacity-20">
+                        <Target className="h-10 w-10 mx-auto mb-2" />
+                        <p className="text-[10px] font-black uppercase tracking-widest">No plan entries recorded</p>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
           </ScrollArea>
         </CardContent>
         <CardFooter className="bg-muted/5 border-t py-4 px-8">
@@ -438,25 +496,44 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                         </FormItem>
                       )}
                     />
-                    <FormField
-                      control={form.control}
-                      name="pap"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-xs font-black uppercase">
-                            Relevant Organization MFO/PAP or PPA
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              {...field}
-                              placeholder="e.g. MFO1: Research Services – GAD-Related Research Output"
-                              className="bg-slate-50 dark:bg-slate-800/50 font-bold"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="gadActivityName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-black uppercase">GAD Activity</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Specific activity name (e.g. Conduct GAD Orientation)"
+                                className="bg-slate-50 dark:bg-slate-800/50"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="pap"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-black uppercase">
+                              Relevant Organization MFO/PAP or PPA
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="e.g. MFO1: Research Services – GAD-Related Research Output"
+                                className="bg-slate-50 dark:bg-slate-800/50 font-bold"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <FormField
                         control={form.control}
@@ -496,6 +573,61 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                   </div>
 
                   <div className="space-y-6 pt-6 border-t border-dashed">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-violet-700 flex items-center gap-2 border-b pb-2">
+                      <Gavel className="h-4 w-4" /> GAD Category & HGDG
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-black uppercase">PCW Category</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-11 font-bold">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent modal={false}>
+                                <SelectItem value="CLIENT-FOCUSED ACTIVITIES">Client-Focused Activities</SelectItem>
+                                <SelectItem value="ORGANIZATION-FOCUSED ACTIVITIES">Organization-Focused Activities</SelectItem>
+                                <SelectItem value="ATTRIBUTED PROGRAM">Attributed Program (HGDG)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormDescription className="text-[10px]">
+                              Classify the entry per PCW standard categories.
+                            </FormDescription>
+                          </FormItem>
+                        )}
+                      />
+                      {form.watch('category') === 'ATTRIBUTED PROGRAM' && (
+                        <FormField
+                          control={form.control}
+                          name="hgdgScore"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-xs font-black uppercase">HGDG Score (0-20)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  max={20}
+                                  {...field}
+                                  className="h-11 bg-violet-50/30 border-violet-100 font-mono font-black"
+                                />
+                              </FormControl>
+                              <FormDescription className="text-[10px]">
+                                Score from HGDG design checklist (only for Attributed Programs).
+                              </FormDescription>
+                            </FormItem>
+                          )}
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 pt-6 border-t border-dashed">
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2 border-b pb-2">
                       <Landmark className="h-4 w-4" /> Fiscal Provisioning
                     </h4>
@@ -518,7 +650,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                             {gadSettings?.institutionalTotalBudget && (
                               <FormDescription className="text-[9px] font-bold text-emerald-600 uppercase flex items-center gap-2 mt-1">
                                 <Calculator className="h-3 w-3" />
-                                Min Target (5%): â‚±
+                                Min Target (5%): ₱
                                 {((gadSettings.institutionalTotalBudget || 0) * 0.05).toLocaleString()}
                                 {watchBudget >= (gadSettings.institutionalTotalBudget || 0) * 0.05 ? (
                                   <Badge className="bg-emerald-600 h-3 text-[7px]">GOAL MET</Badge>
@@ -548,6 +680,8 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                                 <SelectItem value="GAA">GAA (General Appropriations)</SelectItem>
                                 <SelectItem value="Trust Fund">Trust Fund</SelectItem>
                                 <SelectItem value="Income">Institutional Income</SelectItem>
+                                <SelectItem value="COB">Corporate Operating Budget (COB)</SelectItem>
+                                <SelectItem value="ODA">Official Development Assistance (ODA)</SelectItem>
                                 <SelectItem value="Others">Others / External</SelectItem>
                               </SelectContent>
                             </Select>
@@ -555,6 +689,91 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                         )}
                       />
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-slate-800/30 rounded-lg border">
+                      <FormField
+                        control={form.control}
+                        name="psCost"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-black uppercase">Personnel Services (PS)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                {...field}
+                                placeholder="0"
+                                className="h-9 font-mono font-bold bg-white text-xs"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="mooeCost"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-black uppercase">MOOE</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                {...field}
+                                placeholder="0"
+                                className="h-9 font-mono font-bold bg-white text-xs"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="coCost"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-black uppercase">Capital Outlay (CO)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                {...field}
+                                placeholder="0"
+                                className="h-9 font-mono font-bold bg-white text-xs"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-6 pt-6 border-t border-dashed">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-amber-700 flex items-center gap-2 border-b pb-2">
+                      <ShieldCheck className="h-4 w-4" /> Status & Implementation
+                    </h4>
+                    <FormField
+                      control={form.control}
+                      name="implementationStatus"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-black uppercase">Implementation Status</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="h-11 font-bold">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent modal={false}>
+                              <SelectItem value="Done">Done</SelectItem>
+                              <SelectItem value="Partially Done">Partially Done</SelectItem>
+                              <SelectItem value="On-going">On-going</SelectItem>
+                              <SelectItem value="Yet to be implemented">Yet to be implemented</SelectItem>
+                              <SelectItem value="Not Done">Not Done</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormDescription className="text-[10px]">
+                            Current implementation status of this GPB entry.
+                          </FormDescription>
+                        </FormItem>
+                      )}
+                    />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-dashed">
