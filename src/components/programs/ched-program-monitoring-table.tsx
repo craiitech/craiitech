@@ -246,7 +246,11 @@ export function ChedProgramMonitoringTable({
       });
     });
 
-    return rows.sort((a, b) => b.year - a.year || a.programName.localeCompare(b.programName));
+    return rows.sort((a, b) => {
+      if (a.dateOfSurvey === '—') return 1;
+      if (b.dateOfSurvey === '—') return -1;
+      return b.dateOfSurvey.localeCompare(a.dateOfSurvey);
+    });
   }, [compliances, programs, campusMap]);
 
   const copcBadge = (status: string) => {
