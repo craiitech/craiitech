@@ -1333,7 +1333,15 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <DialogTitle className="text-xl">{editingCar ? 'Modify' : 'Issue'} CAR</DialogTitle>
+                  <DialogTitle className="text-xl">
+                    {editingCar
+                      ? isAdmin ||
+                        isInstitutionalViewer ||
+                        (userProfile?.unitId && userProfile.unitId === form.getValues('unitId'))
+                        ? 'Modify CAR'
+                        : 'View CAR Record'
+                      : 'Issue CAR'}
+                  </DialogTitle>
                   {liveCar && (
                     <Badge className="h-6 px-4 font-black uppercase text-[10px] bg-primary text-white">
                       {liveCar.status}
@@ -2110,18 +2118,22 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                     <Printer className="h-4 w-4" /> Print CAR
                   </Button>
                 )}
-                <Button
-                  onClick={form.handleSubmit(onSubmit)}
-                  disabled={isSubmitting}
-                  className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10 px-8"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Save className="mr-2 h-4 w-4 mr-1.5" />
-                  )}
-                  Commit Update
-                </Button>
+                {(isAdmin ||
+                  isInstitutionalViewer ||
+                  (userProfile?.unitId && userProfile.unitId === form.getValues('unitId'))) && (
+                  <Button
+                    onClick={form.handleSubmit(onSubmit)}
+                    disabled={isSubmitting}
+                    className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10 px-8"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Save className="mr-2 h-4 w-4 mr-1.5" />
+                    )}
+                    Commit Update
+                  </Button>
+                )}
               </div>
             </div>
           </DialogFooter>
