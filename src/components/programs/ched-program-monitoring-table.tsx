@@ -214,7 +214,7 @@ export function ChedProgramMonitoringTable({
   ]);
 
   const accreditationPerYear = useMemo(() => {
-    const programMap = new Map(activePrograms.map((p) => [p.id, p]));
+    const programMap = new Map(programs.map((p) => [p.id, p]));
 
     const rows: {
       year: number;
@@ -247,7 +247,7 @@ export function ChedProgramMonitoringTable({
     });
 
     return rows.sort((a, b) => b.year - a.year || a.programName.localeCompare(b.programName));
-  }, [compliances, activePrograms, campusMap]);
+  }, [compliances, programs, campusMap]);
 
   const copcBadge = (status: string) => {
     switch (status) {
@@ -773,7 +773,7 @@ export function ChedProgramMonitoringTable({
               </ScrollArea>
             </TabsContent>
 
-            <TabsContent value="accreditation-per-year" className="m-0">
+            <TabsContent value="accreditation-per-year" className="m-0 h-[600px] overflow-y-auto">
               {accreditationPerYear.length === 0 ? (
                 <div className="py-16 text-center">
                   <Award className="h-10 w-10 mx-auto text-slate-300 mb-3 stroke-[1.5]" />
@@ -783,81 +783,77 @@ export function ChedProgramMonitoringTable({
                   <p className="text-[10px] text-slate-400 mt-1">Submit accreditation data to populate this view.</p>
                 </div>
               ) : (
-                <ScrollArea className="max-h-[600px]">
-                  <Table>
-                    <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
-                      <TableRow>
-                        <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider w-[120px]">
-                          Academic Year
-                        </TableHead>
-                        <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                          Program Title
-                        </TableHead>
-                        <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                          Campus
-                        </TableHead>
-                        <TableHead className="text-[9px] font-black uppercase text-indigo-700 tracking-wider">
-                          <div className="flex items-center gap-1">
-                            <Award className="h-3 w-3" /> Accreditation Level
+                <Table>
+                  <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
+                    <TableRow>
+                      <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider w-[120px]">
+                        Academic Year
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Program Title
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Campus
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-indigo-700 tracking-wider">
+                        <div className="flex items-center gap-1">
+                          <Award className="h-3 w-3" /> Accreditation Level
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Survey Date
+                      </TableHead>
+                      <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Lifecycle
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {accreditationPerYear.map((row, idx) => (
+                      <TableRow
+                        key={`${row.programId}-${row.year}-${idx}`}
+                        className="hover:bg-slate-50/80 transition-all border-b group"
+                      >
+                        <TableCell className="pl-6 py-3">
+                          <span className="font-black text-sm text-slate-900 dark:text-slate-100">AY {row.year}</span>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">
+                              {row.programName}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-mono font-bold">{row.abbreviation}</span>
                           </div>
-                        </TableHead>
-                        <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                          Survey Date
-                        </TableHead>
-                        <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                          Lifecycle
-                        </TableHead>
+                        </TableCell>
+                        <TableCell className="py-3">
+                          <div className="flex items-center gap-1">
+                            <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
+                            <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">{row.campus}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-3">{accreditationBadge(row.level)}</TableCell>
+                        <TableCell className="py-3 text-[10px] font-mono font-bold text-slate-500 tabular-nums">
+                          {row.dateOfSurvey}
+                        </TableCell>
+                        <TableCell className="text-right pr-6 py-3">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              'text-[8px] font-black',
+                              row.lifecycleStatus === 'Current'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : row.lifecycleStatus === 'Undergoing'
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-slate-100 text-slate-500 border-slate-200',
+                            )}
+                          >
+                            {row.lifecycleStatus}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {accreditationPerYear.map((row, idx) => (
-                        <TableRow
-                          key={`${row.programId}-${row.year}-${idx}`}
-                          className="hover:bg-slate-50/80 transition-all border-b group"
-                        >
-                          <TableCell className="pl-6 py-3">
-                            <span className="font-black text-sm text-slate-900 dark:text-slate-100">AY {row.year}</span>
-                          </TableCell>
-                          <TableCell className="py-3">
-                            <div className="flex flex-col">
-                              <span className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">
-                                {row.programName}
-                              </span>
-                              <span className="text-[9px] text-slate-400 font-mono font-bold">{row.abbreviation}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-3">
-                            <div className="flex items-center gap-1">
-                              <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
-                              <span className="text-xs text-slate-600 dark:text-slate-400 font-medium">
-                                {row.campus}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="py-3">{accreditationBadge(row.level)}</TableCell>
-                          <TableCell className="py-3 text-[10px] font-mono font-bold text-slate-500 tabular-nums">
-                            {row.dateOfSurvey}
-                          </TableCell>
-                          <TableCell className="text-right pr-6 py-3">
-                            <Badge
-                              variant="outline"
-                              className={cn(
-                                'text-[8px] font-black',
-                                row.lifecycleStatus === 'Current'
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : row.lifecycleStatus === 'Undergoing'
-                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                    : 'bg-slate-100 text-slate-500 border-slate-200',
-                              )}
-                            >
-                              {row.lifecycleStatus}
-                            </Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
+                    ))}
+                  </TableBody>
+                </Table>
               )}
             </TabsContent>
           </div>
