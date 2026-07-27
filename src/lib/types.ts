@@ -1001,6 +1001,7 @@ export type GADPlan = {
   sourceOfBudget: string;
   responsibleOffice: string;
   status: 'Draft' | 'Finalized';
+  driveLink?: string;
   createdAt: any;
   updatedAt: any;
 };
@@ -1031,6 +1032,7 @@ export type GADActivity = {
   actualBudgetUsed?: number;
   actualOutput?: string;
   varianceAnalysis?: string;
+  driveLink?: string; // Google Drive link for documentation and evidence
   deviceFingerprint: string; // For unauthenticated identification
   createdAt: any;
 };

@@ -20,6 +20,8 @@ import {
   Info,
   Search,
   PlusCircle,
+  FolderGit2,
+  ExternalLink,
 } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { GADAccomplishmentReportTemplate } from './gad-print-templates';
@@ -78,6 +80,8 @@ export function GADAccomplishmentTab({
 
         // Extract implementation details from the latest activity
         const latestActivity = linkedActivities.length > 0 ? linkedActivities[linkedActivities.length - 1] : null;
+        const driveLink =
+          latestActivity?.driveLink || plan.driveLink || linkedActivities.find((a) => a.driveLink)?.driveLink || '';
 
         return {
           ...plan,
@@ -87,6 +91,7 @@ export function GADAccomplishmentTab({
           varianceBudget,
           actualOutput: latestActivity?.actualOutput || '',
           varianceAnalysis: latestActivity?.varianceAnalysis || '',
+          driveLink,
           activitiesCount: linkedActivities.length,
           isCompleted: linkedActivities.length > 0,
         };
@@ -232,6 +237,19 @@ export function GADAccomplishmentTab({
                         <p className="text-[9px] font-bold text-muted-foreground line-clamp-1 italic">
                           "{item.genderIssue}"
                         </p>
+                        {item.driveLink && (
+                          <div className="pt-1">
+                            <a
+                              href={item.driveLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[8px] font-black text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800 uppercase transition-colors"
+                            >
+                              <FolderGit2 className="h-3 w-3" /> Drive Evidence{' '}
+                              <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>

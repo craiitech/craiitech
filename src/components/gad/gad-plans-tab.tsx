@@ -1,4 +1,3 @@
-﻿
 'use client';
 
 /**
@@ -11,22 +10,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-    Loader2, 
-    PlusCircle, 
-    Edit, 
-    Trash2, 
-    Printer, 
-    Target, 
-    Info, 
-    Save, 
-    ChevronRight,
-    Gavel,
-    Landmark,
-    Calculator,
-    ShieldCheck
+import {
+  Loader2,
+  PlusCircle,
+  Edit,
+  Trash2,
+  Printer,
+  Target,
+  Info,
+  Save,
+  ChevronRight,
+  Gavel,
+  Landmark,
+  Calculator,
+  ShieldCheck,
+  Link as LinkIcon,
+  FolderGit2,
+  ExternalLink,
 } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -61,6 +70,7 @@ const planSchema = z.object({
   sourceOfBudget: z.string().min(1, 'Required'),
   responsibleOfficeId: z.string().min(1, 'Required'),
   campusId: z.string().min(1, 'Required'),
+  driveLink: z.string().optional(),
 });
 
 export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnitId }: GADPlansTabProps) {
@@ -71,33 +81,34 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
   const [editingPlan, setEditingPlan] = useState<GADPlan | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const canManage = isAdmin || userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('director');
+  const canManage =
+    isAdmin || userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('director');
 
-  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
-  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+  const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
+  const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
 
-  const gadSettingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'gadSettings') : null), [firestore]);
+  const gadSettingsRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'gadSettings') : null),
+    [firestore],
+  );
   const { data: gadSettings } = useDoc<GadSettings>(gadSettingsRef);
 
-  const signatoryRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
-    [firestore]
-  );
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const form = useForm<z.infer<typeof planSchema>>({
     resolver: zodResolver(planSchema),
-    defaultValues: { 
-        campusId: userProfile?.campusId || '', 
-        responsibleOfficeId: userProfile?.unitId || '',
-        budget: 0,
-        sourceOfBudget: 'GAA'
-    }
+    defaultValues: {
+      campusId: userProfile?.campusId || '',
+      responsibleOfficeId: userProfile?.unitId || '',
+      budget: 0,
+      sourceOfBudget: 'GAA',
+    },
   });
 
   const watchBudget = form.watch('budget') || 0;
   const watchCampusId = form.watch('campusId');
-  
+
   const minRequiredBudget = useMemo(() => {
     return (gadSettings?.institutionalTotalBudget || 0) * 0.05;
   }, [gadSettings]);
@@ -133,8 +144,8 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
   const handleEdit = (plan: GADPlan) => {
     setEditingPlan(plan);
     form.reset({
-        ...plan,
-        responsibleOfficeId: plan.unitId,
+      ...plan,
+      responsibleOfficeId: plan.unitId,
     });
     setIsDialogOpen(true);
   };
@@ -151,25 +162,25 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
 
   const handlePrint = () => {
     if (!plans.length) return;
-    
+
     const unitName = selectedUnitId === 'all' ? 'UNIVERSITY-WIDE' : unitMap.get(selectedUnitId) || 'UNIT';
     const campusName = selectedUnitId === 'all' ? 'Institutional' : campusMap.get(userProfile?.campusId || '') || 'RSU';
 
     try {
-        const reportHtml = renderToStaticMarkup(
-            <GADPlanReportTemplate 
-                data={plans}
-                unitName={unitName}
-                campusName={campusName}
-                year={selectedYear}
-                signatories={signatories || undefined}
-            />
-        );
+      const reportHtml = renderToStaticMarkup(
+        <GADPlanReportTemplate
+          data={plans}
+          unitName={unitName}
+          campusName={campusName}
+          year={selectedYear}
+          signatories={signatories || undefined}
+        />,
+      );
 
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.open();
-            printWindow.document.write(`
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(`
                 <html>
                 <head>
                     <title>GAD Plan and Budget - ${unitName}</title>
@@ -193,181 +204,469 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                 </body>
                 </html>
             `);
-            printWindow.document.close();
-        }
-    } catch (e) { console.error(e); }
+        printWindow.document.close();
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-            <h3 className="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-slate-200">Annual GAD Plan & Budget (GPB)</h3>
-            <p className="text-xs text-muted-foreground font-medium">Strategic roadmap for institutional gender-responsive activities.</p>
+          <h3 className="text-xl font-black uppercase tracking-tight text-slate-800 dark:text-slate-200">
+            Annual GAD Plan & Budget (GPB)
+          </h3>
+          <p className="text-xs text-muted-foreground font-medium">
+            Strategic roadmap for institutional gender-responsive activities.
+          </p>
         </div>
         <div className="flex items-center gap-2">
-            <Button onClick={handlePrint} variant="outline" className="h-10 px-4 font-black uppercase text-[10px] bg-white border-primary/20 text-primary shadow-sm gap-2">
-                <Printer className="h-4 w-4" /> PRINT GPB
+          <Button
+            onClick={handlePrint}
+            variant="outline"
+            className="h-10 px-4 font-black uppercase text-[10px] bg-white border-primary/20 text-primary shadow-sm gap-2"
+          >
+            <Printer className="h-4 w-4" /> PRINT GPB
+          </Button>
+          {canManage && (
+            <Button
+              onClick={() => {
+                setEditingPlan(null);
+                form.reset({
+                  campusId: userProfile?.campusId || '',
+                  responsibleOfficeId: userProfile?.unitId || '',
+                  budget: 0,
+                  sourceOfBudget: 'GAA',
+                });
+                setIsDialogOpen(true);
+              }}
+              className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> Add GPB Entry
             </Button>
-            {canManage && (
-                <Button onClick={() => { setEditingPlan(null); form.reset({ campusId: userProfile?.campusId || '', responsibleOfficeId: userProfile?.unitId || '', budget: 0, sourceOfBudget: 'GAA' }); setIsDialogOpen(true); }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add GPB Entry
-                </Button>
-            )}
+          )}
         </div>
       </div>
 
       <Card className="shadow-lg border-primary/10 overflow-hidden">
-          <CardContent className="p-0">
-              <ScrollArea className="h-[60dvh]">
-                  <Table>
-                      <TableHeader className="bg-muted/50 sticky top-0 z-10">
-                          <TableRow>
-                              <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Gender Issue / Objective</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase">Activity (PAP)</TableHead>
-                              <TableHead className="text-[10px] font-black uppercase">Indicators & Targets</TableHead>
-                              <TableHead className="text-right text-[10px] font-black uppercase">Allocation</TableHead>
-                              <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Action</TableHead>
-                          </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                          {plans.map(plan => (
-                              <TableRow key={plan.id} className="hover:bg-muted/20 transition-colors group">
-                                  <TableCell className="pl-8 py-5">
-                                      <div className="space-y-1 max-w-xs">
-                                          <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">{plan.genderIssue}</p>
-                                          <p className="text-[10px] text-muted-foreground font-medium italic">Obj: {plan.objective}</p>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell className="max-w-xs font-bold text-xs">{plan.pap}</TableCell>
-                                  <TableCell>
-                                      <div className="space-y-1 text-xs">
-                                          <p className="font-bold text-slate-700 dark:text-slate-300">{plan.targets}</p>
-                                          <p className="text-[10px] text-muted-foreground italic leading-tight">{plan.performanceIndicators}</p>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                      <div className="flex flex-col items-end">
-                                          <span className="text-xs font-black text-primary tabular-nums">â‚±{plan.budget.toLocaleString()}</span>
-                                          <Badge variant="outline" className="h-4 text-[8px] font-black uppercase border-none bg-primary/5 text-primary mt-1">{plan.sourceOfBudget}</Badge>
-                                      </div>
-                                  </TableCell>
-                                  <TableCell className="text-right pr-8">
-                                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => handleEdit(plan)}><Edit className="h-4 w-4" /></Button>
-                                          {isAdmin && <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(plan.id)}><Trash2 className="h-4 w-4" /></Button>}
-                                      </div>
-                                  </TableCell>
-                              </TableRow>
-                          ))}
-                          {plans.length === 0 && (
-                              <TableRow>
-                                  <TableCell colSpan={5} className="h-40 text-center opacity-20">
-                                      <Target className="h-10 w-10 mx-auto mb-2" />
-                                      <p className="text-[10px] font-black uppercase tracking-widest">No plan entries recorded</p>
-                                  </TableCell>
-                              </TableRow>
-                          )}
-                      </TableBody>
-                  </Table>
-              </ScrollArea>
-          </CardContent>
-          <CardFooter className="bg-muted/5 border-t py-4 px-8">
-                <div className="flex items-start gap-4">
-                    <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-muted-foreground italic leading-relaxed">
-                        <strong>PCW Alignment:</strong> The GAD Plan and Budget (GPB) is the primary instrument used to capture the university's intent to address identified gender issues. All unit plans must be verified against the official Procedure Manual.
-                    </p>
-                </div>
-          </CardFooter>
+        <CardContent className="p-0">
+          <ScrollArea className="h-[60dvh]">
+            <Table>
+              <TableHeader className="bg-muted/50 sticky top-0 z-10">
+                <TableRow>
+                  <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Gender Issue / Objective</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase">Activity (PAP)</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase">Indicators & Targets</TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase">Allocation</TableHead>
+                  <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {plans.map((plan) => (
+                  <TableRow key={plan.id} className="hover:bg-muted/20 transition-colors group">
+                    <TableCell className="pl-8 py-5">
+                      <div className="space-y-1 max-w-xs">
+                        <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">
+                          {plan.genderIssue}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-medium italic">Obj: {plan.objective}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="max-w-xs font-bold text-xs">
+                      <div className="space-y-1">
+                        <p className="font-bold text-xs">{plan.pap}</p>
+                        {plan.driveLink && (
+                          <a
+                            href={plan.driveLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[8px] font-black text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.5 rounded border border-blue-200 dark:border-blue-800 uppercase transition-colors"
+                          >
+                            <FolderGit2 className="h-3 w-3" /> Drive Folder{' '}
+                            <ExternalLink className="h-2.5 w-2.5 ml-0.5" />
+                          </a>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1 text-xs">
+                        <p className="font-bold text-slate-700 dark:text-slate-300">{plan.targets}</p>
+                        <p className="text-[10px] text-muted-foreground italic leading-tight">
+                          {plan.performanceIndicators}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs font-black text-primary tabular-nums">
+                          ₱{plan.budget.toLocaleString()}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="h-4 text-[8px] font-black uppercase border-none bg-primary/5 text-primary mt-1"
+                        >
+                          {plan.sourceOfBudget}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-primary"
+                          onClick={() => handleEdit(plan)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        {isAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive"
+                            onClick={() => handleDelete(plan.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {plans.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="h-40 text-center opacity-20">
+                      <Target className="h-10 w-10 mx-auto mb-2" />
+                      <p className="text-[10px] font-black uppercase tracking-widest">No plan entries recorded</p>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </ScrollArea>
+        </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-4 px-8">
+          <div className="flex items-start gap-4">
+            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground italic leading-relaxed">
+              <strong>PCW Alignment:</strong> The GAD Plan and Budget (GPB) is the primary instrument used to capture
+              the university's intent to address identified gender issues. All unit plans must be verified against the
+              official Procedure Manual.
+            </p>
+          </div>
+        </CardFooter>
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl h-[85dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
-                <Target className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Institutional GPB Registry</span>
+              <Target className="h-5 w-5" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Institutional GPB Registry</span>
             </div>
             <DialogTitle>{editingPlan ? 'Update' : 'Register'} GAD Plan Entry</DialogTitle>
           </DialogHeader>
-          
+
           <ScrollArea className="flex-1 bg-white">
             <div className="p-8">
-                <Form {...form}>
-                    <form id="plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                        <div className="space-y-6">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2"><Info className="h-4 w-4" /> Issue Identification</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField control={form.control} name="genderIssue" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Gender Issue</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="Identify the client-focused or organization-focused gender issue..." className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
-                                )} />
-                                <FormField control={form.control} name="causeOfIssue" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Cause of Issue</FormLabel><FormControl><Textarea {...field} rows={3} placeholder="What underlying factors contribute to this issue?" className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
-                                )} />
-                            </div>
-                        </div>
+              <Form {...form}>
+                <form id="plan-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                  <div className="space-y-6">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2">
+                      <Info className="h-4 w-4" /> Issue Identification
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="genderIssue"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-black uppercase">Gender Issue</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                {...field}
+                                rows={3}
+                                placeholder="Identify the client-focused or organization-focused gender issue..."
+                                className="bg-slate-50 dark:bg-slate-800/50"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="causeOfIssue"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-black uppercase">Cause of Issue</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                {...field}
+                                rows={3}
+                                placeholder="What underlying factors contribute to this issue?"
+                                className="bg-slate-50 dark:bg-slate-800/50"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-                        <div className="space-y-6 pt-6 border-t border-dashed">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2"><Target className="h-4 w-4" /> Objective & Activity</h4>
-                            <FormField control={form.control} name="objective" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">GAD Objective</FormLabel><FormControl><Input {...field} placeholder="Specific goal to address the issue..." className="bg-slate-50 dark:bg-slate-800/50" /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <FormField control={form.control} name="pap" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Program/Activity/Project (PAP)</FormLabel><FormControl><Input {...field} placeholder="Name of the activity..." className="bg-slate-50 dark:bg-slate-800/50 font-bold" /></FormControl><FormMessage /></FormItem>
-                            )} />
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField control={form.control} name="performanceIndicators" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Performance Indicators</FormLabel><FormControl><Input {...field} placeholder="How will success be measured?" className="bg-slate-50 dark:bg-slate-800/50" /></FormControl></FormItem>
-                                )} />
-                                <FormField control={form.control} name="targets" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Targets</FormLabel><FormControl><Input {...field} placeholder="Quantifiable goal (e.g. 50 participants)" className="bg-slate-50 dark:bg-slate-800/50" /></FormControl></FormItem>
-                                )} />
-                            </div>
-                        </div>
+                  <div className="space-y-6 pt-6 border-t border-dashed">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2 border-b pb-2">
+                      <Target className="h-4 w-4" /> Objective & Activity
+                    </h4>
+                    <FormField
+                      control={form.control}
+                      name="objective"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-black uppercase">GAD Objective</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="Specific goal to address the issue..."
+                              className="bg-slate-50 dark:bg-slate-800/50"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="pap"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-black uppercase">Program/Activity/Project (PAP)</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="Name of the activity..."
+                              className="bg-slate-50 dark:bg-slate-800/50 font-bold"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="performanceIndicators"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-black uppercase">Performance Indicators</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="How will success be measured?"
+                                className="bg-slate-50 dark:bg-slate-800/50"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="targets"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-black uppercase">Targets</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="Quantifiable goal (e.g. 50 participants)"
+                                className="bg-slate-50 dark:bg-slate-800/50"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-                        <div className="space-y-6 pt-6 border-t border-dashed">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2 border-b pb-2"><Landmark className="h-4 w-4" /> Fiscal Provisioning</h4>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <FormField control={form.control} name="budget" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">GAD Budget Allocation (â‚±)</FormLabel><FormControl><Input type="number" {...field} className="h-11 bg-emerald-50/30 border-emerald-100 font-mono font-black text-lg" /></FormControl>
-                                        {gadSettings?.institutionalTotalBudget && (
-                                            <FormDescription className="text-[9px] font-bold text-emerald-600 uppercase flex items-center gap-2 mt-1">
-                                                <Calculator className="h-3 w-3" />
-                                                Min Target (5%): â‚±{((gadSettings.institutionalTotalBudget || 0) * 0.05).toLocaleString()}
-                                                {watchBudget >= ((gadSettings.institutionalTotalBudget || 0) * 0.05) ? <Badge className="bg-emerald-600 h-3 text-[7px]">GOAL MET</Badge> : <Badge variant="destructive" className="h-3 text-[7px]">UNDER TARGET</Badge>}
-                                            </FormDescription>
-                                        )}
-                                    </FormItem>
-                                )} />
-                                <FormField control={form.control} name="sourceOfBudget" render={({ field }) => (
-                                    <FormItem><FormLabel className="text-xs font-black uppercase">Source of Funds</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger className="h-11 font-bold"><SelectValue /></SelectTrigger></FormControl><SelectContent modal={false}><SelectItem value="GAA">GAA (General Appropriations)</SelectItem><SelectItem value="Trust Fund">Trust Fund</SelectItem><SelectItem value="Income">Institutional Income</SelectItem><SelectItem value="Others">Others / External</SelectItem></SelectContent></Select></FormItem>
-                                )} />
-                            </div>
-                        </div>
+                  <div className="space-y-6 pt-6 border-t border-dashed">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2 border-b pb-2">
+                      <Landmark className="h-4 w-4" /> Fiscal Provisioning
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <FormField
+                        control={form.control}
+                        name="budget"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-black uppercase">GAD Budget Allocation (â‚±)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                {...field}
+                                className="h-11 bg-emerald-50/30 border-emerald-100 font-mono font-black text-lg"
+                              />
+                            </FormControl>
+                            {gadSettings?.institutionalTotalBudget && (
+                              <FormDescription className="text-[9px] font-bold text-emerald-600 uppercase flex items-center gap-2 mt-1">
+                                <Calculator className="h-3 w-3" />
+                                Min Target (5%): â‚±
+                                {((gadSettings.institutionalTotalBudget || 0) * 0.05).toLocaleString()}
+                                {watchBudget >= (gadSettings.institutionalTotalBudget || 0) * 0.05 ? (
+                                  <Badge className="bg-emerald-600 h-3 text-[7px]">GOAL MET</Badge>
+                                ) : (
+                                  <Badge variant="destructive" className="h-3 text-[7px]">
+                                    UNDER TARGET
+                                  </Badge>
+                                )}
+                              </FormDescription>
+                            )}
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="sourceOfBudget"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-black uppercase">Source of Funds</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger className="h-11 font-bold">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent modal={false}>
+                                <SelectItem value="GAA">GAA (General Appropriations)</SelectItem>
+                                <SelectItem value="Trust Fund">Trust Fund</SelectItem>
+                                <SelectItem value="Income">Institutional Income</SelectItem>
+                                <SelectItem value="Others">Others / External</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-dashed">
-                            <FormField control={form.control} name="campusId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Location / Site</FormLabel><Select onValueChange={(val) => { field.onChange(val); form.setValue('responsibleOfficeId', ''); }} value={field.value} disabled={!isAdmin && !!userProfile?.campusId}><FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Site" /></SelectTrigger></FormControl><SelectContent modal={false}>{campuses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent></Select></FormItem>
-                            )} />
-                            <FormField control={form.control} name="responsibleOfficeId" render={({ field }) => (
-                                <FormItem><FormLabel className="text-xs font-black uppercase">Responsible Office</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!watchCampusId}><FormControl><SelectTrigger className="h-9"><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl><SelectContent modal={false}>{units.filter(u => u.campusIds?.includes(watchCampusId)).map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}</SelectContent></Select></FormItem>
-                            )} />
-                        </div>
-                    </form>
-                </Form>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-dashed">
+                    <FormField
+                      control={form.control}
+                      name="campusId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-black uppercase">Location / Site</FormLabel>
+                          <Select
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              form.setValue('responsibleOfficeId', '');
+                            }}
+                            value={field.value}
+                            disabled={!isAdmin && !!userProfile?.campusId}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Select Site" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent modal={false}>
+                              {campuses.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="responsibleOfficeId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-black uppercase">Responsible Office</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value} disabled={!watchCampusId}>
+                            <FormControl>
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Select Unit" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent modal={false}>
+                              {units
+                                .filter((u) => u.campusIds?.includes(watchCampusId))
+                                .map((u) => (
+                                  <SelectItem key={u.id} value={u.id}>
+                                    {u.name}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="space-y-4 pt-6 border-t border-dashed">
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-600 flex items-center gap-2 border-b pb-2">
+                      <FolderGit2 className="h-4 w-4" /> Supporting Evidences & Documentation (Google Drive)
+                    </h4>
+                    <FormField
+                      control={form.control}
+                      name="driveLink"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-xs font-black uppercase flex items-center gap-1.5 text-blue-700">
+                            <LinkIcon className="h-3.5 w-3.5" /> Google Drive Link (Folder / Document)
+                          </FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              placeholder="https://drive.google.com/drive/folders/... or https://drive.google.com/file/d/..."
+                              className="h-11 bg-blue-50/20 border-blue-200 font-mono text-xs font-medium"
+                            />
+                          </FormControl>
+                          <FormDescription className="text-[10px] italic text-muted-foreground">
+                            Paste the public Google Drive URL containing proposal documents, approvals, or GPB targets
+                            support. Saved directly to Firestore.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </form>
+              </Form>
             </div>
           </ScrollArea>
 
           <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0 gap-2 sm:gap-0">
             <div className="flex w-full items-center justify-between">
-                <Button type="button" variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground" onClick={() => setIsDialogOpen(false)}>Discard</Button>
-                <div className="flex gap-2">
-                    <Button type="submit" form="plan-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11">
-                        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <ShieldCheck className="h-4 w-4 mr-1.5" />}
-                        {editingPlan ? 'Save Changes' : 'Register Plan Entry'}
-                    </Button>
-                </div>
+              <Button
+                type="button"
+                variant="ghost"
+                className="text-[10px] font-black uppercase tracking-widest text-muted-foreground"
+                onClick={() => setIsDialogOpen(false)}
+              >
+                Discard
+              </Button>
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  form="plan-form"
+                  disabled={isSubmitting}
+                  className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4 mr-1.5" />
+                  )}
+                  {editingPlan ? 'Save Changes' : 'Register Plan Entry'}
+                </Button>
+              </div>
             </div>
           </DialogFooter>
         </DialogContent>

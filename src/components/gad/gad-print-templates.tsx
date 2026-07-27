@@ -1,4 +1,3 @@
-
 'use client';
 
 /**
@@ -39,7 +38,9 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
         <h1 className="text-lg font-bold uppercase">Romblon State University</h1>
         <h2 className="text-md font-bold uppercase mt-1">ANNUAL GAD PLAN AND BUDGET (GPB)</h2>
         <p className="text-sm font-black mt-1">FISCAL YEAR: {year}</p>
-        <p className="text-xs italic mt-2 uppercase">{unitName} - {campusName}</p>
+        <p className="text-xs italic mt-2 uppercase">
+          {unitName} - {campusName}
+        </p>
       </div>
 
       <table className="w-full border-collapse border-[1.5px] border-black text-[9px]">
@@ -65,7 +66,9 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
                 <p className="font-bold underline">{item.performanceIndicators}</p>
                 <p className="mt-1 italic">{item.targets}</p>
               </td>
-              <td className="border border-black p-2 text-right font-black tabular-nums">₱{item.budget.toLocaleString()}</td>
+              <td className="border border-black p-2 text-right font-black tabular-nums">
+                ₱{item.budget.toLocaleString()}
+              </td>
               <td className="border border-black p-2 text-center font-bold">
                 <p>{item.sourceOfBudget}</p>
                 <p className="mt-2 text-[8px] opacity-60">RESP: {item.responsibleOffice}</p>
@@ -73,31 +76,35 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
             </tr>
           ))}
           {data.length === 0 && (
-            <tr><td colSpan={7} className="border border-black p-8 text-center text-slate-400 italic">No plan entries defined for this unit.</td></tr>
+            <tr>
+              <td colSpan={7} className="border border-black p-8 text-center text-slate-400 italic">
+                No plan entries defined for this unit.
+              </td>
+            </tr>
           )}
         </tbody>
       </table>
 
       <div className="mt-12 grid grid-cols-3 gap-16 px-10 text-[10px] font-black uppercase">
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Prepared by:</p>
-              <div className="border-b border-black pb-1">GAD COORDINATOR</div>
-              <p className="mt-1 text-[8px]">Unit Level</p>
-          </div>
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Reviewed by:</p>
-              <div className="border-b border-black pb-1">QAO / GAD DIRECTOR</div>
-          </div>
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Approved by:</p>
-              <div className="border-b border-black pb-1 font-black text-primary">{directorName}</div>
-              <p className="mt-1 text-[8px]">UNIVERSITY AUTHORITY</p>
-          </div>
+        <div className="text-center">
+          <p className="text-left mb-8 opacity-60">Prepared by:</p>
+          <div className="border-b border-black pb-1">GAD COORDINATOR</div>
+          <p className="mt-1 text-[8px]">Unit Level</p>
+        </div>
+        <div className="text-center">
+          <p className="text-left mb-8 opacity-60">Reviewed by:</p>
+          <div className="border-b border-black pb-1">QAO / GAD DIRECTOR</div>
+        </div>
+        <div className="text-center">
+          <p className="text-left mb-8 opacity-60">Approved by:</p>
+          <div className="border-b border-black pb-1 font-black text-primary">{directorName}</div>
+          <p className="mt-1 text-[8px]">UNIVERSITY AUTHORITY</p>
+        </div>
       </div>
 
       <div className="mt-12 text-[8px] text-slate-400 italic border-t pt-2 flex justify-between">
-          <span>Official RSU GAD Document | Ref: QAO-GPB-{year}</span>
-          <span>Generated via RSU EOMS Portal</span>
+        <span>Official RSU GAD Document | Ref: QAO-GPB-{year}</span>
+        <span>Generated via RSU EOMS Portal</span>
       </div>
     </div>
   );
@@ -106,7 +113,13 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
 /**
  * GAD ACCOMPLISHMENT REPORT (GAD AR) PRINT TEMPLATE
  */
-export function GADAccomplishmentReportTemplate({ data, unitName, campusName, year, signatories }: GADAccomplishmentReportTemplateProps) {
+export function GADAccomplishmentReportTemplate({
+  data,
+  unitName,
+  campusName,
+  year,
+  signatories,
+}: GADAccomplishmentReportTemplateProps) {
   const directorName = signatories?.qaoDirector || '____________________';
 
   return (
@@ -115,7 +128,9 @@ export function GADAccomplishmentReportTemplate({ data, unitName, campusName, ye
         <h1 className="text-lg font-bold uppercase">Romblon State University</h1>
         <h2 className="text-md font-bold uppercase mt-1">ANNUAL GAD ACCOMPLISHMENT REPORT (GAD AR)</h2>
         <p className="text-sm font-black mt-1">FISCAL YEAR: {year}</p>
-        <p className="text-xs italic mt-2 uppercase">{unitName} - {campusName}</p>
+        <p className="text-xs italic mt-2 uppercase">
+          {unitName} - {campusName}
+        </p>
       </div>
 
       <table className="w-full border-collapse border-[1.5px] border-black text-[8px]">
@@ -135,46 +150,62 @@ export function GADAccomplishmentReportTemplate({ data, unitName, campusName, ye
             <tr key={i} className="align-top">
               <td className="border border-black p-1 font-black uppercase">{item.pap}</td>
               <td className="border border-black p-1">{item.targets}</td>
-              <td className="border border-black p-1 font-bold italic">{item.actualOutput || 'Verified Operational'}</td>
-              <td className="border border-black p-1 text-right tabular-nums font-bold">₱{item.budget.toLocaleString()}</td>
-              <td className="border border-black p-1 text-right tabular-nums font-black text-emerald-700">₱{item.actualBudget.toLocaleString()}</td>
+              <td className="border border-black p-1 font-bold italic">
+                {item.actualOutput || 'Verified Operational'}
+              </td>
+              <td className="border border-black p-1 text-right tabular-nums font-bold">
+                ₱{item.budget.toLocaleString()}
+              </td>
+              <td className="border border-black p-1 text-right tabular-nums font-black text-emerald-700">
+                ₱{item.actualBudget.toLocaleString()}
+              </td>
               <td className="border border-black p-1 text-center font-black">
                 M: {item.actualMale} | F: {item.actualFemale}
               </td>
               <td className="border border-black p-1 italic text-slate-600 dark:text-slate-400 leading-relaxed">
                 {item.varianceBudget !== 0 ? (
                   <span>
-                    Budget Variance: ₱{Math.abs(item.varianceBudget).toLocaleString()} ({item.varianceBudget < 0 ? 'Over' : 'Under'} spend).{' '}
+                    Budget Variance: ₱{Math.abs(item.varianceBudget).toLocaleString()} (
+                    {item.varianceBudget < 0 ? 'Over' : 'Under'} spend).{' '}
                   </span>
                 ) : null}
                 {item.varianceAnalysis}
+                {item.driveLink ? (
+                  <div className="mt-1 font-mono text-[7px] not-italic text-blue-700 font-bold">
+                    Drive Evidence: {item.driveLink}
+                  </div>
+                ) : null}
               </td>
             </tr>
           ))}
           {data.length === 0 && (
-            <tr><td colSpan={7} className="border border-black p-8 text-center text-slate-400 italic">No accomplishment data found to process.</td></tr>
+            <tr>
+              <td colSpan={7} className="border border-black p-8 text-center text-slate-400 italic">
+                No accomplishment data found to process.
+              </td>
+            </tr>
           )}
         </tbody>
       </table>
 
       <div className="mt-12 grid grid-cols-3 gap-16 px-10 text-[10px] font-black uppercase">
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Prepared by:</p>
-              <div className="border-b border-black pb-1">GAD COORDINATOR</div>
-          </div>
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Verified by:</p>
-              <div className="border-b border-black pb-1">GAD OFFICE DIRECTOR</div>
-          </div>
-          <div className="text-center">
-              <p className="text-left mb-8 opacity-60">Approved by:</p>
-              <div className="border-b border-black pb-1 font-black text-primary">{directorName}</div>
-          </div>
+        <div className="text-center">
+          <p className="text-left mb-8 opacity-60">Prepared by:</p>
+          <div className="border-b border-black pb-1">GAD COORDINATOR</div>
+        </div>
+        <div className="text-center">
+          <p className="text-left mb-8 opacity-60">Verified by:</p>
+          <div className="border-b border-black pb-1">GAD OFFICE DIRECTOR</div>
+        </div>
+        <div className="text-center">
+          <p className="text-left mb-8 opacity-60">Approved by:</p>
+          <div className="border-b border-black pb-1 font-black text-primary">{directorName}</div>
+        </div>
       </div>
 
       <div className="mt-12 text-[8px] text-slate-400 italic border-t pt-2 flex justify-between">
-          <span>Official RSU GAD Document | Ref: QAO-AR-{year}</span>
-          <span>Generated via RSU EOMS Portal</span>
+        <span>Official RSU GAD Document | Ref: QAO-AR-{year}</span>
+        <span>Generated via RSU EOMS Portal</span>
       </div>
     </div>
   );
