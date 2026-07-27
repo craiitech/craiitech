@@ -86,17 +86,6 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
   const [editingPlan, setEditingPlan] = useState<GADPlan | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isGadLeader = useMemo(
-    () => !!(gadSettings?.leadershipUnitId && userProfile?.unitId === gadSettings.leadershipUnitId),
-    [gadSettings, userProfile],
-  );
-
-  const canManage =
-    isAdmin ||
-    isGadLeader ||
-    userRole?.toLowerCase().includes('coordinator') ||
-    userRole?.toLowerCase().includes('director');
-
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
 
@@ -108,6 +97,17 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  const isGadLeader = useMemo(
+    () => !!(gadSettings?.leadershipUnitId && userProfile?.unitId === gadSettings.leadershipUnitId),
+    [gadSettings, userProfile],
+  );
+
+  const canManage =
+    isAdmin ||
+    isGadLeader ||
+    userRole?.toLowerCase().includes('coordinator') ||
+    userRole?.toLowerCase().includes('director');
 
   const form = useForm<z.infer<typeof planSchema>>({
     resolver: zodResolver(planSchema),

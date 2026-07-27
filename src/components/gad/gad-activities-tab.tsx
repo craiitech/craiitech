@@ -173,14 +173,14 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
       activityId: activity.activityId,
       campusId: activity.campusId,
       implementingUnitId: activity.implementingUnitId,
-      male: activity.participants.male,
-      female: activity.participants.female,
+      male: activity.participants?.male ?? 0,
+      female: activity.participants?.female ?? 0,
       actualBudgetUsed: activity.actualBudgetUsed || 0,
       actualOutput: activity.actualOutput || '',
       varianceAnalysis: activity.varianceAnalysis || '',
       driveLink: activity.driveLink || '',
       sectors:
-        activity.participants.sectors || sectors.reduce((acc, s) => ({ ...acc, [s]: { male: 0, female: 0 } }), {}),
+        activity.participants?.sectors || sectors.reduce((acc, s) => ({ ...acc, [s]: { male: 0, female: 0 } }), {}),
     });
     setIsDialogOpen(true);
   };
@@ -268,11 +268,11 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                 <TableCell className="text-center">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 shadow-inner">
                     <span className="text-[10px] font-black text-indigo-600 tabular-nums">
-                      M: {a.participants.male}
+                      M: {a.participants?.male ?? 0}
                     </span>
                     <span className="text-slate-200">|</span>
                     <span className="text-[10px] font-black text-rose-600 tabular-nums">
-                      F: {a.participants.female}
+                      F: {a.participants?.female ?? 0}
                     </span>
                   </div>
                 </TableCell>
