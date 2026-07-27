@@ -25,11 +25,13 @@ import {
   Clock,
   XCircle,
   ListChecks,
+  Printer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { renderToStaticMarkup } from 'react-dom/server';
 
 interface ChedProgramMonitoringTableProps {
   programs: AcademicProgram[];
@@ -76,12 +78,21 @@ export function ChedProgramMonitoringTable({
       }
     >();
 
-    activePrograms.forEach((p) => {
-      const programCompliances = compliances.filter((c) => c.programId === p.id);
-      programCompliances.forEach((c) => {
-        const yr = c.academicYear;
-        if (!yearMap.has(yr)) {
-          yearMap.set(yr, {
+    const programMap = new Map(programs.map((p) => [p.id, p]));
+
+    compliances.forEach((c) => {
+      const p = programMap.get(c.programId);
+      if (!p) return;
+
+      const accRecords = c.accreditationRecords || [];
+      if (accRecords.length === 0) return;
+
+      accRecords.forEach((rec) => {
+        const surveyYear = rec.dateOfSurvey ? parseInt(rec.dateOfSurvey.match(/\d{4}/)?.[0] || '0') : 0;
+        if (!surveyYear) return;
+
+        if (!yearMap.has(surveyYear)) {
+          yearMap.set(surveyYear, {
             total: 0,
             newProgram: 0,
             withCopc: 0,
@@ -97,7 +108,7 @@ export function ChedProgramMonitoringTable({
             totalWithRecord: 0,
           });
         }
-        const entry = yearMap.get(yr)!;
+        const entry = yearMap.get(surveyYear)!;
         entry.total++;
         entry.totalWithRecord++;
         if (p.isNewProgram) entry.newProgram++;
@@ -107,11 +118,8 @@ export function ChedProgramMonitoringTable({
         else if (copc === 'In Progress') entry.inProgress++;
         else entry.noCopc++;
 
-        const accRecords = c.accreditationRecords || [];
-        const current = accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
-        const level = current?.level || 'Non Accredited';
-
-        if (current && level !== 'Non Accredited' && !level.includes('PSV') && level !== 'AWAITING RESULT') {
+        const level = rec.level || 'Non Accredited';
+        if (level !== 'Non Accredited' && !level.includes('PSV') && level !== 'AWAITING RESULT') {
           entry.accredited++;
           if (level.includes('Level IV')) entry.levelIV++;
           else if (level.includes('Level III')) entry.levelIII++;
@@ -137,7 +145,7 @@ export function ChedProgramMonitoringTable({
         };
       })
       .sort((a, b) => b.year - a.year);
-  }, [activePrograms, compliances]);
+  }, [programs, compliances]);
 
   const programDetailData = useMemo(() => {
     const currentYearCompliances = compliances.filter((c) => c.academicYear === selectedYear);
@@ -294,6 +302,83 @@ export function ChedProgramMonitoringTable({
     return <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[8px] font-black">{level}</Badge>;
   };
 
+  const handlePrintYearlyTrend = () => {
+    const rowsHtml = yearlySummary
+      .map(
+        (row) => `
+          <tr>
+            <td style="padding: 10px 16px; font-weight: 900; font-size: 14px; border-bottom: 1px solid #e2e8f0;">AY ${row.year}</td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.total}</td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #059669; font-weight: 700;">${row.withCopc}</span> / <span style="color: #d97706; font-weight: 700;">${row.inProgress}</span> / <span style="color: #dc2626; font-weight: 700;">${row.noCopc}</span></td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.copcRate}%</td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #4f46e5; font-weight: 700;">${row.accredited}</span> / <span style="color: #64748b; font-weight: 700;">${row.nonAccredited}</span></td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.accreditationRate}%</td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;">
+              ${row.levelIV ? `<span style="display:inline-block; background:#e0e7ff; color:#3730a3; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin:1px;">IV:${row.levelIV}</span> ` : ''}
+              ${row.levelIII ? `<span style="display:inline-block; background:#dbeafe; color:#1e40af; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin:1px;">III:${row.levelIII}</span> ` : ''}
+              ${row.levelII ? `<span style="display:inline-block; background:#d1fae5; color:#065f46; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin:1px;">II:${row.levelII}</span> ` : ''}
+              ${row.levelI ? `<span style="display:inline-block; background:#d1fae5; color:#047857; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin:1px;">I:${row.levelI}</span> ` : ''}
+              ${row.candidate ? `<span style="display:inline-block; background:#fef3c7; color:#92400e; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin:1px;">C:${row.candidate}</span> ` : ''}
+              ${row.newProgram ? `<span style="display:inline-block; background:#f3e8ff; color:#6b21a8; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin:1px;">NEW:${row.newProgram}</span> ` : ''}
+              ${row.nonAccredited ? `<span style="display:inline-block; background:#f1f5f9; color:#475569; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; margin:1px;">NA:${row.nonAccredited}</span> ` : ''}
+            </td>
+          </tr>
+        `,
+      )
+      .join('');
+
+    const printHtml = `
+      <html>
+        <head>
+          <title>Yearly Accreditation Trend</title>
+          <style>
+            @page { size: 14in 8.5in landscape !important; margin: 0.5in !important; }
+            @media print { body { background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } }
+            body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; padding: 20px; color: #0f172a; }
+            h1 { font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #0f172a; margin-bottom: 4px; }
+            p.subtitle { font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px; }
+            table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            th { background: #f1f5f9; padding: 12px 16px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; text-align: center; border-bottom: 2px solid #e2e8f0; }
+            th:first-child { text-align: left; }
+            td:first-child { text-align: left; }
+            .footer { margin-top: 20px; font-size: 10px; color: #94a3b8; text-align: center; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="text-align:center; margin-bottom: 20px;">
+            <button onclick="window.print()" style="background:#1B6535; color:white; border:none; padding:12px 32px; border-radius:8px; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer; box-shadow:0 4px 12px rgba(27,101,53,0.3);">Print Yearly Accreditation Trend</button>
+          </div>
+          <h1>CHED Program Monitoring — Yearly Accreditation Trend</h1>
+          <p class="subtitle">Based on Accreditation Survey Dates</p>
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:left;">Academic Year</th>
+                <th>Programs</th>
+                <th>COPC (W/I/N)</th>
+                <th>COPC Rate</th>
+                <th>Accred. (A/NA)</th>
+                <th>Accred. Rate</th>
+                <th>Level Distribution</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          <div class="footer">Generated from RSU EOMS Decision Support System</div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(printHtml);
+      printWindow.document.close();
+    }
+  };
+
   if (yearlySummary.length === 0) {
     return (
       <Card className="border-primary/10 shadow-lg">
@@ -334,6 +419,15 @@ export function ChedProgramMonitoringTable({
                 {yearlySummary.length} Years Tracked
               </span>
             </div>
+            <Button
+              onClick={handlePrintYearlyTrend}
+              variant="outline"
+              size="sm"
+              className="h-8 bg-white border-primary/20 text-primary font-black uppercase text-[9px] tracking-widest gap-1.5 shadow-sm"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Print Trend
+            </Button>
           </div>
         </div>
       </CardHeader>
