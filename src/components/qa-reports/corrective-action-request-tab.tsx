@@ -1073,6 +1073,17 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                             </Button>
                           )}
                           <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-[9px] font-bold bg-white gap-1.5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePrint(car);
+                            }}
+                          >
+                            <Printer className="h-3 w-3" /> PRINT
+                          </Button>
+                          <Button
                             size="sm"
                             className="h-8 font-black uppercase text-[10px] shadow-sm bg-amber-600"
                             onClick={() => handleEdit(car)}
@@ -1241,13 +1252,46 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right pr-6">
-                        <Button
-                          size="sm"
-                          className="h-8 font-black uppercase text-[10px] shadow-sm bg-indigo-600"
-                          onClick={() => handleEdit(car)}
-                        >
-                          Take Action
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          {isAdmin && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              disabled={notifyingCarId === car.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleNotifyCar(car);
+                              }}
+                              className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
+                              title="Notify Accountable Unit"
+                            >
+                              {notifyingCarId === car.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Bell className="h-3 w-3" />
+                              )}
+                              NOTIFY
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-[9px] font-bold bg-white gap-1.5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePrint(car);
+                            }}
+                          >
+                            <Printer className="h-3 w-3" /> PRINT
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-8 font-black uppercase text-[10px] shadow-sm bg-indigo-600"
+                            onClick={() => handleEdit(car)}
+                          >
+                            Take Action
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -2055,18 +2099,30 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
               >
                 Cancel
               </Button>
-              <Button
-                onClick={form.handleSubmit(onSubmit)}
-                disabled={isSubmitting}
-                className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10 px-8"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4 mr-1.5" />
+              <div className="flex items-center gap-2">
+                {(editingCar || liveCar) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handlePrint((editingCar || liveCar)!)}
+                    className="h-10 text-[10px] font-black uppercase bg-white border-primary/20 text-primary hover:bg-primary/5 gap-1.5"
+                  >
+                    <Printer className="h-4 w-4" /> Print CAR
+                  </Button>
                 )}
-                Commit Update
-              </Button>
+                <Button
+                  onClick={form.handleSubmit(onSubmit)}
+                  disabled={isSubmitting}
+                  className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10 px-8"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-2 h-4 w-4 mr-1.5" />
+                  )}
+                  Commit Update
+                </Button>
+              </div>
             </div>
           </DialogFooter>
         </DialogContent>
