@@ -657,9 +657,44 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
 
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
     if (!firestore || !userProfile) return;
-    setIsSubmitting(true);
 
     const isUnitResponding = userProfile.unitId === values.unitId && !isAdmin;
+
+    // ── Unit-side gate: require root cause + both action types + evidence links ──
+    if (isUnitResponding) {
+      const missingFields: string[] = [];
+
+      if (!values.rootCauseAnalysis?.trim()) {
+        missingFields.push('Root Cause Analysis');
+      }
+
+      const steps = values.actionSteps || [];
+      const hasImmediate = steps.some((s) => s.type === 'Immediate Correction' && s.description?.trim());
+      const hasLongTerm = steps.some((s) => s.type === 'Long-term Corrective Action' && s.description?.trim());
+
+      if (!hasImmediate) missingFields.push('Immediate Correction (with description)');
+      if (!hasLongTerm) missingFields.push('Long-Term Corrective Action (with description)');
+
+      // Every action step must have an evidence link
+      const stepsWithoutEvidence = steps
+        .map((s, i) => ({ s, i }))
+        .filter(({ s }) => !s.evidenceLink?.trim())
+        .map(({ s, i }) => `Step ${i + 1} (${s.type}) — Evidence Link (Google Drive)`);
+      missingFields.push(...stepsWithoutEvidence);
+
+      if (missingFields.length > 0) {
+        toast({
+          title: 'Incomplete Response',
+          description: `Please complete the following before committing: ${missingFields.join('; ')}.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────
+
+    setIsSubmitting(true);
+
     let nextStatus = values.status;
     let needsVerification = liveCar?.needsVerification || false;
 
@@ -1570,136 +1605,268 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
                           3. Root Cause Analysis & Plan
                         </h4>
                       </div>
-                      <FormField
-                        control={form.control}
-                        name="rootCauseAnalysis"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Textarea
-                                {...field}
-                                value={field.value || ''}
-                                rows={4}
-                                placeholder="Identify systematic cause..."
-                                className="bg-primary/5 border-primary/10 shadow-inner italic"
-                                disabled={isFieldReadOnly('rootCauseAnalysis')}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
+
+                      {/* ── Instruction banner for unit responders ─────────── */}
+                      {!isFieldReadOnly('rootCauseAnalysis') && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-900/20 dark:border-amber-700 p-4 space-y-2">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                            <Info className="h-3.5 w-3.5" /> Instructions for Unit Response
+                          </p>
+                          <ol className="text-[11px] text-amber-900 dark:text-amber-200 list-decimal pl-4 space-y-1 font-medium">
+                            <li>
+                              <strong>Root Cause Analysis</strong> — Explain the systemic reason why this
+                              non-conformance occurred. Be specific and factual.
+                            </li>
+                            <li>
+                              <strong>Immediate Correction</strong> — Describe the immediate action your unit already
+                              took (or is taking) to fix the current problem, then set the implementation date.
+                            </li>
+                            <li>
+                              <strong>Long-Term Corrective Action</strong> — Describe the permanent process change or
+                              preventive measure your unit will implement to stop recurrence, then set the target
+                              completion date.
+                            </li>
+                            <li className="font-black text-amber-800 dark:text-amber-300">
+                              Both Immediate Correction and Long-Term Corrective Action entries (with description and
+                              date) are <span className="underline">required</span>.
+                            </li>
+                            <li className="font-black text-amber-800 dark:text-amber-300">
+                              Each corrective step must have a{' '}
+                              <span className="underline">Google Drive Evidence Link</span> attached — you cannot commit
+                              an update without it.
+                            </li>
+                          </ol>
+                        </div>
+                      )}
+
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
+                          Root Cause Analysis
+                          {!isFieldReadOnly('rootCauseAnalysis') && <span className="text-destructive ml-1">*</span>}
+                        </p>
+                        <FormField
+                          control={form.control}
+                          name="rootCauseAnalysis"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormControl>
+                                <Textarea
+                                  {...field}
+                                  value={field.value || ''}
+                                  rows={4}
+                                  placeholder="Identify the systematic root cause: e.g., lack of process documentation, inadequate training, unclear responsibility..."
+                                  className="bg-primary/5 border-primary/10 shadow-inner italic"
+                                  disabled={isFieldReadOnly('rootCauseAnalysis')}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
                       <div className="space-y-4">
-                        {actionFields.map((field, index) => (
-                          <div key={field.id} className="p-4 rounded-lg border bg-muted/5 relative group space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                              <div className="md:col-span-3">
-                                <FormField
-                                  control={form.control}
-                                  name={`actionSteps.${index}.type`}
-                                  render={({ field: iF }) => (
-                                    <FormItem>
-                                      <Select
-                                        onValueChange={iF.onChange}
-                                        value={iF.value}
-                                        disabled={isFieldReadOnly('actionSteps')}
-                                      >
-                                        <FormControl>
-                                          <SelectTrigger className="bg-white text-[10px]">
-                                            <SelectValue />
-                                          </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent modal={false}>
-                                          <SelectItem value="Immediate Correction">Immediate Correction</SelectItem>
-                                          <SelectItem value="Long-term Corrective Action">Long-term Action</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              <div className="md:col-span-6">
-                                <FormField
-                                  control={form.control}
-                                  name={`actionSteps.${index}.description`}
-                                  render={({ field: iF }) => (
-                                    <FormItem>
-                                      <FormControl>
-                                        <Input
-                                          {...iF}
-                                          className="h-8 text-[10px] bg-white"
-                                          disabled={isFieldReadOnly('actionSteps')}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                              <div className="md:col-span-3">
-                                <FormField
-                                  control={form.control}
-                                  name={`actionSteps.${index}.completionDate`}
-                                  render={({ field: iF }) => (
-                                    <FormItem>
-                                      <FormControl>
-                                        <Input
-                                          type="date"
-                                          {...iF}
-                                          className="h-8 text-[10px] bg-white"
-                                          disabled={isFieldReadOnly('actionSteps')}
-                                        />
-                                      </FormControl>
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                            </div>
-                            <FormField
-                              control={form.control}
-                              name={`actionSteps.${index}.evidenceLink`}
-                              render={({ field: iF }) => (
-                                <FormItem className="mt-2">
-                                  <FormLabel className="text-[9px] uppercase font-bold flex items-center gap-1">
-                                    <LinkIcon className="h-2.5 w-2.5 text-primary" /> Evidence Link (Google Drive)
-                                  </FormLabel>
-                                  <div className="flex gap-2">
-                                    <FormControl>
-                                      <Input
-                                        {...iF}
-                                        value={iF.value || ''}
-                                        placeholder="https://drive.google.com/..."
-                                        className="h-8 text-[10px] bg-white flex-1"
-                                        disabled={isFieldReadOnly('actionSteps')}
+                        {actionFields.map((field, index) => {
+                          const watchedType = form.watch(`actionSteps.${index}.type`);
+                          const isImmediate = watchedType === 'Immediate Correction';
+                          const actionLabel = isImmediate ? 'Immediate Correction' : 'Long-Term Corrective Action';
+                          const descriptionPlaceholder = isImmediate
+                            ? 'Describe what your unit did RIGHT NOW to address the problem (e.g., re-trained staff, corrected the document, pulled the non-conforming items)...'
+                            : 'Describe the permanent process change/preventive measure to stop this from happening again (e.g., updated SOP, scheduled regular audits, added a review step)...';
+                          const dateLabel = isImmediate ? 'Date Implemented' : 'Target Completion Date';
+                          const evidenceValue = form.watch(`actionSteps.${index}.evidenceLink`) || '';
+                          const isMissingEvidence = !isFieldReadOnly('actionSteps') && !evidenceValue.trim();
+
+                          return (
+                            <div
+                              key={field.id}
+                              className={`p-4 rounded-lg border relative group space-y-3 ${
+                                isMissingEvidence
+                                  ? 'border-rose-200 bg-rose-50/30 dark:bg-rose-900/10'
+                                  : 'border-border bg-muted/5'
+                              }`}
+                            >
+                              {/* Dynamic action type badge */}
+                              {!isFieldReadOnly('actionSteps') && (
+                                <div
+                                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                                    isImmediate
+                                      ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                      : 'bg-indigo-100 text-indigo-800 border border-indigo-200'
+                                  }`}
+                                >
+                                  {isImmediate ? (
+                                    <svg className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.381z"
+                                        clipRule="evenodd"
                                       />
-                                    </FormControl>
-                                    {iF.value && iF.value.startsWith('http') && (
-                                      <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        className="h-8 w-8 text-primary shrink-0"
-                                        onClick={() => window.open(iF.value, '_blank')}
-                                      >
-                                        <ExternalLink className="h-3 w-3" />
-                                      </Button>
-                                    )}
-                                  </div>
-                                  <FormMessage />
-                                </FormItem>
+                                    </svg>
+                                  ) : (
+                                    <svg className="h-2.5 w-2.5" viewBox="0 0 20 20" fill="currentColor">
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  )}
+                                  {actionLabel}
+                                </div>
                               )}
-                            />
-                            {!isFieldReadOnly('actionSteps') && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => removeAction(index)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
-                          </div>
-                        ))}
+
+                              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                <div className="md:col-span-3">
+                                  <FormField
+                                    control={form.control}
+                                    name={`actionSteps.${index}.type`}
+                                    render={({ field: iF }) => (
+                                      <FormItem>
+                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                                          Action Type <span className="text-destructive">*</span>
+                                        </p>
+                                        <Select
+                                          onValueChange={iF.onChange}
+                                          value={iF.value}
+                                          disabled={isFieldReadOnly('actionSteps')}
+                                        >
+                                          <FormControl>
+                                            <SelectTrigger className="bg-white text-[10px]">
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                          </FormControl>
+                                          <SelectContent modal={false}>
+                                            <SelectItem value="Immediate Correction">Immediate Correction</SelectItem>
+                                            <SelectItem value="Long-term Corrective Action">
+                                              Long-term Action
+                                            </SelectItem>
+                                          </SelectContent>
+                                        </Select>
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                                <div className="md:col-span-6">
+                                  <FormField
+                                    control={form.control}
+                                    name={`actionSteps.${index}.description`}
+                                    render={({ field: iF }) => (
+                                      <FormItem>
+                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                                          {isImmediate ? 'Action Taken' : 'Action Planned'}{' '}
+                                          <span className="text-destructive">*</span>
+                                          {!isFieldReadOnly('actionSteps') && (
+                                            <span className="normal-case font-normal text-muted-foreground ml-1">
+                                              —{' '}
+                                              {isImmediate
+                                                ? 'explain what was done to immediately fix the problem'
+                                                : 'explain the long-term preventive measure to stop recurrence'}
+                                            </span>
+                                          )}
+                                        </p>
+                                        <FormControl>
+                                          <Input
+                                            {...iF}
+                                            placeholder={!isFieldReadOnly('actionSteps') ? descriptionPlaceholder : ''}
+                                            className="h-8 text-[10px] bg-white"
+                                            disabled={isFieldReadOnly('actionSteps')}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                                <div className="md:col-span-3">
+                                  <FormField
+                                    control={form.control}
+                                    name={`actionSteps.${index}.completionDate`}
+                                    render={({ field: iF }) => (
+                                      <FormItem>
+                                        <p className="text-[9px] font-black uppercase tracking-wider text-slate-500 mb-1">
+                                          {!isFieldReadOnly('actionSteps') ? dateLabel : 'Date'}{' '}
+                                          <span className="text-destructive">*</span>
+                                        </p>
+                                        <FormControl>
+                                          <Input
+                                            type="date"
+                                            {...iF}
+                                            className="h-8 text-[10px] bg-white"
+                                            disabled={isFieldReadOnly('actionSteps')}
+                                          />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </div>
+
+                              <FormField
+                                control={form.control}
+                                name={`actionSteps.${index}.evidenceLink`}
+                                render={({ field: iF }) => (
+                                  <FormItem className="mt-2">
+                                    <FormLabel
+                                      className={`text-[9px] uppercase font-bold flex items-center gap-1 ${
+                                        isMissingEvidence ? 'text-rose-600' : ''
+                                      }`}
+                                    >
+                                      <LinkIcon className="h-2.5 w-2.5 text-primary" />
+                                      Evidence Link (Google Drive)
+                                      {!isFieldReadOnly('actionSteps') && (
+                                        <span className="text-destructive ml-0.5">*</span>
+                                      )}
+                                      {isMissingEvidence && (
+                                        <span className="ml-1 text-rose-500 font-normal normal-case">
+                                          — required to commit update
+                                        </span>
+                                      )}
+                                    </FormLabel>
+                                    <div className="flex gap-2">
+                                      <FormControl>
+                                        <Input
+                                          {...iF}
+                                          value={iF.value || ''}
+                                          placeholder="https://drive.google.com/... (paste the shared Google Drive link to your evidence)"
+                                          className={`h-8 text-[10px] bg-white flex-1 ${
+                                            isMissingEvidence ? 'border-rose-300 focus-visible:ring-rose-400' : ''
+                                          }`}
+                                          disabled={isFieldReadOnly('actionSteps')}
+                                        />
+                                      </FormControl>
+                                      {iF.value && iF.value.startsWith('http') && (
+                                        <Button
+                                          type="button"
+                                          variant="outline"
+                                          size="icon"
+                                          className="h-8 w-8 text-primary shrink-0"
+                                          onClick={() => window.open(iF.value, '_blank')}
+                                        >
+                                          <ExternalLink className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              {!isFieldReadOnly('actionSteps') && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute top-1 right-1 text-destructive h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => removeAction(index)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })}
                         {!isFieldReadOnly('actionSteps') && (
                           <Button
                             type="button"
