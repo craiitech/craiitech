@@ -136,13 +136,15 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
     if (!firestore) return;
     setIsSubmitting(true);
     try {
-      const data = {
+      const payload = {
         ...values,
         year: selectedYear,
         unitId: values.responsibleOfficeId,
         responsibleOffice: unitMap.get(values.responsibleOfficeId) || 'UNIT',
         updatedAt: serverTimestamp(),
       };
+
+      const data = Object.fromEntries(Object.entries(payload).filter(([_, v]) => v !== undefined));
 
       if (editingPlan) {
         await updateDoc(doc(firestore, 'gadPlans', editingPlan.id), data);
