@@ -692,7 +692,7 @@ export function SidebarNav({
       </div>
 
       <AlertDialog open={isVisitorDialogOpen} onOpenChange={setIsVisitorDialogOpen}>
-        <AlertDialogContent className="max-w-xl max-h-[unset] bg-white border border-[#D4AF37]/20 rounded-2xl p-5 shadow-2xl">
+        <AlertDialogContent className="max-w-lg bg-white border border-[#D4AF37]/20 rounded-2xl p-5 shadow-2xl overflow-hidden">
           <AlertDialogHeader className="shrink-0 pb-2">
             <AlertDialogTitle className="text-lg font-black uppercase text-[#1B6535] tracking-tight flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-[#D4AF37]" /> Visitor Logbook Hub
@@ -702,23 +702,22 @@ export function SidebarNav({
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          {/* Single-column layout — wraps naturally, no scroll */}
-          <div className="flex flex-col gap-3 py-2">
+          <div className="flex flex-col gap-3 py-1">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2">
               <Button
                 onClick={() => {
                   window.open('/visitor-logbook?fullscreen=true', '_blank');
                   setIsVisitorDialogOpen(false);
                 }}
-                className="flex-1 min-w-[180px] h-11 bg-[#1B6535] hover:bg-[#1a5d31] text-white font-black uppercase tracking-wider rounded-xl border border-[#D4AF37]/30 text-[11px]"
+                className="w-full h-10 bg-[#1B6535] hover:bg-[#1a5d31] text-white font-black uppercase tracking-wider rounded-xl text-[11px]"
               >
                 Open Kiosk Sign-In Page
               </Button>
               <Button
                 onClick={handlePrintVisitorLogs}
                 disabled={isPrinting}
-                className="flex-1 min-w-[150px] h-11 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl text-[11px]"
+                className="w-full h-10 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl text-[11px]"
               >
                 {isPrinting ? (
                   <>
@@ -733,42 +732,42 @@ export function SidebarNav({
                   router.push('/visitor-logbook/settings');
                   setIsVisitorDialogOpen(false);
                 }}
-                className="flex-1 min-w-[150px] h-11 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl text-[11px]"
+                className="w-full h-10 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl text-[11px]"
               >
                 CSM Settings Page
               </Button>
             </div>
 
-            <div className="border-t border-slate-100 pt-3 space-y-3">
+            <div className="border-t border-slate-100 pt-3 space-y-2">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Online CSM Link</p>
 
-              <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+              <p className="text-[9px] text-slate-500 font-medium leading-relaxed">
                 Download the QR code or copy the link below to send to your online clients so they can evaluate your
                 unit&apos;s service.
               </p>
 
-              <div className="flex flex-wrap items-start gap-4">
-                <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-inner shrink-0">
+              <div className="flex items-start gap-3">
+                <div className="bg-white p-1.5 rounded-xl border border-slate-200 shadow-inner shrink-0">
                   {csmQrUrl ? (
-                    <img src={csmQrUrl} alt="CSM QR Code" className="w-28 h-28 object-contain" />
+                    <img src={csmQrUrl} alt="CSM QR Code" className="w-20 h-20 object-contain" />
                   ) : (
-                    <div className="w-28 h-28 flex items-center justify-center">
-                      <Loader2 className="h-6 w-6 animate-spin text-[#1B6535]" />
+                    <div className="w-20 h-20 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin text-[#1B6535]" />
                     </div>
                   )}
                 </div>
 
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 truncate">
-                    <p className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-0.5">CSM Link</p>
-                    <p className="text-[9px] font-mono text-slate-700 truncate">
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-1.5 truncate">
+                    <p className="text-[6px] font-black uppercase tracking-widest text-slate-400 mb-0.5">CSM Link</p>
+                    <p className="text-[8px] font-mono text-slate-700 truncate">
                       {typeof window !== 'undefined' && userProfile
                         ? `${window.location.origin}/visit?redirect=${encodeURIComponent(`/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}...`)}`
                         : 'Loading...'}
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5">
                     <Button
                       onClick={async () => {
                         try {
@@ -791,9 +790,9 @@ export function SidebarNav({
                           });
                         }
                       }}
-                      className="flex-1 min-w-[130px] h-9 bg-gradient-to-r from-[#1B6535] to-[#247e43] text-white font-black uppercase tracking-widest text-[9px] rounded-xl"
+                      className="flex-1 min-w-[100px] h-8 bg-gradient-to-r from-[#1B6535] to-[#247e43] text-white font-black uppercase tracking-widest text-[8px] rounded-xl"
                     >
-                      <Download className="h-3.5 w-3.5 mr-1" /> Download QR Code
+                      <Download className="h-3 w-3 mr-1" /> Download QR
                     </Button>
                     <Button
                       variant="outline"
@@ -816,9 +815,9 @@ export function SidebarNav({
                           });
                         }
                       }}
-                      className="flex-1 min-w-[130px] h-9 font-black uppercase tracking-widest text-[9px] rounded-xl border-slate-200"
+                      className="flex-1 min-w-[100px] h-8 font-black uppercase tracking-widest text-[8px] rounded-xl border-slate-200"
                     >
-                      <ExternalLink className="h-3.5 w-3.5 mr-1" /> Copy Message for Clients
+                      <ExternalLink className="h-3 w-3 mr-1" /> Copy Message
                     </Button>
                     <Button
                       variant="ghost"
@@ -833,9 +832,9 @@ export function SidebarNav({
                           toast({ title: 'Copy Failed', description: 'Unable to copy link.', variant: 'destructive' });
                         }
                       }}
-                      className="min-w-[100px] h-9 text-[9px] font-black uppercase tracking-widest rounded-xl text-slate-400 hover:text-slate-600"
+                      className="h-8 text-[8px] font-black uppercase tracking-widest rounded-xl text-slate-400 hover:text-slate-600"
                     >
-                      Copy Link Only
+                      Copy Link
                     </Button>
                   </div>
                 </div>
@@ -843,8 +842,8 @@ export function SidebarNav({
             </div>
           </div>
 
-          <AlertDialogFooter className="border-t pt-3 shrink-0">
-            <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200">
+          <AlertDialogFooter className="border-t pt-3">
+            <AlertDialogCancel className="w-full rounded-xl font-bold text-xs uppercase border-slate-200">
               Close
             </AlertDialogCancel>
           </AlertDialogFooter>
