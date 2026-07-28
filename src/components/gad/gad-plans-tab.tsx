@@ -34,6 +34,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -91,6 +101,8 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<GADPlan | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingPlan, setDeletingPlan] = useState<GADPlan | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
@@ -175,13 +187,24 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!firestore || !isAdmin || !window.confirm('Delete this plan entry permanently?')) return;
+  const handleDelete = async () => {
+    if (!firestore || !deletingPlan || !canManage) return;
+    setIsDeleting(true);
     try {
-      await deleteDoc(doc(firestore, 'gadPlans', id));
-      toast({ title: 'Record Removed' });
+      await deleteDoc(doc(firestore, 'gadPlans', deletingPlan.id));
+      toast({
+        title: 'GPB Entry Removed',
+        description: `"${deletingPlan.gadActivityName || deletingPlan.genderIssue}" has been permanently deleted.`,
+      });
+      setDeletingPlan(null);
     } catch (e) {
-      toast({ title: 'Error', variant: 'destructive' });
+      toast({
+        title: 'Delete Failed',
+        description: 'Could not remove this entry. Check your permissions.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -428,12 +451,12 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        {isAdmin && (
+                        {canManage && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => handleDelete(plan.id)}
+                            className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeletingPlan(plan)}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
