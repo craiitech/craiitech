@@ -124,6 +124,7 @@ service cloud.firestore {
       allow get, list: if isSignedIn();
       allow create, update: if isSignedIn() && (
         isAdmin() ||
+        (hasProfile() && profile().get('role', '').matches('(?i).*(coordinator|director).*')) ||
         (hasProfile() && exists(/databases/$(database)/documents/system/gadSettings) &&
          profile().get('unitId', '') == get(/databases/$(database)/documents/system/gadSettings).data.get('leadershipUnitId', ''))
       );
