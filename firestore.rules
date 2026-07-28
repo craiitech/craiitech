@@ -124,7 +124,8 @@ service cloud.firestore {
       allow get, list: if isSignedIn();
       allow create, update: if isSignedIn() && (
         isAdmin() ||
-        (hasProfile() && profile().unitId == get(/databases/$(database)/documents/system/gadSettings).data.leadershipUnitId)
+        (hasProfile() && exists(/databases/$(database)/documents/system/gadSettings) &&
+         profile().get('unitId', '') == get(/databases/$(database)/documents/system/gadSettings).data.get('leadershipUnitId', ''))
       );
       allow delete: if isAdmin();
     }
