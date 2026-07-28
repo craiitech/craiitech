@@ -1018,6 +1018,9 @@ export type GADPlan = {
   coCost?: number;
   gadActivityName?: string;
   implementationStatus?: GADImplementationStatus;
+  actualResult?: string;
+  actualCost?: number;
+  varianceRemarks?: string;
   driveLink?: string;
   createdAt: any;
   updatedAt: any;

@@ -27,9 +27,9 @@ interface GADAccomplishmentReportTemplateProps {
 
 function groupByCategory(items: GADPlan[]): { label: string; items: GADPlan[] }[] {
   const groups: { label: string; items: GADPlan[] }[] = [];
-  const client = items.filter(i => !i.category || i.category === 'CLIENT-FOCUSED ACTIVITIES');
-  const org = items.filter(i => i.category === 'ORGANIZATION-FOCUSED ACTIVITIES');
-  const attr = items.filter(i => i.category === 'ATTRIBUTED PROGRAM');
+  const client = items.filter((i) => !i.category || i.category === 'CLIENT-FOCUSED ACTIVITIES');
+  const org = items.filter((i) => i.category === 'ORGANIZATION-FOCUSED ACTIVITIES');
+  const attr = items.filter((i) => i.category === 'ATTRIBUTED PROGRAM');
   if (client.length) groups.push({ label: 'CLIENT-FOCUSED ACTIVITIES', items: client });
   if (org.length) groups.push({ label: 'ORGANIZATION-FOCUSED ACTIVITIES', items: org });
   if (attr.length) groups.push({ label: 'ATTRIBUTED PROGRAM', items: attr });
@@ -55,14 +55,17 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
         <thead>
           <tr className="bg-slate-100 dark:bg-slate-700 text-center font-black uppercase">
             <th className="border border-black p-1.5 w-[2%]">#</th>
-            <th className="border border-black p-1.5 w-[12%]">Gender Issue / GAD Mandate</th>
-            <th className="border border-black p-1.5 w-[10%]">Cause of Gender Issue</th>
-            <th className="border border-black p-1.5 w-[10%]">GAD Objective</th>
-            <th className="border border-black p-1.5 w-[12%]">GAD Activity</th>
-            <th className="border border-black p-1.5 w-[12%]">Relevant MFO/PAP</th>
-            <th className="border border-black p-1.5 w-[12%]">Performance Indicators / Targets</th>
-            <th className="border border-black p-1.5 w-[8%]">GAD Budget</th>
-            <th className="border border-black p-1.5 w-[10%]">Source / Responsible Office</th>
+            <th className="border border-black p-1.5 w-[10%]">Gender Issue / GAD Mandate</th>
+            <th className="border border-black p-1.5 w-[8%]">Cause of Gender Issue</th>
+            <th className="border border-black p-1.5 w-[8%]">GAD Objective</th>
+            <th className="border border-black p-1.5 w-[10%]">GAD Activity</th>
+            <th className="border border-black p-1.5 w-[10%]">Relevant MFO/PAP</th>
+            <th className="border border-black p-1.5 w-[10%]">Performance Indicators / Targets</th>
+            <th className="border border-black p-1.5 w-[7%]">GAD Budget</th>
+            <th className="border border-black p-1.5 w-[7%]">Actual Result</th>
+            <th className="border border-black p-1.5 w-[7%]">Actual Cost</th>
+            <th className="border border-black p-1.5 w-[7%]">Variance / Remarks</th>
+            <th className="border border-black p-1.5 w-[8%]">Source / Responsible Office</th>
             <th className="border border-black p-1.5 w-[6%]">Status</th>
           </tr>
         </thead>
@@ -70,7 +73,9 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
           {categoryGroups.map((group) => (
             <React.Fragment key={group.label}>
               <tr className="bg-slate-200 dark:bg-slate-800 font-black text-[8px] uppercase">
-                <td colSpan={10} className="border border-black p-1.5 text-left">{group.label}</td>
+                <td colSpan={13} className="border border-black p-1.5 text-left">
+                  {group.label}
+                </td>
               </tr>
               {group.items.map((item, idx) => (
                 <tr key={item.id || idx} className="align-top">
@@ -87,24 +92,36 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
                   <td className="border border-black p-1 text-right font-black tabular-nums">
                     ₱{item.budget.toLocaleString()}
                   </td>
+                  <td className="border border-black p-1 text-center text-[7.5px] italic">
+                    {item.actualResult || '—'}
+                  </td>
+                  <td className="border border-black p-1 text-right font-black tabular-nums">
+                    {item.actualCost != null ? `₱${item.actualCost.toLocaleString()}` : '—'}
+                  </td>
+                  <td className="border border-black p-1 italic text-[7.5px] leading-snug">
+                    {item.varianceRemarks || '—'}
+                  </td>
                   <td className="border border-black p-1 text-center font-bold">
                     <p>{item.sourceOfBudget}</p>
                     <p className="mt-1 text-[7px] opacity-60">RESP: {item.responsibleOffice}</p>
-                    {(item.psCost || item.mooeCost || item.coCost) ? (
+                    {item.psCost || item.mooeCost || item.coCost ? (
                       <div className="mt-0.5 text-[6px] font-mono opacity-50">
-                        PS: ₱{(item.psCost || 0).toLocaleString()} |
-                        MOOE: ₱{(item.mooeCost || 0).toLocaleString()} |
+                        PS: ₱{(item.psCost || 0).toLocaleString()} | MOOE: ₱{(item.mooeCost || 0).toLocaleString()} |
                         CO: ₱{(item.coCost || 0).toLocaleString()}
                       </div>
                     ) : null}
                   </td>
                   <td className="border border-black p-1 text-center font-bold text-[7px] uppercase">
-                    {item.implementationStatus === 'Yet to be implemented' ? 'PENDING' : item.implementationStatus || 'DONE'}
+                    {item.implementationStatus === 'Yet to be implemented'
+                      ? 'PENDING'
+                      : item.implementationStatus || 'DONE'}
                   </td>
                 </tr>
               ))}
               <tr className="bg-slate-100 font-bold text-[8px]">
-                <td colSpan={7} className="border border-black p-1 text-right uppercase">SUB-TOTAL ({group.label}):</td>
+                <td colSpan={10} className="border border-black p-1 text-right uppercase">
+                  SUB-TOTAL ({group.label}):
+                </td>
                 <td className="border border-black p-1 text-right font-black">
                   ₱{group.items.reduce((s, i) => s + (i.budget || 0), 0).toLocaleString()}
                 </td>
@@ -114,13 +131,15 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
           ))}
           {data.length === 0 && (
             <tr>
-              <td colSpan={10} className="border border-black p-8 text-center text-slate-400 italic">
+              <td colSpan={13} className="border border-black p-8 text-center text-slate-400 italic">
                 No plan entries defined for this unit.
               </td>
             </tr>
           )}
           <tr className="bg-slate-300 font-black text-[9px] uppercase border-t-2 border-black">
-            <td colSpan={7} className="border border-black p-1.5 text-right">TOTAL GAD BUDGET:</td>
+            <td colSpan={10} className="border border-black p-1.5 text-right">
+              TOTAL GAD BUDGET:
+            </td>
             <td className="border border-black p-1.5 text-right font-black">
               ₱{data.reduce((s, i) => s + (i.budget || 0), 0).toLocaleString()}
             </td>
