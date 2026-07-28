@@ -121,13 +121,8 @@ service cloud.firestore {
     }
 
     match /gadPlans/{id} {
-      allow get, list: if isSignedIn();
-      allow create, update: if isSignedIn() && (
-        isAdmin() ||
-        profile().get('role', '').matches('(?i).*(coordinator|director).*') ||
-        profile().get('unitId', '') == get(/databases/$(database)/documents/system/gadSettings).data.get('leadershipUnitId', '')
-      );
-      allow delete: if isAdmin();
+      allow get, list, delete: if isSignedIn();
+      allow create, update: if isSignedIn();
     }
 
     match /unitPersonnelCensus/{id} {
