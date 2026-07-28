@@ -692,8 +692,8 @@ export function SidebarNav({
       </div>
 
       <AlertDialog open={isVisitorDialogOpen} onOpenChange={setIsVisitorDialogOpen}>
-        <AlertDialogContent className="max-w-3xl max-h-[92dvh] flex flex-col bg-white border border-[#D4AF37]/20 rounded-2xl p-6 shadow-2xl">
-          <AlertDialogHeader className="shrink-0">
+        <AlertDialogContent className="max-w-xl max-h-[unset] bg-white border border-[#D4AF37]/20 rounded-2xl p-5 shadow-2xl">
+          <AlertDialogHeader className="shrink-0 pb-2">
             <AlertDialogTitle className="text-lg font-black uppercase text-[#1B6535] tracking-tight flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-[#D4AF37]" /> Visitor Logbook Hub
             </AlertDialogTitle>
@@ -702,28 +702,27 @@ export function SidebarNav({
             </AlertDialogDescription>
           </AlertDialogHeader>
 
-          {/* Two-column layout */}
-          <div className="flex-1 overflow-y-auto pr-2 flex flex-col md:flex-row gap-6 py-4">
-            {/* Left column: Action buttons */}
-            <div className="flex-1 flex flex-col gap-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Actions</p>
+          {/* Single-column layout — wraps naturally, no scroll */}
+          <div className="flex flex-col gap-3 py-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</p>
+            <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => {
                   window.open('/visitor-logbook?fullscreen=true', '_blank');
                   setIsVisitorDialogOpen(false);
                 }}
-                className="w-full h-12 bg-[#1B6535] hover:bg-[#1a5d31] text-white font-black uppercase tracking-wider rounded-xl border border-[#D4AF37]/30 flex items-center justify-center gap-2 transition-all"
+                className="flex-1 min-w-[180px] h-11 bg-[#1B6535] hover:bg-[#1a5d31] text-white font-black uppercase tracking-wider rounded-xl border border-[#D4AF37]/30 text-[11px]"
               >
                 Open Kiosk Sign-In Page
               </Button>
               <Button
                 onClick={handlePrintVisitorLogs}
                 disabled={isPrinting}
-                className="w-full h-12 bg-white hover:bg-slate-50 dark:hover:bg-slate-800/50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+                className="flex-1 min-w-[150px] h-11 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl text-[11px]"
               >
                 {isPrinting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Fetching Logs...
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" /> Fetching...
                   </>
                 ) : (
                   <>Print Logbook Records</>
@@ -734,129 +733,118 @@ export function SidebarNav({
                   router.push('/visitor-logbook/settings');
                   setIsVisitorDialogOpen(false);
                 }}
-                className="w-full h-12 bg-white hover:bg-slate-50 dark:hover:bg-slate-800/50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+                className="flex-1 min-w-[150px] h-11 bg-white hover:bg-slate-50 text-[#1B6535] border border-[#1B6535]/20 font-black uppercase tracking-wider rounded-xl text-[11px]"
               >
                 CSM Settings Page
               </Button>
             </div>
 
-            {/* Right column: QR Code + Link */}
-            <div className="flex-1 flex flex-col items-center gap-3 border-t md:border-t-0 md:border-l border-slate-100 dark:border-slate-700 pt-4 md:pt-0 md:pl-6">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Online CSM Link</p>
+            <div className="border-t border-slate-100 pt-3 space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Online CSM Link</p>
 
-              <p className="text-[9px] text-slate-500 font-medium text-center leading-relaxed">
-                Download the QR code or copy the link below and send it to your online clients so they can evaluate your
-                unit&apos;s service through the CSM survey.
+              <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                Download the QR code or copy the link below to send to your online clients so they can evaluate your
+                unit&apos;s service.
               </p>
 
-              <div className="bg-white p-3 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner w-[180px] h-[180px] flex items-center justify-center">
-                {csmQrUrl ? (
-                  <img
-                    src={csmQrUrl}
-                    alt="CSM Online Evaluation QR Code"
-                    className="w-[164px] h-[164px] object-contain"
-                  />
-                ) : (
-                  <div className="w-[164px] h-[164px] flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-[#1B6535]" />
+              <div className="flex flex-wrap items-start gap-4">
+                <div className="bg-white p-2 rounded-xl border border-slate-200 shadow-inner shrink-0">
+                  {csmQrUrl ? (
+                    <img src={csmQrUrl} alt="CSM QR Code" className="w-28 h-28 object-contain" />
+                  ) : (
+                    <div className="w-28 h-28 flex items-center justify-center">
+                      <Loader2 className="h-6 w-6 animate-spin text-[#1B6535]" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2 truncate">
+                    <p className="text-[7px] font-black uppercase tracking-widest text-slate-400 mb-0.5">CSM Link</p>
+                    <p className="text-[9px] font-mono text-slate-700 truncate">
+                      {typeof window !== 'undefined' && userProfile
+                        ? `${window.location.origin}/visit?redirect=${encodeURIComponent(`/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}...`)}`
+                        : 'Loading...'}
+                    </p>
                   </div>
-                )}
-              </div>
 
-              <div className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl p-2.5 truncate">
-                <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-1">CSM Link</p>
-                <p className="text-[10px] font-mono text-slate-700 dark:text-slate-300 truncate">
-                  {typeof window !== 'undefined' && userProfile
-                    ? `${window.location.origin}/visit?redirect=${encodeURIComponent(`/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}...`)}`
-                    : 'Loading...'}
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-2 w-full">
-                <Button
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(csmQrUrl);
-                      const blob = await response.blob();
-                      const blobUrl = URL.createObjectURL(blob);
-                      const link = document.createElement('a');
-                      link.href = blobUrl;
-                      link.download = 'csm-qr-code.png';
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                      URL.revokeObjectURL(blobUrl);
-                      toast({
-                        title: 'Download Started',
-                        description: 'CSM QR code is being downloaded.',
-                      });
-                    } catch (err) {
-                      toast({
-                        title: 'Download Failed',
-                        description: 'Unable to download QR code. Please try again.',
-                        variant: 'destructive',
-                      });
-                    }
-                  }}
-                  className="w-full h-10 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-[10px] rounded-xl shadow-lg"
-                >
-                  <Download className="h-4 w-4 mr-1" /> Download QR Code
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      const officeNameStr = unitDoc?.name || userProfile?.unitName || 'Office';
-                      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
-                      const fullCsmUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
-                      const message = `VISITOR LOGBOOK & CSM - ONLINE ACCESS\n\nOffice: ${officeNameStr}\nLink: ${fullCsmUrl}\n\nDear Client,\n\nPlease scan the QR code or click the link above to sign in to our Visitor Logbook. After checking in/out, you will be invited to complete our Client Satisfaction Measurement (CSM) survey to help us improve our services.\n\nThank you for your continued support!\n\n${officeNameStr}\nRomblon State University`;
-                      await navigator.clipboard.writeText(message);
-                      toast({
-                        title: 'Message Copied!',
-                        description: 'Complete message with CSM link has been copied to your clipboard.',
-                      });
-                    } catch (err) {
-                      toast({
-                        title: 'Copy Failed',
-                        description: 'Unable to copy message. Please try again.',
-                        variant: 'destructive',
-                      });
-                    }
-                  }}
-                  className="w-full h-10 font-black uppercase tracking-widest text-[10px] rounded-xl border-slate-200 dark:border-slate-700"
-                >
-                  <ExternalLink className="h-4 w-4 mr-1" /> Copy Message for Clients
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={async () => {
-                    try {
-                      const officeNameStr = unitDoc?.name || userProfile?.unitName || 'Office';
-                      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
-                      const fullCsmUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
-                      await navigator.clipboard.writeText(fullCsmUrl);
-                      toast({
-                        title: 'Link Copied!',
-                        description: 'CSM online link has been copied to your clipboard.',
-                      });
-                    } catch (err) {
-                      toast({
-                        title: 'Copy Failed',
-                        description: 'Unable to copy link. Please try again.',
-                        variant: 'destructive',
-                      });
-                    }
-                  }}
-                  className="w-full h-9 text-[9px] font-black uppercase tracking-widest rounded-xl text-slate-400 hover:text-slate-600 dark:text-slate-400"
-                >
-                  Copy Link Only
-                </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(csmQrUrl);
+                          const blob = await response.blob();
+                          const blobUrl = URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = blobUrl;
+                          link.download = 'csm-qr-code.png';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(blobUrl);
+                          toast({ title: 'Download Started', description: 'CSM QR code is being downloaded.' });
+                        } catch (err) {
+                          toast({
+                            title: 'Download Failed',
+                            description: 'Unable to download QR code.',
+                            variant: 'destructive',
+                          });
+                        }
+                      }}
+                      className="flex-1 min-w-[130px] h-9 bg-gradient-to-r from-[#1B6535] to-[#247e43] text-white font-black uppercase tracking-widest text-[9px] rounded-xl"
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" /> Download QR Code
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const officeNameStr = unitDoc?.name || userProfile?.unitName || 'Office';
+                          const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+                          const fullCsmUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
+                          const message = `VISITOR LOGBOOK & CSM - ONLINE ACCESS\n\nOffice: ${officeNameStr}\nLink: ${fullCsmUrl}\n\nDear Client,\n\nPlease scan the QR code or click the link above to sign in to our Visitor Logbook. After checking in/out, you will be invited to complete our Client Satisfaction Measurement (CSM) survey to help us improve our services.\n\nThank you for your continued support!\n\n${officeNameStr}\nRomblon State University`;
+                          await navigator.clipboard.writeText(message);
+                          toast({
+                            title: 'Message Copied!',
+                            description: 'Complete message with CSM link copied to clipboard.',
+                          });
+                        } catch (err) {
+                          toast({
+                            title: 'Copy Failed',
+                            description: 'Unable to copy message.',
+                            variant: 'destructive',
+                          });
+                        }
+                      }}
+                      className="flex-1 min-w-[130px] h-9 font-black uppercase tracking-widest text-[9px] rounded-xl border-slate-200"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5 mr-1" /> Copy Message for Clients
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={async () => {
+                        try {
+                          const officeNameStr = unitDoc?.name || userProfile?.unitName || 'Office';
+                          const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile?.unitId || 'N/A'}&campusId=${userProfile?.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+                          const fullCsmUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
+                          await navigator.clipboard.writeText(fullCsmUrl);
+                          toast({ title: 'Link Copied!', description: 'CSM link copied to clipboard.' });
+                        } catch (err) {
+                          toast({ title: 'Copy Failed', description: 'Unable to copy link.', variant: 'destructive' });
+                        }
+                      }}
+                      className="min-w-[100px] h-9 text-[9px] font-black uppercase tracking-widest rounded-xl text-slate-400 hover:text-slate-600"
+                    >
+                      Copy Link Only
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
           <AlertDialogFooter className="border-t pt-3 shrink-0">
-            <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200 dark:border-slate-700">
+            <AlertDialogCancel className="w-full sm:w-auto rounded-xl font-bold text-xs uppercase border-slate-200">
               Close
             </AlertDialogCancel>
           </AlertDialogFooter>
