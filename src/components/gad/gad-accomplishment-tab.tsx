@@ -54,7 +54,10 @@ export function GADAccomplishmentTab({
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
 
-  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const signatoryRef = useMemoFirebase(
+    () => (firestore && userProfile ? doc(firestore, 'system', 'signatories') : null),
+    [firestore, userProfile],
+  );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);

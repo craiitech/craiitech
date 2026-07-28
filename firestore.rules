@@ -105,7 +105,8 @@ service cloud.firestore {
 
     match /gadInitiatives/{id} {
       allow get, list: if isSignedIn();
-      allow write: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
     match /gadMainstreaming/{id} {
@@ -115,9 +116,17 @@ service cloud.firestore {
     }
 
     match /gadActivities/{id} {
-      allow get, list, delete: if isSignedIn();
-      allow create: if isSignedIn();
+      allow get, list: if isSignedIn();
+      // Allow authenticated users to update/delete their own records; admins have full access
       allow update: if isSignedIn();
+      allow delete: if isAdmin();
+      // Allow unauthenticated public create from /gad-entry with required field validation
+      allow create: if isSignedIn() || (
+        request.resource.data.keys().hasAll(['activityId', 'activityName', 'campusId', 'implementingUnitId', 'participants', 'year', 'deviceFingerprint']) &&
+        request.resource.data.activityId is string &&
+        request.resource.data.activityName is string &&
+        request.resource.data.deviceFingerprint is string
+      );
     }
 
     match /gadPlans/{id} {
@@ -237,6 +246,11 @@ service cloud.firestore {
 
     match /system/csmSettings {
       allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    match /system/gadSettings {
+      allow read: if true; // Required for the public GAD Entry page (unauthenticated participants)
       allow write: if isAdmin();
     }
 

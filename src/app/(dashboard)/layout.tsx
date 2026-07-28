@@ -353,21 +353,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { data: riskNotifications } = useCollection<Risk>(risksNotifQuery);
 
   const compliancesNotifQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'programCompliances');
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: complianceNotifications } = useCollection<ProgramComplianceRecord>(compliancesNotifQuery);
 
   const decisionsNotifQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'managementReviewOutputs');
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: decisionNotifications } = useCollection<ManagementReviewOutput>(decisionsNotifQuery);
 
   const commsNotifQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user) return null;
     return collection(firestore, 'communications');
-  }, [firestore]);
+  }, [firestore, user]);
   const { data: commsNotifications } = useCollection<any>(commsNotifQuery);
 
   const getFormRequestsNotificationQuery = (): Query | null => {
@@ -414,7 +414,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [firestore, userProfile]);
   const { data: eomsSubmissions } = useCollection<Submission>(eomsSubsQuery);
 
-  const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+  const cyclesQuery = useMemoFirebase(
+    () => (firestore && user ? collection(firestore, 'cycles') : null),
+    [firestore, user],
+  );
   const { data: cycles } = useCollection<Cycle>(cyclesQuery);
 
   const availableYears = useMemo(() => {

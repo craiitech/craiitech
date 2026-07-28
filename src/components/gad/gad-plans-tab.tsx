@@ -85,7 +85,7 @@ const planSchema = z.object({
 });
 
 export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnitId }: GADPlansTabProps) {
-  const { userProfile, isAdmin, userRole } = useUser();
+  const { userProfile, isAdmin, userRole, user } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -96,12 +96,15 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
 
   const gadSettingsRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'system', 'gadSettings') : null),
-    [firestore],
+    () => (firestore && userProfile ? doc(firestore, 'system', 'gadSettings') : null),
+    [firestore, userProfile],
   );
   const { data: gadSettings } = useDoc<GadSettings>(gadSettingsRef);
 
-  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const signatoryRef = useMemoFirebase(
+    () => (firestore && userProfile ? doc(firestore, 'system', 'signatories') : null),
+    [firestore, userProfile],
+  );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const isGadLeader = useMemo(
