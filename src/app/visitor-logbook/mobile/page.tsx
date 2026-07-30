@@ -11,18 +11,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Clock, 
-  Calendar, 
-  User, 
-  CheckCircle2, 
+import {
+  Clock,
+  Calendar,
+  User,
+  CheckCircle2,
   HelpCircle,
   Users2,
   Sparkles,
   ClipboardList,
   Loader2,
   Globe,
-  LogOut
+  LogOut,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Image from 'next/image';
@@ -70,14 +70,10 @@ function MobileVisitorLogbookContent() {
         collection(firestore, 'unitPersonnel'),
         where('unitId', '==', unitId),
         where('campusId', '==', campusId),
-        where('isActive', '==', true)
+        where('isActive', '==', true),
       );
     }
-    return query(
-      collection(firestore, 'unitPersonnel'),
-      where('unitId', '==', unitId),
-      where('isActive', '==', true)
-    );
+    return query(collection(firestore, 'unitPersonnel'), where('unitId', '==', unitId), where('isActive', '==', true));
   }, [firestore, unitId, campusId, currentUser]);
 
   const { data: activeEmployees } = useCollection<Employee>(activeEmployeesQuery);
@@ -93,7 +89,7 @@ function MobileVisitorLogbookContent() {
   const [selectedLookingFor, setSelectedLookingFor] = useState('');
   const [selectedService, setSelectedService] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Mobile Session Management
   const [activeLogId, setActiveLogId] = useState<string | null>(null);
   const [storedVisitorName, setStoredVisitorName] = useState<string>('');
@@ -119,7 +115,7 @@ function MobileVisitorLogbookContent() {
   const [csmSQD0, setCsmSQD0] = useState<number>(5);
   const [csmComments, setCsmComments] = useState<string>('');
   const [isSubmittingCsm, setIsSubmittingCsm] = useState<boolean>(false);
-  
+
   const [checkoutComplete, setCheckoutComplete] = useState<boolean>(false);
   const [csmRequested, setCsmRequested] = useState<boolean>(false);
   const [pendingCsmResolve, setPendingCsmResolve] = useState<'prompt' | 'declined' | null>(null);
@@ -135,8 +131,8 @@ function MobileVisitorLogbookContent() {
             setIsAuthenticating(false);
           })
           .catch((err) => {
-            console.error("Anonymous authentication failed:", err);
-            setAuthError(err.message || "Failed to authenticate device.");
+            console.error('Anonymous authentication failed:', err);
+            setAuthError(err.message || 'Failed to authenticate device.');
             setIsAuthenticating(false);
           });
       } else {
@@ -161,123 +157,112 @@ function MobileVisitorLogbookContent() {
 
   const t: Record<'EN' | 'FIL', any> = {
     EN: {
-      profile: "1. Client Profile",
-      ageGroup: "Age Group",
-      ageUnder: "Below 20",
-      ageOver: "65 and above",
-      clientType: "Client Type",
+      profile: '1. Client Profile',
+      ageGroup: 'Age Group',
+      ageUnder: 'Below 20',
+      ageOver: '65 and above',
+      clientType: 'Client Type',
       charter: "2. Citizen's Charter (CC)",
       cc1Q: "CC1. Which of the following best describes your awareness of a Citizen's Charter?",
       cc1Opts: [
         "I know what a Citizen's Charter is and I saw this office's charter.",
         "I know what a Citizen's Charter is but I did NOT see this office's charter.",
         "I learned of the Citizen's Charter only when I saw this office's charter.",
-        "I do not know what a Citizen's Charter is and I did not see one."
+        "I do not know what a Citizen's Charter is and I did not see one.",
       ],
       cc2Q: "CC2. How visible was the Citizen's Charter in this office?",
-      cc2Opts: [
-        "Easy to see",
-        "Somewhat easy to see",
-        "Difficult to see",
-        "Not visible at all"
-      ],
+      cc2Opts: ['Easy to see', 'Somewhat easy to see', 'Difficult to see', 'Not visible at all'],
       cc3Q: "CC3. How much did the Citizen's Charter help you?",
-      cc3Opts: [
-        "Helped very much",
-        "Somewhat helped",
-        "Did not help"
-      ],
-      sqdTitle: "3. Service Quality Dimensions (SQD)",
-      sqd0: "SQD0. Overall Satisfaction",
-      sqd0D: "I am satisfied with the service that I availed.",
-      sqd1: "SQD1. Responsiveness",
-      sqd1D: "I spent a reasonable amount of time for my transaction.",
-      sqd2: "SQD2. Reliability",
+      cc3Opts: ['Helped very much', 'Somewhat helped', 'Did not help'],
+      sqdTitle: '3. Service Quality Dimensions (SQD)',
+      sqd0: 'SQD0. Overall Satisfaction',
+      sqd0D: 'I am satisfied with the service that I availed.',
+      sqd1: 'SQD1. Responsiveness',
+      sqd1D: 'I spent a reasonable amount of time for my transaction.',
+      sqd2: 'SQD2. Reliability',
       sqd2D: "The office followed the transaction's requirements and steps based on the information provided.",
-      sqd3: "SQD3. Access & Facilities",
-      sqd3D: "The steps (including payment) I needed to do for my transaction were easy and simple.",
-      sqd4: "SQD4. Communication",
-      sqd4D: "I easily found information about my transaction from the office or its website.",
-      sqd5: "SQD5. Costs",
-      sqd5D: "I paid a reasonable amount of fees for my transaction (select N/A if transaction was free).",
-      sqd6: "SQD6. Integrity",
+      sqd3: 'SQD3. Access & Facilities',
+      sqd3D: 'The steps (including payment) I needed to do for my transaction were easy and simple.',
+      sqd4: 'SQD4. Communication',
+      sqd4D: 'I easily found information about my transaction from the office or its website.',
+      sqd5: 'SQD5. Costs',
+      sqd5D: 'I paid a reasonable amount of fees for my transaction (select N/A if transaction was free).',
+      sqd6: 'SQD6. Integrity',
       sqd6D: "I feel the office was fair to everyone, or 'walang palakasan', during my transaction.",
-      sqd7: "SQD7. Assurance",
-      sqd7D: "I was treated courteously by the staff, and (if asked for help) the staff was helpful.",
-      sqd8: "SQD8. Outcome",
-      sqd8D: "I got what I needed from the government office, or (if denied) denial of request was sufficiently explained to me.",
-      na: "Not Applicable",
-      comments: "4. Comments / Suggestions (Optional)",
-      commentsPlaceholder: "Share details of your experience or suggestions to improve our service...",
-      skip: "Skip Feedback & Logout",
-      submit: "Submit Feedback & Logout",
-      submitting: "Submitting...",
-      incompleteTitle: "Incomplete Survey",
+      sqd7: 'SQD7. Assurance',
+      sqd7D: 'I was treated courteously by the staff, and (if asked for help) the staff was helpful.',
+      sqd8: 'SQD8. Outcome',
+      sqd8D:
+        'I got what I needed from the government office, or (if denied) denial of request was sufficiently explained to me.',
+      na: 'Not Applicable',
+      comments: '4. Comments / Suggestions (Optional)',
+      commentsPlaceholder: 'Share details of your experience or suggestions to improve our service...',
+      skip: 'Skip Feedback & Logout',
+      submit: 'Submit Feedback & Logout',
+      submitting: 'Submitting...',
+      incompleteTitle: 'Incomplete Survey',
       incompleteDesc: "Please answer the profile and Citizen's Charter questions, or click Skip.",
-      thankYouTitle: "Thank You, {name}!",
-      thankYouDesc: "We appreciate your feedback!",
-      thankYouMessage: "Your satisfaction rating helps us continuously improve our services. Have a safe journey back!",
-      helpUs: "Help us improve our service, {name}!"
+      thankYouTitle: 'Thank You, {name}!',
+      thankYouDesc: 'We appreciate your feedback!',
+      thankYouMessage: 'Your satisfaction rating helps us continuously improve our services. Have a safe journey back!',
+      helpUs: 'Help us improve our service, {name}!',
     },
     FIL: {
-      profile: "1. Profile ng Kliyente",
-      ageGroup: "Grupo ng Edad",
-      ageUnder: "Mababa sa 20",
-      ageOver: "65 at pataas",
-      clientType: "Uri ng Kliyente",
+      profile: '1. Profile ng Kliyente',
+      ageGroup: 'Grupo ng Edad',
+      ageUnder: 'Mababa sa 20',
+      ageOver: '65 at pataas',
+      clientType: 'Uri ng Kliyente',
       charter: "2. Karta ng Mamamayan (Citizen's Charter)",
       cc1Q: "CC1. Alin sa mga sumusunod ang pinakamahusay na naglalarawan sa iyong kaalaman sa Citizen's Charter?",
       cc1Opts: [
         "Alam ko kung ano ang Citizen's Charter at nakita ko ang karta ng tanggapang ito.",
         "Alam ko kung ano ang Citizen's Charter ngunit HINDI ko nakita ang karta ng tanggapang ito.",
         "Nalaman ko ang tungkol sa Citizen's Charter nang makita ko ang karta ng tanggapang ito.",
-        "Hindi ko alam kung ano ang Citizen's Charter at wala akong nakitang ganoon."
+        "Hindi ko alam kung ano ang Citizen's Charter at wala akong nakitang ganoon.",
       ],
       cc2Q: "CC2. Gaano kadaling makita ang Citizen's Charter sa tanggapang ito?",
-      cc2Opts: [
-        "Madaling makita",
-        "Medyo madaling makita",
-        "Mahirap makita",
-        "Hindi makita kahit kailan"
-      ],
+      cc2Opts: ['Madaling makita', 'Medyo madaling makita', 'Mahirap makita', 'Hindi makita kahit kailan'],
       cc3Q: "CC3. Gaano kalaki ang naitulong sa iyo ng Citizen's Charter?",
-      cc3Opts: [
-        "Napakalaki ng naitulong",
-        "Medyo nakatulong",
-        "Hindi nakatulong"
-      ],
-      sqdTitle: "3. Mga Dimensyon ng Kalidad ng Serbisyo (SQD)",
-      sqd0: "SQD0. Pangkalahatang Kasiyahan",
-      sqd0D: "Ako ay nasisiyahan sa serbisyong aking natanggap.",
-      sqd1: "SQD1. Pagtugon (Responsiveness)",
-      sqd1D: "Naglaan ako ng makatwirang oras para sa aking transaksyon.",
-      sqd2: "SQD2. Maaasahan (Reliability)",
-      sqd2D: "Sinunod ng tanggapan ang mga kinakailangan at hakbang ng transaksyon batay sa ibinigay na impormasyon.",
-      sqd3: "SQD3. Pag-access at Pasilidad (Access & Facilities)",
-      sqd3D: "Ang mga hakbang (kabilang ang pagbabayad) na kailangan kong gawin para sa aking transaksyon ay madali at simple.",
-      sqd4: "SQD4. Komunikasyon (Communication)",
-      sqd4D: "Madali kong natagpuan ang impormasyon tungkol sa aking transaksyon mula sa tanggapan o sa website nito.",
-      sqd5: "SQD5. Gastos (Costs)",
-      sqd5D: "Nagbayad ako ng makatwirang halaga ng mga bayarin para sa aking transaksyon (piliin ang N/A kung libre ang transaksyon).",
-      sqd6: "SQD6. Integridad (Integrity)",
+      cc3Opts: ['Napakalaki ng naitulong', 'Medyo nakatulong', 'Hindi nakatulong'],
+      sqdTitle: '3. Mga Dimensyon ng Kalidad ng Serbisyo (SQD)',
+      sqd0: 'SQD0. Pangkalahatang Kasiyahan',
+      sqd0D: 'Ako ay nasisiyahan sa serbisyong aking natanggap.',
+      sqd1: 'SQD1. Pagtugon (Responsiveness)',
+      sqd1D: 'Naglaan ako ng makatwirang oras para sa aking transaksyon.',
+      sqd2: 'SQD2. Maaasahan (Reliability)',
+      sqd2D: 'Sinunod ng tanggapan ang mga kinakailangan at hakbang ng transaksyon batay sa ibinigay na impormasyon.',
+      sqd3: 'SQD3. Pag-access at Pasilidad (Access & Facilities)',
+      sqd3D:
+        'Ang mga hakbang (kabilang ang pagbabayad) na kailangan kong gawin para sa aking transaksyon ay madali at simple.',
+      sqd4: 'SQD4. Komunikasyon (Communication)',
+      sqd4D: 'Madali kong natagpuan ang impormasyon tungkol sa aking transaksyon mula sa tanggapan o sa website nito.',
+      sqd5: 'SQD5. Gastos (Costs)',
+      sqd5D:
+        'Nagbayad ako ng makatwirang halaga ng mga bayarin para sa aking transaksyon (piliin ang N/A kung libre ang transaksyon).',
+      sqd6: 'SQD6. Integridad (Integrity)',
       sqd6D: "Pakiramdam ko ay patas ang tanggapan sa lahat, o 'walang palakasan', sa aking transaksyon.",
-      sqd7: "SQD7. Pagtitiyak (Assurance)",
-      sqd7D: "Ako ay magalang na pinakitunguhan ng mga kawani, at (kung humingi ng tulong) ang mga kawani ay nakatulong.",
-      sqd8: "SQD8. Kinalabasan (Outcome)",
-      sqd8D: "Nakuha ko ang kailangan ko mula sa tanggapan, o (kung tinanggihan) ang pagtanggi ay sapat na ipinaliwanag sa akin.",
-      na: "Hindi Angkop (N/A)",
-      comments: "4. Mga Komento / Mungkahi (Opsyonal)",
-      commentsPlaceholder: "Ibahagi ang mga detalye ng iyong karanasan o mga mungkahi upang mapabuti ang aming serbisyo...",
-      skip: "Laktawan at Mag-logout",
-      submit: "Isumite ang Feedback at Mag-logout",
-      submitting: "Ipinapadala...",
-      incompleteTitle: "Hindi Kumpletong Survey",
+      sqd7: 'SQD7. Pagtitiyak (Assurance)',
+      sqd7D:
+        'Ako ay magalang na pinakitunguhan ng mga kawani, at (kung humingi ng tulong) ang mga kawani ay nakatulong.',
+      sqd8: 'SQD8. Kinalabasan (Outcome)',
+      sqd8D:
+        'Nakuha ko ang kailangan ko mula sa tanggapan, o (kung tinanggihan) ang pagtanggi ay sapat na ipinaliwanag sa akin.',
+      na: 'Hindi Angkop (N/A)',
+      comments: '4. Mga Komento / Mungkahi (Opsyonal)',
+      commentsPlaceholder:
+        'Ibahagi ang mga detalye ng iyong karanasan o mga mungkahi upang mapabuti ang aming serbisyo...',
+      skip: 'Laktawan at Mag-logout',
+      submit: 'Isumite ang Feedback at Mag-logout',
+      submitting: 'Ipinapadala...',
+      incompleteTitle: 'Hindi Kumpletong Survey',
       incompleteDesc: "Mangyaring sagutin ang profile at mga tanong sa Citizen's Charter, o i-click ang Laktawan.",
-      thankYouTitle: "Maraming Salamat, {name}!",
-      thankYouDesc: "Pinahahalagahan namin ang iyong feedback!",
-      thankYouMessage: "Ang iyong rating sa kasiyahan ay nagtutulong sa amin na patuloy na mapabuti ang aming mga serbisyo. Mag-ingat sa iyong pag-uwi!",
-      helpUs: "Tulungan kaming mapabuti ang aming serbisyo, {name}!"
-    }
+      thankYouTitle: 'Maraming Salamat, {name}!',
+      thankYouDesc: 'Pinahahalagahan namin ang iyong feedback!',
+      thankYouMessage:
+        'Ang iyong rating sa kasiyahan ay nagtutulong sa amin na patuloy na mapabuti ang aming mga serbisyo. Mag-ingat sa iyong pag-uwi!',
+      helpUs: 'Tulungan kaming mapabuti ang aming serbisyo, {name}!',
+    },
   };
 
   const getBlinkingField = () => {
@@ -297,23 +282,27 @@ function MobileVisitorLogbookContent() {
     }
     const { firestore } = firebaseState;
     const logRef = doc(firestore, 'visitorLogs', activeLogId);
-    const unsubscribe = onSnapshot(logRef, (snap) => {
-      if (!snap.exists()) return;
-      const data = snap.data();
-      if (data.csmMode === 'mobile' && data.csmStatus === 'pending' && !data.isLoggedOut) {
-        setCsmRequested(true);
-        setPendingCsmResolve('prompt');
-      } else if (data.isLoggedOut) {
-        setActiveLogId(null);
-        setStoredVisitorName('');
-        setStoredVisitorSex('');
-        localStorage.removeItem('rsu_mobile_visitor_log_id');
-        localStorage.removeItem('rsu_mobile_visitor_name');
-        localStorage.removeItem('rsu_mobile_visitor_sex');
-      }
-    }, (err) => {
-      console.error('Error listening to visitor log:', err);
-    });
+    const unsubscribe = onSnapshot(
+      logRef,
+      (snap) => {
+        if (!snap.exists()) return;
+        const data = snap.data();
+        if (data.csmMode === 'mobile' && data.csmStatus === 'pending' && !data.isLoggedOut) {
+          setCsmRequested(true);
+          setPendingCsmResolve('prompt');
+        } else if (data.isLoggedOut) {
+          setActiveLogId(null);
+          setStoredVisitorName('');
+          setStoredVisitorSex('');
+          localStorage.removeItem('rsu_mobile_visitor_log_id');
+          localStorage.removeItem('rsu_mobile_visitor_name');
+          localStorage.removeItem('rsu_mobile_visitor_sex');
+        }
+      },
+      (err) => {
+        console.error('Error listening to visitor log:', err);
+      },
+    );
     return () => unsubscribe();
   }, [firebaseState, activeLogId]);
 
@@ -334,8 +323,9 @@ function MobileVisitorLogbookContent() {
 
     setIsSubmitting(true);
     try {
+      const formattedName = visitorName.trim().toUpperCase();
       const logPayload = {
-        name: visitorName.trim(),
+        name: formattedName,
         sex: sex,
         purpose: purpose.trim(),
         lookingFor: lookingFor.trim(),
@@ -349,14 +339,14 @@ function MobileVisitorLogbookContent() {
       };
 
       const docRef = await addDoc(collection(firestore, 'visitorLogs'), logPayload);
-      
+
       // Save session locally to remember visitor on their phone
       localStorage.setItem('rsu_mobile_visitor_log_id', docRef.id);
-      localStorage.setItem('rsu_mobile_visitor_name', visitorName.trim());
+      localStorage.setItem('rsu_mobile_visitor_name', formattedName);
       localStorage.setItem('rsu_mobile_visitor_sex', sex);
-      
+
       setActiveLogId(docRef.id);
-      setStoredVisitorName(visitorName.trim());
+      setStoredVisitorName(formattedName);
       setStoredVisitorSex(sex);
 
       toast({
@@ -379,7 +369,7 @@ function MobileVisitorLogbookContent() {
   const submitCsmCheckout = async (skip = false) => {
     if (!firebaseState.areServicesAvailable || !activeLogId) return;
     const { firestore } = firebaseState;
-    
+
     setIsSubmittingCsm(true);
     try {
       if (!skip) {
@@ -403,11 +393,11 @@ function MobileVisitorLogbookContent() {
           unitId: unitId,
           unitName: unitName,
           purpose: purpose || 'Mobile Kiosk',
-          
+
           cc1: Number(csmCC1),
           cc2: csmCC2 !== null ? Number(csmCC2) : 5,
           cc3: csmCC3 !== null ? Number(csmCC3) : 4,
-          
+
           sqd1: Number(csmSQD1),
           sqd2: Number(csmSQD2),
           sqd3: Number(csmSQD3),
@@ -417,7 +407,7 @@ function MobileVisitorLogbookContent() {
           sqd7: Number(csmSQD7),
           sqd8: Number(csmSQD8),
           sqd0: Number(csmSQD0),
-          
+
           comments: csmComments.trim(),
           createdAt: Timestamp.now(),
         };
@@ -435,17 +425,15 @@ function MobileVisitorLogbookContent() {
 
       setCsmSubmitted(!skip);
       setCheckoutComplete(true);
-      
+
       // Clear mobile session
       localStorage.removeItem('rsu_mobile_visitor_log_id');
       localStorage.removeItem('rsu_mobile_visitor_name');
       localStorage.removeItem('rsu_mobile_visitor_sex');
-      
+
       toast({
         title: skip ? 'Logged Out successfully' : 'Feedback Submitted',
-        description: skip 
-          ? 'Have a safe journey back!' 
-          : 'Thank you for your valuable feedback!',
+        description: skip ? 'Have a safe journey back!' : 'Thank you for your valuable feedback!',
       });
     } catch (err) {
       console.error('Checkout error:', err);
@@ -484,7 +472,9 @@ function MobileVisitorLogbookContent() {
       <div className="flex min-h-screen w-full items-center justify-center bg-[#0d2a18] p-4 text-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="h-10 w-10 animate-spin text-[#D4AF37]" />
-          <p className="text-sm font-bold uppercase tracking-widest text-[#D4AF37]">Initializing Secure Mobile Portal...</p>
+          <p className="text-sm font-bold uppercase tracking-widest text-[#D4AF37]">
+            Initializing Secure Mobile Portal...
+          </p>
         </div>
       </div>
     );
@@ -517,24 +507,10 @@ function MobileVisitorLogbookContent() {
         {/* Logos */}
         <div className="flex justify-center items-center gap-4">
           <div className="relative h-16 w-16 transition-all hover:scale-105 duration-300 animate-logo-float">
-            <Image 
-              src="/rsulogo.png" 
-              alt="RSU Logo" 
-              width={64}
-              height={64}
-              className="object-contain"
-              priority
-            />
+            <Image src="/rsulogo.png" alt="RSU Logo" width={64} height={64} className="object-contain" priority />
           </div>
           <div className="relative h-18 w-18 transition-all hover:scale-105 duration-300 animate-logo-float animation-delay-2000">
-            <Image 
-              src="/ISOlogo.jpg" 
-              alt="ISO Logo" 
-              width={72}
-              height={72}
-              className="object-contain"
-              priority
-            />
+            <Image src="/ISOlogo.jpg" alt="ISO Logo" width={72} height={72} className="object-contain" priority />
           </div>
         </div>
         <h1 className="text-2xl font-black uppercase text-white tracking-tight leading-tight">
@@ -547,7 +523,6 @@ function MobileVisitorLogbookContent() {
 
       {/* Main card panel */}
       <div className="w-full max-w-md mx-auto my-6 z-10 flex-1 flex flex-col justify-center">
-        
         {/* CHECKOUT THANK YOU VIEW */}
         {checkoutComplete ? (
           <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden text-center py-8 px-6 space-y-6">
@@ -557,19 +532,21 @@ function MobileVisitorLogbookContent() {
 
             <div className="space-y-2">
               <h3 className="text-2xl font-black uppercase tracking-tight text-[#1B6535]">
-                {csmSubmitted ? t[csmLanguage].thankYouTitle.replace('{name}', storedVisitorName) : `Thank You, ${storedVisitorName}!`}
+                {csmSubmitted
+                  ? t[csmLanguage].thankYouTitle.replace('{name}', storedVisitorName)
+                  : `Thank You, ${storedVisitorName}!`}
               </h3>
               <p className="text-xs font-black text-[#D4AF37] uppercase tracking-[0.2em]">
                 {csmSubmitted ? t[csmLanguage].thankYouDesc : 'Checkout Successful'}
               </p>
             </div>
-            
+
             <p className="text-sm font-bold text-slate-600 dark:text-slate-400 leading-relaxed">
-              {csmSubmitted 
-                ? t[csmLanguage].thankYouMessage 
+              {csmSubmitted
+                ? t[csmLanguage].thankYouMessage
                 : 'We hope your visit was productive. Thank you for logging your checkout. Have a safe journey back!'}
             </p>
-            
+
             <div className="pt-2">
               <Button
                 onClick={resetPage}
@@ -587,14 +564,19 @@ function MobileVisitorLogbookContent() {
                 <Sparkles className="h-8 w-8" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase">Client Satisfaction Survey</h3>
+                <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase">
+                  Client Satisfaction Survey
+                </h3>
                 <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
                   The receptionist has requested that you complete the Client Satisfaction Survey on your device.
                 </p>
               </div>
               <div className="space-y-3 pt-2">
                 <Button
-                  onClick={() => { setShowSurvey(true); setPendingCsmResolve(null); }}
+                  onClick={() => {
+                    setShowSurvey(true);
+                    setPendingCsmResolve(null);
+                  }}
                   className="w-full h-14 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white border border-[#D4AF37]/30 rounded-xl font-black uppercase tracking-widest shadow-lg"
                 >
                   <CheckCircle2 className="h-5 w-5" /> Yes, Complete Survey
@@ -624,21 +606,25 @@ function MobileVisitorLogbookContent() {
         ) : activeLogId ? (
           /* ACTIVE LOGGED-IN SESSION PANEL: PROMPT CHECKOUT */
           <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden p-6 space-y-6">
-            
             {!showSurvey ? (
               <div className="text-center py-6 space-y-6">
                 <div className="h-16 w-16 bg-[#1B6535]/10 rounded-full flex items-center justify-center mx-auto text-[#1B6535]">
                   <Users2 className="h-8 w-8" />
                 </div>
-                
+
                 <div className="space-y-1">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37] border border-[#D4AF37]/30 px-2 py-0.5 rounded bg-[#D4AF37]/5">Active Session</span>
-                  <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 uppercase pt-2">Welcome, {storedVisitorName}!</h3>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37] border border-[#D4AF37]/30 px-2 py-0.5 rounded bg-[#D4AF37]/5">
+                    Active Session
+                  </span>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-slate-200 uppercase pt-2">
+                    Welcome, {storedVisitorName}!
+                  </h3>
                   <p className="text-xs font-bold text-slate-500 uppercase">You are currently logged into {unitName}</p>
                 </div>
 
                 <p className="text-xs font-semibold text-slate-650 leading-relaxed px-4">
-                  When you have completed your transaction, please click the button below to sign out and rate our service quality.
+                  When you have completed your transaction, please click the button below to sign out and rate our
+                  service quality.
                 </p>
 
                 <div className="space-y-3 pt-4">
@@ -653,7 +639,6 @@ function MobileVisitorLogbookContent() {
             ) : (
               /* ARTA CSM SURVEY QUESTIONNAIRE MOBILE */
               <div className="space-y-6 text-left max-h-[75dvh] overflow-y-auto pr-1">
-                
                 {/* Survey Header */}
                 <div className="border-b pb-4 flex flex-col gap-2">
                   <h2 className="text-lg font-black uppercase text-[#1B6535] leading-snug">
@@ -686,16 +671,18 @@ function MobileVisitorLogbookContent() {
                   <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
                     {t[csmLanguage].profile}
                   </h3>
-                  
+
                   {/* Age Group */}
-                  <div className={`space-y-2 p-2 rounded-xl border transition-all ${
-                    getBlinkingField() === 'ageGroup' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
-                  }`}>
+                  <div
+                    className={`space-y-2 p-2 rounded-xl border transition-all ${
+                      getBlinkingField() === 'ageGroup' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
+                    }`}
+                  >
                     <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1">
                       {t[csmLanguage].ageGroup} <span className="text-rose-500">*</span>
                     </label>
                     <div className="grid grid-cols-3 gap-2">
-                      {['Below 20', '20-34', '35-49', '50-64', '65 and above'].map(age => (
+                      {['Below 20', '20-34', '35-49', '50-64', '65 and above'].map((age) => (
                         <button
                           key={age}
                           type="button"
@@ -706,34 +693,42 @@ function MobileVisitorLogbookContent() {
                               : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                           }`}
                         >
-                          {age === 'Below 20' ? t[csmLanguage].ageUnder : age === '65 and above' ? t[csmLanguage].ageOver : age}
+                          {age === 'Below 20'
+                            ? t[csmLanguage].ageUnder
+                            : age === '65 and above'
+                              ? t[csmLanguage].ageOver
+                              : age}
                         </button>
                       ))}
                     </div>
                   </div>
 
                   {/* Client Type */}
-                  <div className={`space-y-2 p-2 rounded-xl border transition-all ${
-                    getBlinkingField() === 'clientType' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
-                  }`}>
+                  <div
+                    className={`space-y-2 p-2 rounded-xl border transition-all ${
+                      getBlinkingField() === 'clientType' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
+                    }`}
+                  >
                     <label className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-1">
                       {t[csmLanguage].clientType} <span className="text-rose-500">*</span>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {['Student', 'Parents', 'Government Employees', 'Internal Employees', 'Citizens', 'Others'].map(type => (
-                        <button
-                          key={type}
-                          type="button"
-                          onClick={() => setCsmClientType(type)}
-                          className={`py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wider text-center transition-all ${
-                            csmClientType === type
-                              ? 'bg-[#1B6535] text-white border-[#1B6535]'
-                              : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-                          }`}
-                        >
-                          {type}
-                        </button>
-                      ))}
+                      {['Student', 'Parents', 'Government Employees', 'Internal Employees', 'Citizens', 'Others'].map(
+                        (type) => (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => setCsmClientType(type)}
+                            className={`py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wider text-center transition-all ${
+                              csmClientType === type
+                                ? 'bg-[#1B6535] text-white border-[#1B6535]'
+                                : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {type}
+                          </button>
+                        ),
+                      )}
                     </div>
                   </div>
                 </div>
@@ -743,11 +738,13 @@ function MobileVisitorLogbookContent() {
                   <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
                     {t[csmLanguage].charter}
                   </h3>
-                  
+
                   {/* CC1 */}
-                  <div className={`space-y-2 p-3 rounded-xl border transition-all ${
-                    getBlinkingField() === 'cc1' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
-                  }`}>
+                  <div
+                    className={`space-y-2 p-3 rounded-xl border transition-all ${
+                      getBlinkingField() === 'cc1' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
+                    }`}
+                  >
                     <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-snug">
                       {t[csmLanguage].cc1Q} <span className="text-rose-500">*</span>
                     </p>
@@ -756,8 +753,8 @@ function MobileVisitorLogbookContent() {
                         { val: 1, label: t[csmLanguage].cc1Opts[0] },
                         { val: 2, label: t[csmLanguage].cc1Opts[1] },
                         { val: 3, label: t[csmLanguage].cc1Opts[2] },
-                        { val: 4, label: t[csmLanguage].cc1Opts[3] }
-                      ].map(opt => (
+                        { val: 4, label: t[csmLanguage].cc1Opts[3] },
+                      ].map((opt) => (
                         <button
                           key={opt.val}
                           type="button"
@@ -787,9 +784,11 @@ function MobileVisitorLogbookContent() {
                   {(csmCC1 === 1 || csmCC1 === 3) && (
                     <div className="space-y-4 pt-1">
                       {/* CC2 */}
-                      <div className={`space-y-2 p-2 rounded-xl border transition-all ${
-                        getBlinkingField() === 'cc2' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
-                      }`}>
+                      <div
+                        className={`space-y-2 p-2 rounded-xl border transition-all ${
+                          getBlinkingField() === 'cc2' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
+                        }`}
+                      >
                         <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-snug">
                           {t[csmLanguage].cc2Q} <span className="text-rose-500">*</span>
                         </p>
@@ -798,8 +797,8 @@ function MobileVisitorLogbookContent() {
                             { val: 1, label: t[csmLanguage].cc2Opts[0] },
                             { val: 2, label: t[csmLanguage].cc2Opts[1] },
                             { val: 3, label: t[csmLanguage].cc2Opts[2] },
-                            { val: 4, label: t[csmLanguage].cc2Opts[3] }
-                          ].map(opt => (
+                            { val: 4, label: t[csmLanguage].cc2Opts[3] },
+                          ].map((opt) => (
                             <button
                               key={opt.val}
                               type="button"
@@ -817,9 +816,11 @@ function MobileVisitorLogbookContent() {
                       </div>
 
                       {/* CC3 */}
-                      <div className={`space-y-2 p-2 rounded-xl border transition-all ${
-                        getBlinkingField() === 'cc3' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
-                      }`}>
+                      <div
+                        className={`space-y-2 p-2 rounded-xl border transition-all ${
+                          getBlinkingField() === 'cc3' ? 'border-[#D4AF37] bg-amber-50/10' : 'border-transparent'
+                        }`}
+                      >
                         <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-snug">
                           {t[csmLanguage].cc3Q} <span className="text-rose-500">*</span>
                         </p>
@@ -827,8 +828,8 @@ function MobileVisitorLogbookContent() {
                           {[
                             { val: 1, label: t[csmLanguage].cc3Opts[0] },
                             { val: 2, label: t[csmLanguage].cc3Opts[1] },
-                            { val: 3, label: t[csmLanguage].cc3Opts[2] }
-                          ].map(opt => (
+                            { val: 3, label: t[csmLanguage].cc3Opts[2] },
+                          ].map((opt) => (
                             <button
                               key={opt.val}
                               type="button"
@@ -853,35 +854,89 @@ function MobileVisitorLogbookContent() {
                   <h3 className="text-xs font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
                     {t[csmLanguage].sqdTitle}
                   </h3>
-                  
+
                   <div className="space-y-4">
                     {[
-                      { id: 0, label: t[csmLanguage].sqd0, desc: t[csmLanguage].sqd0D, val: csmSQD0, setVal: setCsmSQD0 },
-                      { id: 2, label: t[csmLanguage].sqd2, desc: t[csmLanguage].sqd2D, val: csmSQD2, setVal: setCsmSQD2 },
-                      { id: 3, label: t[csmLanguage].sqd3, desc: t[csmLanguage].sqd3D, val: csmSQD3, setVal: setCsmSQD3 },
-                      { id: 4, label: t[csmLanguage].sqd4, desc: t[csmLanguage].sqd4D, val: csmSQD4, setVal: setCsmSQD4 },
-                      { id: 5, label: t[csmLanguage].sqd5, desc: t[csmLanguage].sqd5D, val: csmSQD5, setVal: setCsmSQD5, showNa: true },
-                      { id: 6, label: t[csmLanguage].sqd6, desc: t[csmLanguage].sqd6D, val: csmSQD6, setVal: setCsmSQD6 },
-                      { id: 7, label: t[csmLanguage].sqd7, desc: t[csmLanguage].sqd7D, val: csmSQD7, setVal: setCsmSQD7 },
-                      { id: 8, label: t[csmLanguage].sqd8, desc: t[csmLanguage].sqd8D, val: csmSQD8, setVal: setCsmSQD8 }
-                    ].map(sqd => {
+                      {
+                        id: 0,
+                        label: t[csmLanguage].sqd0,
+                        desc: t[csmLanguage].sqd0D,
+                        val: csmSQD0,
+                        setVal: setCsmSQD0,
+                      },
+                      {
+                        id: 2,
+                        label: t[csmLanguage].sqd2,
+                        desc: t[csmLanguage].sqd2D,
+                        val: csmSQD2,
+                        setVal: setCsmSQD2,
+                      },
+                      {
+                        id: 3,
+                        label: t[csmLanguage].sqd3,
+                        desc: t[csmLanguage].sqd3D,
+                        val: csmSQD3,
+                        setVal: setCsmSQD3,
+                      },
+                      {
+                        id: 4,
+                        label: t[csmLanguage].sqd4,
+                        desc: t[csmLanguage].sqd4D,
+                        val: csmSQD4,
+                        setVal: setCsmSQD4,
+                      },
+                      {
+                        id: 5,
+                        label: t[csmLanguage].sqd5,
+                        desc: t[csmLanguage].sqd5D,
+                        val: csmSQD5,
+                        setVal: setCsmSQD5,
+                        showNa: true,
+                      },
+                      {
+                        id: 6,
+                        label: t[csmLanguage].sqd6,
+                        desc: t[csmLanguage].sqd6D,
+                        val: csmSQD6,
+                        setVal: setCsmSQD6,
+                      },
+                      {
+                        id: 7,
+                        label: t[csmLanguage].sqd7,
+                        desc: t[csmLanguage].sqd7D,
+                        val: csmSQD7,
+                        setVal: setCsmSQD7,
+                      },
+                      {
+                        id: 8,
+                        label: t[csmLanguage].sqd8,
+                        desc: t[csmLanguage].sqd8D,
+                        val: csmSQD8,
+                        setVal: setCsmSQD8,
+                      },
+                    ].map((sqd) => {
                       const ratingOptions = [
-                        { rating: 1, emoji: "😠" },
-                        { rating: 2, emoji: "🙁" },
-                        { rating: 3, emoji: "😐" },
-                        { rating: 4, emoji: "🙂" },
-                        { rating: 5, emoji: "😍" }
+                        { rating: 1, emoji: '😠' },
+                        { rating: 2, emoji: '🙁' },
+                        { rating: 3, emoji: '😐' },
+                        { rating: 4, emoji: '🙂' },
+                        { rating: 5, emoji: '😍' },
                       ];
 
                       return (
-                        <div key={sqd.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 space-y-2.5">
+                        <div
+                          key={sqd.id}
+                          className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 space-y-2.5"
+                        >
                           <div>
-                            <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase leading-snug">{sqd.label}</p>
+                            <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase leading-snug">
+                              {sqd.label}
+                            </p>
                             <p className="text-[10px] font-semibold text-slate-500 leading-tight mt-0.5">{sqd.desc}</p>
                           </div>
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-1.5 flex-1">
-                              {ratingOptions.map(opt => (
+                              {ratingOptions.map((opt) => (
                                 <button
                                   key={opt.rating}
                                   type="button"
@@ -921,7 +976,10 @@ function MobileVisitorLogbookContent() {
 
                 {/* Comments */}
                 <div className="space-y-1.5">
-                  <label htmlFor="csmComments" className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300">
+                  <label
+                    htmlFor="csmComments"
+                    className="text-[11px] font-black uppercase text-slate-700 dark:text-slate-300"
+                  >
                     {t[csmLanguage].comments}
                   </label>
                   <textarea
@@ -972,17 +1030,24 @@ function MobileVisitorLogbookContent() {
                   <ClipboardList className="h-4.5 w-4.5" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">Sign In Form</CardTitle>
-                  <CardDescription className="text-slate-500 text-[10px] font-bold uppercase leading-none mt-0.5">Please provide your details</CardDescription>
+                  <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    Sign In Form
+                  </CardTitle>
+                  <CardDescription className="text-slate-500 text-[10px] font-bold uppercase leading-none mt-0.5">
+                    Please provide your details
+                  </CardDescription>
                 </div>
               </div>
             </CardHeader>
-            
+
             <CardContent className="p-5 space-y-4">
               <form onSubmit={handleSignIn} className="space-y-4 text-left">
                 {/* Visitor Name */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="visitorName" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  <Label
+                    htmlFor="visitorName"
+                    className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                  >
                     Your Full Name
                   </Label>
                   <div className="relative">
@@ -990,11 +1055,11 @@ function MobileVisitorLogbookContent() {
                     <Input
                       id="visitorName"
                       type="text"
-                      placeholder="e.g. Juan D. Dela Cruz"
+                      placeholder="e.g. JUAN D. DELA CRUZ"
                       value={visitorName}
-                      onChange={(e) => setVisitorName(e.target.value)}
+                      onChange={(e) => setVisitorName(e.target.value.toUpperCase())}
                       required
-                      className="pl-9 h-11 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600"
+                      className="pl-9 h-11 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus-visible:ring-1 focus-visible:ring-emerald-600 uppercase"
                     />
                   </div>
                 </div>
@@ -1045,7 +1110,10 @@ function MobileVisitorLogbookContent() {
                 <div className="space-y-1.5">
                   {unitCsmSettingsDoc?.services && unitCsmSettingsDoc.services.length > 0 ? (
                     <div className="space-y-1.5">
-                      <Label htmlFor="purposeSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      <Label
+                        htmlFor="purposeSelect"
+                        className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                      >
                         Purpose of Visit
                       </Label>
                       <div className="relative">
@@ -1066,15 +1134,20 @@ function MobileVisitorLogbookContent() {
                         >
                           <option value="">-- SELECT PURPOSE --</option>
                           {unitCsmSettingsDoc.services.map((svc: string) => (
-                            <option key={svc} value={svc}>{svc.toUpperCase()}</option>
+                            <option key={svc} value={svc}>
+                              {svc.toUpperCase()}
+                            </option>
                           ))}
                           <option value="Others">OTHERS (PLEASE SPECIFY)</option>
                         </select>
                       </div>
-                      
+
                       {selectedService === 'Others' && (
                         <div className="space-y-1.5 pt-2 animate-in slide-in-from-top-2 duration-300">
-                          <Label htmlFor="customPurpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                          <Label
+                            htmlFor="customPurpose"
+                            className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                          >
                             Please specify your purpose
                           </Label>
                           <div className="relative">
@@ -1094,7 +1167,10 @@ function MobileVisitorLogbookContent() {
                     </div>
                   ) : (
                     <div className="space-y-1.5">
-                      <Label htmlFor="purpose" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      <Label
+                        htmlFor="purpose"
+                        className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                      >
                         Purpose of Visit
                       </Label>
                       <div className="relative">
@@ -1115,7 +1191,10 @@ function MobileVisitorLogbookContent() {
 
                 {/* Looking For */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="lookingForSelect" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  <Label
+                    htmlFor="lookingForSelect"
+                    className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                  >
                     Who are you looking for?
                   </Label>
                   <div className="relative">
@@ -1138,15 +1217,22 @@ function MobileVisitorLogbookContent() {
                           className="w-full h-11 px-3 pl-9 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold text-xs uppercase"
                         >
                           <option value="">-- SELECT PERSONNEL --</option>
-                          {activeEmployees.sort((a, b) => a.name.localeCompare(b.name)).map((emp: Employee) => (
-                            <option key={emp.id} value={emp.name}>{emp.name.toUpperCase()} ({emp.type.toUpperCase()})</option>
-                          ))}
+                          {activeEmployees
+                            .sort((a, b) => a.name.localeCompare(b.name))
+                            .map((emp: Employee) => (
+                              <option key={emp.id} value={emp.name}>
+                                {emp.name.toUpperCase()} ({emp.type.toUpperCase()})
+                              </option>
+                            ))}
                           <option value="Others">OTHERS (PLEASE SPECIFY)</option>
                         </select>
 
                         {selectedLookingFor === 'Others' && (
                           <div className="space-y-1.5 pt-2 animate-in slide-in-from-top-2 duration-300">
-                            <Label htmlFor="customLookingFor" className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                            <Label
+                              htmlFor="customLookingFor"
+                              className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                            >
                               Please specify the person you are looking for
                             </Label>
                             <div className="relative">
@@ -1179,8 +1265,8 @@ function MobileVisitorLogbookContent() {
                 </div>
 
                 <div className="pt-2">
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={isSubmitting}
                     className="w-full h-11 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] text-white border border-[#D4AF37]/20 rounded-xl font-black uppercase tracking-widest text-xs shadow-md"
                   >
@@ -1196,7 +1282,8 @@ function MobileVisitorLogbookContent() {
       {/* Footer copyright */}
       <div className="w-full text-center z-10 border-t border-[#D4AF37]/10 pt-4 mt-auto">
         <p className="text-[8px] font-black uppercase tracking-widest text-[#D4AF37]/50">
-          Romblon State University | Quality Assurance Office | Institutional Planning and Development Office (IPDO) | Center for Research in Artificial Intelligence and Information Technologies (CRAIITech)
+          Romblon State University | Quality Assurance Office | Institutional Planning and Development Office (IPDO) |
+          Center for Research in Artificial Intelligence and Information Technologies (CRAIITech)
         </p>
       </div>
 
@@ -1211,14 +1298,16 @@ function MobileVisitorLogbookContent() {
 
 export default function MobileVisitorLogbookPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen w-full items-center justify-center bg-[#0d2a18] p-4 text-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-10 w-10 animate-spin text-[#D4AF37]" />
-          <p className="text-sm font-bold uppercase tracking-widest text-[#D4AF37]">Loading Portal Context...</p>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen w-full items-center justify-center bg-[#0d2a18] p-4 text-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-10 w-10 animate-spin text-[#D4AF37]" />
+            <p className="text-sm font-bold uppercase tracking-widest text-[#D4AF37]">Loading Portal Context...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <MobileVisitorLogbookContent />
     </Suspense>
   );

@@ -92,132 +92,121 @@ function CsmEvaluateContent() {
       pageTitle: 'Client Satisfaction Measurement (CSM)',
       pageDesc: 'Help us improve our service!',
       name: 'Your Full Name',
-      namePlaceholder: 'e.g. Juan D. Dela Cruz',
+      namePlaceholder: 'e.g. JUAN D. DELA CRUZ',
       sex: 'Sex',
       purpose: 'Purpose of Visit',
       purposePlaceholder: 'e.g. Document submission, Inquiry',
-      profile: "1. Client Profile",
-      ageGroup: "Age Group",
-      ageUnder: "Below 20",
-      ageOver: "65 and above",
-      clientType: "Client Type",
+      profile: '1. Client Profile',
+      ageGroup: 'Age Group',
+      ageUnder: 'Below 20',
+      ageOver: '65 and above',
+      clientType: 'Client Type',
       charter: "2. Citizen's Charter (CC)",
       cc1Q: "CC1. Which of the following best describes your awareness of a Citizen's Charter?",
       cc1Opts: [
         "I know what a Citizen's Charter is and I saw this office's charter.",
         "I know what a Citizen's Charter is but I did NOT see this office's charter.",
         "I learned of the Citizen's Charter only when I saw this office's charter.",
-        "I do not know what a Citizen's Charter is and I did not see one."
+        "I do not know what a Citizen's Charter is and I did not see one.",
       ],
       cc2Q: "CC2. How visible was the Citizen's Charter in this office?",
-      cc2Opts: [
-        "Easy to see",
-        "Somewhat easy to see",
-        "Difficult to see",
-        "Not visible at all"
-      ],
+      cc2Opts: ['Easy to see', 'Somewhat easy to see', 'Difficult to see', 'Not visible at all'],
       cc3Q: "CC3. How much did the Citizen's Charter help you?",
-      cc3Opts: [
-        "Helped very much",
-        "Somewhat helped",
-        "Did not help"
-      ],
-      sqdTitle: "3. Service Quality Dimensions (SQD)",
-      sqd0: "SQD0. Overall Satisfaction",
-      sqd0D: "I am satisfied with the service that I availed.",
-      sqd1: "SQD1. Responsiveness",
-      sqd1D: "I spent a reasonable amount of time for my transaction.",
-      sqd2: "SQD2. Reliability",
+      cc3Opts: ['Helped very much', 'Somewhat helped', 'Did not help'],
+      sqdTitle: '3. Service Quality Dimensions (SQD)',
+      sqd0: 'SQD0. Overall Satisfaction',
+      sqd0D: 'I am satisfied with the service that I availed.',
+      sqd1: 'SQD1. Responsiveness',
+      sqd1D: 'I spent a reasonable amount of time for my transaction.',
+      sqd2: 'SQD2. Reliability',
       sqd2D: "The office followed the transaction's requirements and steps based on the information provided.",
-      sqd3: "SQD3. Access & Facilities",
-      sqd3D: "The steps (including payment) I needed to do for my transaction were easy and simple.",
-      sqd4: "SQD4. Communication",
-      sqd4D: "I easily found information about my transaction from the office or its website.",
-      sqd5: "SQD5. Costs",
-      sqd5D: "I paid a reasonable amount of fees for my transaction (select N/A if transaction was free).",
-      sqd6: "SQD6. Integrity",
+      sqd3: 'SQD3. Access & Facilities',
+      sqd3D: 'The steps (including payment) I needed to do for my transaction were easy and simple.',
+      sqd4: 'SQD4. Communication',
+      sqd4D: 'I easily found information about my transaction from the office or its website.',
+      sqd5: 'SQD5. Costs',
+      sqd5D: 'I paid a reasonable amount of fees for my transaction (select N/A if transaction was free).',
+      sqd6: 'SQD6. Integrity',
       sqd6D: "I feel the office was fair to everyone, or 'walang palakasan', during my transaction.",
-      sqd7: "SQD7. Assurance",
-      sqd7D: "I was treated courteously by the staff, and (if asked for help) the staff was helpful.",
-      sqd8: "SQD8. Outcome",
-      sqd8D: "I got what I needed from the government office, or (if denied) denial of request was sufficiently explained to me.",
-      na: "Not Applicable",
-      comments: "4. Comments / Suggestions (Optional)",
-      commentsPlaceholder: "Share details of your experience or suggestions to improve our service...",
-      submit: "Submit Feedback",
-      submitting: "Submitting...",
-      incompleteTitle: "Incomplete Survey",
-      incompleteDesc: "Please answer all required fields.",
-      thankYouTitle: "Thank You, {name}!",
-      thankYouDesc: "We appreciate your feedback!",
-      thankYouMessage: "Your satisfaction rating helps us continuously improve our services.",
-      required: "Required"
+      sqd7: 'SQD7. Assurance',
+      sqd7D: 'I was treated courteously by the staff, and (if asked for help) the staff was helpful.',
+      sqd8: 'SQD8. Outcome',
+      sqd8D:
+        'I got what I needed from the government office, or (if denied) denial of request was sufficiently explained to me.',
+      na: 'Not Applicable',
+      comments: '4. Comments / Suggestions (Optional)',
+      commentsPlaceholder: 'Share details of your experience or suggestions to improve our service...',
+      submit: 'Submit Feedback',
+      submitting: 'Submitting...',
+      incompleteTitle: 'Incomplete Survey',
+      incompleteDesc: 'Please answer all required fields.',
+      thankYouTitle: 'Thank You, {name}!',
+      thankYouDesc: 'We appreciate your feedback!',
+      thankYouMessage: 'Your satisfaction rating helps us continuously improve our services.',
+      required: 'Required',
     },
     FIL: {
       pageTitle: 'Pagsukat ng Kasiyahan ng Kliyente (CSM)',
       pageDesc: 'Tulungan kaming mapabuti ang aming serbisyo!',
       name: 'Iyong Buong Pangalan',
-      namePlaceholder: 'Hal. Juan D. Dela Cruz',
+      namePlaceholder: 'Hal. JUAN D. DELA CRUZ',
       sex: 'Kasarian',
       purpose: 'Layunin ng Pagbisita',
       purposePlaceholder: 'Hal. Pagsusumite ng dokumento, Pagtatanong',
-      profile: "1. Profile ng Kliyente",
-      ageGroup: "Grupo ng Edad",
-      ageUnder: "Mababa sa 20",
-      ageOver: "65 at pataas",
-      clientType: "Uri ng Kliyente",
+      profile: '1. Profile ng Kliyente',
+      ageGroup: 'Grupo ng Edad',
+      ageUnder: 'Mababa sa 20',
+      ageOver: '65 at pataas',
+      clientType: 'Uri ng Kliyente',
       charter: "2. Karta ng Mamamayan (Citizen's Charter)",
       cc1Q: "CC1. Alin sa mga sumusunod ang pinakamahusay na naglalarawan sa iyong kaalaman sa Citizen's Charter?",
       cc1Opts: [
         "Alam ko kung ano ang Citizen's Charter at nakita ko ang karta ng tanggapang ito.",
         "Alam ko kung ano ang Citizen's Charter ngunit HINDI ko nakita ang karta ng tanggapang ito.",
         "Nalaman ko ang tungkol sa Citizen's Charter nang makita ko ang karta ng tanggapang ito.",
-        "Hindi ko alam kung ano ang Citizen's Charter at wala akong nakitang ganoon."
+        "Hindi ko alam kung ano ang Citizen's Charter at wala akong nakitang ganoon.",
       ],
       cc2Q: "CC2. Gaano kadaling makita ang Citizen's Charter sa tanggapang ito?",
-      cc2Opts: [
-        "Madaling makita",
-        "Medyo madaling makita",
-        "Mahirap makita",
-        "Hindi makita kahit kailan"
-      ],
+      cc2Opts: ['Madaling makita', 'Medyo madaling makita', 'Mahirap makita', 'Hindi makita kahit kailan'],
       cc3Q: "CC3. Gaano kalaki ang naitulong sa iyo ng Citizen's Charter?",
-      cc3Opts: [
-        "Napakalaki ng naitulong",
-        "Medyo nakatulong",
-        "Hindi nakatulong"
-      ],
-      sqdTitle: "3. Mga Dimensyon ng Kalidad ng Serbisyo (SQD)",
-      sqd0: "SQD0. Pangkalahatang Kasiyahan",
-      sqd0D: "Ako ay nasisiyahan sa serbisyong aking natanggap.",
-      sqd1: "SQD1. Pagtugon (Responsiveness)",
-      sqd1D: "Naglaan ako ng makatwirang oras para sa aking transaksyon.",
-      sqd2: "SQD2. Maaasahan (Reliability)",
-      sqd2D: "Sinunod ng tanggapan ang mga kinakailangan at hakbang ng transaksyon batay sa ibinigay na impormasyon.",
-      sqd3: "SQD3. Pag-access at Pasilidad (Access & Facilities)",
-      sqd3D: "Ang mga hakbang (kabilang ang pagbabayad) na kailangan kong gawin para sa aking transaksyon ay madali at simple.",
-      sqd4: "SQD4. Komunikasyon (Communication)",
-      sqd4D: "Madali kong natagpuan ang impormasyon tungkol sa aking transaksyon mula sa tanggapan o sa website nito.",
-      sqd5: "SQD5. Gastos (Costs)",
-      sqd5D: "Nagbayad ako ng makatwirang halaga ng mga bayarin para sa aking transaksyon (piliin ang N/A kung libre ang transaksyon).",
-      sqd6: "SQD6. Integridad (Integrity)",
+      cc3Opts: ['Napakalaki ng naitulong', 'Medyo nakatulong', 'Hindi nakatulong'],
+      sqdTitle: '3. Mga Dimensyon ng Kalidad ng Serbisyo (SQD)',
+      sqd0: 'SQD0. Pangkalahatang Kasiyahan',
+      sqd0D: 'Ako ay nasisiyahan sa serbisyong aking natanggap.',
+      sqd1: 'SQD1. Pagtugon (Responsiveness)',
+      sqd1D: 'Naglaan ako ng makatwirang oras para sa aking transaksyon.',
+      sqd2: 'SQD2. Maaasahan (Reliability)',
+      sqd2D: 'Sinunod ng tanggapan ang mga kinakailangan at hakbang ng transaksyon batay sa ibinigay na impormasyon.',
+      sqd3: 'SQD3. Pag-access at Pasilidad (Access & Facilities)',
+      sqd3D:
+        'Ang mga hakbang (kabilang ang pagbabayad) na kailangan kong gawin para sa aking transaksyon ay madali at simple.',
+      sqd4: 'SQD4. Komunikasyon (Communication)',
+      sqd4D: 'Madali kong natagpuan ang impormasyon tungkol sa aking transaksyon mula sa tanggapan o sa website nito.',
+      sqd5: 'SQD5. Gastos (Costs)',
+      sqd5D:
+        'Nagbayad ako ng makatwirang halaga ng mga bayarin para sa aking transaksyon (piliin ang N/A kung libre ang transaksyon).',
+      sqd6: 'SQD6. Integridad (Integrity)',
       sqd6D: "Pakiramdam ko ay patas ang tanggapan sa lahat, o 'walang palakasan', sa aking transaksyon.",
-      sqd7: "SQD7. Pagtitiyak (Assurance)",
-      sqd7D: "Ako ay magalang na pinakitunguhan ng mga kawani, at (kung humingi ng tulong) ang mga kawani ay nakatulong.",
-      sqd8: "SQD8. Kinalabasan (Outcome)",
-      sqd8D: "Nakuha ko ang kailangan ko mula sa tanggapan, o (kung tinanggihan) ang pagtanggi ay sapat na ipinaliwanag sa akin.",
-      na: "Hindi Angkop (N/A)",
-      comments: "4. Mga Komento / Mungkahi (Opsyonal)",
-      commentsPlaceholder: "Ibahagi ang mga detalye ng iyong karanasan o mga mungkahi upang mapabuti ang aming serbisyo...",
-      submit: "Isumite ang Feedback",
-      submitting: "Ipinapadala...",
-      incompleteTitle: "Hindi Kumpletong Survey",
-      incompleteDesc: "Mangyaring sagutin ang lahat ng kinakailangang field.",
-      thankYouTitle: "Maraming Salamat, {name}!",
-      thankYouDesc: "Pinahahalagahan namin ang iyong feedback!",
-      thankYouMessage: "Ang iyong rating sa kasiyahan ay nagtutulong sa amin na patuloy na mapabuti ang aming mga serbisyo.",
-      required: "Kinakailangan"
-    }
+      sqd7: 'SQD7. Pagtitiyak (Assurance)',
+      sqd7D:
+        'Ako ay magalang na pinakitunguhan ng mga kawani, at (kung humingi ng tulong) ang mga kawani ay nakatulong.',
+      sqd8: 'SQD8. Kinalabasan (Outcome)',
+      sqd8D:
+        'Nakuha ko ang kailangan ko mula sa tanggapan, o (kung tinanggihan) ang pagtanggi ay sapat na ipinaliwanag sa akin.',
+      na: 'Hindi Angkop (N/A)',
+      comments: '4. Mga Komento / Mungkahi (Opsyonal)',
+      commentsPlaceholder:
+        'Ibahagi ang mga detalye ng iyong karanasan o mga mungkahi upang mapabuti ang aming serbisyo...',
+      submit: 'Isumite ang Feedback',
+      submitting: 'Ipinapadala...',
+      incompleteTitle: 'Hindi Kumpletong Survey',
+      incompleteDesc: 'Mangyaring sagutin ang lahat ng kinakailangang field.',
+      thankYouTitle: 'Maraming Salamat, {name}!',
+      thankYouDesc: 'Pinahahalagahan namin ang iyong feedback!',
+      thankYouMessage:
+        'Ang iyong rating sa kasiyahan ay nagtutulong sa amin na patuloy na mapabuti ang aming mga serbisyo.',
+      required: 'Kinakailangan',
+    },
   };
 
   const getBlinkingField = () => {
@@ -248,7 +237,7 @@ function CsmEvaluateContent() {
     try {
       const csmPayload = {
         visitorLogId: 'online',
-        visitorName: visitorName.trim(),
+        visitorName: visitorName.trim().toUpperCase(),
         sex: sex,
         ageGroup: csmAgeGroup,
         clientType: csmClientType,
@@ -321,9 +310,7 @@ function CsmEvaluateContent() {
           <p className="text-base font-semibold text-slate-600 dark:text-slate-400 leading-relaxed">
             {t[csmLanguage].thankYouMessage}
           </p>
-          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
-            {decodeURIComponent(unitName)}
-          </p>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{decodeURIComponent(unitName)}</p>
         </div>
       </div>
     );
@@ -335,18 +322,29 @@ function CsmEvaluateContent() {
         {/* Header */}
         <div className="bg-white/[0.04] backdrop-blur-md border border-[#D4AF37]/20 rounded-3xl p-6 text-center space-y-3">
           <div className="flex items-center justify-between gap-3">
-            <Image src="/rsulogo.png" alt="RSU Logo" width={80} height={80} unoptimized className="object-contain shrink-0 animate-pulse-glow" />
+            <Image
+              src="/rsulogo.png"
+              alt="RSU Logo"
+              width={80}
+              height={80}
+              unoptimized
+              className="object-contain shrink-0 animate-pulse-glow"
+            />
             <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white text-center flex-1 leading-tight">
               {t[csmLanguage].pageTitle}
             </h1>
-            <Image src="/ISOlogo.jpg" alt="ISO Logo" width={216} height={80} unoptimized className="object-contain shrink-0 animate-pulse-glow" style={{ objectPosition: 'center' }} />
+            <Image
+              src="/ISOlogo.jpg"
+              alt="ISO Logo"
+              width={216}
+              height={80}
+              unoptimized
+              className="object-contain shrink-0 animate-pulse-glow"
+              style={{ objectPosition: 'center' }}
+            />
           </div>
-          <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest">
-            {decodeURIComponent(unitName)}
-          </p>
-          <p className="text-xs text-slate-300 font-medium">
-            {t[csmLanguage].pageDesc}
-          </p>
+          <p className="text-sm font-bold text-emerald-400 uppercase tracking-widest">{decodeURIComponent(unitName)}</p>
+          <p className="text-xs text-slate-300 font-medium">{t[csmLanguage].pageDesc}</p>
           {/* Language Toggle */}
           <div className="flex justify-center">
             <div className="flex bg-slate-800/50 p-1 rounded-2xl border border-slate-700/50">
@@ -354,9 +352,7 @@ function CsmEvaluateContent() {
                 type="button"
                 onClick={() => setCsmLanguage('EN')}
                 className={`px-5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                  csmLanguage === 'EN'
-                    ? 'bg-white text-[#1B6535] shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                  csmLanguage === 'EN' ? 'bg-white text-[#1B6535] shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 English
@@ -365,9 +361,7 @@ function CsmEvaluateContent() {
                 type="button"
                 onClick={() => setCsmLanguage('FIL')}
                 className={`px-5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
-                  csmLanguage === 'FIL'
-                    ? 'bg-white text-[#1B6535] shadow-sm'
-                    : 'text-slate-400 hover:text-white'
+                  csmLanguage === 'FIL' ? 'bg-white text-[#1B6535] shadow-sm' : 'text-slate-400 hover:text-white'
                 }`}
               >
                 Tagalog
@@ -394,8 +388,8 @@ function CsmEvaluateContent() {
                     type="text"
                     placeholder={t[csmLanguage].namePlaceholder}
                     value={visitorName}
-                    onChange={(e) => setVisitorName(e.target.value)}
-                    className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600"
+                    onChange={(e) => setVisitorName(e.target.value.toUpperCase())}
+                    className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 uppercase"
                   />
                 </div>
               </div>
@@ -404,7 +398,7 @@ function CsmEvaluateContent() {
                   {t[csmLanguage].sex} <span className="text-rose-500">*</span>
                 </Label>
                 <div className="grid grid-cols-3 gap-2">
-                  {['Male', 'Female', 'LGBTQA+'].map(opt => (
+                  {['Male', 'Female', 'LGBTQA+'].map((opt) => (
                     <button
                       key={opt}
                       type="button"
@@ -439,7 +433,9 @@ function CsmEvaluateContent() {
                   >
                     <option value="">-- SELECT SERVICE --</option>
                     {unitCsmSettingsDoc.services.map((svc: string) => (
-                      <option key={svc} value={svc}>{svc.toUpperCase()}</option>
+                      <option key={svc} value={svc}>
+                        {svc.toUpperCase()}
+                      </option>
                     ))}
                     <option value="Others">OTHERS</option>
                   </select>
@@ -471,14 +467,16 @@ function CsmEvaluateContent() {
               {t[csmLanguage].profile}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
-                getBlinkingField() === 'ageGroup' ? 'animate-blink-border' : 'border-transparent'
-              }`}>
+              <div
+                className={`space-y-2 p-3 rounded-2xl border transition-all ${
+                  getBlinkingField() === 'ageGroup' ? 'animate-blink-border' : 'border-transparent'
+                }`}
+              >
                 <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1">
                   {t[csmLanguage].ageGroup} <span className="text-rose-500">*</span>
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {['Below 20', '20-34', '35-49', '50-64', '65 and above'].map(age => (
+                  {['Below 20', '20-34', '35-49', '50-64', '65 and above'].map((age) => (
                     <button
                       key={age}
                       type="button"
@@ -489,33 +487,41 @@ function CsmEvaluateContent() {
                           : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
                       }`}
                     >
-                      {age === 'Below 20' ? t[csmLanguage].ageUnder : age === '65 and above' ? t[csmLanguage].ageOver : age}
+                      {age === 'Below 20'
+                        ? t[csmLanguage].ageUnder
+                        : age === '65 and above'
+                          ? t[csmLanguage].ageOver
+                          : age}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
-                getBlinkingField() === 'clientType' ? 'animate-blink-border' : 'border-transparent'
-              }`}>
+              <div
+                className={`space-y-2 p-3 rounded-2xl border transition-all ${
+                  getBlinkingField() === 'clientType' ? 'animate-blink-border' : 'border-transparent'
+                }`}
+              >
                 <label className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1">
                   {t[csmLanguage].clientType} <span className="text-rose-500">*</span>
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {['Student', 'Parents', 'Government Employees', 'Internal Employees', 'Citizens', 'Others'].map(type => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => setCsmClientType(type)}
-                      className={`px-4 py-2 rounded-xl border text-sm font-bold uppercase tracking-wide transition-all ${
-                        csmClientType === type
-                          ? 'bg-[#1B6535] text-white border-[#1B6535]'
-                          : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
+                  {['Student', 'Parents', 'Government Employees', 'Internal Employees', 'Citizens', 'Others'].map(
+                    (type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setCsmClientType(type)}
+                        className={`px-4 py-2 rounded-xl border text-sm font-bold uppercase tracking-wide transition-all ${
+                          csmClientType === type
+                            ? 'bg-[#1B6535] text-white border-[#1B6535]'
+                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ),
+                  )}
                 </div>
               </div>
             </div>
@@ -527,9 +533,11 @@ function CsmEvaluateContent() {
               {t[csmLanguage].charter}
             </h3>
 
-            <div className={`space-y-2 p-4 rounded-2xl border transition-all ${
-              getBlinkingField() === 'cc1' ? 'animate-blink-border' : 'border-transparent'
-            }`}>
+            <div
+              className={`space-y-2 p-4 rounded-2xl border transition-all ${
+                getBlinkingField() === 'cc1' ? 'animate-blink-border' : 'border-transparent'
+              }`}
+            >
               <p className="text-sm font-black text-slate-800 dark:text-slate-200">
                 {t[csmLanguage].cc1Q} <span className="text-rose-500">*</span>
               </p>
@@ -538,8 +546,8 @@ function CsmEvaluateContent() {
                   { val: 1, label: t[csmLanguage].cc1Opts[0] },
                   { val: 2, label: t[csmLanguage].cc1Opts[1] },
                   { val: 3, label: t[csmLanguage].cc1Opts[2] },
-                  { val: 4, label: t[csmLanguage].cc1Opts[3] }
-                ].map(opt => (
+                  { val: 4, label: t[csmLanguage].cc1Opts[3] },
+                ].map((opt) => (
                   <button
                     key={opt.val}
                     type="button"
@@ -567,9 +575,11 @@ function CsmEvaluateContent() {
 
             {(csmCC1 === 1 || csmCC1 === 3) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
-                  getBlinkingField() === 'cc2' ? 'animate-blink-border' : 'border-transparent'
-                }`}>
+                <div
+                  className={`space-y-2 p-3 rounded-2xl border transition-all ${
+                    getBlinkingField() === 'cc2' ? 'animate-blink-border' : 'border-transparent'
+                  }`}
+                >
                   <p className="text-sm font-black text-slate-800 dark:text-slate-200">
                     {t[csmLanguage].cc2Q} <span className="text-rose-500">*</span>
                   </p>
@@ -578,8 +588,8 @@ function CsmEvaluateContent() {
                       { val: 1, label: t[csmLanguage].cc2Opts[0] },
                       { val: 2, label: t[csmLanguage].cc2Opts[1] },
                       { val: 3, label: t[csmLanguage].cc2Opts[2] },
-                      { val: 4, label: t[csmLanguage].cc2Opts[3] }
-                    ].map(opt => (
+                      { val: 4, label: t[csmLanguage].cc2Opts[3] },
+                    ].map((opt) => (
                       <button
                         key={opt.val}
                         type="button"
@@ -596,9 +606,11 @@ function CsmEvaluateContent() {
                   </div>
                 </div>
 
-                <div className={`space-y-2 p-3 rounded-2xl border transition-all ${
-                  getBlinkingField() === 'cc3' ? 'animate-blink-border' : 'border-transparent'
-                }`}>
+                <div
+                  className={`space-y-2 p-3 rounded-2xl border transition-all ${
+                    getBlinkingField() === 'cc3' ? 'animate-blink-border' : 'border-transparent'
+                  }`}
+                >
                   <p className="text-sm font-black text-slate-800 dark:text-slate-200">
                     {t[csmLanguage].cc3Q} <span className="text-rose-500">*</span>
                   </p>
@@ -606,8 +618,8 @@ function CsmEvaluateContent() {
                     {[
                       { val: 1, label: t[csmLanguage].cc3Opts[0] },
                       { val: 2, label: t[csmLanguage].cc3Opts[1] },
-                      { val: 3, label: t[csmLanguage].cc3Opts[2] }
-                    ].map(opt => (
+                      { val: 3, label: t[csmLanguage].cc3Opts[2] },
+                    ].map((opt) => (
                       <button
                         key={opt.val}
                         type="button"
@@ -639,28 +651,44 @@ function CsmEvaluateContent() {
                 { id: 2, label: t[csmLanguage].sqd2, desc: t[csmLanguage].sqd2D, val: csmSQD2, setVal: setCsmSQD2 },
                 { id: 3, label: t[csmLanguage].sqd3, desc: t[csmLanguage].sqd3D, val: csmSQD3, setVal: setCsmSQD3 },
                 { id: 4, label: t[csmLanguage].sqd4, desc: t[csmLanguage].sqd4D, val: csmSQD4, setVal: setCsmSQD4 },
-                { id: 5, label: t[csmLanguage].sqd5, desc: t[csmLanguage].sqd5D, val: csmSQD5, setVal: setCsmSQD5, showNa: true },
+                {
+                  id: 5,
+                  label: t[csmLanguage].sqd5,
+                  desc: t[csmLanguage].sqd5D,
+                  val: csmSQD5,
+                  setVal: setCsmSQD5,
+                  showNa: true,
+                },
                 { id: 6, label: t[csmLanguage].sqd6, desc: t[csmLanguage].sqd6D, val: csmSQD6, setVal: setCsmSQD6 },
                 { id: 7, label: t[csmLanguage].sqd7, desc: t[csmLanguage].sqd7D, val: csmSQD7, setVal: setCsmSQD7 },
-                { id: 8, label: t[csmLanguage].sqd8, desc: t[csmLanguage].sqd8D, val: csmSQD8, setVal: setCsmSQD8 }
-              ].map(sqd => {
+                { id: 8, label: t[csmLanguage].sqd8, desc: t[csmLanguage].sqd8D, val: csmSQD8, setVal: setCsmSQD8 },
+              ].map((sqd) => {
                 const ratingOptions = [
-                  { rating: 1, emoji: "😠", label: csmLanguage === 'EN' ? "Strongly Disagree" : "Lubos na Sumasalungat" },
-                  { rating: 2, emoji: "🙁", label: csmLanguage === 'EN' ? "Disagree" : "Sumasalungat" },
-                  { rating: 3, emoji: "😐", label: csmLanguage === 'EN' ? "Neutral" : "Walang Pinapanigan" },
-                  { rating: 4, emoji: "🙂", label: csmLanguage === 'EN' ? "Agree" : "Sumasang-ayon" },
-                  { rating: 5, emoji: "😍", label: csmLanguage === 'EN' ? "Strongly Agree" : "Lubos na Sumasang-ayon" }
+                  {
+                    rating: 1,
+                    emoji: '😠',
+                    label: csmLanguage === 'EN' ? 'Strongly Disagree' : 'Lubos na Sumasalungat',
+                  },
+                  { rating: 2, emoji: '🙁', label: csmLanguage === 'EN' ? 'Disagree' : 'Sumasalungat' },
+                  { rating: 3, emoji: '😐', label: csmLanguage === 'EN' ? 'Neutral' : 'Walang Pinapanigan' },
+                  { rating: 4, emoji: '🙂', label: csmLanguage === 'EN' ? 'Agree' : 'Sumasang-ayon' },
+                  { rating: 5, emoji: '😍', label: csmLanguage === 'EN' ? 'Strongly Agree' : 'Lubos na Sumasang-ayon' },
                 ];
 
                 return (
-                  <div key={sqd.id} className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 space-y-3">
+                  <div
+                    key={sqd.id}
+                    className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 space-y-3"
+                  >
                     <div>
-                      <p className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">{sqd.label}</p>
+                      <p className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+                        {sqd.label}
+                      </p>
                       <p className="text-xs font-bold text-slate-500 mt-0.5">{sqd.desc}</p>
                     </div>
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex items-center gap-1.5 sm:gap-2.5">
-                        {ratingOptions.map(opt => (
+                        {ratingOptions.map((opt) => (
                           <button
                             key={opt.rating}
                             type="button"
@@ -701,7 +729,10 @@ function CsmEvaluateContent() {
 
           {/* Comments */}
           <div className="space-y-2">
-            <label htmlFor="csmComments" className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+            <label
+              htmlFor="csmComments"
+              className="text-xs font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+            >
               {t[csmLanguage].comments}
             </label>
             <textarea
@@ -723,7 +754,9 @@ function CsmEvaluateContent() {
               className="w-full h-14 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-sm rounded-xl shadow-lg"
             >
               {isSubmittingCsm ? (
-                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> {t[csmLanguage].submitting}</>
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" /> {t[csmLanguage].submitting}
+                </>
               ) : (
                 t[csmLanguage].submit
               )}
@@ -744,8 +777,15 @@ function CsmEvaluateContent() {
           background-image: radial-gradient(circle at center, #0e301b 0%, #08170e 100%);
         }
         @keyframes border-blink {
-          0%, 100% { border-color: #D4AF37; box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.4); }
-          50% { border-color: #e2e8f0; box-shadow: 0 0 0 4px transparent; }
+          0%,
+          100% {
+            border-color: #d4af37;
+            box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.4);
+          }
+          50% {
+            border-color: #e2e8f0;
+            box-shadow: 0 0 0 4px transparent;
+          }
         }
         .animate-blink-border {
           animation: border-blink 1.2s infinite;
@@ -753,8 +793,15 @@ function CsmEvaluateContent() {
           border-style: solid !important;
         }
         @keyframes pulse-glow {
-          0%, 100% { opacity: 0.8; filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.2)); }
-          50% { opacity: 1; filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.5)); }
+          0%,
+          100% {
+            opacity: 0.8;
+            filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.2));
+          }
+          50% {
+            opacity: 1;
+            filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.5));
+          }
         }
         .animate-pulse-glow {
           animation: pulse-glow 3s ease-in-out infinite;
@@ -766,11 +813,13 @@ function CsmEvaluateContent() {
 
 export default function CsmEvaluatePage() {
   return (
-    <Suspense fallback={
-      <div className="flex h-dvh w-full items-center justify-center bg-[#0d2a18]">
-        <div className="relative h-16 w-16 rounded-full border-4 border-[#D4AF37] border-t-transparent animate-spin" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex h-dvh w-full items-center justify-center bg-[#0d2a18]">
+          <div className="relative h-16 w-16 rounded-full border-4 border-[#D4AF37] border-t-transparent animate-spin" />
+        </div>
+      }
+    >
       <CsmEvaluateContent />
     </Suspense>
   );

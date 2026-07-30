@@ -669,8 +669,9 @@ export default function VisitorLogbookPage() {
 
     setIsSubmitting(true);
     try {
+      const formattedName = visitorName.trim().toUpperCase();
       const logPayload = {
-        name: visitorName.trim(),
+        name: formattedName,
         sex: sex,
         purpose: purpose.trim(),
         lookingFor: lookingFor.trim(),
@@ -718,8 +719,9 @@ export default function VisitorLogbookPage() {
       console.warn('Online write failed or timed out, saving locally instead:', error);
 
       // Fallback: store locally in LocalStorage
+      const formattedName = visitorName.trim().toUpperCase();
       const logPayload = {
-        name: visitorName.trim(),
+        name: formattedName,
         sex: sex,
         purpose: purpose.trim(),
         lookingFor: lookingFor.trim(),
@@ -1187,11 +1189,11 @@ export default function VisitorLogbookPage() {
                       <Input
                         id="visitorName"
                         type="text"
-                        placeholder="e.g. Juan D. Dela Cruz"
+                        placeholder="e.g. JUAN D. DELA CRUZ"
                         value={visitorName}
-                        onChange={(e) => setVisitorName(e.target.value)}
+                        onChange={(e) => setVisitorName(e.target.value.toUpperCase())}
                         required
-                        className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                        className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all uppercase"
                       />
                     </div>
                   </div>
