@@ -313,9 +313,9 @@ export function CorrectiveActionRequestTab({
   }, [filteredCars]);
 
   const yearlyPerformance = useMemo(() => {
-    if (!rawCars) return [];
+    if (!filteredCars) return [];
     const stats: Record<number, { year: number; NC: number; Open: number; 'On-Going': number; Closed: number }> = {};
-    rawCars.forEach((car) => {
+    filteredCars.forEach((car) => {
       const year = parseInt(car.carNumber?.substring(0, 4), 10);
       const validYear =
         !isNaN(year) && year >= 2000 && year <= 2100
@@ -330,7 +330,7 @@ export function CorrectiveActionRequestTab({
       else stats[validYear]['On-Going']++;
     });
     return Object.values(stats).sort((a, b) => a.year - b.year);
-  }, [rawCars]);
+  }, [filteredCars]);
 
   const chartConfig = {
     Open: { label: 'Open', color: 'hsl(var(--destructive))' },
@@ -1350,7 +1350,7 @@ export function CorrectiveActionRequestTab({
           <AuditorNCManager
             findings={findings || []}
             schedules={schedules || []}
-            cars={rawCars || []}
+            cars={filteredCars}
             campuses={campuses}
             units={units}
             signatories={currentSignatories || undefined}
