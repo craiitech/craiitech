@@ -803,6 +803,43 @@ export function CorrectiveActionRequestTab({
     }
   };
 
+  const handleOpenCreateNew = () => {
+    setEditingCar(null);
+    const yr = new Date().getFullYear();
+    const rand = String(Math.floor(Math.random() * 900) + 100).padStart(3, '0');
+    const autoCarNumber = auditTypeFilter === 'EQA' ? `EQA-CAR-${yr}-${rand}` : `CAR-${yr}-${rand}`;
+    const defaultReplyDate = format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+    const defaultRequestDate = format(new Date(), 'yyyy-MM-dd');
+
+    form.reset({
+      carNumber: autoCarNumber,
+      ncReportNumber: '',
+      source: auditTypeFilter === 'EQA' ? 'Others' : 'Audit Finding',
+      procedureTitle: '',
+      initiator: userProfile
+        ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim()
+        : 'Quality Assurance Office',
+      natureOfFinding: 'NC',
+      concerningClause: '4.1',
+      concerningTopManagementName: 'Top Management',
+      timeLimitForReply: defaultReplyDate,
+      unitId: units[0]?.id || '',
+      campusId: campuses[0]?.id || '',
+      unitHead: '',
+      descriptionOfNonconformance: '',
+      requestDate: defaultRequestDate,
+      preparedBy: userProfile ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() : 'QA Auditor',
+      approvedBy: currentSignatories?.qaoDirector || 'Director, QAO',
+      rootCauseAnalysis: '',
+      adminFeedback: '',
+      actionSteps: [],
+      followUpLogs: [],
+      effectivenessAudits: [],
+      status: 'Open',
+    });
+    setIsDialogOpen(true);
+  };
+
   const handlePrintRegistry = () => {
     try {
       const reportHtml = renderToStaticMarkup(
@@ -823,6 +860,32 @@ export function CorrectiveActionRequestTab({
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-primary" />
+            {auditTypeFilter === 'EQA'
+              ? 'External Quality Audit (EQA) CAR Registry'
+              : 'Corrective Action Request (CAR) Registry'}
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {auditTypeFilter === 'EQA'
+              ? 'Central institutional management and issuance of Corrective Action Requests for External Quality Audits.'
+              : 'Central institutional management and tracking for Non-Conformance findings and Corrective Action Requests.'}
+          </p>
+        </div>
+        {(canManage || isInstitutionalViewer) && (
+          <Button
+            onClick={handleOpenCreateNew}
+            size="sm"
+            className="shadow-lg shadow-primary/20 shrink-0 font-black uppercase text-[10px] tracking-widest"
+          >
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {auditTypeFilter === 'EQA' ? 'Issue New EQA CAR' : 'Issue New CAR'}
+          </Button>
+        )}
+      </div>
+
       <Card className="border-primary/10 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
