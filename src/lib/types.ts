@@ -577,6 +577,7 @@ export type CAREffectivenessAudit = {
 
 export type CorrectiveActionRequest = {
   id: string;
+  auditType?: 'IQA' | 'EQA';
   findingId?: string; // New: Link to source audit finding
   carNumber: string;
   ncReportNumber?: string;
@@ -607,6 +608,27 @@ export type CorrectiveActionRequest = {
   status: 'Open' | 'In Progress' | 'Awaiting Response/Update' | 'For Final Verification' | 'Closed';
   needsVerification?: boolean; // New flag for tracking unit updates
   nextVerificationDate?: any; // New: Date for scheduling follow-up/reminders
+  createdAt: any;
+  updatedAt: any;
+};
+
+export type EqaOfiStatus = 'Pending' | 'In Progress' | 'Completed' | 'Verified';
+
+export type EqaOfiMonitoring = {
+  id: string;
+  eqaReportId?: string;
+  auditDate: any; // Timestamp or Date string
+  certifyingBody?: string;
+  standard?: string;
+  campusId: string;
+  unitId: string;
+  unitName: string;
+  ofiStatement: string;
+  actionTaken: string;
+  targetDate?: any;
+  status: EqaOfiStatus;
+  evidenceLink?: string;
+  remarks?: string;
   createdAt: any;
   updatedAt: any;
 };

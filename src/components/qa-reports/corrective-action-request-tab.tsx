@@ -110,6 +110,7 @@ interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
   units: Unit[];
   canManage: boolean;
+  auditTypeFilter?: 'IQA' | 'EQA' | 'ALL';
 }
 
 const carSchema = z.object({
@@ -174,7 +175,12 @@ const carSchema = z.object({
   findingId: z.string().optional(),
 });
 
-export function CorrectiveActionRequestTab({ campuses, units, canManage }: CorrectiveActionRequestTabProps) {
+export function CorrectiveActionRequestTab({
+  campuses,
+  units,
+  canManage,
+  auditTypeFilter = 'ALL',
+}: CorrectiveActionRequestTabProps) {
   const { userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -270,6 +276,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
   const filteredCars = useMemo(() => {
     if (!rawCars) return [];
     return rawCars.filter((car) => {
+      if (auditTypeFilter === 'EQA' && car.auditType !== 'EQA') return false;
+      if (auditTypeFilter === 'IQA' && car.auditType === 'EQA') return false;
+
       if (!isInstitutionalViewer) {
         const isCampusSupervisor =
           userRole === 'Campus Director' ||
@@ -289,7 +298,7 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
         unitMap.get(car.unitId)?.toLowerCase().includes(lowerSearch);
       return matchesCampus && matchesSearch;
     });
-  }, [rawCars, campusFilter, searchTerm, unitMap, isInstitutionalViewer, userRole, userProfile]);
+  }, [rawCars, campusFilter, searchTerm, unitMap, isInstitutionalViewer, userRole, userProfile, auditTypeFilter]);
 
   const carsForAction = useMemo(() => {
     return filteredCars.filter((car) => car.status !== 'Open' && car.status !== 'Closed');
@@ -729,8 +738,9 @@ export function CorrectiveActionRequestTab({ campuses, units, canManage }: Corre
       needsVerification = false;
     }
 
-    const carData: any = {
+    const carData = {
       ...values,
+      auditType: editingCar?.auditType || (auditTypeFilter === 'EQA' ? 'EQA' : 'IQA'),
       status: nextStatus,
       needsVerification,
       comments: updatedComments,

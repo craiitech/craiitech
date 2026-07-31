@@ -14,6 +14,8 @@ import { QaAnalyticsTab } from '@/components/qa-reports/qa-analytics-tab';
 import { ActionableDecisionsTab } from '@/components/qa-reports/actionable-decisions-tab';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+import { EqaReportsContainer } from '@/components/qa-reports/eqa-reports-container';
+
 export default function QaReportsPage() {
   const { isAdmin, userRole, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -52,40 +54,40 @@ export default function QaReportsPage() {
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         {/* Sticky Header and Tabs */}
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                    <ShieldCheck className="h-8 w-8 text-primary" />
-                    Institutional QA Reports
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Central repository for IQA, EQA, Management Reviews, and Corrective Actions.
-                  </p>
-                </div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                <ShieldCheck className="h-8 w-8 text-primary" />
+                Institutional QA Reports
+              </h2>
+              <p className="text-muted-foreground">
+                Central repository for IQA, EQA, Management Reviews, and Corrective Actions.
+              </p>
             </div>
+          </div>
 
-            <ScrollArea className="w-full">
-                <TabsList className="bg-muted p-1 border shadow-sm flex md:inline-flex w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                  <TabsTrigger value="overview" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
-                    <BarChart3 className="h-4 w-4" /> Overview
-                  </TabsTrigger>
-                  <TabsTrigger value="decisions" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
-                    <ListTodo className="h-4 w-4" /> Actionable Decisions
-                  </TabsTrigger>
-                  <TabsTrigger value="car" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
-                    <ClipboardCheck className="h-4 w-4" /> CAR Registry
-                  </TabsTrigger>
-                  <TabsTrigger value="iqa" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
-                    <FileText className="h-4 w-4" /> IQA Reports
-                  </TabsTrigger>
-                  <TabsTrigger value="eqa" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
-                    <Presentation className="h-4 w-4" /> EQA Reports
-                  </TabsTrigger>
-                  <TabsTrigger value="mr" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
-                    <Users className="h-4 w-4" /> Management Review
-                  </TabsTrigger>
-                </TabsList>
-            </ScrollArea>
+          <ScrollArea className="w-full">
+            <TabsList className="bg-muted p-1 border shadow-sm flex md:inline-flex w-max min-w-max h-10 animate-tab-highlight rounded-md">
+              <TabsTrigger value="overview" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                <BarChart3 className="h-4 w-4" /> Overview
+              </TabsTrigger>
+              <TabsTrigger value="decisions" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                <ListTodo className="h-4 w-4" /> Actionable Decisions
+              </TabsTrigger>
+              <TabsTrigger value="car" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                <ClipboardCheck className="h-4 w-4" /> CAR Registry
+              </TabsTrigger>
+              <TabsTrigger value="iqa" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                <FileText className="h-4 w-4" /> IQA Reports
+              </TabsTrigger>
+              <TabsTrigger value="eqa" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                <Presentation className="h-4 w-4" /> EQA Reports
+              </TabsTrigger>
+              <TabsTrigger value="mr" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
+                <Users className="h-4 w-4" /> Management Review
+              </TabsTrigger>
+            </TabsList>
+          </ScrollArea>
         </div>
 
         <TabsContent value="overview" className="animate-in fade-in duration-500">
@@ -105,7 +107,7 @@ export default function QaReportsPage() {
         </TabsContent>
 
         <TabsContent value="eqa" className="animate-in fade-in duration-500">
-          <AuditReportsTab type="EQA" campuses={campuses || []} canManage={canManage} />
+          <EqaReportsContainer campuses={campuses || []} units={units || []} canManage={canManage} />
         </TabsContent>
 
         <TabsContent value="mr" className="animate-in fade-in duration-500">
