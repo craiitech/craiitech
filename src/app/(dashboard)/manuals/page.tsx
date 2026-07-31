@@ -7,28 +7,28 @@ import type { ProcedureManual, Unit, ProcedureRevisionRequest, Campus } from '@/
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-    Loader2, 
-    Search, 
-    BookOpen, 
-    Building, 
-    ChevronLeft, 
-    ChevronRight, 
-    PanelLeftClose, 
-    PanelLeftOpen, 
-    Hash, 
-    Calendar, 
-    Layers, 
-    Info, 
-    ListChecks, 
-    FilePlus, 
-    Inbox, 
-    History, 
-    Edit, 
-    ExternalLink, 
-    PlusCircle,
-    School,
-    CheckCircle
+import {
+  Loader2,
+  Search,
+  BookOpen,
+  Building,
+  ChevronLeft,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Hash,
+  Calendar,
+  Layers,
+  Info,
+  ListChecks,
+  FilePlus,
+  Inbox,
+  History,
+  Edit,
+  ExternalLink,
+  PlusCircle,
+  School,
+  CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -44,11 +44,11 @@ import { ProcedureRevisionReviewDialog } from '@/components/manuals/procedure-re
 const SHARED_ACADEMIC_ID = 'academic-shared';
 
 const statusColors: Record<string, string> = {
-    'Submitted': 'bg-blue-100 text-blue-700',
-    'Returned for Revision': 'bg-amber-100 text-amber-700',
-    'Rejected': 'bg-rose-100 text-rose-700',
-    'Awaiting Presidential Approval': 'bg-indigo-100 text-indigo-700',
-    'Approved & Registered': 'bg-emerald-100 text-emerald-700',
+  Submitted: 'bg-blue-100 text-blue-700',
+  'Returned for Revision': 'bg-amber-100 text-amber-700',
+  Rejected: 'bg-rose-100 text-rose-700',
+  'Awaiting Presidential Approval': 'bg-indigo-100 text-indigo-700',
+  'Approved & Registered': 'bg-emerald-100 text-emerald-700',
 };
 
 export default function ProcedureManualsPage() {
@@ -77,115 +77,119 @@ export default function ProcedureManualsPage() {
 
   const manualsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'procedureManuals') : null),
-    [firestore]
+    [firestore],
   );
   const { data: manuals, isLoading: isLoadingManuals } = useCollection<ProcedureManual>(manualsQuery);
 
-  const unitsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'units') : null),
-    [firestore]
-  );
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const campusesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'campuses') : null),
-    [firestore]
-  );
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
-  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
+  const campusMap = useMemo(() => new Map(campuses?.map((c) => [c.id, c.name])), [campuses]);
 
   // Query revision requests for active unit
   const revisionRequestsQuery = useMemoFirebase(
-    () => (firestore && selectedUnitId ? query(collection(firestore, 'procedureRevisionRequests'), where('unitId', '==', selectedUnitId)) : null),
-    [firestore, selectedUnitId]
+    () =>
+      firestore && selectedUnitId
+        ? query(collection(firestore, 'procedureRevisionRequests'), where('unitId', '==', selectedUnitId))
+        : null,
+    [firestore, selectedUnitId],
   );
-  const { data: unitRequests, isLoading: isLoadingUnitRequests } = useCollection<ProcedureRevisionRequest>(revisionRequestsQuery);
+  const { data: unitRequests, isLoading: isLoadingUnitRequests } =
+    useCollection<ProcedureRevisionRequest>(revisionRequestsQuery);
 
   const sortedUnitRequests = useMemo(() => {
     if (!unitRequests) return [];
     return [...unitRequests].sort((a, b) => {
-        const dateA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime();
-        const dateB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime();
-        return dateB - dateA;
+      const dateA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime();
+      const dateB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime();
+      return dateB - dateA;
     });
   }, [unitRequests]);
 
   // Query all revision requests for admin inbox
   const allRevisionRequestsQuery = useMemoFirebase(
     () => (firestore && isAdmin && isInboxLoaded ? collection(firestore, 'procedureRevisionRequests') : null),
-    [firestore, isAdmin, isInboxLoaded]
+    [firestore, isAdmin, isInboxLoaded],
   );
-  const { data: allRequests, isLoading: isLoadingAllRequests } = useCollection<ProcedureRevisionRequest>(allRevisionRequestsQuery);
+  const { data: allRequests, isLoading: isLoadingAllRequests } =
+    useCollection<ProcedureRevisionRequest>(allRevisionRequestsQuery);
 
   const sortedAllRequests = useMemo(() => {
     if (!allRequests) return [];
     return [...allRequests].sort((a, b) => {
-        const dateA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime();
-        const dateB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime();
-        return dateB - dateA;
+      const dateA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime();
+      const dateB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime();
+      return dateB - dateA;
     });
   }, [allRequests]);
 
   const sidebarItems = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
-    
-    let filtered = allUnits.filter(u => u.category !== 'Academic');
-    
+
+    let filtered = allUnits.filter((u) => u.category !== 'Academic');
+
     if (!isAdmin && userRole !== 'Auditor') {
-        filtered = filtered.filter(u => u.campusIds?.includes(userProfile.campusId));
-        if (!isSupervisor || userRole === 'Unit ODIMO') {
-            filtered = filtered.filter(u => u.id === userProfile.unitId);
-        }
+      filtered = filtered.filter((u) => u.campusIds?.includes(userProfile.campusId));
+      if (!isSupervisor || userRole === 'Unit ODIMO') {
+        filtered = filtered.filter((u) => u.id === userProfile.unitId);
+      }
     }
 
     if (searchTerm) {
-        const lower = searchTerm.toLowerCase();
-        filtered = filtered.filter(u => u.name.toLowerCase().includes(lower));
+      const lower = searchTerm.toLowerCase();
+      filtered = filtered.filter((u) => u.name.toLowerCase().includes(lower));
     }
 
-    const items = filtered.map(u => ({ 
-        id: u.id, 
-        name: u.name, 
-        isShared: false 
+    const items = filtered.map((u) => ({
+      id: u.id,
+      name: u.name,
+      isShared: false,
     }));
 
-    const hasAcademic = allUnits.some(u => u.category === 'Academic');
+    const hasAcademic = allUnits.some((u) => u.category === 'Academic');
     if (hasAcademic) {
-        const myUnit = allUnits.find(u => u.id === userProfile.unitId);
-        const canSeeAcademic = isAdmin || isSupervisor || userRole === 'Auditor' || myUnit?.category === 'Academic';
-        
-        if (canSeeAcademic) {
-            items.unshift({ 
-                id: SHARED_ACADEMIC_ID, 
-                name: 'Academic Units (Shared Manual)', 
-                isShared: true 
-            });
-        }
+      const myUnit = allUnits.find((u) => u.id === userProfile.unitId);
+      const canSeeAcademic = isAdmin || isSupervisor || userRole === 'Auditor' || myUnit?.category === 'Academic';
+
+      if (canSeeAcademic) {
+        items.unshift({
+          id: SHARED_ACADEMIC_ID,
+          name: 'Academic Units (Shared Manual)',
+          isShared: true,
+        });
+      }
     }
 
-    return items.sort((a, b) => a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name));
+    return items.sort((a, b) => (a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name)));
   }, [allUnits, userProfile, isAdmin, isSupervisor, userRole, isUserLoading, searchTerm]);
 
   useEffect(() => {
     if (userProfile && !selectedUnitId && !isUserLoading && allUnits && allUnits.length > 0) {
-        const myUnit = allUnits.find(u => u.id === userProfile.unitId);
-        if (myUnit?.category === 'Academic') {
-            setSelectedUnitId(SHARED_ACADEMIC_ID);
-        } else {
-            setSelectedUnitId(userProfile.unitId || null);
-        }
+      const myUnit = allUnits.find((u) => u.id === userProfile.unitId);
+      if (myUnit?.category === 'Academic') {
+        setSelectedUnitId(SHARED_ACADEMIC_ID);
+      } else {
+        setSelectedUnitId(userProfile.unitId || null);
+      }
     }
   }, [userProfile, allUnits, selectedUnitId, isUserLoading]);
 
   const selectedUnit = useMemo(() => {
     if (selectedUnitId === SHARED_ACADEMIC_ID) {
-        return { id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Manual)', category: 'Academic' as const, isShared: true };
+      return {
+        id: SHARED_ACADEMIC_ID,
+        name: 'Academic Units (Shared Manual)',
+        category: 'Academic' as const,
+        isShared: true,
+      };
     }
-    return allUnits?.find(u => u.id === selectedUnitId) || null;
+    return allUnits?.find((u) => u.id === selectedUnitId) || null;
   }, [allUnits, selectedUnitId]);
 
   const selectedManual = useMemo(() => {
-    return manuals?.find(m => m.id === selectedUnitId) || null;
+    return manuals?.find((m) => m.id === selectedUnitId) || null;
   }, [manuals, selectedUnitId]);
 
   const canApplyRevision = useMemo(() => {
@@ -193,11 +197,11 @@ export default function ProcedureManualsPage() {
     if (isAdmin) return true;
     if (userRole !== 'Unit Coordinator' && userRole !== 'Unit ODIMO') return false;
     if (!selectedUnit) return false;
-    
+
     if (selectedUnitId === userProfile.unitId) return true;
     if (selectedUnitId === SHARED_ACADEMIC_ID) {
-        const myUnitObj = allUnits?.find(u => u.id === userProfile.unitId);
-        return myUnitObj?.category === 'Academic';
+      const myUnitObj = allUnits?.find((u) => u.id === userProfile.unitId);
+      return myUnitObj?.category === 'Academic';
     }
     return false;
   }, [userProfile, isAdmin, userRole, selectedUnit, selectedUnitId, allUnits]);
@@ -212,50 +216,72 @@ export default function ProcedureManualsPage() {
       <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Procedure Manuals Hub</h2>
+            <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
+              Procedure Manuals Hub
+            </h2>
             <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
               Access official operating procedures and apply for revisions.
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="lg:hidden" 
+            <Button
+              variant="outline"
+              size="sm"
+              className="lg:hidden"
               onClick={() => setIsSidebarVisible(!isSidebarVisible)}
             >
-              {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
+              {isSidebarVisible ? (
+                <PanelLeftClose className="mr-2 h-4 w-4" />
+              ) : (
+                <PanelLeftOpen className="mr-2 h-4 w-4" />
+              )}
               {isSidebarVisible ? 'Hide Index' : 'Show Index'}
             </Button>
           </div>
         </div>
 
         <ScrollArea className="w-full">
-            <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
-                <TabsTrigger onClick={() => handleTabChange('view')} value="view" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                    <BookOpen className="h-3.5 w-3.5" /> View Manual
-                </TabsTrigger>
-                <TabsTrigger onClick={() => handleTabChange('revisions')} value="revisions" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                    <History className="h-3.5 w-3.5" /> Revision Requests
-                </TabsTrigger>
-                {isAdmin && (
-                    <TabsTrigger onClick={() => handleTabChange('inbox')} value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <Inbox className="h-3.5 w-3.5" /> Revision Inbox
-                    </TabsTrigger>
-                )}
-            </TabsList>
+          <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
+            <TabsTrigger
+              onClick={() => handleTabChange('view')}
+              value="view"
+              className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+            >
+              <BookOpen className="h-3.5 w-3.5" /> View Manual
+            </TabsTrigger>
+            <TabsTrigger
+              onClick={() => handleTabChange('revisions')}
+              value="revisions"
+              className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+            >
+              <History className="h-3.5 w-3.5" /> New and Revision Request
+            </TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger
+                onClick={() => handleTabChange('inbox')}
+                value="inbox"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+              >
+                <Inbox className="h-3.5 w-3.5" /> New and Revision Inbox
+              </TabsTrigger>
+            )}
+          </TabsList>
         </ScrollArea>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 min-h-0 lg:h-[calc(100dvh-16rem)]">
         {/* Sidebar Index */}
-        <div className={cn(
-          "transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0",
-          isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6"
-        )}>
+        <div
+          className={cn(
+            'transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0',
+            isSidebarVisible ? 'w-full lg:w-1/4 opacity-100' : 'w-0 opacity-0 lg:-mr-6',
+          )}
+        >
           <Card className="flex flex-col h-[300px] lg:h-full shadow-sm border-primary/10">
             <CardHeader className="pb-4 bg-muted/30 border-b shrink-0">
-              <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Manual Index</CardTitle>
+              <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                Manual Index
+              </CardTitle>
               <div className="relative pt-2">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -274,23 +300,25 @@ export default function ProcedureManualsPage() {
               ) : (
                 <ScrollArea className="h-full">
                   <div className="flex flex-col">
-                    {sidebarItems.map(item => (
+                    {sidebarItems.map((item) => (
                       <button
                         key={item.id}
                         onClick={() => setSelectedUnitId(item.id)}
                         className={cn(
-                          "w-full text-left py-2.5 px-4 text-xs border-l-2 transition-all flex items-center",
-                          selectedUnitId === item.id 
-                            ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" 
-                            : "border-transparent text-muted-foreground hover:bg-muted/30"
+                          'w-full text-left py-2.5 px-4 text-xs border-l-2 transition-all flex items-center',
+                          selectedUnitId === item.id
+                            ? 'bg-primary/5 text-primary border-primary font-bold shadow-inner'
+                            : 'border-transparent text-muted-foreground hover:bg-muted/30',
                         )}
                       >
                         {item.isShared ? (
-                            <Layers className="mr-3 h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                          <Layers className="mr-3 h-3.5 w-3.5 flex-shrink-0 text-primary" />
                         ) : (
-                            <Building className="mr-3 h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+                          <Building className="mr-3 h-3.5 w-3.5 flex-shrink-0 opacity-40" />
                         )}
-                        <span className={cn("truncate", item.isShared && "font-black uppercase tracking-tighter")}>{item.name}</span>
+                        <span className={cn('truncate', item.isShared && 'font-black uppercase tracking-tighter')}>
+                          {item.name}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -307,7 +335,7 @@ export default function ProcedureManualsPage() {
             size="icon"
             className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
             onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-            title={isSidebarVisible ? "Hide Index" : "Show Index"}
+            title={isSidebarVisible ? 'Hide Index' : 'Show Index'}
           >
             {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
@@ -315,7 +343,10 @@ export default function ProcedureManualsPage() {
           {selectedUnit ? (
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center justify-between border-b pb-2 shrink-0 px-1">
-                <Badge variant="outline" className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary max-w-full truncate">
+                <Badge
+                  variant="outline"
+                  className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary max-w-full truncate"
+                >
                   Active Context: {selectedUnit.name}
                 </Badge>
               </div>
@@ -326,55 +357,60 @@ export default function ProcedureManualsPage() {
                   <TabsContent value="view" className="h-full m-0 animate-in fade-in duration-300">
                     <Card className="h-full flex flex-col shadow-md border-primary/10 overflow-hidden">
                       <CardHeader className="border-b bg-muted/5 py-4">
-                          <div className="flex items-center justify-between">
-                              <div className="space-y-1">
-                                  <CardTitle className="text-sm font-black uppercase tracking-tight truncate max-w-[500px]">
-                                      {selectedManual?.unitName || (selectedUnitId === SHARED_ACADEMIC_ID ? 'Academic Procedure Manual' : 'Procedure Manual')}
-                                  </CardTitle>
-                                  <CardDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                      Official Operational Reference Log
-                                  </CardDescription>
-                              </div>
-                              {selectedManual && (
-                                  <Badge variant="secondary" className="h-6 font-mono font-bold">
-                                      Rev {selectedManual.revisionNumber || '00'}
-                                  </Badge>
-                              )}
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-1">
+                            <CardTitle className="text-sm font-black uppercase tracking-tight truncate max-w-[500px]">
+                              {selectedManual?.unitName ||
+                                (selectedUnitId === SHARED_ACADEMIC_ID
+                                  ? 'Academic Procedure Manual'
+                                  : 'Procedure Manual')}
+                            </CardTitle>
+                            <CardDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                              Official Operational Reference Log
+                            </CardDescription>
                           </div>
+                          {selectedManual && (
+                            <Badge variant="secondary" className="h-6 font-mono font-bold">
+                              Rev {selectedManual.revisionNumber || '00'}
+                            </Badge>
+                          )}
+                        </div>
                       </CardHeader>
                       <CardContent className="flex-1 p-0 bg-slate-100 dark:bg-slate-700 relative shadow-inner">
-                      {previewUrl ? (
+                        {previewUrl ? (
                           <iframe
                             src={previewUrl}
                             className="absolute inset-0 h-full w-full border-none bg-white"
                             allow="autoplay"
                             title={`${selectedManual?.unitName} Manual Preview`}
                           />
-                      ) : (
+                        ) : (
                           <div className="flex h-full items-center justify-center text-muted-foreground p-8">
                             <div className="text-center max-w-xs">
-                                <BookOpen className="mx-auto h-16 w-16 opacity-10 mb-4" />
-                                <p className="font-bold uppercase text-sm tracking-widest text-slate-400">No Selection</p>
-                                <p className="text-[10px] mt-2 leading-relaxed">No manual configured for this unit context yet.</p>
+                              <BookOpen className="mx-auto h-16 w-16 opacity-10 mb-4" />
+                              <p className="font-bold uppercase text-sm tracking-widest text-slate-400">No Selection</p>
+                              <p className="text-[10px] mt-2 leading-relaxed">
+                                No manual configured for this unit context yet.
+                              </p>
                             </div>
                           </div>
-                      )}
+                        )}
                       </CardContent>
                       {selectedManual && (
-                          <CardFooter className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] border-t bg-card py-3 px-6 uppercase tracking-widest font-bold text-muted-foreground">
-                              <div className="flex items-center gap-2">
-                                  <Hash className="h-3.5 w-3.5 text-primary"/>
-                                  <span>Revision: {selectedManual.revisionNumber}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                  <Calendar className="h-3.5 w-3.5 text-primary"/>
-                                  <span className="truncate">Implemented: {selectedManual.dateImplemented}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                  <Info className="h-3.5 w-3.5 text-primary"/>
-                                  <span>Controlled RSU Document</span>
-                              </div>
-                          </CardFooter>
+                        <CardFooter className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] border-t bg-card py-3 px-6 uppercase tracking-widest font-bold text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Hash className="h-3.5 w-3.5 text-primary" />
+                            <span>Revision: {selectedManual.revisionNumber}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="h-3.5 w-3.5 text-primary" />
+                            <span className="truncate">Implemented: {selectedManual.dateImplemented}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Info className="h-3.5 w-3.5 text-primary" />
+                            <span>Controlled RSU Document</span>
+                          </div>
+                        </CardFooter>
                       )}
                     </Card>
                   </TabsContent>
@@ -385,19 +421,30 @@ export default function ProcedureManualsPage() {
                       <div className="space-y-6 pb-10">
                         <div className="flex justify-between items-center bg-muted/10 border p-4 rounded-xl">
                           <div className="space-y-1">
-                            <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Apply for Procedure Revision</h4>
-                            <p className="text-[10px] text-muted-foreground italic">Submit a signed Document Registration and Revision Form (DRRF) to request changes to manual sections.</p>
+                            <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">
+                              Apply for New or Procedure Revision Request
+                            </h4>
+                            <p className="text-[10px] text-muted-foreground italic">
+                              Submit a signed Document Registration and Revision Form (DRRF) to register new manuals or
+                              request updates.
+                            </p>
                           </div>
                           {canApplyRevision && (
-                            <Button onClick={() => setIsRevisionOpen(true)} size="sm" className="font-black uppercase text-[10px] tracking-widest h-9 gap-2 shadow-lg shadow-primary/10">
-                              <PlusCircle className="h-4 w-4" /> Apply for Revision
+                            <Button
+                              onClick={() => setIsRevisionOpen(true)}
+                              size="sm"
+                              className="font-black uppercase text-[10px] tracking-widest h-9 gap-2 shadow-lg shadow-primary/10"
+                            >
+                              <PlusCircle className="h-4 w-4" /> Apply for New / Revision
                             </Button>
                           )}
                         </div>
 
                         <Card className="shadow-sm border-primary/10 overflow-hidden">
                           <CardHeader className="bg-muted/15 border-b py-4">
-                            <CardTitle className="text-xs font-black uppercase tracking-tight">Revision Logs & History</CardTitle>
+                            <CardTitle className="text-xs font-black uppercase tracking-tight">
+                              New & Revision Logs & History
+                            </CardTitle>
                           </CardHeader>
                           <CardContent className="p-0">
                             <Table>
@@ -405,46 +452,97 @@ export default function ProcedureManualsPage() {
                                 <TableRow>
                                   <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
                                   <TableHead className="text-[10px] font-black uppercase">Control No.</TableHead>
-                                  <TableHead className="text-[10px] font-black uppercase">Revised Parts Count</TableHead>
+                                  <TableHead className="text-[10px] font-black uppercase">Type</TableHead>
+                                  <TableHead className="text-[10px] font-black uppercase">
+                                    Revised Parts Count
+                                  </TableHead>
                                   <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
-                                  <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                                  <TableHead className="text-right text-[10px] font-black uppercase pr-6">
+                                    Action
+                                  </TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
                                 {isLoadingUnitRequests ? (
-                                  <TableRow><TableCell colSpan={5} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
-                                ) : sortedUnitRequests.length > 0 ? sortedUnitRequests.map(req => (
-                                  <TableRow key={req.id} className="hover:bg-muted/20 transition-colors group cursor-pointer" onClick={() => setReviewRequestId(req.id)}>
-                                    <TableCell className="pl-6 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yyyy') : '--'}</TableCell>
-                                    <TableCell className="font-mono text-xs font-bold text-primary">{req.controlNumber || 'RSU-REV-...'}</TableCell>
-                                    <TableCell className="text-xs font-semibold text-slate-700 dark:text-slate-300">{req.revisedParts.length} Parts Modified</TableCell>
-                                    <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4 px-1.5 border-none", statusColors[req.status])}>{req.status}</Badge></TableCell>
-                                    <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
-                                      <div className="flex justify-end gap-1.5">
-                                        {req.status === 'Returned for Revision' && canApplyRevision && (
-                                          <Button 
-                                            size="icon" 
-                                            variant="ghost" 
-                                            className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                                            onClick={() => {
-                                              setEditingRequest(req);
-                                              setIsRevisionOpen(true);
-                                            }}
-                                            title="Edit & Resubmit"
-                                          >
-                                            <Edit className="h-4 w-4" />
-                                          </Button>
-                                        )}
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" onClick={() => setReviewRequestId(req.id)}>
-                                          <ExternalLink className="h-4 w-4" />
-                                        </Button>
-                                      </div>
+                                  <TableRow>
+                                    <TableCell colSpan={6} className="h-32 text-center">
+                                      <Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" />
                                     </TableCell>
                                   </TableRow>
-                                )) : (
+                                ) : sortedUnitRequests.length > 0 ? (
+                                  sortedUnitRequests.map((req) => (
+                                    <TableRow
+                                      key={req.id}
+                                      className="hover:bg-muted/20 transition-colors group cursor-pointer"
+                                      onClick={() => setReviewRequestId(req.id)}
+                                    >
+                                      <TableCell className="pl-6 font-mono text-xs">
+                                        {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yyyy') : '--'}
+                                      </TableCell>
+                                      <TableCell className="font-mono text-xs font-bold text-primary">
+                                        {req.controlNumber || 'RSU-REV-...'}
+                                      </TableCell>
+                                      <TableCell>
+                                        <Badge
+                                          variant="outline"
+                                          className={cn(
+                                            'text-[8px] font-black uppercase h-4 px-1.5',
+                                            req.requestType === 'New'
+                                              ? 'border-blue-400 bg-blue-50 text-blue-800'
+                                              : 'border-purple-400 bg-purple-50 text-purple-800',
+                                          )}
+                                        >
+                                          {req.requestType === 'New' ? 'NEW' : 'REVISION'}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                        {req.revisedParts.length} Parts Modified
+                                      </TableCell>
+                                      <TableCell className="text-center">
+                                        <Badge
+                                          className={cn(
+                                            'text-[8px] font-black uppercase h-4 px-1.5 border-none',
+                                            statusColors[req.status],
+                                          )}
+                                        >
+                                          {req.status}
+                                        </Badge>
+                                      </TableCell>
+                                      <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
+                                        <div className="flex justify-end gap-1.5">
+                                          {req.status === 'Returned for Revision' && canApplyRevision && (
+                                            <Button
+                                              size="icon"
+                                              variant="ghost"
+                                              className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                              onClick={() => {
+                                                setEditingRequest(req);
+                                                setIsRevisionOpen(true);
+                                              }}
+                                              title="Edit & Resubmit"
+                                            >
+                                              <Edit className="h-4 w-4" />
+                                            </Button>
+                                          )}
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-muted-foreground"
+                                            onClick={() => setReviewRequestId(req.id)}
+                                          >
+                                            <ExternalLink className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </TableCell>
+                                    </TableRow>
+                                  ))
+                                ) : (
                                   <TableRow>
-                                    <TableCell colSpan={5} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">
-                                      No revision applications found.
+                                    <TableCell
+                                      colSpan={6}
+                                      className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic"
+                                    >
+                                      No applications found.
                                     </TableCell>
                                   </TableRow>
                                 )}
@@ -463,11 +561,19 @@ export default function ProcedureManualsPage() {
                         <div className="space-y-6 pb-10">
                           <div className="flex items-center justify-between bg-muted/10 border p-4 rounded-xl">
                             <div className="space-y-1">
-                              <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Revisions Review Inbox</h4>
-                              <p className="text-[10px] text-muted-foreground italic">Review and process revision applications from all units.</p>
+                              <h4 className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">
+                                New and Revision Review Inbox
+                              </h4>
+                              <p className="text-[10px] text-muted-foreground italic">
+                                Review and process new manual submissions and revision applications from all units.
+                              </p>
                             </div>
                             {!isInboxLoaded && (
-                              <Button onClick={() => setIsInboxLoaded(true)} size="sm" className="font-black uppercase text-[10px] tracking-widest h-9 gap-2 shadow-lg shadow-primary/10">
+                              <Button
+                                onClick={() => setIsInboxLoaded(true)}
+                                size="sm"
+                                className="font-black uppercase text-[10px] tracking-widest h-9 gap-2 shadow-lg shadow-primary/10"
+                              >
                                 <Inbox className="h-4 w-4" /> Load Inbox
                               </Button>
                             )}
@@ -476,7 +582,9 @@ export default function ProcedureManualsPage() {
                           {isInboxLoaded && (
                             <Card className="shadow-md border-primary/10 overflow-hidden">
                               <CardHeader className="bg-primary/5 border-b py-4">
-                                <CardTitle className="text-sm font-black uppercase tracking-tight">Manual Revision Applications Inbox</CardTitle>
+                                <CardTitle className="text-sm font-black uppercase tracking-tight">
+                                  Manual New & Revision Applications Inbox
+                                </CardTitle>
                               </CardHeader>
                               <CardContent className="p-0">
                                 <Table>
@@ -485,39 +593,87 @@ export default function ProcedureManualsPage() {
                                       <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
                                       <TableHead className="text-[10px] font-black uppercase">Unit & Campus</TableHead>
                                       <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
+                                      <TableHead className="text-[10px] font-black uppercase">Type</TableHead>
                                       <TableHead className="text-[10px] font-black uppercase">Modified Parts</TableHead>
-                                      <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
-                                      <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                                      <TableHead className="text-[10px] font-black uppercase text-center">
+                                        Status
+                                      </TableHead>
+                                      <TableHead className="text-right text-[10px] font-black uppercase pr-6">
+                                        Action
+                                      </TableHead>
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
                                     {isLoadingAllRequests ? (
-                                      <TableRow><TableCell colSpan={6} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow>
-                                    ) : sortedAllRequests.length > 0 ? sortedAllRequests.map(req => (
-                                      <TableRow key={req.id} className="hover:bg-muted/20">
-                                        <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yyyy') : '--'}</TableCell>
-                                        <TableCell>
-                                          <div className="flex flex-col">
-                                            <span className="font-bold text-xs uppercase text-slate-800 dark:text-slate-200">{req.unitName}</span>
-                                            <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
-                                                <School className="h-2.5 w-2.5" />
-                                                {campusMap.get(req.campusId) || 'Site Context'}
-                                            </span>
-                                          </div>
-                                        </TableCell>
-                                        <TableCell className="text-xs">{req.submitterName}</TableCell>
-                                        <TableCell className="text-xs font-semibold text-slate-700 dark:text-slate-300">{req.revisedParts.length} Sections</TableCell>
-                                        <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
-                                        <TableCell className="text-right pr-6">
-                                          <Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">
-                                            Review
-                                          </Button>
+                                      <TableRow>
+                                        <TableCell colSpan={7} className="h-32 text-center">
+                                          <Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" />
                                         </TableCell>
                                       </TableRow>
-                                    )) : (
+                                    ) : sortedAllRequests.length > 0 ? (
+                                      sortedAllRequests.map((req) => (
+                                        <TableRow key={req.id} className="hover:bg-muted/20">
+                                          <TableCell className="pl-6 py-4 font-mono text-xs">
+                                            {req.createdAt?.toDate
+                                              ? format(req.createdAt.toDate(), 'MM/dd/yyyy')
+                                              : '--'}
+                                          </TableCell>
+                                          <TableCell>
+                                            <div className="flex flex-col">
+                                              <span className="font-bold text-xs uppercase text-slate-800 dark:text-slate-200">
+                                                {req.unitName}
+                                              </span>
+                                              <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
+                                                <School className="h-2.5 w-2.5" />
+                                                {campusMap.get(req.campusId) || 'Site Context'}
+                                              </span>
+                                            </div>
+                                          </TableCell>
+                                          <TableCell className="text-xs">{req.submitterName}</TableCell>
+                                          <TableCell>
+                                            <Badge
+                                              variant="outline"
+                                              className={cn(
+                                                'text-[8px] font-black uppercase h-4 px-1.5',
+                                                req.requestType === 'New'
+                                                  ? 'border-blue-400 bg-blue-50 text-blue-800'
+                                                  : 'border-purple-400 bg-purple-50 text-purple-800',
+                                              )}
+                                            >
+                                              {req.requestType === 'New' ? 'NEW' : 'REVISION'}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                                            {req.revisedParts.length} Sections
+                                          </TableCell>
+                                          <TableCell className="text-center">
+                                            <Badge
+                                              className={cn(
+                                                'text-[8px] font-black uppercase h-4',
+                                                statusColors[req.status],
+                                              )}
+                                            >
+                                              {req.status}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="text-right pr-6">
+                                            <Button
+                                              size="sm"
+                                              onClick={() => setReviewRequestId(req.id)}
+                                              className="h-7 text-[9px] font-black uppercase tracking-widest"
+                                            >
+                                              Review
+                                            </Button>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))
+                                    ) : (
                                       <TableRow>
-                                        <TableCell colSpan={6} className="h-32 text-center text-xs text-muted-foreground italic">
-                                          No revision requests pending in inbox.
+                                        <TableCell
+                                          colSpan={7}
+                                          className="h-32 text-center text-xs text-muted-foreground italic"
+                                        >
+                                          No applications pending in inbox.
                                         </TableCell>
                                       </TableRow>
                                     )}
@@ -537,7 +693,9 @@ export default function ProcedureManualsPage() {
             <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground p-12">
               <Building className="h-12 w-12 opacity-10 mb-4" />
               <h4 className="font-black text-xs uppercase tracking-[0.2em]">Procedure Manual Hub</h4>
-              <p className="text-[10px] mt-2 max-w-[250px] text-center leading-relaxed">Select a unit from the index to access its operational manuals and revision workflows.</p>
+              <p className="text-[10px] mt-2 max-w-[250px] text-center leading-relaxed">
+                Select a unit from the index to access its operational manuals and revision workflows.
+              </p>
             </div>
           )}
         </div>
@@ -545,22 +703,22 @@ export default function ProcedureManualsPage() {
 
       {/* Modals & Dialogs */}
       {selectedUnit && (
-        <ProcedureRevisionDialog 
-          isOpen={isRevisionOpen} 
-          onOpenChange={(open) => { 
-            setIsRevisionOpen(open); 
-            if (!open) setEditingRequest(null); 
-          }} 
-          unit={selectedUnit as any} 
-          request={editingRequest} 
+        <ProcedureRevisionDialog
+          isOpen={isRevisionOpen}
+          onOpenChange={(open) => {
+            setIsRevisionOpen(open);
+            if (!open) setEditingRequest(null);
+          }}
+          unit={selectedUnit as any}
+          request={editingRequest}
         />
       )}
 
       {reviewRequestId && (
-        <ProcedureRevisionReviewDialog 
-          requestId={reviewRequestId} 
-          isOpen={!!reviewRequestId} 
-          onOpenChange={(open) => !open && setReviewRequestId(null)} 
+        <ProcedureRevisionReviewDialog
+          requestId={reviewRequestId}
+          isOpen={!!reviewRequestId}
+          onOpenChange={(open) => !open && setReviewRequestId(null)}
           onEditClick={(req) => {
             setEditingRequest(req);
             setIsRevisionOpen(true);

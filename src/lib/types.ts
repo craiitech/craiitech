@@ -1204,6 +1204,7 @@ export type ProcedureRevisionRequest = {
   unitName: string;
   submitterId: string;
   submitterName: string;
+  requestType?: 'New' | 'Revision';
   scannedDRRFLink: string;
   revisedManualDocxLink: string;
   approvedDRRFLink?: string;
