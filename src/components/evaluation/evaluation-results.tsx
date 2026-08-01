@@ -3,13 +3,13 @@
 import { useMemo, useState } from 'react';
 import type { SoftwareEvaluation } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Radar, 
-  RadarChart, 
-  PolarGrid, 
-  PolarAngleAxis, 
-  PolarRadiusAxis, 
-  ResponsiveContainer, 
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  ResponsiveContainer,
   Tooltip,
   BarChart,
   Bar,
@@ -24,11 +24,24 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { iso25010Categories } from '@/lib/iso-25010-data';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { 
-  TrendingUp, TrendingDown, Minus, ShieldCheck, Activity, 
-  Download, Copy, FileText, Table2, MessageSquareText, 
-  ChevronDown, ChevronUp, BarChart3, PieChart as PieChartIcon,
-  CheckCircle2, AlertTriangle, Info
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  ShieldCheck,
+  Activity,
+  Download,
+  Copy,
+  FileText,
+  Table2,
+  MessageSquareText,
+  ChevronDown,
+  ChevronUp,
+  BarChart3,
+  PieChart as PieChartIcon,
+  CheckCircle2,
+  AlertTriangle,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,12 +52,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { AiResearchDiscussion } from '@/components/evaluation/ai-research-discussion';
+import { AiVisualizationInsight } from '@/components/evaluation/ai-visualization-insight';
 import {
   generateEvaluationCSV,
   generateCategorySummaryCSV,
   generateCommentsCSV,
   generateLikertDistributionCSV,
   generateFullMarkdownReport,
+  appendAiDiscussionsToReport,
   downloadFile,
   copyToClipboard,
 } from '@/lib/evaluation-export';
@@ -83,6 +99,7 @@ const LIKERT_LABELS: Record<number, string> = {
 export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
   const { toast } = useToast();
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [aiDiscussions, setAiDiscussions] = useState<{ section: string; content: string }[]>([]);
 
   const aggregatedData = useMemo(() => {
     if (!evaluations || evaluations.length === 0) return null;
@@ -107,13 +124,11 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
       let catCount = 0;
       const catSubMeans: number[] = [];
 
-      cat.subCharacteristics.forEach(sub => {
-        const subScores = evaluations.map(e => e.scores[sub.id] || 0).filter(s => s > 0);
+      cat.subCharacteristics.forEach((sub) => {
+        const subScores = evaluations.map((e) => e.scores[sub.id] || 0).filter((s) => s > 0);
         const n = subScores.length;
         const subAvg = n > 0 ? subScores.reduce((a, b) => a + b, 0) / n : 0;
-        const sd = n > 1
-          ? Math.sqrt(subScores.reduce((s, v) => s + Math.pow(v - subAvg, 2), 0) / (n - 1))
-          : 0;
+        const sd = n > 1 ? Math.sqrt(subScores.reduce((s, v) => s + Math.pow(v - subAvg, 2), 0) / (n - 1)) : 0;
 
         subCharacteristicDetails.push({
           id: sub.id,
@@ -135,9 +150,10 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
       });
 
       const catMean = catTotal / catCount;
-      const catSD = catSubMeans.length > 1
-        ? Math.sqrt(catSubMeans.reduce((s, v) => s + Math.pow(v - catMean, 2), 0) / (catSubMeans.length - 1))
-        : 0;
+      const catSD =
+        catSubMeans.length > 1
+          ? Math.sqrt(catSubMeans.reduce((s, v) => s + Math.pow(v - catMean, 2), 0) / (catSubMeans.length - 1))
+          : 0;
 
       return {
         subject: cat.name,
@@ -151,9 +167,12 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
     });
 
     const overallAvg = evaluations.reduce((acc, e) => acc + e.overallScore, 0) / evaluations.length;
-    const overallSD = evaluations.length > 1
-      ? Math.sqrt(evaluations.reduce((s, e) => s + Math.pow(e.overallScore - overallAvg, 2), 0) / (evaluations.length - 1))
-      : 0;
+    const overallSD =
+      evaluations.length > 1
+        ? Math.sqrt(
+            evaluations.reduce((s, e) => s + Math.pow(e.overallScore - overallAvg, 2), 0) / (evaluations.length - 1),
+          )
+        : 0;
 
     // Likert distribution
     const likertDist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -166,7 +185,7 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
         }
       }
     }
-    const likertData = [5, 4, 3, 2, 1].map(r => ({
+    const likertData = [5, 4, 3, 2, 1].map((r) => ({
       rating: r,
       label: LIKERT_LABELS[r],
       count: likertDist[r],
@@ -176,10 +195,12 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
 
     // Comments
     const comments = evaluations
-      .filter(e => e.generalComments || e.recommendations)
-      .map(e => ({
+      .filter((e) => e.generalComments || e.recommendations)
+      .map((e) => ({
         userName: e.userName,
-        date: e.timestamp?.toDate ? e.timestamp.toDate().toLocaleDateString() : new Date(e.timestamp).toLocaleDateString(),
+        date: e.timestamp?.toDate
+          ? e.timestamp.toDate().toLocaleDateString()
+          : new Date(e.timestamp).toLocaleDateString(),
         overallScore: e.overallScore,
         generalComments: e.generalComments || '',
         recommendations: e.recommendations || '',
@@ -202,7 +223,9 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
       <div className="flex flex-col items-center justify-center h-64 text-center border rounded-lg border-dashed bg-muted/5">
         <Activity className="h-12 w-12 text-muted-foreground opacity-20 mb-4" />
         <h3 className="text-xl font-black text-muted-foreground uppercase tracking-[0.2em]">NO DATA YET!</h3>
-        <p className="text-sm text-muted-foreground mt-2">Conduct a software quality evaluation to see maturity analytics.</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          Conduct a software quality evaluation to see maturity analytics.
+        </p>
       </div>
     );
   }
@@ -227,21 +250,36 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
         toast({ title: 'Downloaded', description: 'User comments CSV exported.' });
         break;
       case 'csv-likert':
-        downloadFile(generateLikertDistributionCSV(evaluations), `iso25010_likert_distribution_${timestamp}.csv`, 'text/csv');
+        downloadFile(
+          generateLikertDistributionCSV(evaluations),
+          `iso25010_likert_distribution_${timestamp}.csv`,
+          'text/csv',
+        );
         toast({ title: 'Downloaded', description: 'Likert distribution CSV exported.' });
         break;
       case 'markdown':
-        downloadFile(generateFullMarkdownReport(evaluations), `iso25010_full_report_${timestamp}.md`, 'text/markdown');
+        downloadFile(
+          appendAiDiscussionsToReport(generateFullMarkdownReport(evaluations), aiDiscussions),
+          `iso25010_full_report_${timestamp}.md`,
+          'text/markdown',
+        );
         toast({ title: 'Downloaded', description: 'Full markdown research report exported.' });
         break;
       case 'copy-markdown':
-        copyToClipboard(generateFullMarkdownReport(evaluations)).then(ok => {
-          if (ok) toast({ title: 'Copied', description: 'Full report copied to clipboard.' });
-          else toast({ title: 'Copy failed', description: 'Please try the download option instead.', variant: 'destructive' });
-        });
+        copyToClipboard(appendAiDiscussionsToReport(generateFullMarkdownReport(evaluations), aiDiscussions)).then(
+          (ok) => {
+            if (ok) toast({ title: 'Copied', description: 'Full report copied to clipboard.' });
+            else
+              toast({
+                title: 'Copy failed',
+                description: 'Please try the download option instead.',
+                variant: 'destructive',
+              });
+          },
+        );
         break;
       case 'copy-csv':
-        copyToClipboard(generateEvaluationCSV(evaluations)).then(ok => {
+        copyToClipboard(generateEvaluationCSV(evaluations)).then((ok) => {
           if (ok) toast({ title: 'Copied', description: 'CSV data copied to clipboard.' });
           else toast({ title: 'Copy failed', variant: 'destructive' });
         });
@@ -263,9 +301,9 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="h-8 text-xs font-bold gap-1.5"
             onClick={() => handleExport('copy-markdown')}
           >
@@ -336,14 +374,20 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
             <ShieldCheck className="h-24 w-24" />
           </div>
           <CardHeader>
-            <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">Aggregate Maturity Index</CardTitle>
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              Aggregate Maturity Index
+            </CardTitle>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center space-y-2 pb-6">
-            <div className={cn("text-6xl font-black tabular-nums tracking-tighter", quality.color)}>
+            <div className={cn('text-6xl font-black tabular-nums tracking-tighter', quality.color)}>
               {aggregatedData.overallAvg.toFixed(1)}
             </div>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Out of 5.0 Points</p>
-            <Badge className={cn("mt-2 px-6 py-1 text-xs font-black uppercase", quality.bg, quality.color, "border-none")}>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">
+              Out of 5.0 Points
+            </p>
+            <Badge
+              className={cn('mt-2 px-6 py-1 text-xs font-black uppercase', quality.bg, quality.color, 'border-none')}
+            >
               {quality.label}
             </Badge>
             <div className="text-[10px] text-muted-foreground mt-2 space-y-0.5 text-center">
@@ -351,14 +395,34 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
               <p>N: {aggregatedData.evaluationCount} evaluations</p>
             </div>
           </CardContent>
+          <div className="px-4 pb-4">
+            <AiVisualizationInsight
+              title="Maturity Index AI Discussion"
+              prompt="Provide a concise academic explanation of the overall ISO/IEC 25010 maturity index of the RSU EOMS Submission Portal, its standard deviation, and what this means for institutional software quality."
+              contextData={{
+                overallMean: aggregatedData.overallAvg,
+                overallSD: aggregatedData.overallSD,
+                evaluationCount: aggregatedData.evaluationCount,
+                categories: aggregatedData.categoryAverages.map((c) => ({
+                  name: c.subject,
+                  mean: c.A,
+                  sd: c.sd,
+                })),
+              }}
+            />
+          </div>
           <div className="border-t px-6 py-4 space-y-2">
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-muted-foreground font-bold uppercase tracking-wider">Highest</span>
-              <span className="font-black text-green-600">{highestCat.subject} ({highestCat.A})</span>
+              <span className="font-black text-green-600">
+                {highestCat.subject} ({highestCat.A})
+              </span>
             </div>
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-muted-foreground font-bold uppercase tracking-wider">Lowest</span>
-              <span className="font-black text-amber-600">{lowestCat.subject} ({lowestCat.A})</span>
+              <span className="font-black text-amber-600">
+                {lowestCat.subject} ({lowestCat.A})
+              </span>
             </div>
           </div>
         </Card>
@@ -386,6 +450,19 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                 </RadarChart>
               </ResponsiveContainer>
             </ChartContainer>
+            <AiVisualizationInsight
+              className="mt-4"
+              title="Radar Profile AI Discussion"
+              prompt="Interpret the radar profile of the eight ISO/IEC 25010 quality characteristics of the RSU EOMS Submission Portal, highlighting the strongest and weakest characteristics and the shape of the quality profile."
+              contextData={{
+                overallMean: aggregatedData.overallAvg,
+                categories: aggregatedData.categoryAverages.map((c) => ({
+                  name: c.subject,
+                  mean: c.A,
+                  sd: c.sd,
+                })),
+              }}
+            />
           </CardContent>
         </Card>
       </div>
@@ -406,23 +483,22 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                 <BarChart data={aggregatedData.categoryAverages} layout="vertical" margin={{ left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
                   <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 10 }} />
-                  <YAxis 
-                    dataKey="subject" 
-                    type="category" 
-                    tick={{ fontSize: 9, fontWeight: 600 }} 
-                    width={130}
-                  />
-                  <Tooltip 
+                  <YAxis dataKey="subject" type="category" tick={{ fontSize: 9, fontWeight: 600 }} width={130} />
+                  <Tooltip
                     content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
                       const d = payload[0].payload;
                       return (
                         <div className="bg-white border shadow-lg rounded-lg p-3 text-xs space-y-1">
                           <p className="font-black text-sm">{d.subject}</p>
-                          <p>Mean: <strong>{d.A}</strong> / 5.0</p>
+                          <p>
+                            Mean: <strong>{d.A}</strong> / 5.0
+                          </p>
                           <p>SD: ±{d.sd}</p>
                           <p>Sub-characteristics: {d.subCount}</p>
-                          <p>Rating: <strong>{getQualityLabel(d.A).label}</strong></p>
+                          <p>
+                            Rating: <strong>{getQualityLabel(d.A).label}</strong>
+                          </p>
                         </div>
                       );
                     }}
@@ -435,6 +511,19 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
+            <AiVisualizationInsight
+              className="mt-4"
+              title="Category Comparison AI Discussion"
+              prompt="Explain the category score comparison bar chart of the ISO/IEC 25010 evaluation, discussing the range of weighted means, the top and bottom categories, and the implications for prioritization of software quality improvements."
+              contextData={{
+                overallMean: aggregatedData.overallAvg,
+                categories: aggregatedData.categoryAverages.map((c) => ({
+                  name: c.subject,
+                  mean: c.A,
+                  sd: c.sd,
+                })),
+              }}
+            />
           </CardContent>
         </Card>
 
@@ -451,7 +540,7 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
               <ResponsiveContainer>
                 <PieChart>
                   <Pie
-                    data={aggregatedData.likertData.filter(d => d.count > 0)}
+                    data={aggregatedData.likertData.filter((d) => d.count > 0)}
                     cx="50%"
                     cy="50%"
                     innerRadius={40}
@@ -460,17 +549,21 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                     dataKey="count"
                     nameKey="label"
                   >
-                    {aggregatedData.likertData.filter(d => d.count > 0).map((entry) => (
-                      <Cell key={entry.rating} fill={entry.color} />
-                    ))}
+                    {aggregatedData.likertData
+                      .filter((d) => d.count > 0)
+                      .map((entry) => (
+                        <Cell key={entry.rating} fill={entry.color} />
+                      ))}
                   </Pie>
-                  <Tooltip 
+                  <Tooltip
                     content={({ active, payload }) => {
                       if (!active || !payload?.length) return null;
                       const d = payload[0].payload;
                       return (
                         <div className="bg-white border shadow-lg rounded-lg p-2 text-xs">
-                          <p className="font-black">{d.label} ({d.rating})</p>
+                          <p className="font-black">
+                            {d.label} ({d.rating})
+                          </p>
                           <p>Count: {d.count}</p>
                           <p>{d.percentage}%</p>
                         </div>
@@ -481,16 +574,34 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
               </ResponsiveContainer>
             </ChartContainer>
             <div className="space-y-1.5 mt-2">
-              {aggregatedData.likertData.map(d => (
+              {aggregatedData.likertData.map((d) => (
                 <div key={d.rating} className="flex items-center justify-between text-[10px]">
                   <div className="flex items-center gap-2">
                     <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: d.color }} />
-                    <span className="font-bold text-muted-foreground">{d.label} ({d.rating})</span>
+                    <span className="font-bold text-muted-foreground">
+                      {d.label} ({d.rating})
+                    </span>
                   </div>
-                  <span className="font-black tabular-nums">{d.count} ({d.percentage}%)</span>
+                  <span className="font-black tabular-nums">
+                    {d.count} ({d.percentage}%)
+                  </span>
                 </div>
               ))}
             </div>
+            <AiVisualizationInsight
+              className="mt-4"
+              title="Rating Distribution AI Discussion"
+              prompt="Interpret the Likert scale distribution of the ISO/IEC 25010 evaluation, discussing the concentration of ratings (5-excellent to 1-poor), the percentage composition, and what the distribution implies about stakeholder satisfaction and perceived software quality."
+              contextData={{
+                likertTotal: aggregatedData.likertTotal,
+                likertDistribution: aggregatedData.likertData.map((d) => ({
+                  rating: d.rating,
+                  label: d.label,
+                  count: d.count,
+                  percentage: d.percentage,
+                })),
+              }}
+            />
           </CardContent>
         </Card>
       </div>
@@ -499,7 +610,7 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {aggregatedData.categoryAverages.map((cat, idx) => {
           const isExpanded = expandedCategory === cat.id;
-          const catSubs = aggregatedData.subCharacteristicDetails.filter(s => s.categoryId === cat.id);
+          const catSubs = aggregatedData.subCharacteristicDetails.filter((s) => s.categoryId === cat.id);
           const catQuality = getQualityLabel(cat.A);
 
           return (
@@ -517,20 +628,32 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                     {cat.subject}
                   </span>
                   <div className="flex items-center gap-1">
-                    {cat.A >= 4.0 ? <TrendingUp className="h-3 w-3 text-green-500" /> : cat.A < 3.0 ? <TrendingDown className="h-3 w-3 text-red-500" /> : <Minus className="h-3 w-3 text-amber-500" />}
+                    {cat.A >= 4.0 ? (
+                      <TrendingUp className="h-3 w-3 text-green-500" />
+                    ) : cat.A < 3.0 ? (
+                      <TrendingDown className="h-3 w-3 text-red-500" />
+                    ) : (
+                      <Minus className="h-3 w-3 text-amber-500" />
+                    )}
                     <span className="text-sm font-black tabular-nums">{cat.A}</span>
                     {isExpanded ? <ChevronUp className="h-3 w-3 ml-1" /> : <ChevronDown className="h-3 w-3 ml-1" />}
                   </div>
                 </div>
                 <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full transition-all rounded-full"
                     style={{ width: `${(cat.A / 5) * 100}%`, backgroundColor: CATEGORY_COLORS[idx] }}
                   />
                 </div>
                 <div className="flex items-center justify-between text-[9px] text-muted-foreground">
                   <span>SD: ±{cat.sd}</span>
-                  <Badge className={cn("h-5 text-[8px] font-bold uppercase border-none px-2", catQuality.bg, catQuality.color)}>
+                  <Badge
+                    className={cn(
+                      'h-5 text-[8px] font-bold uppercase border-none px-2',
+                      catQuality.bg,
+                      catQuality.color,
+                    )}
+                  >
                     {catQuality.label}
                   </Badge>
                 </div>
@@ -538,17 +661,22 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
 
               {isExpanded && (
                 <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
-                  {catSubs.map(sub => (
+                  {catSubs.map((sub) => (
                     <div key={sub.id} className="px-3 py-2.5 rounded-md border bg-muted/5 space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[140px]" title={sub.name}>
+                        <span
+                          className="text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[140px]"
+                          title={sub.name}
+                        >
                           {sub.name}
                         </span>
                         <span className="text-xs font-black tabular-nums">{sub.mean.toFixed(2)}</span>
                       </div>
                       <p className="text-[9px] text-muted-foreground leading-relaxed line-clamp-2">{sub.desc}</p>
                       <div className="flex items-center justify-between text-[8px] text-muted-foreground">
-                        <span>SD: ±{sub.sd.toFixed(2)} | Range: {sub.min}–{sub.max}</span>
+                        <span>
+                          SD: ±{sub.sd.toFixed(2)} | Range: {sub.min}–{sub.max}
+                        </span>
                         <span className="font-bold">{sub.rating}</span>
                       </div>
                       <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
@@ -586,17 +714,32 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                   <div key={i} className="p-6 space-y-3 hover:bg-muted/10 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={cn("h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-black", 
-                          comment.overallScore >= 4 ? "bg-green-500" : comment.overallScore >= 3 ? "bg-amber-500" : "bg-red-500"
-                        )}>
+                        <div
+                          className={cn(
+                            'h-8 w-8 rounded-full flex items-center justify-center text-white text-xs font-black',
+                            comment.overallScore >= 4
+                              ? 'bg-green-500'
+                              : comment.overallScore >= 3
+                                ? 'bg-amber-500'
+                                : 'bg-red-500',
+                          )}
+                        >
                           {comment.overallScore.toFixed(1)}
                         </div>
                         <div>
                           <p className="font-bold text-sm text-slate-900 dark:text-slate-100">{comment.userName}</p>
-                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{comment.date}</p>
+                          <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">
+                            {comment.date}
+                          </p>
                         </div>
                       </div>
-                      <Badge className={cn("text-[9px] font-bold uppercase border-none px-3", commentQuality.bg, commentQuality.color)}>
+                      <Badge
+                        className={cn(
+                          'text-[9px] font-bold uppercase border-none px-3',
+                          commentQuality.bg,
+                          commentQuality.color,
+                        )}
+                      >
                         {commentQuality.label}
                       </Badge>
                     </div>
@@ -626,11 +769,42 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                 );
               })}
             </div>
+            <div className="p-6 border-t bg-muted/5">
+              <AiVisualizationInsight
+                title="Comments Synthesis AI Discussion"
+                prompt="Synthesize the stakeholder comments and recommendations from the ISO/IEC 25010 software quality evaluation of the RSU EOMS Submission Portal. Identify recurring themes, concerns, and improvement suggestions, and summarize them for the research discussion."
+                contextData={{
+                  comments: aggregatedData.comments.map((c) => ({
+                    userName: c.userName,
+                    overallScore: c.overallScore,
+                    generalComments: c.generalComments,
+                    recommendations: c.recommendations,
+                  })),
+                }}
+              />
+            </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Row 5: Full Data Table */}
+      {/* Row 5: AI Research Discussion */}
+      <AiResearchDiscussion
+        evaluationCount={aggregatedData.evaluationCount}
+        overallMean={aggregatedData.overallAvg}
+        overallSD={aggregatedData.overallSD}
+        categories={aggregatedData.categoryAverages.map((cat) => ({
+          id: cat.id,
+          name: cat.subject,
+          mean: cat.A,
+          sd: cat.sd,
+          subs: aggregatedData.subCharacteristicDetails
+            .filter((s) => s.categoryId === cat.id)
+            .map((s) => ({ id: s.id, name: s.name, mean: s.mean, desc: s.desc })),
+        }))}
+        onDiscussionsChange={setAiDiscussions}
+      />
+
+      {/* Row 6: Full Data Table */}
       <Card className="shadow-md overflow-hidden">
         <CardHeader className="bg-muted/30 border-b">
           <div className="flex items-center justify-between">
@@ -641,7 +815,12 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
               </CardTitle>
               <CardDescription>All 31 ISO 25010 sub-characteristics with statistical measures</CardDescription>
             </div>
-            <Button variant="outline" size="sm" className="text-xs font-bold gap-1.5" onClick={() => handleExport('copy-csv')}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs font-bold gap-1.5"
+              onClick={() => handleExport('copy-csv')}
+            >
               <Copy className="h-3.5 w-3.5" /> Copy Table
             </Button>
           </div>
@@ -651,32 +830,61 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-muted/30 border-b">
-                  <th className="px-4 py-3 text-left font-black uppercase tracking-wider text-[10px] text-muted-foreground">#</th>
-                  <th className="px-4 py-3 text-left font-black uppercase tracking-wider text-[10px] text-muted-foreground">Category</th>
-                  <th className="px-4 py-3 text-left font-black uppercase tracking-wider text-[10px] text-muted-foreground">Sub-Characteristic</th>
-                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">Mean</th>
-                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">SD</th>
-                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">Min</th>
-                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">Max</th>
-                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">N</th>
-                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">Rating</th>
+                  <th className="px-4 py-3 text-left font-black uppercase tracking-wider text-[10px] text-muted-foreground">
+                    #
+                  </th>
+                  <th className="px-4 py-3 text-left font-black uppercase tracking-wider text-[10px] text-muted-foreground">
+                    Category
+                  </th>
+                  <th className="px-4 py-3 text-left font-black uppercase tracking-wider text-[10px] text-muted-foreground">
+                    Sub-Characteristic
+                  </th>
+                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">
+                    Mean
+                  </th>
+                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">
+                    SD
+                  </th>
+                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">
+                    Min
+                  </th>
+                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">
+                    Max
+                  </th>
+                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">
+                    N
+                  </th>
+                  <th className="px-4 py-3 text-center font-black uppercase tracking-wider text-[10px] text-muted-foreground">
+                    Rating
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {aggregatedData.subCharacteristicDetails.map((sub, i) => {
                   const subQuality = getQualityLabel(sub.mean);
                   return (
-                    <tr key={sub.id} className={cn("border-b hover:bg-muted/10 transition-colors", i % 2 === 0 ? "" : "bg-muted/5")}>
+                    <tr
+                      key={sub.id}
+                      className={cn('border-b hover:bg-muted/10 transition-colors', i % 2 === 0 ? '' : 'bg-muted/5')}
+                    >
                       <td className="px-4 py-2.5 font-bold text-muted-foreground tabular-nums">{i + 1}</td>
                       <td className="px-4 py-2.5 font-semibold text-slate-600 dark:text-slate-400">{sub.category}</td>
                       <td className="px-4 py-2.5 font-bold text-slate-800 dark:text-slate-200">{sub.name}</td>
                       <td className="px-4 py-2.5 text-center font-black tabular-nums">{sub.mean.toFixed(2)}</td>
-                      <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">±{sub.sd.toFixed(2)}</td>
+                      <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">
+                        ±{sub.sd.toFixed(2)}
+                      </td>
                       <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">{sub.min}</td>
                       <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">{sub.max}</td>
                       <td className="px-4 py-2.5 text-center tabular-nums text-muted-foreground">{sub.n}</td>
                       <td className="px-4 py-2.5 text-center">
-                        <Badge className={cn("text-[8px] font-bold uppercase border-none px-2", subQuality.bg, subQuality.color)}>
+                        <Badge
+                          className={cn(
+                            'text-[8px] font-bold uppercase border-none px-2',
+                            subQuality.bg,
+                            subQuality.color,
+                          )}
+                        >
                           {subQuality.label}
                         </Badge>
                       </td>
@@ -686,19 +894,50 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                 {/* Grand Total Row */}
                 <tr className="bg-primary/5 border-t-2 border-primary/20">
                   <td className="px-4 py-3" />
-                  <td className="px-4 py-3 font-black text-primary uppercase text-[10px] tracking-wider" colSpan={2}>Overall Maturity Index</td>
-                  <td className="px-4 py-3 text-center font-black text-primary text-sm tabular-nums">{aggregatedData.overallAvg.toFixed(2)}</td>
-                  <td className="px-4 py-3 text-center font-bold text-primary tabular-nums">±{aggregatedData.overallSD.toFixed(2)}</td>
+                  <td className="px-4 py-3 font-black text-primary uppercase text-[10px] tracking-wider" colSpan={2}>
+                    Overall Maturity Index
+                  </td>
+                  <td className="px-4 py-3 text-center font-black text-primary text-sm tabular-nums">
+                    {aggregatedData.overallAvg.toFixed(2)}
+                  </td>
+                  <td className="px-4 py-3 text-center font-bold text-primary tabular-nums">
+                    ±{aggregatedData.overallSD.toFixed(2)}
+                  </td>
                   <td className="px-4 py-3" colSpan={2} />
-                  <td className="px-4 py-3 text-center font-bold text-primary tabular-nums">{aggregatedData.evaluationCount}</td>
+                  <td className="px-4 py-3 text-center font-bold text-primary tabular-nums">
+                    {aggregatedData.evaluationCount}
+                  </td>
                   <td className="px-4 py-3 text-center">
-                    <Badge className={cn("text-[9px] font-black uppercase border-none px-3", quality.bg, quality.color)}>
+                    <Badge
+                      className={cn('text-[9px] font-black uppercase border-none px-3', quality.bg, quality.color)}
+                    >
                       {quality.label}
                     </Badge>
                   </td>
                 </tr>
               </tbody>
             </table>
+          </div>
+          <div className="p-6 border-t bg-muted/5">
+            <AiVisualizationInsight
+              title="Statistical Analysis AI Discussion"
+              prompt="Interpret the complete sub-characteristic statistical analysis table (means, standard deviations, min-max ranges) of the ISO/IEC 25010 evaluation of the RSU EOMS Submission Portal. Discuss the overall maturity index, notable sub-characteristics, variability, and their significance for the research paper."
+              contextData={{
+                overallMean: aggregatedData.overallAvg,
+                overallSD: aggregatedData.overallSD,
+                evaluationCount: aggregatedData.evaluationCount,
+                subCharacteristics: aggregatedData.subCharacteristicDetails.map((s) => ({
+                  name: s.name,
+                  category: s.category,
+                  mean: s.mean,
+                  sd: s.sd,
+                  min: s.min,
+                  max: s.max,
+                  n: s.n,
+                  rating: s.rating,
+                })),
+              }}
+            />
           </div>
         </CardContent>
       </Card>

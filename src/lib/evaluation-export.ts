@@ -27,10 +27,7 @@ export function generateEvaluationCSV(evaluations: SoftwareEvaluation[]): string
       const scores = evaluations.map((e) => e.scores[sub.id] || 0).filter((s) => s > 0);
       const n = scores.length;
       const mean = n > 0 ? scores.reduce((a, b) => a + b, 0) / n : 0;
-      const sd =
-        n > 1
-          ? Math.sqrt(scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (n - 1))
-          : 0;
+      const sd = n > 1 ? Math.sqrt(scores.reduce((sum, s) => sum + Math.pow(s - mean, 2), 0) / (n - 1)) : 0;
       const min = n > 0 ? Math.min(...scores) : 0;
       const max = n > 0 ? Math.max(...scores) : 0;
       const rating = getQualitativeRating(mean);
@@ -51,18 +48,13 @@ export function generateEvaluationCSV(evaluations: SoftwareEvaluation[]): string
   }
 
   // Add summary row
-  const allScores = evaluations.flatMap((e) =>
-    Object.values(e.scores).filter((s) => typeof s === 'number' && s > 0)
-  );
+  const allScores = evaluations.flatMap((e) => Object.values(e.scores).filter((s) => typeof s === 'number' && s > 0));
   const overallMean =
-    evaluations.length > 0
-      ? evaluations.reduce((a, e) => a + e.overallScore, 0) / evaluations.length
-      : 0;
+    evaluations.length > 0 ? evaluations.reduce((a, e) => a + e.overallScore, 0) / evaluations.length : 0;
   const overallSD =
     evaluations.length > 1
       ? Math.sqrt(
-          evaluations.reduce((sum, e) => sum + Math.pow(e.overallScore - overallMean, 2), 0) /
-            (evaluations.length - 1)
+          evaluations.reduce((sum, e) => sum + Math.pow(e.overallScore - overallMean, 2), 0) / (evaluations.length - 1),
         )
       : 0;
 
@@ -134,21 +126,12 @@ export function generateCategorySummaryCSV(evaluations: SoftwareEvaluation[]): s
  * Generates a CSV of user comments and recommendations.
  */
 export function generateCommentsCSV(evaluations: SoftwareEvaluation[]): string {
-  const headers = [
-    'Evaluator',
-    'Date',
-    'Overall Score',
-    'Qualitative Rating',
-    'General Comments',
-    'Recommendations',
-  ];
+  const headers = ['Evaluator', 'Date', 'Overall Score', 'Qualitative Rating', 'General Comments', 'Recommendations'];
 
   const rows: string[][] = evaluations
     .filter((e) => e.generalComments || e.recommendations)
     .map((e) => {
-      const date = e.timestamp?.toDate
-        ? e.timestamp.toDate().toISOString()
-        : new Date(e.timestamp).toISOString();
+      const date = e.timestamp?.toDate ? e.timestamp.toDate().toISOString() : new Date(e.timestamp).toISOString();
       return [
         `"${(e.userName || 'Anonymous').replace(/"/g, '""')}"`,
         date,
@@ -196,11 +179,11 @@ export function generateLikertDistributionCSV(evaluations: SoftwareEvaluation[])
  * Returns verbal interpretation matching the academic research Likert scale.
  */
 function getVerbalInterpretation(mean: number): string {
-  if (mean >= 4.50) return 'Strongly Agree';
-  if (mean >= 3.50) return 'Agree';
-  if (mean >= 2.50) return 'Moderately Agree';
-  if (mean >= 1.50) return 'Disagree';
-  if (mean >= 1.00) return 'Strongly Disagree';
+  if (mean >= 4.5) return 'Strongly Agree';
+  if (mean >= 3.5) return 'Agree';
+  if (mean >= 2.5) return 'Moderately Agree';
+  if (mean >= 1.5) return 'Disagree';
+  if (mean >= 1.0) return 'Strongly Disagree';
   return 'No Data';
 }
 
@@ -226,9 +209,7 @@ export function generateFullMarkdownReport(evaluations: SoftwareEvaluation[]): s
   const n = evaluations.length;
   const overallMean = n > 0 ? evaluations.reduce((a, e) => a + e.overallScore, 0) / n : 0;
   const overallSD =
-    n > 1
-      ? Math.sqrt(evaluations.reduce((s, e) => s + Math.pow(e.overallScore - overallMean, 2), 0) / (n - 1))
-      : 0;
+    n > 1 ? Math.sqrt(evaluations.reduce((s, e) => s + Math.pow(e.overallScore - overallMean, 2), 0) / (n - 1)) : 0;
 
   let md = `# RSU EOMS Portal — ISO/IEC 25010 Software Quality Evaluation Results\n\n`;
   md += `> **System:** RSU EOMS (Educational Organization Management System) Submission Portal\n`;
@@ -361,7 +342,13 @@ export function generateFullMarkdownReport(evaluations: SoftwareEvaluation[]): s
     }
   }
 
-  const labels: Record<number, string> = { 1: 'Strongly Disagree', 2: 'Disagree', 3: 'Moderately Agree', 4: 'Agree', 5: 'Strongly Agree' };
+  const labels: Record<number, string> = {
+    1: 'Strongly Disagree',
+    2: 'Disagree',
+    3: 'Moderately Agree',
+    4: 'Agree',
+    5: 'Strongly Agree',
+  };
   for (const rating of [5, 4, 3, 2, 1]) {
     const pct = total > 0 ? ((distribution[rating] / total) * 100).toFixed(1) : '0.0';
     md += `| ${rating} | ${labels[rating]} | ${distribution[rating]} | ${pct}% |\n`;
@@ -405,6 +392,31 @@ export function generateFullMarkdownReport(evaluations: SoftwareEvaluation[]): s
       }
       md += `---\n\n`;
     }
+  }
+
+  return md;
+}
+
+/**
+ * Appends AI-generated discussion sections to a full markdown research report.
+ * Used to enrich the exported/copied report with on-device WebLLM discussions.
+ */
+export function appendAiDiscussionsToReport(
+  markdown: string,
+  discussions: { section: string; content: string }[],
+): string {
+  if (!discussions || discussions.length === 0) return markdown;
+
+  let md = markdown;
+  md += `\n\n---\n\n`;
+  md += `## AI-Generated Discussion of Findings\n\n`;
+  md += `> *The following discussions were drafted with the assistance of an on-device local AI (WebLLM). They should be reviewed, verified against the data, and cited appropriately by the researchers.*\n\n`;
+
+  for (const d of discussions) {
+    const clean = d.content?.trim();
+    if (!clean) continue;
+    md += `### ${d.section}\n\n`;
+    md += `${clean}\n\n`;
   }
 
   return md;

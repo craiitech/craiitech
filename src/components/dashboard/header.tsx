@@ -106,22 +106,23 @@ export function Header({
         </h1>
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
-        <Link href="/eoms-academy" passHref legacyBehavior>
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              'flex items-center gap-2 font-black uppercase text-xs tracking-wider transition-all px-2 md:px-3 h-9',
-              pathname.startsWith('/eoms-academy')
-                ? 'text-primary bg-primary/10 font-black shadow-sm'
-                : 'text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary hover:bg-primary/5',
-            )}
-            title="EOMS Academy"
-          >
+        <Button
+          asChild
+          variant="ghost"
+          size="sm"
+          className={cn(
+            'flex items-center gap-2 font-black uppercase text-xs tracking-wider transition-all px-2 md:px-3 h-9',
+            pathname.startsWith('/eoms-academy')
+              ? 'text-primary bg-primary/10 font-black shadow-sm'
+              : 'text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-primary hover:bg-primary/5',
+          )}
+          title="EOMS Academy"
+        >
+          <Link href="/eoms-academy">
             <GraduationCap className="h-4.5 w-4.5" />
             <span className="hidden md:inline">EOMS Academy</span>
-          </Button>
-        </Link>
+          </Link>
+        </Button>
 
         {pathname === '/dashboard' && availableYears.length > 0 && (
           <div className="hidden sm:flex items-center gap-2 mr-2">
