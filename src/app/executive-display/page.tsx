@@ -994,6 +994,13 @@ function ViewSubmissions({
                 title="Context"
                 text={`With ${totalApproved} of ${totalSubs} submissions approved (${rate}%), the university maintains ${rate >= 80 ? 'strong' : rate >= 60 ? 'adequate' : 'below-target'} compliance. Target is 80%+.`}
                 color={P.green}
+                contextData={{
+                  compositeScore: rate,
+                  totalSubs,
+                  subsApproved: totalApproved,
+                  subsPending: totalPending,
+                  subsRejected: totalRejected,
+                }}
               />
             </>
           ) : (
@@ -1195,6 +1202,12 @@ function ViewRisks({
                       : `All high-risk items addressed. ${rate}% mitigation reflects a ${rate >= 70 ? 'mature' : 'developing'} risk-aware culture.`
                   }
                   color={P.gold}
+                  contextData={{
+                    compositeScore: rate,
+                    totalRisks,
+                    risksClosed: closedRisks,
+                    risksHigh: highRisks,
+                  }}
                 />
               </AutoScrollContainer>
               <AutoScrollContainer maxHeight="120px">
@@ -1202,6 +1215,12 @@ function ViewRisks({
                   title="Recommendation"
                   text="Regularly review and update risk registers. Ensure treatment plans are documented and verified. Focus on high and very high-risk items first."
                   color={P.goldDark}
+                  contextData={{
+                    compositeScore: rate,
+                    totalRisks,
+                    risksClosed: closedRisks,
+                    risksHigh: highRisks,
+                  }}
                 />
               </AutoScrollContainer>
             </>
@@ -1420,6 +1439,12 @@ function ViewCars({
                   title="CAR Performance"
                   text={`${closedCars} of ${totalCars} CARs resolved (${rate}%). ${openCars} open CARs need follow-up. High closure rates demonstrate commitment to continuous improvement.`}
                   color={P.greenLight}
+                  contextData={{
+                    compositeScore: rate,
+                    totalCars,
+                    carsClosed: closedCars,
+                    carsOpen: openCars,
+                  }}
                 />
               </AutoScrollContainer>
               <AutoScrollContainer maxHeight="120px">
@@ -1427,6 +1452,11 @@ function ViewCars({
                   title="Audit Overview"
                   text={`${totalAudits} total audits. Ensure timely completion of scheduled audits to maintain IQA compliance.`}
                   color={P.gold}
+                  contextData={{
+                    totalAudits,
+                    auditsCompleted: auditDist.find((d) => d.name === 'Completed')?.value ?? 0,
+                    auditsPending: totalAudits - (auditDist.find((d) => d.name === 'Completed')?.value ?? 0),
+                  }}
                 />
               </AutoScrollContainer>
             </>
@@ -1666,11 +1696,24 @@ function ViewAccred({
                 title="Regulatory Status"
                 text={`${copcRate}% of programs are COPC-compliant. ${noCopc} programs need action to maintain CHED good standing.`}
                 color={P.gold}
+                contextData={{
+                  copcRate,
+                  totalPrograms,
+                  withCopc,
+                  noCopc,
+                  inProg,
+                }}
               />
               <NarrativeCard
                 title="Accreditation"
                 text="Higher accreditation levels (III, IV) indicate program quality maturity. Monitor programs with lapsed or low accreditation for improvement."
                 color={P.goldDark}
+                contextData={{
+                  totalPrograms,
+                  withCopc,
+                  noCopc,
+                  accredLevels: progLevelDist,
+                }}
               />
             </>
           ) : (
@@ -1916,6 +1959,13 @@ function ViewUnitSubmission({
                     : 'No submission data available.'
                 }
                 color={P.greenLight}
+                contextData={{
+                  compositeScore: overallRate,
+                  totalUnits,
+                  unitsWithSubs,
+                  unitsWithoutSubs,
+                  topUnits: unitSubTop.slice(0, 3),
+                }}
               />
               <NarrativeCard
                 title="Weaknesses"
@@ -1925,11 +1975,23 @@ function ViewUnitSubmission({
                     : `All units are actively submitting. Maintain the upward trend through continuous monitoring.`
                 }
                 color={P.gold}
+                contextData={{
+                  compositeScore: overallRate,
+                  totalUnits,
+                  unitsWithSubs,
+                  unitsWithoutSubs,
+                }}
               />
               <NarrativeCard
                 title="Recommendation"
                 text="Recognize top-performing units publicly. For non-compliant units, assign QA liaisons to provide direct support and track weekly submission progress."
                 color={P.goldDark}
+                contextData={{
+                  compositeScore: overallRate,
+                  totalUnits,
+                  unitsWithSubs,
+                  unitsWithoutSubs,
+                }}
               />
             </>
           ) : (
