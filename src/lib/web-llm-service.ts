@@ -255,15 +255,16 @@ export function fallbackSoftwareQualityDiscussionGenerator(
 export async function generateWebLlmExecutiveBriefing(
   prompt: string,
   contextData?: Record<string, unknown>,
-  maxTokens = 450,
+  maxTokens = 700,
 ): Promise<string> {
   if (globalEngine) {
     try {
       const systemPrompt =
         "You are an expert Executive Briefing Analyst for Romblon State University's EOMS (ISO 21001:2018). " +
         'Write a concise, professional, action-oriented institutional briefing for the university executive leadership. ' +
-        'Synthesize the provided live compliance metrics, highlight the most critical gaps and strengths, ' +
-        'and end with prioritized recommended actions. Use short paragraphs, no bullet points, formal executive tone.';
+        'Synthesize the provided live compliance metrics, and for every metric you reference briefly explain WHAT the metric measures, what its current value implies, and the recommended action it calls for. ' +
+        'Then list the open-item register and end with clearly prioritized recommended actions. ' +
+        'Use short paragraphs; keep each point on its own line. Formal executive tone, no jargon.';
 
       const contextStr = contextData ? `\n\nLive Compliance Metrics: ${JSON.stringify(contextData)}` : '';
 
@@ -287,44 +288,132 @@ export async function generateWebLlmExecutiveBriefing(
 
 /**
  * Rule-based executive briefing fallback when WebGPU/engine is unavailable.
+ * Produces a complete briefing that explains each metric's meaning, its value,
+ * its implication, and the prioritized actions it implies.
  */
 export function fallbackExecutiveBriefingGenerator(prompt: string, contextData?: Record<string, unknown>): string {
-  const score = (contextData?.eomsQualityScore as number) ?? (contextData?.eomsScore as number) ?? 0;
-  const submissionRate = (contextData?.submissionRate as number) ?? 0;
-  const iqaProgressRate = (contextData?.iqaProgressRate as number) ?? 0;
-  const carResolutionRate = (contextData?.carResolutionRate as number) ?? 0;
-  const riskControlRate = (contextData?.riskControlRate as number) ?? 0;
-  const copcComplianceRate = (contextData?.copcComplianceRate as number) ?? 0;
-  const accreditationRate = (contextData?.accreditationRate as number) ?? 0;
-  const openCars = (contextData?.openCars as number) ?? 0;
-  const pendingAudits = (contextData?.pendingAudits as number) ?? 0;
-  const openRisks = (contextData?.openRisks as number) ?? 0;
-  const missingCopc = (contextData?.missingCopc as number) ?? 0;
+  // Metric values are stored either as a 0..1 ratio or a percentage; normalize to 0..100.
+  const toPct = (k: string): number => {
+    const n = Number(contextData?.[k] ?? 0);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    return n <= 1 ? Math.round(n * 100) : Math.round(n);
+  };
+
+  const score = toPct('eomsQualityScore') || toPct('eomsScore');
+  const submissionRate = toPct('submissionRate');
+  const iqaProgressRate = toPct('iqaProgressRate');
+  const carResolutionRate = toPct('carResolutionRate');
+  const riskControlRate = toPct('riskControlRate');
+  const copcComplianceRate = toPct('copcComplianceRate');
+  const accreditationRate = toPct('accreditationRate');
+  const openCars = Number(contextData?.openCars ?? 0);
+  const pendingAudits = Number(contextData?.pendingAudits ?? 0);
+  const openRisks = Number(contextData?.openRisks ?? 0);
+  const missingCopc = Number(contextData?.missingCopc ?? 0);
   const scope = (contextData?.scope as string) ?? 'university';
 
   const scopeLabel = scope === 'unit' ? 'the unit' : scope === 'campus' ? 'the campus' : 'the university';
 
-  const bottlenecks: string[] = [];
-  if (submissionRate < 75) bottlenecks.push(`submission compliance is at ${submissionRate}%`);
-  if (carResolutionRate < 60 && openCars > 0)
-    bottlenecks.push(`${openCars} open corrective action request(s) at ${carResolutionRate}% resolution`);
-  if (riskControlRate < 50 && openRisks > 0)
-    bottlenecks.push(`${openRisks} unmitigated risk(s) at ${riskControlRate}% control`);
-  if (pendingAudits > 0) bottlenecks.push(`${pendingAudits} pending internal quality audit(s)`);
-  if (missingCopc > 0) bottlenecks.push(`${missingCopc} program(s) lacking CHED COPC certificates`);
+  // Per-metric explanation: meaning + implication + action.
+  const explain = (label: string, value: number, meaning: string, ok: string, warn: string): string => {
+    const status = value >= 80 ? 'strong' : value >= 60 ? 'acceptable' : value >= 40 ? 'concerning' : 'critical';
+    return `${label} (${value}%) tracks ${meaning}. This is ${status}. ${value >= 60 ? ok : warn}`;
+  };
 
-  let briefing = `${scopeLabel.charAt(0).toUpperCase() + scopeLabel.slice(1)} is operating at a ${score}% EOMS quality index. `;
-  briefing += `Submission compliance is at ${submissionRate}%, internal audit progress at ${iqaProgressRate}%, CAR resolution at ${carResolutionRate}%, risk control at ${riskControlRate}%, CHED COPC compliance at ${copcComplianceRate}%, and accreditation performance at ${accreditationRate}%. `;
+  const lines: string[] = [];
 
-  if (bottlenecks.length > 0) {
-    briefing += `Priority attention is required on ${bottlenecks.join(', ')}. `;
+  lines.push(
+    `${scopeLabel.charAt(0).toUpperCase() + scopeLabel.slice(1)} is operating at a ${score}% EOMS quality index — the composite readout of all monitored compliance dimensions combined.`,
+  );
+
+  lines.push(
+    explain(
+      'Submission compliance',
+      submissionRate,
+      'the share of required documents, reports, and quality records actually submitted against the planned list',
+      'Maintain the submission cadence and keep closure evidence current.',
+      'Review the submission pipeline, clear documentation backlogs, and reinforce on-time reporting.',
+    ),
+  );
+
+  lines.push(
+    explain(
+      'Internal audit (IQA) progress',
+      iqaProgressRate,
+      'how much of the scheduled internal quality audit plan has been completed this cycle',
+      'Keep the audit calendar on track.',
+      'Catch up on scheduled audits so independent assurance of the quality management system is not left stale.',
+    ),
+  );
+
+  lines.push(
+    explain(
+      'CAR resolution',
+      carResolutionRate,
+      'the share of corrective action requests submitted that were actually closed',
+      'Sustain closure of corrective actions.',
+      'Prioritize closing open corrective action requests; lower resolution than submission means known nonconformities remain exposed and may recur.',
+    ),
+  );
+
+  lines.push(
+    explain(
+      'Risk control',
+      riskControlRate,
+      'the share of identified risks that have a fully implemented control or mitigation',
+      'Keep the risk register current.',
+      'Treat the highest-risk register entries; a low control rate leaves unaddressed threats to institutional objectives.',
+    ),
+  );
+
+  lines.push(
+    explain(
+      'CHED COPC compliance',
+      copcComplianceRate,
+      'the share of academic programs holding a valid Certificate of Program Compliance',
+      'Maintain certificate coverage across programs.',
+      'Renew missing COPC certificates; programs without them are ineligible to advance toward external accreditation.',
+    ),
+  );
+
+  lines.push(
+    explain(
+      'Accreditation performance',
+      accreditationRate,
+      'progress of academic programs toward their target external accreditation maturity',
+      'Continue program-level readiness work.',
+      'Accelerate program readiness so quality recognition is not delayed.',
+    ),
+  );
+
+  const residuals: string[] = [];
+  if (openCars > 0) residuals.push(`${openCars} open corrective action request(s)`);
+  if (pendingAudits > 0) residuals.push(`${pendingAudits} pending internal quality audit(s)`);
+  if (openRisks > 0) residuals.push(`${openRisks} uncontrolled risk register item(s)`);
+  if (missingCopc > 0) residuals.push(`${missingCopc} program(s) missing CHED COPC certificates`);
+
+  if (residuals.length > 0) {
+    lines.push(`Open-item register shows ${residuals.join(', ')}.`);
   } else {
-    briefing += 'All monitored quality dimensions are within acceptable performance ranges. ';
+    lines.push('Open-item register shows no residual corrective, audit, risk, or COPC items.');
   }
 
-  briefing +=
-    'Immediate recommended actions are to resolve the highest-impact open items, verify closure evidence, and maintain the current compliance monitoring cadence to sustain ISO 21001:2018 alignment.';
-  return briefing;
+  const targets: string[] = [];
+  if (submissionRate < 75) targets.push('clear the submission backlog and restore on-time reporting');
+  if (iqaProgressRate < 75) targets.push('execute the remaining internal quality audits on schedule');
+  if (carResolutionRate < 75 && openCars > 0)
+    targets.push('resolve the highest-impact open CARs with verified closure evidence');
+  if (riskControlRate < 75 && openRisks > 0) targets.push('treat the highest-severity open risks');
+  if (copcComplianceRate < 100 && missingCopc > 0) targets.push('renew the expiring CHED COPC certificates');
+  if (accreditationRate < 75) targets.push('advance program accreditation readiness');
+
+  lines.push(
+    targets.length > 0
+      ? `Prioritized actions: ${targets.join('; ')}.`
+      : 'Prioritized action: sustain the current compliance monitoring cadence to maintain ISO 21001:2018 alignment.',
+  );
+
+  return lines.join('\n');
 }
 
 /**

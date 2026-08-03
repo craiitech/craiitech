@@ -22,6 +22,8 @@ import {
   Cpu,
   Save,
   Zap,
+  BookOpen,
+  ChevronDown,
 } from 'lucide-react';
 
 interface AiExecutiveBriefingProps {
@@ -50,6 +52,76 @@ function inspectRatio(value: number): { tier: Tier; color: string; glow: string;
     return { tier: 'ATTENTION', color: D.goldDark, glow: `0 0 10px ${D.goldDark}66`, label: 'ATTENTION' };
   return { tier: 'CRITICAL', color: D.red, glow: `0 0 16px ${D.red}88`, label: 'CRITICAL' };
 }
+
+// ─── Data glossary: complete description of every presented metric ────────
+interface GlossaryEntry {
+  label: string;
+  what: string;
+  read: string;
+}
+
+const METRIC_DEFS: GlossaryEntry[] = [
+  {
+    label: 'Submission Compliance',
+    what: 'Share of required institutional documents, reports, and quality records actually submitted against the planned submission list for the reporting period.',
+    read: 'A lower rate signals documentation backlogs and delayed ISO 21001:2018 evidence; push toward higher coverage to keep the quality record complete.',
+  },
+  {
+    label: 'IQA Progress',
+    what: 'Progress against the scheduled Internal Quality Audit (IQA) plan — the share of planned internal audits already performed in the current cycle.',
+    read: 'Below-full progress means audit intervals are slipping, leaving gaps in independent assurance of the quality management system.',
+  },
+  {
+    label: 'CAR Resolution',
+    what: 'Effectiveness of Corrective Action Requests (CARs) — the share of corrective actions submitted for a period that were actually resolved/closed.',
+    read: 'Lower resolution than submission means known nonconformities stay open and may recur; unresolved items accumulate into the Open CARs counter.',
+  },
+  {
+    label: 'Risk Control',
+    what: 'Share of identified risks in the risk register that are actively controlled or mitigated with a defined treatment.',
+    read: 'A low rate exposes unaddressed threats to processes and objectives; the residual count feeds the Open Risks counter.',
+  },
+  {
+    label: 'CHED COPC Compliance',
+    what: 'Share of academic programs holding a valid CHED COPC (Certificate of Program Compliance) status for the reporting year.',
+    read: 'Programs missing certification are flagged by the Missing COPC counter and are ineligible to advance toward external accreditation.',
+  },
+  {
+    label: 'Accreditation Performance',
+    what: 'Progress of academic programs toward their target external accreditation maturity (accredited or in an approved accreditation level).',
+    read: 'Lower progress slows institutional quality recognition and drives program-level readiness work.',
+  },
+];
+
+const COUNT_DEFS: GlossaryEntry[] = [
+  {
+    label: 'Open CARs',
+    what: 'Total number of Corrective Action Requests still open and not yet closed within the reporting period.',
+    read: 'Every open CAR is an unresolved nonconformity; prioritize the highest-impact items and verify closure evidence.',
+  },
+  {
+    label: 'Pending Audits',
+    what: 'Number of scheduled internal quality audits not yet executed in the current cycle.',
+    read: 'A backlog of pending audits delays assurance; schedule and complete them to keep the audit cadence intact.',
+  },
+  {
+    label: 'Open Risks',
+    what: 'Number of risk register entries still without a fully implemented control or mitigation.',
+    read: 'Uncontrolled risks remain as live threats to institutional objectives; treat or accept them explicitly.',
+  },
+  {
+    label: 'Missing COPC',
+    what: 'Count of academic programs lacking a valid CHED COPC certificate for the current year.',
+    read: 'Each missing certificate blocks program eligibility for external accreditation; prioritize renewal for expiring programs.',
+  },
+];
+
+const TIER_LEGEND: Array<{ tier: Tier; color: string; meaning: string }> = [
+  { tier: 'NOMINAL', color: D.green, meaning: '80+ — healthy range; maintain the current cadence.' },
+  { tier: 'STABLE', color: D.greenDark, meaning: '60–79 — acceptable; monitor for drift.' },
+  { tier: 'ATTENTION', color: D.goldDark, meaning: '40–59 — underperforming; schedule corrective focus.' },
+  { tier: 'CRITICAL', color: D.red, meaning: 'Below 40 — significant gap; immediate prioritized action.' },
+];
 
 // ─── Numeric readout with count-up animation ──────────────────────────────
 function Counter({ value }: { value: number }) {
@@ -120,6 +192,106 @@ function CountCell({ label, value, tier }: { label: string; value: number; tier:
   );
 }
 
+// ─── Complete data-glossary panel ─────────────────────────────────────────
+function GlossaryPanel({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="mt-4 rounded-lg border border-white/10 bg-black/40 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-white/5 border-b border-white/10">
+        <span className="text-[8px] font-black uppercase tracking-widest text-slate-300 flex items-center gap-1.5">
+          <BookOpen className="h-3 w-3" style={{ color: D.violet }} />
+          Data glossary — decoding every field
+        </span>
+        <button
+          type="button"
+          onClick={onClose}
+          className="text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-white"
+        >
+          Close
+        </button>
+      </div>
+      <div className="p-4 space-y-5">
+        <section>
+          <h4 className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2">
+            Ratio metrics — telemetry cells
+          </h4>
+          <div className="space-y-3">
+            {METRIC_DEFS.map((def) => (
+              <div key={def.label} className="rounded-md border border-white/5 bg-black/20 p-3">
+                <p
+                  className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"
+                  style={{ color: D.cyan }}
+                >
+                  <Activity className="h-3 w-3" />
+                  {def.label}
+                </p>
+                <p className="mt-1.5 text-[11px] font-mono leading-relaxed text-slate-300">
+                  <span className="font-black uppercase tracking-widest text-slate-500 text-[8px]">
+                    What it measures ·{' '}
+                  </span>
+                  {def.what}
+                </p>
+                <p className="mt-1 text-[11px] font-mono leading-relaxed text-slate-400">
+                  <span className="font-black uppercase tracking-widest text-slate-500 text-[8px]">
+                    How to read it ·{' '}
+                  </span>
+                  {def.read}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h4 className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2">Threat counters</h4>
+          <div className="space-y-3">
+            {COUNT_DEFS.map((def) => (
+              <div key={def.label} className="rounded-md border border-white/5 bg-black/20 p-3">
+                <p
+                  className="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"
+                  style={{ color: D.goldDark }}
+                >
+                  <ShieldAlert className="h-3 w-3" />
+                  {def.label}
+                </p>
+                <p className="mt-1.5 text-[11px] font-mono leading-relaxed text-slate-300">
+                  <span className="font-black uppercase tracking-widest text-slate-500 text-[8px]">
+                    What it measures ·{' '}
+                  </span>
+                  {def.what}
+                </p>
+                <p className="mt-1 text-[11px] font-mono leading-relaxed text-slate-400">
+                  <span className="font-black uppercase tracking-widest text-slate-500 text-[8px]">
+                    How to read it ·{' '}
+                  </span>
+                  {def.read}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h4 className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-2">Status tiers</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {TIER_LEGEND.map((t) => (
+              <div key={t.tier} className="rounded-md border border-white/5 bg-black/20 p-2">
+                <span className="text-[9px] font-black tabular-nums" style={{ color: t.color }}>
+                  {t.tier}
+                </span>
+                <span className="block text-[8px] font-mono text-slate-400 mt-1 leading-snug">{t.meaning}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-[10px] font-mono leading-relaxed text-slate-500">
+            Note: the EOMS Quality Index is the composite compliance readout of all monitored dimensions combined; tier
+            bands above apply to each telemetry cell.
+          </p>
+        </section>
+      </div>
+    </div>
+  );
+}
+
 /**
  * ADMIN-ONLY Executive AI Briefing card.
  * Renders only for admins; non-admins see nothing. Uses the locally loaded WebLLM
@@ -132,13 +304,14 @@ export function AiExecutiveBriefing({ contextData, className = '' }: AiExecutive
   const [briefing, setBriefing] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showGlossary, setShowGlossary] = useState(false);
 
   const handleGenerate = useCallback(async () => {
     if (!isAdminOnly) return;
     setIsGenerating(true);
     try {
       const result = await generateExecutiveBriefing(
-        'Provide an executive briefing on the current institutional EOMS quality posture, its most critical gaps, and the prioritized actions required.',
+        'Provide an executive briefing on the current institutional EOMS quality posture, its most critical gaps, and the prioritized actions required. For every metric you mention, briefly explain what the metric measures and what its value implies before stating the recommended action.',
         contextData,
       );
       setBriefing(result);
@@ -169,10 +342,11 @@ export function AiExecutiveBriefing({ contextData, className = '' }: AiExecutive
   // ─── Derive the telemetry deck from live metrics ────────────────────────
   const deck = useMemo(() => {
     const num = (k: string) => Number(contextData?.[k] ?? 0);
-    // Metric context values may be stored as a 0..1 ratio; normalize to percent.
+    // Metric values are stored either as a 0..1 ratio or a percentage; normalize to 0..100.
     const pct = (k: string) => {
       const n = Number(contextData?.[k] ?? 0);
-      return Number.isFinite(n) && n > 1 ? n * 100 : n;
+      if (!Number.isFinite(n) || n < 0) return 0;
+      return n <= 1 ? Math.round(n * 100) : n;
     };
 
     const metrics = [
@@ -202,7 +376,7 @@ export function AiExecutiveBriefing({ contextData, className = '' }: AiExecutive
       { label: 'Missing COPC', value: missingCopc, tier: missingCopc > 0 ? 'ATTENTION' : 'NOMINAL' },
     ];
 
-    const score = Math.round(num('eomsQualityScore') || num('eomsScore'));
+    const score = Math.round(pct('eomsQualityScore') || pct('eomsScore'));
     const nCritical = metrics.filter((m) => inspectRatio(m.value).tier === 'CRITICAL').length;
     const nAttention = metrics.filter((m) => inspectRatio(m.value).tier === 'ATTENTION').length;
 
@@ -388,6 +562,23 @@ export function AiExecutiveBriefing({ contextData, className = '' }: AiExecutive
               </p>
             )}
           </div>
+        </div>
+
+        {/* Data glossary toggle */}
+        <div className="mt-3">
+          {showGlossary ? (
+            <GlossaryPanel onClose={() => setShowGlossary(false)} />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowGlossary(true)}
+              className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 bg-black/20 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-200 hover:border-white/30 transition-colors"
+            >
+              <BookOpen className="h-3.5 w-3.5" style={{ color: D.violet }} />
+              Read the full description &amp; explanation of every metric
+              <ChevronDown className="h-3 w-3" />
+            </button>
+          )}
         </div>
       </CardContent>
     </Card>
