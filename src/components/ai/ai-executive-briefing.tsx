@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useWebLlm } from '@/context/web-llm-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -292,6 +293,185 @@ function GlossaryPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Rich briefing renderer ───────────────────────────────────────────────
+// Colors numeric values, parenthesized residuals, and severity status words so
+// the AI output reads like a structured command deck instead of plain text.
+
+const PCT_TOKEN = /\d{1,3}%/;
+const GROUP_TOKEN = /^\(\d/;
+
+function NumberParts({ text }: { text: string }) {
+  const parts = text.split(/(\(\d{1,3}%\)|\(\d+[^)]*\)|\d{1,3}%)/g);
+  return (
+    <>
+      {parts.map((p, i) => {
+        if (PCT_TOKEN.test(p) && p.length <= 4)
+          return (
+            <span key={i} className="font-black tabular-nums" style={{ color: D.cyan }}>
+              {p}
+            </span>
+          );
+        if (GROUP_TOKEN.test(p))
+          return (
+            <span key={i} className="font-black tabular-nums" style={{ color: D.goldDark }}>
+              {p}
+            </span>
+          );
+        return <span key={i}>{p}</span>;
+      })}
+    </>
+  );
+}
+
+const STATUS_PAT = /\b(critical|concerning|acceptable|strong)\b/i;
+
+function Rich({ text }: { text: string }) {
+  const parts = text.split(STATUS_PAT);
+  return (
+    <>
+      {parts.map((p, i) => {
+        const key = p.toLowerCase();
+        const color =
+          key === 'critical'
+            ? D.red
+            : key === 'concerning'
+              ? D.goldDark
+              : key === 'acceptable' || key === 'strong'
+                ? D.green
+                : null;
+        return color ? (
+          <span key={i} className="font-black" style={{ color, textShadow: `0 0 8px ${color}55` }}>
+            {p}
+          </span>
+        ) : (
+          <NumberParts key={i} text={p} />
+        );
+      })}
+    </>
+  );
+}
+
+function SectionHeading({ children }: { children: string }) {
+  return (
+    <div className="mt-3 mb-1.5 flex items-center gap-2">
+      <span
+        className="text-[9px] font-black uppercase tracking-[0.2em]"
+        style={{ color: D.cyan, textShadow: `0 0 8px ${D.cyan}44` }}
+      >
+        ▚ {children}
+      </span>
+      <span className="flex-1 h-px bg-gradient-to-r from-white/20 to-transparent" />
+    </div>
+  );
+}
+
+function NumberedRow({ n, children }: { n: string; children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-2 pl-0.5">
+      <span
+        className="mt-0.5 inline-flex items-center justify-center w-4 h-4 rounded-sm text-[9px] font-black tabular-nums shrink-0"
+        style={{ background: `${D.cyan}1f`, color: D.cyan, border: `1px solid ${D.cyan}44` }}
+      >
+        {n}
+      </span>
+      <span className="text-slate-200 leading-relaxed">{children}</span>
+    </div>
+  );
+}
+
+function BulletRow({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-2 pl-2.5">
+      <span className="mt-0.5 text-white/40 select-none">›</span>
+      <span className="text-slate-300 leading-relaxed">{children}</span>
+    </div>
+  );
+}
+
+function Banner({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="mt-1 mb-2 rounded-md border px-3 py-2 text-[11px] font-black uppercase tracking-wide leading-relaxed"
+      style={{
+        borderColor: `${D.red}66`,
+        background: `${D.red}14`,
+        color: D.red,
+        boxShadow: `0 0 14px ${D.red}22`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function MetricLine({ line }: { line: string }) {
+  const m = line.match(/^([A-Z][A-Z0-9 &/().-]*?)\s*\((\d{1,3}%)\)(.*)$/);
+  if (!m)
+    return (
+      <p className="text-slate-200 leading-relaxed">
+        <Rich text={line} />
+      </p>
+    );
+  return (
+    <div className="pl-0.5 leading-relaxed">
+      <span className="font-black tracking-wide" style={{ color: '#e2e8f0' }}>
+        {m[1].trim()}{' '}
+      </span>
+      <span className="font-black tabular-nums" style={{ color: D.goldDark }}>
+        ({m[2]})
+      </span>
+      <Rich text={m[3]} />
+    </div>
+  );
+}
+
+function BriefingView({ text }: { text: string }) {
+  return (
+    <div className="space-y-1">
+      {text.split('\n').map((raw, i) => {
+        const line = raw.trim();
+        if (!line) return <div key={i} className="h-2" />;
+
+        const sec = line.match(/^=+\s*(.*?)\s*=+$/);
+        if (sec) return <SectionHeading key={i}>{sec[1]}</SectionHeading>;
+
+        const num = line.match(/^(\d+)[.)]\s+(.*)$/);
+        if (num) {
+          const body = STATUS_PAT.test(num[2]) ? <MetricLine line={num[2]} /> : <Rich text={num[2]} />;
+          return (
+            <NumberedRow key={i} n={num[1]}>
+              {body}
+            </NumberedRow>
+          );
+        }
+
+        if (/AT RISK/.test(line)) {
+          return (
+            <Banner key={i}>
+              <Rich text={line} />
+            </Banner>
+          );
+        }
+
+        if (/^[-•·]\s+/.test(line))
+          return (
+            <BulletRow key={i}>
+              <Rich text={line.replace(/^[-•·]\s+/, '')} />
+            </BulletRow>
+          );
+
+        if (STATUS_PAT.test(line)) return <MetricLine key={i} line={line} />;
+
+        return (
+          <p key={i} className="text-slate-200 leading-relaxed">
+            <Rich text={line} />
+          </p>
+        );
+      })}
+    </div>
+  );
+}
+
 /**
  * ADMIN-ONLY Executive AI Briefing card.
  * Renders only for admins; non-admins see nothing. Uses the locally loaded WebLLM
@@ -553,7 +733,7 @@ export function AiExecutiveBriefing({ contextData, className = '' }: AiExecutive
                 <span className="eqi-caret">▊</span>
               </span>
             ) : briefing ? (
-              <p className="text-slate-200 whitespace-pre-line">{briefing}</p>
+              <BriefingView text={briefing} />
             ) : (
               <p className="text-slate-500">
                 <span style={{ color: D.green }}>$</span> await command — trigger refresh to decode institutional
