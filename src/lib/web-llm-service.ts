@@ -262,8 +262,10 @@ export async function generateWebLlmExecutiveBriefing(
       const systemPrompt =
         "You are an expert Executive Briefing Analyst for Romblon State University's EOMS (ISO 21001:2018). " +
         'Write a concise, professional, action-oriented institutional briefing for the university executive leadership. ' +
-        'Synthesize the provided live compliance metrics, and for every metric you reference briefly explain WHAT the metric measures, what its current value implies, and the recommended action it calls for. ' +
-        'Then list the open-item register and end with clearly prioritized recommended actions. ' +
+        'First state the composite posture and an overall verdict (strong / mixed / AT RISK). ' +
+        'Then rank the monitored dimensions from most to least urgent, and for each briefly explain WHAT the metric measures, what its current value implies, and the action it calls for. ' +
+        'Put a clear CRITICAL PRIORITIES — ACT NOW callout for any dimension in the danger zone. ' +
+        'List the open-item register and end with a numbered ORDERED ACTION PLAN sequenced strictly by urgency, starting with the highest-impact exposure. ' +
         'Use short paragraphs; keep each point on its own line. Formal executive tone, no jargon.';
 
       const contextStr = contextData ? `\n\nLive Compliance Metrics: ${JSON.stringify(contextData)}` : '';
@@ -288,8 +290,9 @@ export async function generateWebLlmExecutiveBriefing(
 
 /**
  * Rule-based executive briefing fallback when WebGPU/engine is unavailable.
- * Produces a complete briefing that explains each metric's meaning, its value,
- * its implication, and the prioritized actions it implies.
+ * Produces a complete briefing that explains each metric's meaning and value,
+ * emphasizes the most critical gaps (ranked by severity), and closes with an
+ * ordered, urgency-based action plan those gaps call for.
  */
 export function fallbackExecutiveBriefingGenerator(prompt: string, contextData?: Record<string, unknown>): string {
   // Metric values are stored either as a 0..1 ratio or a percentage; normalize to 0..100.
@@ -314,104 +317,135 @@ export function fallbackExecutiveBriefingGenerator(prompt: string, contextData?:
 
   const scopeLabel = scope === 'unit' ? 'the unit' : scope === 'campus' ? 'the campus' : 'the university';
 
-  // Per-metric explanation: meaning + implication + action.
-  const explain = (label: string, value: number, meaning: string, ok: string, warn: string): string => {
-    const status = value >= 80 ? 'strong' : value >= 60 ? 'acceptable' : value >= 40 ? 'concerning' : 'critical';
-    return `${label} (${value}%) tracks ${meaning}. This is ${status}. ${value >= 60 ? ok : warn}`;
-  };
+  // Per-metric status word and urgency ranking.
+  const word = (v: number): string =>
+    v >= 80 ? 'strong' : v >= 60 ? 'acceptable' : v >= 40 ? 'concerning' : 'critical';
+
+  const dims: Array<{
+    label: string;
+    value: number;
+    measure: string;
+    action: string;
+    survive: string;
+    residual: string;
+  }> = [
+    {
+      label: 'RISK CONTROL',
+      value: riskControlRate,
+      measure: 'the share of identified risks that have a fully implemented control or mitigation',
+      action: `Treat the highest-priority open risks first (${openRisks} open register items) — uncontrolled exposures are live threats to institutional objectives.`,
+      survive: 'Retain the risk register and control cadence.',
+      residual: openRisks > 0 ? ` (${openRisks} open register items)` : '',
+    },
+    {
+      label: 'SUBMISSION COMPLIANCE',
+      value: submissionRate,
+      measure: 'the share of required documents, reports, and quality records actually delivered on the planned list',
+      action: 'Clear the submission backlog and restore on-time reporting so ISO 21001:2018 evidence is complete.',
+      survive: 'Maintain the submission cadence and closure evidence.',
+      residual: '',
+    },
+    {
+      label: 'ACCREDITATION PERFORMANCE',
+      value: accreditationRate,
+      measure: 'progress of academic programs toward their target external accreditation maturity',
+      action: 'Accelerate program accreditation readiness so institutional quality recognition is not delayed.',
+      survive: 'Continue program-level readiness work.',
+      residual: '',
+    },
+    {
+      label: 'CAR RESOLUTION',
+      value: carResolutionRate,
+      measure: 'the share of corrective action requests submitted that were actually closed',
+      action: `Resolve the highest-impact open CARs with verified closure evidence (${openCars} open).`,
+      survive: 'Complete closure of corrective actions.',
+      residual: openCars > 0 ? ` (${openCars} open)` : '',
+    },
+    {
+      label: 'INTERNAL AUDIT (IQA) PROGRESS',
+      value: iqaProgressRate,
+      measure: 'how many of the scheduled internal quality audits have been completed this cycle',
+      action: `Execute the remaining internal audits on schedule (${pendingAudits} pending) so assurance stays current.`,
+      survive: 'Keep the audit calendar on schedule.',
+      residual: pendingAudits > 0 ? ` (${pendingAudits} pending)` : '',
+    },
+    {
+      label: 'CHED COPC COMPLIANCE',
+      value: copcComplianceRate,
+      measure: 'the share of academic programs holding a valid Certificate of Program Compliance',
+      action: `Renew the ${missingCopc} expiring CHED COPC certificates so programs remain accreditation-eligible.`,
+      survive: 'Maintain certificate coverage across programs.',
+      residual: missingCopc > 0 ? ` (${missingCopc} missing)` : '',
+    },
+  ];
+
+  // Rank by severity first (critical first), then by largest gap.
+  const tierToOrder: Record<string, number> = { critical: 0, concerning: 1, acceptable: 2, strong: 3 };
+  const ranked = [...dims].sort((a, b) => tierToOrder[word(a.value)] - tierToOrder[word(b.value)] || a.value - b.value);
+
+  const criticalDims = ranked.filter((d) => word(d.value) === 'critical');
+  const needsAction = ranked.filter((d) => d.residual !== '' || (word(d.value) !== 'strong' && d.value < 85));
 
   const lines: string[] = [];
 
+  const scopeTitle = scopeLabel.charAt(0).toUpperCase() + scopeLabel.slice(1);
   lines.push(
-    `${scopeLabel.charAt(0).toUpperCase() + scopeLabel.slice(1)} is operating at a ${score}% EOMS quality index — the composite readout of all monitored compliance dimensions combined.`,
+    `${scopeTitle} is operating at a ${score}% EOMS quality index — the composite readout of all monitored compliance dimensions combined.`,
   );
 
-  lines.push(
-    explain(
-      'Submission compliance',
-      submissionRate,
-      'the share of required documents, reports, and quality records actually submitted against the planned list',
-      'Maintain the submission cadence and keep closure evidence current.',
-      'Review the submission pipeline, clear documentation backlogs, and reinforce on-time reporting.',
-    ),
-  );
+  const overall =
+    score >= 70
+      ? 'Overall institutional posture is strong.'
+      : score >= 55
+        ? 'Posture is mixed — strengths exist but several dimensions must not be left unchecked.'
+        : 'OVERALL POSTURE IS AT RISK — multiple dimensions sit below acceptable thresholds and need immediate executive action.';
+  lines.push(overall);
 
-  lines.push(
-    explain(
-      'Internal audit (IQA) progress',
-      iqaProgressRate,
-      'how much of the scheduled internal quality audit plan has been completed this cycle',
-      'Keep the audit calendar on track.',
-      'Catch up on scheduled audits so independent assurance of the quality management system is not left stale.',
-    ),
-  );
+  if (criticalDims.length > 0) {
+    lines.push('=== CRITICAL PRIORITIES — ACT NOW ===');
+    criticalDims.forEach((d, i) => {
+      lines.push(
+        `${i + 1}. ${d.label} (${d.value}%)${d.residual} is ${word(d.value)}: it tracks ${d.measure}. ${d.action}`,
+      );
+    });
+  } else {
+    lines.push('=== PRIORITY WATCH === No dimension is critical this period; keep the items below moving.');
+  }
 
-  lines.push(
-    explain(
-      'CAR resolution',
-      carResolutionRate,
-      'the share of corrective action requests submitted that were actually closed',
-      'Sustain closure of corrective actions.',
-      'Prioritize closing open corrective action requests; lower resolution than submission means known nonconformities remain exposed and may recur.',
-    ),
-  );
-
-  lines.push(
-    explain(
-      'Risk control',
-      riskControlRate,
-      'the share of identified risks that have a fully implemented control or mitigation',
-      'Keep the risk register current.',
-      'Treat the highest-risk register entries; a low control rate leaves unaddressed threats to institutional objectives.',
-    ),
-  );
-
-  lines.push(
-    explain(
-      'CHED COPC compliance',
-      copcComplianceRate,
-      'the share of academic programs holding a valid Certificate of Program Compliance',
-      'Maintain certificate coverage across programs.',
-      'Renew missing COPC certificates; programs without them are ineligible to advance toward external accreditation.',
-    ),
-  );
-
-  lines.push(
-    explain(
-      'Accreditation performance',
-      accreditationRate,
-      'progress of academic programs toward their target external accreditation maturity',
-      'Continue program-level readiness work.',
-      'Accelerate program readiness so quality recognition is not delayed.',
-    ),
-  );
+  lines.push('=== PER-DIMENSION DETAIL ===');
+  ranked.forEach((d) => {
+    const s = word(d.value);
+    const noAction = s === 'strong' && d.residual === '';
+    const verdict = noAction
+      ? 'strong — no action required'
+      : s === 'strong'
+        ? 'strong overall, but residual items remain — requires action'
+        : s === 'acceptable'
+          ? 'acceptable — continue action'
+          : `${s} — requires action`;
+    const advice = noAction ? d.survive : d.action;
+    lines.push(`${d.label} (${d.value}%) tracks ${d.measure}. Current status is ${verdict}. ${advice}`);
+  });
 
   const residuals: string[] = [];
   if (openCars > 0) residuals.push(`${openCars} open corrective action request(s)`);
   if (pendingAudits > 0) residuals.push(`${pendingAudits} pending internal quality audit(s)`);
   if (openRisks > 0) residuals.push(`${openRisks} uncontrolled risk register item(s)`);
   if (missingCopc > 0) residuals.push(`${missingCopc} program(s) missing CHED COPC certificates`);
-
-  if (residuals.length > 0) {
-    lines.push(`Open-item register shows ${residuals.join(', ')}.`);
-  } else {
-    lines.push('Open-item register shows no residual corrective, audit, risk, or COPC items.');
-  }
-
-  const targets: string[] = [];
-  if (submissionRate < 75) targets.push('clear the submission backlog and restore on-time reporting');
-  if (iqaProgressRate < 75) targets.push('execute the remaining internal quality audits on schedule');
-  if (carResolutionRate < 75 && openCars > 0)
-    targets.push('resolve the highest-impact open CARs with verified closure evidence');
-  if (riskControlRate < 75 && openRisks > 0) targets.push('treat the highest-severity open risks');
-  if (copcComplianceRate < 100 && missingCopc > 0) targets.push('renew the expiring CHED COPC certificates');
-  if (accreditationRate < 75) targets.push('advance program accreditation readiness');
-
   lines.push(
-    targets.length > 0
-      ? `Prioritized actions: ${targets.join('; ')}.`
-      : 'Prioritized action: sustain the current compliance monitoring cadence to maintain ISO 21001:2018 alignment.',
+    residuals.length > 0
+      ? `Open-item register: ${residuals.join(', ')}.`
+      : 'Open-item register: no residual corrective, audit, risk, or COPC items.',
   );
+
+  lines.push('=== ORDERED ACTION PLAN (by urgency) ===');
+  if (needsAction.length > 0) {
+    needsAction.forEach((d, i) => {
+      lines.push(`${i + 1}. ${d.action}`);
+    });
+  } else {
+    lines.push('1. Sustain the current compliance monitoring cadence to maintain ISO 21001:2018 alignment.');
+  }
 
   return lines.join('\n');
 }
