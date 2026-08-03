@@ -172,6 +172,10 @@ service cloud.firestore {
       allow get, list, write: if isSignedIn();
     }
 
+    match /eqaOfiMonitoring/{id} {
+      allow get, list, write: if isSignedIn();
+    }
+
     match /managementReviews/{id} {
       allow get, list: if isSignedIn();
       allow write: if isAdmin();

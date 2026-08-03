@@ -4,7 +4,6 @@ import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
   collection,
-  query,
   deleteDoc,
   doc,
   addDoc,
@@ -12,18 +11,17 @@ import {
   Timestamp,
   updateDoc,
 } from '@/firebase/firestore-wrapper';
-import type { EqaOfiMonitoring, Campus, Unit, EqaOfiStatus } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useFieldArray } from 'react-hook-form';
+import type { EqaOfiMonitoring, EqaOfiTargetUnit, Campus, Unit, EqaOfiStatus } from '@/lib/types';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import {
   Loader2,
-  ExternalLink,
   Trash2,
   PlusCircle,
   ListChecks,
-  Info,
   Edit,
   Calendar,
   ShieldCheck,
@@ -33,7 +31,8 @@ import {
   AlertCircle,
   Building2,
   Link as LinkIcon,
-  Filter,
+  Plus,
+  X,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -60,29 +59,38 @@ interface EqaOfiMonitoringTabProps {
   canManage: boolean;
 }
 
-const ofiSchema = z.object({
+const targetUnitSchema = z.object({
+  id: z.string(),
   unitId: z.string().min(1, 'Unit is required'),
   campusId: z.string().min(1, 'Campus is required'),
+  actionTaken: z.string().optional(),
+  status: z.enum(['Pending Action', 'In Progress', 'Completed', 'Verified by QAO']),
+  targetDate: z.string().optional(),
+  evidenceLink: z.string().optional(),
+});
+
+const ofiSchema = z.object({
   certifyingBody: z.string().min(1, 'Certifying body is required'),
   standard: z.string().min(1, 'Standard is required'),
   auditDate: z.string().min(1, 'Audit date is required'),
   ofiStatement: z.string().min(5, 'OFI statement must be at least 5 characters'),
-  actionTaken: z.string().min(1, 'Action taken / action plan is required'),
-  targetDate: z.string().optional(),
-  status: z.enum(['Pending', 'In Progress', 'Completed', 'Verified']),
-  evidenceLink: z.string().url('Invalid URL').optional().or(z.literal('')),
   remarks: z.string().optional(),
+  targetUnits: z.array(targetUnitSchema).min(1, 'Add at least one target unit.'),
 });
 
+type OfiFormValues = z.infer<typeof ofiSchema>;
+
 const statusColors: Record<EqaOfiStatus, string> = {
-  Pending: 'bg-amber-100 text-amber-800 border-amber-300',
+  'Pending Action': 'bg-amber-100 text-amber-800 border-amber-300',
   'In Progress': 'bg-blue-100 text-blue-800 border-blue-300',
   Completed: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-  Verified: 'bg-purple-100 text-purple-800 border-purple-300',
+  'Verified by QAO': 'bg-purple-100 text-purple-800 border-purple-300',
 };
 
+const genId = () => Math.random().toString(36).substr(2, 9);
+
 export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonitoringTabProps) {
-  const { isAdmin, userProfile } = useUser();
+  const { isAdmin, isAuditor, userRole, userProfile } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -93,6 +101,13 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+
+  const isInstitutionalViewer =
+    isAdmin ||
+    isAuditor ||
+    userRole?.toLowerCase().includes('president') ||
+    userRole?.toLowerCase().includes('quality management') ||
+    userRole?.toLowerCase().includes('qms');
 
   const ofiQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'eqaOfiMonitoring') : null), [firestore]);
   const { data: rawOfis, isLoading } = useCollection<EqaOfiMonitoring>(ofiQuery);
@@ -106,68 +121,128 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
     });
   }, [rawOfis]);
 
-  const filteredOfis = useMemo(() => {
-    return sortedOfis.filter((item) => {
-      if (campusFilter !== 'all' && item.campusId !== campusFilter) return false;
-      if (statusFilter !== 'all' && item.status !== statusFilter) return false;
+  // Flatten each target unit into a display row
+  const rows = useMemo(() => {
+    const list: { ofi: EqaOfiMonitoring; target: EqaOfiTargetUnit }[] = [];
+    sortedOfis.forEach((ofi) => {
+      const targets = ofi.targetUnits?.length ? ofi.targetUnits : [];
+      targets.forEach((t) => list.push({ ofi, target: t }));
+    });
+    return list;
+  }, [sortedOfis]);
+
+  const filteredRows = useMemo(() => {
+    return rows.filter(({ ofi, target }) => {
+      if (!isInstitutionalViewer) {
+        const isCampusSupervisor =
+          userRole === 'Campus Director' ||
+          userRole === 'Campus ODIMO' ||
+          userRole?.toLowerCase().includes('vice president');
+        if (isCampusSupervisor) {
+          if (target.campusId !== userProfile?.campusId) return false;
+        } else {
+          if (target.unitId !== userProfile?.unitId) return false;
+        }
+      }
+      if (campusFilter !== 'all' && target.campusId !== campusFilter) return false;
+      if (statusFilter !== 'all' && target.status !== statusFilter) return false;
       if (searchTerm) {
         const lower = searchTerm.toLowerCase();
-        const matchesUnit = item.unitName?.toLowerCase().includes(lower);
-        const matchesBody = item.certifyingBody?.toLowerCase().includes(lower);
-        const matchesStatement = item.ofiStatement?.toLowerCase().includes(lower);
-        const matchesAction = item.actionTaken?.toLowerCase().includes(lower);
+        const matchesUnit = target.unitName?.toLowerCase().includes(lower);
+        const matchesBody = ofi.certifyingBody?.toLowerCase().includes(lower);
+        const matchesStatement = ofi.ofiStatement?.toLowerCase().includes(lower);
+        const matchesAction = target.actionTaken?.toLowerCase().includes(lower);
         if (!matchesUnit && !matchesBody && !matchesStatement && !matchesAction) return false;
       }
       return true;
     });
-  }, [sortedOfis, campusFilter, statusFilter, searchTerm]);
+  }, [rows, campusFilter, statusFilter, searchTerm, isInstitutionalViewer, userRole, userProfile]);
 
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
 
   const stats = useMemo(() => {
-    const total = sortedOfis.length;
-    const pending = sortedOfis.filter((o) => o.status === 'Pending').length;
-    const inProgress = sortedOfis.filter((o) => o.status === 'In Progress').length;
-    const completed = sortedOfis.filter((o) => o.status === 'Completed' || o.status === 'Verified').length;
+    const total = rows.length;
+    const pending = rows.filter((r) => r.target.status === 'Pending Action').length;
+    const inProgress = rows.filter((r) => r.target.status === 'In Progress').length;
+    const completed = rows.filter(
+      (r) => r.target.status === 'Completed' || r.target.status === 'Verified by QAO',
+    ).length;
     return { total, pending, inProgress, completed };
-  }, [sortedOfis]);
+  }, [rows]);
 
-  const form = useForm<z.infer<typeof ofiSchema>>({
+  const form = useForm<OfiFormValues>({
     resolver: zodResolver(ofiSchema),
     defaultValues: {
-      unitId: '',
-      campusId: '',
       certifyingBody: 'TÜV Rheinland',
       standard: 'ISO 21001:2018',
       auditDate: format(new Date(), 'yyyy-MM-dd'),
       ofiStatement: '',
-      actionTaken: '',
-      targetDate: '',
-      status: 'Pending',
-      evidenceLink: '',
       remarks: '',
+      targetUnits: [],
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof ofiSchema>) => {
+  const { fields, append, remove } = useFieldArray({
+    control: form.control,
+    name: 'targetUnits',
+  });
+
+  const addTargetUnit = () => {
+    append({
+      id: genId(),
+      unitId: '',
+      campusId: '',
+      actionTaken: '',
+      status: 'Pending Action',
+      targetDate: '',
+      evidenceLink: '',
+    });
+  };
+
+  const onSubmit = async (values: OfiFormValues) => {
     if (!firestore) return;
     setIsSubmitting(true);
     try {
-      const unitName = unitMap.get(values.unitId) || 'Unit';
+      const targetUnits: Array<{
+        id: string;
+        unitId: string;
+        unitName: string;
+        campusId: string;
+        actionTaken: string;
+        status: EqaOfiStatus;
+        targetDate: ReturnType<typeof Timestamp.fromDate> | null;
+        evidenceLink: string;
+        updatedAt: ReturnType<typeof serverTimestamp>;
+      }> = [];
+      for (const t of values.targetUnits) {
+        if (!t.unitId) continue;
+        targetUnits.push({
+          id: t.id,
+          unitId: t.unitId,
+          unitName: unitMap.get(t.unitId) || 'Unit',
+          campusId: t.campusId,
+          actionTaken: t.actionTaken?.trim() || '',
+          status: (t.status as EqaOfiStatus) || 'Pending Action',
+          targetDate: t.targetDate ? Timestamp.fromDate(new Date(t.targetDate)) : null,
+          evidenceLink: t.evidenceLink?.trim() || '',
+          updatedAt: serverTimestamp(),
+        });
+      }
+
+      if (targetUnits.length === 0) {
+        toast({ title: 'No Target Unit', description: 'Please add at least one target unit.', variant: 'destructive' });
+        setIsSubmitting(false);
+        return;
+      }
+
       const dataToSave = {
-        unitId: values.unitId,
-        unitName,
-        campusId: values.campusId,
         certifyingBody: values.certifyingBody.trim(),
         standard: values.standard.trim(),
         auditDate: values.auditDate ? Timestamp.fromDate(new Date(values.auditDate)) : serverTimestamp(),
         ofiStatement: values.ofiStatement.trim(),
-        actionTaken: values.actionTaken.trim(),
-        targetDate: values.targetDate ? Timestamp.fromDate(new Date(values.targetDate)) : null,
-        status: values.status,
-        evidenceLink: values.evidenceLink?.trim() || '',
         remarks: values.remarks?.trim() || '',
+        targetUnits,
         updatedAt: serverTimestamp(),
       };
 
@@ -185,8 +260,8 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
       setIsDialogOpen(false);
       setEditingOfi(null);
       form.reset();
-    } catch (error) {
-      console.error(error);
+    } catch {
+      console.error('Failed to save OFI monitoring record.');
       toast({ title: 'Error', description: 'Failed to save OFI monitoring record.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -198,28 +273,52 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
     try {
       await deleteDoc(doc(firestore, 'eqaOfiMonitoring', id));
       toast({ title: 'Record Deleted', description: 'OFI record removed.' });
-    } catch (error) {
+    } catch {
       toast({ title: 'Error', description: 'Failed to delete record.', variant: 'destructive' });
     }
   };
 
-  const handleEdit = (ofi: EqaOfiMonitoring) => {
+  const openCreate = () => {
+    setEditingOfi(null);
+    form.reset({
+      certifyingBody: 'TÜV Rheinland',
+      standard: 'ISO 21001:2018',
+      auditDate: format(new Date(), 'yyyy-MM-dd'),
+      ofiStatement: '',
+      remarks: '',
+      targetUnits: [],
+    });
+    addTargetUnit();
+    setIsDialogOpen(true);
+  };
+
+  const canEditTarget = (index: number) => {
+    if (isInstitutionalViewer) return true; // institution manages all records
+    return form.getValues(`targetUnits.${index}.unitId`) === userProfile?.unitId;
+  };
+
+  const openEdit = (ofi: EqaOfiMonitoring) => {
     setEditingOfi(ofi);
     const safeDate = (d: any) =>
       d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : d ? format(new Date(d), 'yyyy-MM-dd') : '';
 
+    const targets = (ofi.targetUnits || []).map((t) => ({
+      id: t.id || genId(),
+      unitId: t.unitId,
+      campusId: t.campusId,
+      actionTaken: t.actionTaken || '',
+      status: (t.status as EqaOfiStatus) || 'Pending Action',
+      targetDate: safeDate(t.targetDate),
+      evidenceLink: t.evidenceLink || '',
+    }));
+
     form.reset({
-      unitId: ofi.unitId,
-      campusId: ofi.campusId,
       certifyingBody: ofi.certifyingBody || 'TÜV Rheinland',
       standard: ofi.standard || 'ISO 21001:2018',
       auditDate: safeDate(ofi.auditDate),
       ofiStatement: ofi.ofiStatement,
-      actionTaken: ofi.actionTaken,
-      targetDate: safeDate(ofi.targetDate),
-      status: ofi.status,
-      evidenceLink: ofi.evidenceLink || '',
       remarks: ofi.remarks || '',
+      targetUnits: targets,
     });
     setIsDialogOpen(true);
   };
@@ -239,11 +338,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
         </div>
         {canManage && (
           <Button
-            onClick={() => {
-              setEditingOfi(null);
-              form.reset();
-              setIsDialogOpen(true);
-            }}
+            onClick={openCreate}
             size="sm"
             className="shadow-lg shadow-primary/20 shrink-0 font-black uppercase text-[10px] tracking-widest"
           >
@@ -257,7 +352,9 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
         <Card className="border-primary/10 shadow-sm bg-slate-50 dark:bg-slate-800/50">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total EQA OFIs</p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                Total Assigned Gaps
+              </p>
               <p className="text-2xl font-black text-slate-900 dark:text-slate-100">{stats.total}</p>
             </div>
             <ListChecks className="h-8 w-8 text-primary opacity-30" />
@@ -322,15 +419,15 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
           </Select>
 
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="h-8 text-[11px] w-[140px] bg-white">
+            <SelectTrigger className="h-8 text-[11px] w-[150px] bg-white">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Pending Action">Pending Action</SelectItem>
               <SelectItem value="In Progress">In Progress</SelectItem>
               <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Verified">Verified</SelectItem>
+              <SelectItem value="Verified by QAO">Verified by QAO</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -343,31 +440,32 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
             <div className="flex justify-center items-center h-48">
               <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
             </div>
-          ) : filteredOfis.length > 0 ? (
+          ) : filteredRows.length > 0 ? (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="font-bold text-[10px] uppercase pl-6">Unit & Campus</TableHead>
                     <TableHead className="font-bold text-[10px] uppercase">External Body & Standard</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase w-[30%]">External OFI Statement</TableHead>
-                    <TableHead className="font-bold text-[10px] uppercase w-[30%]">
-                      Action Taken / Action Plan
+                    <TableHead className="font-bold text-[10px] uppercase w-[24%]">External OFI Statement</TableHead>
+                    <TableHead className="font-bold text-[10px] uppercase w-[24%]">
+                      Action Taken / Action Plan by Unit
                     </TableHead>
                     <TableHead className="font-bold text-[10px] uppercase text-center">Status</TableHead>
                     <TableHead className="text-right font-bold text-[10px] uppercase pr-6">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOfis.map((ofi) => (
-                    <TableRow key={ofi.id} className="hover:bg-muted/30 transition-colors group">
+                  {filteredRows.map(({ ofi, target }) => (
+                    <TableRow key={`${ofi.id}-${target.id}`} className="hover:bg-muted/30 transition-colors group">
                       <TableCell className="pl-6 py-4">
                         <div className="flex flex-col">
                           <span className="font-bold text-xs uppercase text-slate-900 dark:text-slate-100">
-                            {ofi.unitName}
+                            {target.unitName || unitMap.get(target.unitId) || 'Unit'}
                           </span>
-                          <span className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
-                            {campusMap.get(ofi.campusId) || 'Site Context'}
+                          <span className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5 flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            {campusMap.get(target.campusId) || 'Site Context'}
                           </span>
                         </div>
                       </TableCell>
@@ -398,11 +496,11 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                       <TableCell>
                         <div className="space-y-1">
                           <p className="text-xs font-medium leading-relaxed text-slate-900 dark:text-slate-100 line-clamp-3">
-                            {ofi.actionTaken || <span className="text-slate-400 italic">No action logged yet.</span>}
+                            {target.actionTaken || <span className="text-slate-400 italic">No action logged yet.</span>}
                           </p>
-                          {ofi.evidenceLink && (
+                          {target.evidenceLink && (
                             <a
-                              href={ofi.evidenceLink}
+                              href={target.evidenceLink}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center gap-1 text-[10px] font-black text-primary hover:underline uppercase tracking-tighter"
@@ -410,15 +508,27 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                               <LinkIcon className="h-3 w-3" /> View Action Evidence
                             </a>
                           )}
+                          {target.targetDate && (
+                            <div className="flex items-center gap-1 text-[10px] font-semibold text-slate-500">
+                              <Calendar className="h-3 w-3" />
+                              Due:{' '}
+                              {target.targetDate?.toDate
+                                ? format(target.targetDate.toDate(), 'MM/dd/yyyy')
+                                : target.targetDate}
+                            </div>
+                          )}
                         </div>
                       </TableCell>
 
                       <TableCell className="text-center">
                         <Badge
                           variant="outline"
-                          className={cn('text-[9px] font-black uppercase h-5 px-2 border', statusColors[ofi.status])}
+                          className={cn(
+                            'text-[9px] font-black uppercase h-5 px-2 border',
+                            statusColors[target.status || 'Pending Action'],
+                          )}
                         >
-                          {ofi.status}
+                          {target.status || 'Pending Action'}
                         </Badge>
                       </TableCell>
 
@@ -426,12 +536,12 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEdit(ofi)}
+                          onClick={() => openEdit(ofi)}
                           className="h-8 text-[10px] font-bold text-primary hover:bg-primary/10"
                         >
                           <Edit className="h-3.5 w-3.5 mr-1" /> Update Action
                         </Button>
-                        {isAdmin && (
+                        {isInstitutionalViewer && (
                           <Button
                             variant="ghost"
                             size="icon"
@@ -461,7 +571,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
 
       {/* Entry Dialog Modal */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-primary" />
@@ -470,77 +580,13 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                 : 'Log External Audit Opportunity for Improvement (OFI)'}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Record the external auditor's recommendation and document the unit's action plan and evidence.
+              Log the external auditor's recommendation and assign target units. Each assigned unit documents its own
+              action plan and evidence.
             </DialogDescription>
           </DialogHeader>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="unitId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
-                        Target Unit / Department
-                      </FormLabel>
-                      <Select
-                        onValueChange={(val) => {
-                          field.onChange(val);
-                          const selUnit = units.find((u) => u.id === val);
-                          if (selUnit && selUnit.campusIds && selUnit.campusIds.length > 0) {
-                            form.setValue('campusId', selUnit.campusIds[0]);
-                          }
-                        }}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="h-9 text-xs">
-                            <SelectValue placeholder="Select Unit" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {units.map((u) => (
-                            <SelectItem key={u.id} value={u.id} className="text-xs">
-                              {u.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="campusId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
-                        Campus Site
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-9 text-xs">
-                            <SelectValue placeholder="Select Campus" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {campuses.map((c) => (
-                            <SelectItem key={c.id} value={c.id} className="text-xs">
-                              {c.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
@@ -550,9 +596,12 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                       <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
                         Certifying Body / Auditor
                       </FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g. TÜV Rheinland" className="h-9 text-xs" />
-                      </FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g. TÜV Rheinland"
+                        className="h-9 text-xs"
+                        disabled={!isInstitutionalViewer}
+                      />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -566,9 +615,12 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                       <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
                         Audit Standard
                       </FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g. ISO 21001:2018" className="h-9 text-xs" />
-                      </FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g. ISO 21001:2018"
+                        className="h-9 text-xs"
+                        disabled={!isInstitutionalViewer}
+                      />
                       <FormMessage />
                     </FormItem>
                   )}
@@ -583,7 +635,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                         Audit Conduct Date
                       </FormLabel>
                       <FormControl>
-                        <Input {...field} type="date" className="h-9 text-xs" />
+                        <Input {...field} type="date" className="h-9 text-xs" disabled={!isInstitutionalViewer} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -603,7 +655,8 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                       <Textarea
                         {...field}
                         placeholder="Enter the exact recommendation or opportunity for improvement given by external auditors..."
-                        className="min-h-20 text-xs"
+                        className="min-h-16 text-xs"
+                        disabled={!isInstitutionalViewer}
                       />
                     </FormControl>
                     <FormMessage />
@@ -611,92 +664,212 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="actionTaken"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
-                      Action Taken / Action Plan by Unit
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        {...field}
-                        placeholder="Detail the corrective steps or improvements undertaken by the unit..."
-                        className="min-h-20 text-xs"
+              {/* Target Units */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
+                    Target Units (each unit responds with its own action plan)
+                  </FormLabel>
+                  {(isInstitutionalViewer || !editingOfi) && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={addTargetUnit}
+                      className="h-7 text-[10px] font-black uppercase tracking-widest"
+                    >
+                      <Plus className="mr-1 h-3.5 w-3.5" /> Add Target Unit
+                    </Button>
+                  )}
+                </div>
+
+                {fields.map((field, index) => {
+                  return (
+                    <div key={field.id} className="rounded-lg border bg-muted/10 p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                          Target Unit #{index + 1}
+                        </span>
+                        {isInstitutionalViewer && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                            onClick={() => remove(index)}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <FormField
+                          control={form.control}
+                          name={`targetUnits.${index}.campusId`}
+                          render={({ field: cField }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
+                                Target Campus
+                              </FormLabel>
+                              <Select
+                                onValueChange={cField.onChange}
+                                value={cField.value}
+                                disabled={!isInstitutionalViewer}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="h-9 text-xs" disabled={!isInstitutionalViewer}>
+                                    <SelectValue placeholder="Select Campus" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {campuses.map((c) => (
+                                    <SelectItem key={c.id} value={c.id} className="text-xs">
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name={`targetUnits.${index}.unitId`}
+                          render={({ field: uField }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
+                                Target Unit / Department
+                              </FormLabel>
+                              <Select
+                                onValueChange={(val) => {
+                                  if (isInstitutionalViewer) uField.onChange(val);
+                                }}
+                                value={uField.value}
+                                disabled={!isInstitutionalViewer}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="h-9 text-xs" disabled={!isInstitutionalViewer}>
+                                    <SelectValue placeholder="Select Unit" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {units.map((u) => (
+                                    <SelectItem key={u.id} value={u.id} className="text-xs">
+                                      {u.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name={`targetUnits.${index}.actionTaken`}
+                        render={({ field: aField }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
+                              Action Taken / Action Plan by Unit
+                            </FormLabel>
+                            <FormControl>
+                              <Textarea
+                                {...aField}
+                                placeholder="Detail the corrective steps or improvements undertaken by the unit..."
+                                className="min-h-16 text-xs"
+                                disabled={!canEditTarget(index)}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <FormField
+                          control={form.control}
+                          name={`targetUnits.${index}.status`}
+                          render={({ field: sField }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
+                                Action Monitoring Status
+                              </FormLabel>
+                              <Select
+                                onValueChange={sField.onChange}
+                                value={sField.value}
+                                disabled={!canEditTarget(index)}
+                              >
+                                <FormControl>
+                                  <SelectTrigger className="h-9 text-xs" disabled={!canEditTarget(index)}>
+                                    <SelectValue placeholder="Select Status" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Pending Action">Pending Action</SelectItem>
+                                  <SelectItem value="In Progress">In Progress</SelectItem>
+                                  <SelectItem value="Completed">Completed</SelectItem>
+                                  <SelectItem value="Verified by QAO">Verified by QAO</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name={`targetUnits.${index}.targetDate`}
+                          render={({ field: dField }) => (
+                            <FormItem>
+                              <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
+                                Target Completion Date
+                              </FormLabel>
+                              <FormControl>
+                                <Input {...dField} type="date" className="h-9 text-xs" disabled={!canEditTarget} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <FormField
+                        control={form.control}
+                        name={`targetUnits.${index}.evidenceLink`}
+                        render={({ field: eField }) => (
+                          <FormItem>
+                            <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
+                              Evidence Google Drive Link (Optional)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...eField}
+                                placeholder="https://drive.google.com/file/d/..."
+                                className="h-9 text-xs font-mono"
+                                disabled={!canEditTarget}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-[9px]">
+                              Entered by the unit involved. Provide a public link to the verification proof or evidence
+                              document.
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  );
+                })}
+
+                {form.formState.errors.targetUnits?.message && (
+                  <p className="text-xs text-destructive">{form.formState.errors.targetUnits.message}</p>
                 )}
-              />
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
-                        Action Monitoring Status
-                      </FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="h-9 text-xs">
-                            <SelectValue placeholder="Select Status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Pending">Pending Action</SelectItem>
-                          <SelectItem value="In Progress">In Progress</SelectItem>
-                          <SelectItem value="Completed">Completed</SelectItem>
-                          <SelectItem value="Verified">Verified by QAO</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="targetDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
-                        Target Completion Date
-                      </FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" className="h-9 text-xs" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
-
-              <FormField
-                control={form.control}
-                name="evidenceLink"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
-                      Evidence Google Drive Link (Optional)
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="https://drive.google.com/file/d/..."
-                        className="h-9 text-xs font-mono"
-                      />
-                    </FormControl>
-                    <FormDescription className="text-[9px]">
-                      Provide a public link to the verification proof or evidence document.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
 
               <DialogFooter className="pt-4 border-t">
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} className="text-xs">

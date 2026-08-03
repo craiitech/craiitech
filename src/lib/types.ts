@@ -612,7 +612,19 @@ export type CorrectiveActionRequest = {
   updatedAt: any;
 };
 
-export type EqaOfiStatus = 'Pending' | 'In Progress' | 'Completed' | 'Verified';
+export type EqaOfiStatus = 'Pending Action' | 'In Progress' | 'Completed' | 'Verified by QAO';
+
+export type EqaOfiTargetUnit = {
+  id: string;
+  unitId: string;
+  unitName: string;
+  campusId: string;
+  actionTaken?: string;
+  status?: EqaOfiStatus;
+  targetDate?: any;
+  evidenceLink?: string;
+  updatedAt?: any;
+};
 
 export type EqaOfiMonitoring = {
   id: string;
@@ -620,15 +632,9 @@ export type EqaOfiMonitoring = {
   auditDate: any; // Timestamp or Date string
   certifyingBody?: string;
   standard?: string;
-  campusId: string;
-  unitId: string;
-  unitName: string;
   ofiStatement: string;
-  actionTaken: string;
-  targetDate?: any;
-  status: EqaOfiStatus;
-  evidenceLink?: string;
   remarks?: string;
+  targetUnits: EqaOfiTargetUnit[];
   createdAt: any;
   updatedAt: any;
 };
