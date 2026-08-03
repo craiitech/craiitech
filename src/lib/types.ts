@@ -575,6 +575,21 @@ export type CAREffectivenessAudit = {
   remarks?: string;
 };
 
+export type CARAssignedUnit = {
+  id: string;
+  campusId: string;
+  unitId: string;
+  unitName?: string;
+  unitHead?: string;
+  status?: 'Open' | 'In Progress' | 'Awaiting Response/Update' | 'For Final Verification' | 'Closed';
+  needsVerification?: boolean;
+  rootCauseAnalysis?: string;
+  actionSteps?: CARActionStep[];
+  followUpLogs?: CARFollowUpLog[];
+  effectivenessAudits?: CAREffectivenessAudit[];
+  adminFeedback?: string;
+};
+
 export type CorrectiveActionRequest = {
   id: string;
   auditType?: 'IQA' | 'EQA';
@@ -591,6 +606,7 @@ export type CorrectiveActionRequest = {
   unitId: string;
   campusId: string;
   unitHead: string;
+  assignedUnits?: CARAssignedUnit[];
   descriptionOfNonconformance: string;
   requestDate: any; // Timestamp
   preparedBy: string;

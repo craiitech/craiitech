@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import {
   collection,
@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import {
   Loader2,
   PlusCircle,
+  Plus,
   Calendar,
   ExternalLink,
   Trash2,
@@ -123,9 +124,20 @@ const carSchema = z.object({
   concerningClause: z.string().min(1, 'ISO Clause is required'),
   concerningTopManagementName: z.string().min(1, 'Top Management reference is required'),
   timeLimitForReply: z.string().min(1, 'Time limit for reply is required.'),
-  unitId: z.string().min(1, 'Responsible unit is required'),
-  campusId: z.string().min(1, 'Campus is required'),
-  unitHead: z.string().min(1, 'Head of Unit is required'),
+  unitId: z.string().optional(),
+  campusId: z.string().optional(),
+  unitHead: z.string().optional(),
+  assignedUnits: z
+    .array(
+      z.object({
+        id: z.string(),
+        campusId: z.string().min(1, 'Campus is required'),
+        unitId: z.string().min(1, 'Responsible unit is required'),
+        unitName: z.string().optional(),
+        unitHead: z.string().min(1, 'Head of Unit is required'),
+      }),
+    )
+    .min(1, 'Add at least one target campus and unit.'),
   descriptionOfNonconformance: z.string().min(1, 'Description is required'),
   requestDate: z.string().min(1, 'Request date is required'),
   preparedBy: z.string().min(1, 'Prepared by is required'),
@@ -174,6 +186,8 @@ const carSchema = z.object({
   status: z.enum(['Open', 'In Progress', 'Awaiting Response/Update', 'For Final Verification', 'Closed']),
   findingId: z.string().optional(),
 });
+
+const genCarId = () => Math.random().toString(36).substr(2, 9);
 
 export function CorrectiveActionRequestTab({
   campuses,
@@ -278,20 +292,26 @@ export function CorrectiveActionRequestTab({
     return rawCars.filter((car) => {
       if (auditTypeFilter === 'EQA' && car.auditType !== 'EQA') return false;
       if (auditTypeFilter === 'IQA' && car.auditType === 'EQA') return false;
-
       if (!isInstitutionalViewer) {
         const isCampusSupervisor =
           userRole === 'Campus Director' ||
           userRole === 'Campus ODIMO' ||
           userRole?.toLowerCase().includes('vice president');
         if (isCampusSupervisor) {
-          if (car.campusId !== userProfile?.campusId) return false;
+          const campusAccess = car.campusId === userProfile?.campusId;
+          const campusInAssignments = (car.assignedUnits || []).some((a) => a.campusId === userProfile?.campusId);
+          if (!campusAccess && !campusInAssignments) return false;
         } else {
-          if (car.unitId !== userProfile?.unitId) return false;
+          const unitOwn = car.unitId === userProfile?.unitId;
+          const unitInAssignments = (car.assignedUnits || []).some((a) => a.unitId === userProfile?.unitId);
+          if (!unitOwn && !unitInAssignments) return false;
         }
       }
 
-      const matchesCampus = campusFilter === 'all' || car.campusId === campusFilter;
+      const matchesCampus =
+        campusFilter === 'all' ||
+        car.campusId === campusFilter ||
+        (car.assignedUnits || []).some((a) => a.campusId === campusFilter);
       const lowerSearch = searchTerm.toLowerCase();
       const matchesSearch =
         car.carNumber.toLowerCase().includes(lowerSearch) ||
@@ -379,6 +399,7 @@ export function CorrectiveActionRequestTab({
       unitId: '',
       campusId: '',
       unitHead: '',
+      assignedUnits: [],
       descriptionOfNonconformance: '',
       rootCauseAnalysis: '',
       adminFeedback: '',
@@ -407,6 +428,18 @@ export function CorrectiveActionRequestTab({
     append: appendEffectiveness,
     remove: removeEffectiveness,
   } = useFieldArray({ control: form.control, name: 'effectivenessAudits' });
+
+  const {
+    fields: assignmentFields,
+    append: appendAssignment,
+    remove: removeAssignment,
+  } = useFieldArray({ control: form.control, name: 'assignedUnits' });
+
+  // Which assigned unit's response is currently being viewed/edited.
+  const [activeUnitIndex, setActiveUnitIndex] = useState(0);
+
+  // Per-assignment response pasestaged while the user switches the active unit.
+  const unitResponseCacheRef = useRef<Record<string, any>>({});
 
   const currentActionSteps = form.watch('actionSteps') || [];
 
@@ -626,23 +659,82 @@ export function CorrectiveActionRequestTab({
     setEditingCar(car);
     const safeDate = (d: any) =>
       d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : d ? format(new Date(d), 'yyyy-MM-dd') : '';
+
+    // Rebuild per-assignment cache from the saved CAR so each unit's response is retained.
+    unitResponseCacheRef.current = {};
+    const assignedUnits = (car.assignedUnits || []).map((a) => {
+      unitResponseCacheRef.current[a.id] = {
+        status: a.status || 'Open',
+        needsVerification: !!a.needsVerification,
+        rootCauseAnalysis: a.rootCauseAnalysis || '',
+        actionSteps: (a.actionSteps || []).map((s) => ({
+          ...s,
+          completionDate: safeDate(s.completionDate),
+          evidenceLink: s.evidenceLink || '',
+          verificationStatus: s.verificationStatus || 'Pending',
+        })),
+        followUpLogs: (a.followUpLogs || []).map((log) => ({
+          ...log,
+          date: safeDate(log.date),
+          remarks: log.remarks || '',
+        })),
+        effectivenessAudits: (a.effectivenessAudits || []).map((av) => ({
+          ...av,
+          date: safeDate(av.date),
+          remarks: av.remarks || '',
+        })),
+      };
+      return {
+        id: a.id,
+        campusId: a.campusId,
+        unitId: a.unitId,
+        unitName: a.unitName || '',
+        unitHead: a.unitHead || '',
+      };
+    });
+
+    // Prefer the current user's own assignment; otherwise the primary row.
+    const defaultActiveIndex = Math.max(
+      0,
+      assignedUnits.findIndex((a) => a.unitId === userProfile?.unitId),
+    );
+    setActiveUnitIndex(defaultActiveIndex);
+
+    // Load the active assignment's saved response into the flat response form.
+    const active = car.assignedUnits?.[defaultActiveIndex];
     form.reset({
       ...car,
+      unitId: active?.unitId || car.unitId || '',
+      campusId: active?.campusId || car.campusId || '',
+      unitHead: active?.unitHead || car.unitHead || '',
+      assignedUnits:
+        assignedUnits.length > 0
+          ? assignedUnits
+          : [
+              {
+                id: genCarId(),
+                campusId: car.campusId || '',
+                unitId: car.unitId || '',
+                unitName: unitMap.get(car.unitId || '') || '',
+                unitHead: car.unitHead || '',
+              },
+            ],
       adminFeedback: '',
       requestDate: safeDate(car.requestDate),
       timeLimitForReply: safeDate(car.timeLimitForReply),
-      actionSteps: (car.actionSteps || []).map((s) => ({
+      rootCauseAnalysis: active?.rootCauseAnalysis || car.rootCauseAnalysis || '',
+      actionSteps: (active?.actionSteps || car.actionSteps || []).map((s) => ({
         ...s,
         completionDate: safeDate(s.completionDate),
         evidenceLink: s.evidenceLink || '',
         verificationStatus: s.verificationStatus || 'Pending',
       })),
-      followUpLogs: (car.followUpLogs || []).map((log) => ({
+      followUpLogs: (active?.followUpLogs || car.followUpLogs || []).map((log) => ({
         ...log,
         date: safeDate(log.date),
         remarks: log.remarks || '',
       })),
-      effectivenessAudits: (car.effectivenessAudits || []).map((a) => ({
+      effectivenessAudits: (active?.effectivenessAudits || car.effectivenessAudits || []).map((a) => ({
         ...a,
         date: safeDate(a.date),
         remarks: a.remarks || '',
@@ -653,12 +745,15 @@ export function CorrectiveActionRequestTab({
 
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
+    if (fieldName.startsWith('assignedUnits')) return !isInstitutionalViewer;
     if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits'))
       return !isInstitutionalViewer;
     if (fieldName === 'adminFeedback') return !isInstitutionalViewer;
+    const activeAssigned = (form.getValues('assignedUnits') || [])[activeUnitIndex] as any;
+    const isActiveMyUnit = activeAssigned?.unitId === userProfile?.unitId;
     const responderFields = ['rootCauseAnalysis', 'actionSteps'];
     if (responderFields.some((f) => fieldName.startsWith(f))) {
-      return !isInstitutionalViewer && userProfile?.unitId !== form.getValues('unitId');
+      return !isInstitutionalViewer && !isActiveMyUnit;
     }
     if (fieldName === 'status') return !isInstitutionalViewer;
     return true;
@@ -667,7 +762,11 @@ export function CorrectiveActionRequestTab({
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
     if (!firestore || !userProfile) return;
 
-    const isUnitResponding = userProfile.unitId === values.unitId && !isAdmin;
+    const isUnitResponding =
+      (values.unitId === userProfile.unitId ||
+        (values.assignedUnits || []).some((a) => a.unitId === userProfile.unitId)) &&
+      !isAdmin &&
+      (userRole !== 'Auditor' || !isInstitutionalViewer);
 
     // ── Unit-side gate: require root cause + both action types + evidence links ──
     if (isUnitResponding) {
@@ -738,8 +837,65 @@ export function CorrectiveActionRequestTab({
       needsVerification = false;
     }
 
+    // Stage the currently-edited assignment's response into its cache entry.
+    const activeAssignment = (values.assignedUnits || [])[activeUnitIndex] as any;
+    if (activeAssignment && activeAssignment.id) {
+      unitResponseCacheRef.current[activeAssignment.id] = {
+        status: nextStatus,
+        needsVerification,
+        rootCauseAnalysis: values.rootCauseAnalysis || '',
+        actionSteps: (values.actionSteps || []).map((step) => ({
+          ...step,
+          completionDate: Timestamp.fromDate(new Date(step.completionDate)),
+        })),
+        followUpLogs: (values.followUpLogs || []).map((log) => ({
+          ...log,
+          date: Timestamp.fromDate(new Date(log.date)),
+        })),
+        effectivenessAudits: (values.effectivenessAudits || []).map((audit) => ({
+          ...audit,
+          date: Timestamp.fromDate(new Date(audit.date)),
+        })),
+      };
+    }
+
+    // Build the final per-assignment list with each unit's own staged response.
+    const assignedUnits = (values.assignedUnits || [])
+      .map((a, i) => {
+        const cached = unitResponseCacheRef.current[a.id];
+        return {
+          id: a.id,
+          campusId: a.campusId,
+          unitId: a.unitId,
+          unitName: a.unitName || unitMap.get(a.unitId) || '',
+          unitHead: a.unitHead || '',
+          status: cached?.status || 'Open',
+          needsVerification: !!cached?.needsVerification,
+          rootCauseAnalysis: cached?.rootCauseAnalysis || '',
+          actionSteps: cached?.actionSteps || [],
+          followUpLogs: cached?.followUpLogs || [],
+          effectivenessAudits: cached?.effectivenessAudits || [],
+          adminFeedback:
+            i === activeUnitIndex && isInstitutionalViewer
+              ? values.adminFeedback || ''
+              : liveCar?.assignedUnits?.[i]?.adminFeedback || '',
+        };
+      })
+      .filter((a) => a.unitId);
+
+    // Compatibility for filters/print/table: mirror the primary (first) assignment.
+    const primaryUnit = assignedUnits[0] || {
+      unitId: values.unitId || '',
+      campusId: values.campusId || '',
+      unitHead: values.unitHead || '',
+    };
+
     const carData = {
       ...values,
+      unitId: primaryUnit.unitId,
+      campusId: primaryUnit.campusId,
+      unitHead: primaryUnit.unitHead,
+      assignedUnits,
       auditType: editingCar?.auditType || (auditTypeFilter === 'EQA' ? 'EQA' : 'IQA'),
       status: nextStatus,
       needsVerification,
@@ -826,6 +982,15 @@ export function CorrectiveActionRequestTab({
       unitId: units[0]?.id || '',
       campusId: campuses[0]?.id || '',
       unitHead: '',
+      assignedUnits: [
+        {
+          id: genCarId(),
+          campusId: campuses[0]?.id || '',
+          unitId: units[0]?.id || '',
+          unitName: unitMap.get(units[0]?.id || '') || '',
+          unitHead: '',
+        },
+      ],
       descriptionOfNonconformance: '',
       requestDate: defaultRequestDate,
       preparedBy: userProfile ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() : 'QA Auditor',
@@ -837,6 +1002,8 @@ export function CorrectiveActionRequestTab({
       effectivenessAudits: [],
       status: 'Open',
     });
+    setActiveUnitIndex(0);
+    unitResponseCacheRef.current = {};
     setIsDialogOpen(true);
   };
 
@@ -1445,7 +1612,9 @@ export function CorrectiveActionRequestTab({
                     {editingCar
                       ? isAdmin ||
                         isInstitutionalViewer ||
-                        (userProfile?.unitId && userProfile.unitId === form.getValues('unitId'))
+                        (userProfile?.unitId &&
+                          (userProfile.unitId === form.getValues('unitId') ||
+                            (form.getValues('assignedUnits') || []).some((a) => a.unitId === userProfile.unitId)))
                         ? 'Modify CAR'
                         : 'View CAR Record'
                       : 'Issue CAR'}
@@ -1517,82 +1686,193 @@ export function CorrectiveActionRequestTab({
                           )}
                         />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t">
-                        <FormField
-                          control={form.control}
-                          name="campusId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs font-bold uppercase">Campus</FormLabel>
-                              <Select
-                                onValueChange={(v) => {
-                                  field.onChange(v);
-                                  form.setValue('unitId', '');
-                                }}
-                                value={field.value}
-                                disabled={isFieldReadOnly('campusId')}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="bg-slate-50 dark:bg-slate-800/50">
-                                    <SelectValue placeholder="Select Campus" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent modal={false}>
-                                  {campuses.map((c) => (
-                                    <SelectItem key={c.id} value={c.id}>
-                                      {c.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
+                      <div className="space-y-4 pt-6 border-t">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <FormLabel className="text-xs font-bold uppercase">
+                              Release To (Campuses, Unit &amp; Head)
+                            </FormLabel>
+                            <p className="text-[10px] text-muted-foreground">
+                              The NC can be released to one or more campus/unit/unit-head recipients. Each assigned unit
+                              responds with its own corrective action plan.
+                            </p>
+                          </div>
+                          {!isFieldReadOnly('assignedUnits') && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 font-black text-[10px] uppercase gap-1.5"
+                              onClick={() =>
+                                appendAssignment({
+                                  id: genCarId(),
+                                  campusId: '',
+                                  unitId: '',
+                                  unitName: '',
+                                  unitHead: '',
+                                })
+                              }
+                            >
+                              <Plus className="h-3.5 w-3.5" /> Add Campus &amp; Unit
+                            </Button>
                           )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="unitId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs font-bold uppercase">Responsible Unit</FormLabel>
-                              <Select
-                                onValueChange={field.onChange}
-                                value={field.value}
-                                disabled={isFieldReadOnly('unitId') || !form.watch('campusId')}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="bg-slate-50 dark:bg-slate-800/50">
-                                    <SelectValue placeholder="Select Unit" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent modal={false}>
-                                  {units
-                                    .filter((u) => u.campusIds?.includes(form.watch('campusId')))
-                                    .map((u) => (
-                                      <SelectItem key={u.id} value={u.id}>
-                                        {u.name}
-                                      </SelectItem>
-                                    ))}
-                                </SelectContent>
-                              </Select>
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="unitHead"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel className="text-xs font-bold uppercase">Head of Unit</FormLabel>
-                              <FormControl>
-                                <Input
-                                  {...field}
-                                  className="bg-slate-50 dark:bg-slate-800/50 font-bold"
-                                  disabled={isFieldReadOnly('unitHead')}
+                        </div>
+
+                        {assignmentFields.map((afield, aindex) => {
+                          const isActive = aindex === activeUnitIndex;
+                          return (
+                            <div
+                              key={afield.id}
+                              className={`rounded-xl border p-4 space-y-3 transition-all ${
+                                isActive ? 'border-primary/40 bg-primary/5' : 'border-border bg-muted/10'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className={`h-6 text-[9px] font-black uppercase tracking-widest ${
+                                    isActive ? 'text-primary' : 'text-muted-foreground'
+                                  }`}
+                                  onClick={() => {
+                                    // Save current active response into cache before switching.
+                                    const cache = unitResponseCacheRef.current;
+                                    const cur = assignmentFields[activeUnitIndex] as any;
+                                    if (cur && cur.id) {
+                                      cache[cur.id] = {
+                                        rootCauseAnalysis: form.getValues('rootCauseAnalysis'),
+                                        actionSteps: form.getValues('actionSteps'),
+                                        status: form.getValues('status'),
+                                      };
+                                    }
+                                    const target = assignmentFields[aindex] as any;
+                                    if (target && target.id) {
+                                      const saved = cache[target.id];
+                                      form.setValue('rootCauseAnalysis', saved?.rootCauseAnalysis || '');
+                                      form.setValue('status', saved?.status || 'Open');
+                                    }
+                                    setActiveUnitIndex(aindex);
+                                  }}
+                                >
+                                  <CheckCircle2
+                                    className={`h-3 w-3 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}
+                                  />
+                                  {isActive ? 'Active Unit Being Edited' : `Load Unit #${aindex + 1}`}
+                                </Button>
+                                {isInstitutionalViewer && assignmentFields.length > 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-6 w-6 text-destructive hover:bg-destructive/10"
+                                    onClick={() => {
+                                      removeAssignment(aindex);
+                                      if (activeUnitIndex >= aindex && activeUnitIndex > 0) {
+                                        setActiveUnitIndex(activeUnitIndex - 1);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name={`assignedUnits.${aindex}.campusId`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-[9px] font-black uppercase">Campus</FormLabel>
+                                      <Select
+                                        onValueChange={(v) => {
+                                          field.onChange(v);
+                                          form.setValue(`assignedUnits.${aindex}.unitId`, '');
+                                        }}
+                                        value={field.value}
+                                        disabled={isFieldReadOnly('assignedUnits')}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger className="bg-slate-50 dark:bg-slate-800/50">
+                                            <SelectValue placeholder="Select Campus" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent modal={false}>
+                                          {campuses.map((c) => (
+                                            <SelectItem key={c.id} value={c.id}>
+                                              {c.name}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
                                 />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
+                                <FormField
+                                  control={form.control}
+                                  name={`assignedUnits.${aindex}.unitId`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-[9px] font-black uppercase">
+                                        Responsible Unit
+                                      </FormLabel>
+                                      <Select
+                                        onValueChange={(v) => {
+                                          field.onChange(v);
+                                          form.setValue(`assignedUnits.${aindex}.unitName`, unitMap.get(v) || '');
+                                        }}
+                                        value={field.value}
+                                        disabled={isFieldReadOnly('assignedUnits')}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger className="bg-slate-50 dark:bg-slate-800/50">
+                                            <SelectValue placeholder="Select Unit" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent modal={false}>
+                                          {units
+                                            .filter((u) =>
+                                              u.campusIds?.includes(form.watch(`assignedUnits.${aindex}.campusId`)),
+                                            )
+                                            .map((u) => (
+                                              <SelectItem key={u.id} value={u.id}>
+                                                {u.name}
+                                              </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`assignedUnits.${aindex}.unitHead`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-[9px] font-black uppercase">Head of Unit</FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          {...field}
+                                          className="bg-slate-50 dark:bg-slate-800/50 font-bold"
+                                          disabled={isFieldReadOnly('assignedUnits')}
+                                        />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {form.formState.errors.assignedUnits?.message && (
+                          <p className="text-xs text-destructive font-medium">
+                            {form.formState.errors.assignedUnits.message}
+                          </p>
+                        )}
                       </div>
                       <FormField
                         control={form.control}
@@ -2360,7 +2640,9 @@ export function CorrectiveActionRequestTab({
                 )}
                 {(isAdmin ||
                   isInstitutionalViewer ||
-                  (userProfile?.unitId && userProfile.unitId === form.getValues('unitId'))) && (
+                  (userProfile?.unitId &&
+                    (userProfile.unitId === form.getValues('unitId') ||
+                      (form.getValues('assignedUnits') || []).some((a) => a.unitId === userProfile.unitId)))) && (
                   <Button
                     onClick={form.handleSubmit(onSubmit)}
                     disabled={isSubmitting}
