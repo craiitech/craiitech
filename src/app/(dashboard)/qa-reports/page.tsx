@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection } from '@/firebase/firestore-wrapper';
+import { collection, query, where } from '@/firebase/firestore-wrapper';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import type { Campus, Unit } from '@/lib/types';
+import type { Campus, Unit, CorrectiveActionRequest } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, FileText, Users, ClipboardCheck, ShieldCheck, Presentation, BarChart3, ListTodo } from 'lucide-react';
 import { AuditReportsTab } from '@/components/qa-reports/audit-reports-tab';
@@ -38,6 +38,15 @@ export default function QaReportsPage() {
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
+  // CARs where a unit has submitted an update still awaiting QA-office verification.
+  const carVerificationQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    if (!(isAdmin || userRole === 'Auditor')) return null;
+    return query(collection(firestore, 'correctiveActionRequests'), where('needsVerification', '==', true));
+  }, [firestore, isAdmin, userRole]);
+  const { data: carVerificationItems } = useCollection<CorrectiveActionRequest>(carVerificationQuery);
+  const carVerificationCount = carVerificationItems?.length ?? 0;
 
   const isLoading = isUserLoading || isLoadingCampuses || isLoadingUnits;
 
@@ -76,6 +85,15 @@ export default function QaReportsPage() {
               </TabsTrigger>
               <TabsTrigger value="car" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
                 <ClipboardCheck className="h-4 w-4" /> CAR Registry
+                {carVerificationCount > 0 && (
+                  <span className="ml-1 inline-flex items-center gap-1">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                    </span>
+                    <span className="text-[9px] font-black text-rose-600 tabular-nums">{carVerificationCount}</span>
+                  </span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="iqa" className="gap-2 px-6 font-bold uppercase text-[10px] h-8">
                 <FileText className="h-4 w-4" /> IQA Reports

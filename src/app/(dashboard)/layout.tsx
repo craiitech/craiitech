@@ -320,9 +320,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!firestore || !userProfile || !userRole) return null;
     const col = collection(firestore, 'correctiveActionRequests');
     const isInstitutionalViewer = isAdmin || isAuditor;
-    if (isInstitutionalViewer) return query(col, where('status', '==', 'For Final Verification'));
-    if (isSupervisor)
-      return query(col, where('campusId', '==', userProfile.campusId), where('status', '==', 'For Final Verification'));
+    // Unit submissions flip `needsVerification` to true — surface those to the QA office.
+    if (isInstitutionalViewer) return query(col, where('needsVerification', '==', true));
+    if (isSupervisor) return query(col, where('campusId', '==', userProfile.campusId));
     return query(col, where('unitId', '==', userProfile.unitId));
   };
 
@@ -441,9 +441,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const carNotificationsCount = useMemo(() => {
     if (!carNotifications) return 0;
-    if (isAdmin || isSupervisor) return carNotifications.length;
+    if (isAdmin || isAuditor) return carNotifications.filter((c) => c.needsVerification).length;
+    if (isSupervisor) return carNotifications.filter((c) => c.needsVerification).length;
     return carNotifications.filter((c) => c.status === 'Open' || c.status === 'Awaiting Response/Update').length;
-  }, [carNotifications, isAdmin, isSupervisor]);
+  }, [carNotifications, isAdmin, isSupervisor, isAuditor]);
+
+  const qaReportsNotificationCount = carNotificationsCount;
 
   const riskNotificationsCount = useMemo(() => {
     if (!riskNotifications) return 0;
@@ -611,11 +614,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           car.status !== 'Awaiting Response/Update'
         )
           return;
+        // Institutional viewers: only surface unit submissions awaiting verification.
+        if ((isAdmin || isSupervisor || isAuditor) && !car.needsVerification) return;
         list.push({
           id: `car-${car.id}`,
           module: 'car',
           label: `${car.carNumber} — ${car.natureOfFinding}`,
-          description: car.status,
+          description:
+            isAdmin || isSupervisor || isAuditor ? 'Unit update submitted — awaiting verification' : car.status,
           link: '/qa-reports?tab=car',
         });
       });
@@ -967,6 +973,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     commNotificationCount={commNotificationsCount}
                     formRequestNotificationsCount={formRequestNotificationsCount}
                     manualsNotificationCount={revisionRequestsNotificationsCount}
+                    qaReportsNotificationCount={qaReportsNotificationCount}
                   />
                 </SidebarContent>
               </Sidebar>

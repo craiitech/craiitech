@@ -324,6 +324,10 @@ export function CorrectiveActionRequestTab({
     return filteredCars.filter((car) => car.status !== 'Open' && car.status !== 'Closed');
   }, [filteredCars]);
 
+  const needsVerificationCars = useMemo(() => {
+    return filteredCars.filter((car) => car.needsVerification);
+  }, [filteredCars]);
+
   const openOngoingCars = useMemo(() => {
     return filteredCars.filter((car) => car.status === 'Open' || car.status === 'In Progress');
   }, [filteredCars]);
@@ -822,6 +826,8 @@ export function CorrectiveActionRequestTab({
       const hasVerificationData =
         (values.followUpLogs?.length || 0) > (liveCar.followUpLogs?.length || 0) ||
         (values.effectivenessAudits?.length || 0) > (liveCar.effectivenessAudits?.length || 0);
+      // QA office has acknowledged/responded to a unit submission — clear its verify flag.
+      needsVerification = false;
       if (hasVerificationData) nextStatus = 'For Final Verification';
       if (values.adminFeedback?.trim()) nextStatus = 'Awaiting Response/Update';
     }
@@ -1129,6 +1135,15 @@ export function CorrectiveActionRequestTab({
           </TabsTrigger>
           <TabsTrigger value="for-action" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
             <FileWarning className="h-4 w-4 text-rose-600" /> For Action
+            {carsForAction.length > 0 && <span className="text-rose-600 tabular-nums">({carsForAction.length})</span>}
+            {isInstitutionalViewer && needsVerificationCars.length > 0 && (
+              <span
+                className="inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[8px] font-black text-white bg-rose-600"
+                title="Unit submissions awaiting verification"
+              >
+                {needsVerificationCars.length}
+              </span>
+            )}
           </TabsTrigger>
           {isInstitutionalViewer && (
             <TabsTrigger value="bridge" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
