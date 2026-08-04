@@ -57,7 +57,6 @@ import Link from 'next/link';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const VIEW_INTERVAL_MS = 60_000;
-const TOTAL_VIEWS = 6;
 
 const PALETTE = {
   green: '#22c55e',
@@ -87,6 +86,44 @@ function statusColor(rate: number) {
   if (rate >= 60) return P.greenLight;
   if (rate >= 40) return P.gold;
   return P.whiteDim;
+}
+
+// ─── Viewer role model ────────────────────────────────────────────────────────
+type VpKind = 'vpaa' | 'vpredi' | 'vpaf' | 'vsas';
+
+type DisplayScope =
+  | { kind: 'system' }
+  | { kind: 'campus'; campusId: string }
+  | { kind: 'vp'; vpUnitIds: Set<string> }
+  | { kind: 'unit'; unitId: string };
+
+// ─── Faculty academic-rank audit helpers ──────────────────────────────────────
+const RANK_GROUP_ORDER: { key: string; label: string; maxLevel: number }[] = [
+  { key: 'Instructor', label: 'Instructor', maxLevel: 3 },
+  { key: 'Assistant Professor', label: 'Asst. Professor', maxLevel: 4 },
+  { key: 'Associate Professor', label: 'Assoc. Professor', maxLevel: 5 },
+  { key: 'Professor', label: 'Professor', maxLevel: 6 },
+];
+
+function rankGroupOf(rank: string): string {
+  const s = (rank || '').trim().toLowerCase();
+  if (s.includes('university professor')) return 'University Professor';
+  if (s.startsWith('assistant professor')) return 'Assistant Professor';
+  if (s.startsWith('associate professor')) return 'Associate Professor';
+  if (s.startsWith('professor')) return 'Professor';
+  if (s.startsWith('instructor')) return 'Instructor';
+  return 'Non-Permanent';
+}
+
+function rankLevelOf(rank: string): number {
+  const n = parseInt((rank || '').match(/(\d+)/)?.[1] || '0', 10);
+  return isNaN(n) ? 0 : n;
+}
+
+function romanLevel(level: number): string {
+  if (level <= 0) return '-';
+  const romans = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+  return romans[Math.min(level, romans.length) - 1] || String(level);
 }
 
 // ─── Animated Counter ────────────────────────────────────────────────────────
@@ -2024,6 +2061,417 @@ function ViewUnitSubmission({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// VIEW: Faculty & Staff Intelligence (VPAA lens)
+// ═══════════════════════════════════════════════════════════════════════════════
+function ViewFacultyStaff({
+  byCampus,
+  byCollege,
+  programCount,
+  campusMap,
+  periodLabel,
+}: {
+  byCampus: Map<string, { core: number; professional: number; genEd: number; staff: number; total: number }>;
+  byCollege: Map<string, { core: number; professional: number; genEd: number; staff: number; total: number }>;
+  programCount: number;
+  campusMap: Map<string, string>;
+  periodLabel: string;
+}) {
+  type FacRow = { core: number; professional: number; genEd: number; staff: number; total: number };
+  const sum = (m: Map<string, FacRow>, key: 'total' | 'core' | 'staff') => {
+    let t = 0;
+    m.forEach((v) => (t += v[key] || 0));
+    return t;
+  };
+  const totalFaculty = sum(byCampus, 'total');
+  const totalCore = sum(byCampus, 'core');
+  const totalStaff = sum(byCampus, 'staff');
+  const panelPhase = 0;
+
+  const campusRows = Array.from(byCampus.entries())
+    .map(([id, v]) => ({ id, name: campusMap.get(id) || id, ...v }))
+    .sort((a, b) => b.total - a.total);
+
+  const collegeRows = Array.from(byCollege.entries())
+    .map(([id, v]) => ({ id, ...v }))
+    .sort((a, b) => b.total - a.total);
+
+  const catLegend = [
+    { name: 'Core', color: P.green },
+    { name: 'Prof. Special', color: P.gold },
+    { name: 'Gen. Education', color: P.greenLight },
+    { name: 'Staff', color: P.whiteDim },
+  ];
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={Users}
+        title="Faculty & Staff Intelligence"
+        subtitle="Personnel inventory by campus and college · Category breakdown"
+        color={P.gold}
+        period={periodLabel}
+        panelPhase={panelPhase}
+        panelCount={1}
+      />
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
+        {/* KPI column */}
+        <div className="col-span-2 flex flex-col gap-2 overflow-hidden min-h-0">
+          <KpiTile label="Total Faculty & Staff" value={totalFaculty} suffix="" icon={Users} color={P.green} />
+          <KpiTile label="Core Faculty" value={totalCore} suffix="" icon={BookOpen} color={P.gold} />
+          <KpiTile label="Staff (Gen Ed & Admin)" value={totalStaff} suffix="" icon={FileText} color={P.greenLight} />
+          <KpiTile label="Active Programs" value={programCount} suffix="" icon={GraduationCap} color={P.gold} />
+          <div className="flex-1 min-h-0 flex flex-col justify-center gap-1.5 px-1">
+            {catLegend.map((c) => (
+              <div key={c.name} className="flex items-center gap-1.5">
+                <div className="h-2 w-2 rounded-full" style={{ background: c.color }} />
+                <span className="text-[10px] font-bold text-white/75 uppercase tracking-wider">{c.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* By Campus */}
+        <div className="col-span-5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">Personnel by Campus</p>
+          <AutoScrollContainer className="flex-1">
+            <div className="flex flex-col gap-2">
+              {campusRows.map((c) => (
+                <div key={c.id} className="rounded-lg bg-white/5 px-3 py-2 border border-white/10">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-black text-white/90 truncate">{c.name}</span>
+                    <span className="text-xs font-black tabular-nums text-white">{c.total}</span>
+                  </div>
+                  <div className="flex gap-1.5 mt-1.5 items-center">
+                    <span className="text-[9px] font-bold text-white/55 w-8">Core</span>
+                    <MiniBar value={(c.core / Math.max(c.total, 1)) * 100} color={P.green} />
+                    <span className="text-[9px] font-black tabular-nums text-white/70 w-6 text-right">{c.core}</span>
+                  </div>
+                  <div className="flex gap-1.5 mt-0.5 items-center">
+                    <span className="text-[9px] font-bold text-white/55 w-8">Prof</span>
+                    <MiniBar value={(c.professional / Math.max(c.total, 1)) * 100} color={P.gold} />
+                    <span className="text-[9px] font-black tabular-nums text-white/70 w-6 text-right">
+                      {c.professional}
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5 mt-0.5 items-center">
+                    <span className="text-[9px] font-bold text-white/55 w-8">GenEd</span>
+                    <MiniBar value={(c.genEd / Math.max(c.total, 1)) * 100} color={P.greenLight} />
+                    <span className="text-[9px] font-black tabular-nums text-white/70 w-6 text-right">{c.genEd}</span>
+                  </div>
+                  <div className="flex gap-1.5 mt-0.5 items-center">
+                    <span className="text-[9px] font-bold text-white/55 w-8">Staff</span>
+                    <MiniBar value={(c.staff / Math.max(c.total, 1)) * 100} color={P.whiteDim} />
+                    <span className="text-[9px] font-black tabular-nums text-white/70 w-6 text-right">{c.staff}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </AutoScrollContainer>
+        </div>
+
+        {/* By College */}
+        <div className="col-span-5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">
+            Personnel by College / Unit
+          </p>
+          <AutoScrollContainer className="flex-1">
+            <div className="flex flex-col gap-2">
+              {collegeRows.map((c) => (
+                <div key={c.id} className="rounded-lg bg-white/5 px-3 py-2 border border-white/10">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-black text-white/90 truncate">{c.id}</span>
+                    <span className="text-xs font-black tabular-nums text-white">{c.total}</span>
+                  </div>
+                  <div className="flex gap-1.5 mt-1.5 items-center">
+                    <span className="text-[9px] font-bold text-white/55 w-8">Core</span>
+                    <MiniBar value={(c.core / Math.max(c.total, 1)) * 100} color={P.green} />
+                    <span className="text-[9px] font-black tabular-nums text-white/70 w-6 text-right">{c.core}</span>
+                  </div>
+                  <div className="flex gap-1.5 mt-0.5 items-center">
+                    <span className="text-[9px] font-bold text-white/55 w-8">Prof</span>
+                    <MiniBar value={(c.professional / Math.max(c.total, 1)) * 100} color={P.gold} />
+                    <span className="text-[9px] font-black tabular-nums text-white/70 w-6 text-right">
+                      {c.professional}
+                    </span>
+                  </div>
+                  <div className="flex gap-1.5 mt-0.5 items-center">
+                    <span className="text-[9px] font-bold text-white/55 w-8">GenEd</span>
+                    <MiniBar value={(c.genEd / Math.max(c.total, 1)) * 100} color={P.greenLight} />
+                    <span className="text-[9px] font-black tabular-nums text-white/70 w-6 text-right">{c.genEd}</span>
+                  </div>
+                  <div className="flex gap-1.5 mt-0.5 items-center">
+                    <span className="text-[9px] font-bold text-white/55 w-8">Staff</span>
+                    <MiniBar value={(c.staff / Math.max(c.total, 1)) * 100} color={P.whiteDim} />
+                    <span className="text-[9px] font-black tabular-nums text-white/70 w-6 text-right">{c.staff}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </AutoScrollContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIEW: Faculty Rank Audit (VPAA lens)
+// ═══════════════════════════════════════════════════════════════════════════════
+function ViewRankAudit({
+  rankAudit,
+  periodLabel,
+}: {
+  rankAudit: {
+    groups: Record<string, number[]>;
+    university: number;
+    nonPermanent: number;
+    order: string[];
+  };
+  periodLabel: string;
+}) {
+  const panelPhase = 0;
+  const totalRanked = RANK_GROUP_ORDER.reduce((s, g) => s + rankAudit.groups[g.key].reduce((a, b) => a + b, 0), 0);
+  const grandTotal = totalRanked + rankAudit.university + rankAudit.nonPermanent;
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={GraduationCap}
+        title="Faculty Rank Audit"
+        subtitle="Academic rank distribution · Instructor I–III to University Professor"
+        color={P.green}
+        period={periodLabel}
+        panelPhase={panelPhase}
+        panelCount={1}
+      />
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
+        {/* KPI column */}
+        <div className="col-span-3 flex flex-col gap-2 overflow-hidden min-h-0">
+          <KpiTile label="Ranked Faculty" value={totalRanked} suffix="" icon={BookOpen} color={P.green} />
+          <KpiTile label="University Professors" value={rankAudit.university} suffix="" icon={Award} color={P.gold} />
+          <KpiTile
+            label="Non-Permanent"
+            value={rankAudit.nonPermanent}
+            suffix=""
+            icon={FileText}
+            color={P.greenLight}
+          />
+          <KpiTile label="Total Personnel" value={grandTotal} suffix="" icon={Users} color={P.gold} />
+          <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 flex-1 flex flex-col gap-2 min-h-0">
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65">Distribution</p>
+            <div className="flex-1 min-h-0">
+              <GreenDonut
+                data={[
+                  ...RANK_GROUP_ORDER.map((g) => ({
+                    name: g.label,
+                    value: rankAudit.groups[g.key].reduce((a, b) => a + b, 0),
+                    color:
+                      g.key === 'Instructor'
+                        ? P.green
+                        : g.key === 'Assistant Professor'
+                          ? P.gold
+                          : g.key === 'Associate Professor'
+                            ? P.goldDark
+                            : P.greenLight,
+                  })),
+                  { name: 'University Prof', value: rankAudit.university, color: P.whiteDim },
+                  { name: 'Non-Permanent', value: rankAudit.nonPermanent, color: P.whiteMuted },
+                ].filter((d) => d.value > 0)}
+                dataKey="value"
+                nameKey="name"
+                centerLabel="Ranked"
+                centerValue={String(totalRanked)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Rank matrix */}
+        <div className="col-span-9 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">Rank × Level Matrix</p>
+          <AutoScrollContainer className="flex-1">
+            <div className="flex flex-col gap-2">
+              {RANK_GROUP_ORDER.map((g) => {
+                const levels = rankAudit.groups[g.key];
+                const rowTotal = levels.reduce((a, b) => a + b, 0);
+                return (
+                  <div key={g.key} className="rounded-lg bg-white/5 px-3 py-2 border border-white/10">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="text-xs font-black text-white/90 uppercase tracking-wider">{g.label}</span>
+                      <span className="text-xs font-black tabular-nums text-white">{rowTotal}</span>
+                    </div>
+                    <div
+                      className="grid gap-1.5"
+                      style={{ gridTemplateColumns: `repeat(${g.maxLevel}, minmax(0,1fr))` }}
+                    >
+                      {Array.from({ length: g.maxLevel }).map((_, i) => {
+                        const val = levels[i] || 0;
+                        const isHighlight = val > 0;
+                        return (
+                          <div
+                            key={i}
+                            className={`rounded-md px-1 py-1 text-center border ${
+                              isHighlight ? 'border-white/25 bg-green-500/15' : 'border-white/10 bg-white/5'
+                            }`}
+                          >
+                            <p className="text-[9px] font-bold text-white/55 uppercase tracking-wider">
+                              {g.label.split(' ')[0]} {romanLevel(i + 1)}
+                            </p>
+                            <p
+                              className={`text-lg font-black tabular-nums ${isHighlight ? 'text-white' : 'text-white/30'}`}
+                            >
+                              {val}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* University Professor & Non-Permanent cards */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg bg-white/5 px-3 py-2 border border-white/10">
+                  <p className="text-[10px] font-black text-white/70 uppercase tracking-wider">University Professor</p>
+                  <p className="text-2xl font-black tabular-nums text-white">{rankAudit.university}</p>
+                </div>
+                <div className="rounded-lg bg-white/5 px-3 py-2 border border-white/10">
+                  <p className="text-[10px] font-black text-white/70 uppercase tracking-wider">Non-Permanent</p>
+                  <p className="text-2xl font-black tabular-nums text-white">{rankAudit.nonPermanent}</p>
+                </div>
+              </div>
+            </div>
+          </AutoScrollContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIEW: Academic Program Submissions (VPAA lens — EOMS submissions for academic
+// programs only)
+// ═══════════════════════════════════════════════════════════════════════════════
+function ViewProgramSubmissions({
+  programSubs,
+  trendData,
+  cardPhase,
+  periodLabel,
+}: {
+  programSubs: {
+    list: Submission[];
+    total: number;
+    approved: number;
+    pending: number;
+    rejected: number;
+    rate: number;
+    distinctPrograms: number;
+  };
+  trendData: { name: string; value: number }[];
+  cardPhase: number;
+  periodLabel: string;
+}) {
+  const panelPhase = cardPhase % 2;
+  const subDist = [
+    { name: 'Approved', value: programSubs.approved, color: P.green },
+    { name: 'Pending', value: programSubs.pending, color: P.gold },
+    { name: 'Rejected', value: programSubs.rejected, color: P.whiteDim },
+  ].filter((d) => d.value > 0);
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={ClipboardCheck}
+        title="Academic Program Submissions"
+        subtitle="EOMS document submissions · Academic programs only"
+        color={P.greenLight}
+        period={periodLabel}
+        panelPhase={panelPhase}
+      />
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
+        {/* KPI column */}
+        <div className="col-span-2 flex flex-col gap-2 overflow-hidden min-h-0">
+          <KpiTile
+            label="Compliance Rate"
+            value={programSubs.rate}
+            icon={CheckCircle2}
+            color={statusColor(programSubs.rate)}
+          />
+          <KpiTile label="Total Program Subs" value={programSubs.total} suffix="" icon={FileText} color={P.green} />
+          {programSubs.pending > 0 && (
+            <KpiTile label="Pending" value={programSubs.pending} suffix="" icon={FileText} color={P.gold} />
+          )}
+          {programSubs.rejected > 0 && (
+            <KpiTile label="Rejected" value={programSubs.rejected} suffix="" icon={FileText} color={P.whiteDim} />
+          )}
+          <KpiTile
+            label="Units With Subs"
+            value={programSubs.distinctPrograms}
+            suffix=""
+            icon={Building2}
+            color={P.goldDark}
+          />
+        </div>
+
+        {/* Status donut */}
+        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-1">Submission Status</p>
+          <div className="flex-1 min-h-0">
+            <GreenDonut
+              data={subDist}
+              dataKey="value"
+              nameKey="name"
+              centerLabel="Total"
+              centerValue={String(programSubs.total)}
+            />
+          </div>
+          <LegendRow items={subDist} />
+        </div>
+
+        {/* Trend + list */}
+        <div className="col-span-7 flex flex-col gap-3 min-h-0">
+          <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex-1 flex flex-col min-h-0">
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-1">
+              Program Submission Trend (Academic Programs)
+            </p>
+            <div className="flex-1 min-h-0">
+              <TrendLine data={trendData} dataKey="value" strokeColor={P.greenLight} areaColor={P.greenLight} />
+            </div>
+          </div>
+          <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-lg flex-1 flex flex-col min-h-0">
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-white/65 mb-2">
+              Recent Academic Program Submissions
+            </p>
+            <AutoScrollContainer className="flex-1" maxHeight="100%">
+              <div className="flex flex-col gap-1.5">
+                {programSubs.list.slice(0, 20).map((s) => (
+                  <div
+                    key={s.id}
+                    className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-1.5 border border-white/10"
+                  >
+                    <div
+                      className="h-1.5 w-1.5 rounded-full shrink-0"
+                      style={{
+                        background:
+                          s.statusId === 'approved' ? P.green : s.statusId === 'rejected' ? P.whiteDim : P.gold,
+                      }}
+                    />
+                    <span className="text-[11px] font-bold text-white/90 flex-1 truncate">
+                      {s.reportType || s.unitName}
+                    </span>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-white/55">{s.unitName}</span>
+                  </div>
+                ))}
+              </div>
+            </AutoScrollContainer>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // VIEW METADATA
 // ═══════════════════════════════════════════════════════════════════════════════
 const VIEW_META = [
@@ -2084,6 +2532,7 @@ export default function ExecutiveDisplayPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [now, setNow] = useState(new Date());
   const containerRef = useRef<HTMLDivElement>(null);
+  const viewCountRef = useRef(1);
 
   const month = now.getMonth() + 1; // 1–12
   const semester = month >= 8 ? '1st Semester' : month <= 6 ? '2nd Semester' : 'Mid-Year';
@@ -2115,7 +2564,7 @@ export default function ExecutiveDisplayPage() {
   useEffect(() => {
     if (animPhase === 'hide') {
       const t = setTimeout(() => {
-        setCurrentView((s) => (s + 1) % TOTAL_VIEWS);
+        setCurrentView((s) => (s + 1) % (viewCountRef.current || 1));
         setTimeout(() => setAnimPhase('enter'), 50);
       }, 350);
       return () => clearTimeout(t);
@@ -2148,7 +2597,7 @@ export default function ExecutiveDisplayPage() {
   }, []);
 
   const handleNextView = useCallback(() => {
-    const nextIdx = (currentView + 1) % TOTAL_VIEWS;
+    const nextIdx = (currentView + 1) % (viewCountRef.current || 1);
     handleViewChange(nextIdx);
   }, [currentView, handleViewChange]);
 
@@ -2203,23 +2652,96 @@ export default function ExecutiveDisplayPage() {
   const campusesQ = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses } = useCollection<Campus>(campusesQ);
 
-  // ── Scoped Campus check for Campus Directors/Coordinators ─────────────────
-  const scopedCampusId = userProfile?.campusId && !isAdmin && !isVp ? userProfile.campusId : null;
+  // ── Role & scope resolution ────────────────────────────────────────────────
+  // VP office classification is driven by the logged-in user's unit name
+  // (e.g. "Office of the Vice President for Academic Affairs" => VPAA).
+  const vpKind = useMemo<VpKind | null>(() => {
+    if (!isVp) return null;
+    const myUnit = (allUnits || []).find((u) => u.id === userProfile?.unitId);
+    const name = (myUnit?.name || userProfile?.unitName || userProfile?.role || '').toLowerCase();
+    if (name.includes('academic affairs')) return 'vpaa';
+    if (name.includes('administration and finance')) return 'vpaf';
+    if (name.includes('research') || name.includes('extension') || name.includes('innovation')) return 'vpredi';
+    if (name.includes('student affairs') || name.includes('student services')) return 'vsas';
+    const role = (userProfile?.role || '').toLowerCase();
+    if (role.includes('academic affairs')) return 'vpaa';
+    if (role.includes('administration and finance')) return 'vpaf';
+    if (role.includes('research') || role.includes('extension')) return 'vpredi';
+    if (role.includes('student affairs')) return 'vsas';
+    return null;
+  }, [isVp, allUnits, userProfile]);
+
+  // Viewing scope: only admins get the full system. VP offices see the units
+  // supervised under them (Unit.vicePresidentId === their office unit id).
+  const scope = useMemo<DisplayScope>(() => {
+    if (isAdmin) return { kind: 'system' };
+    if (isVp) {
+      const vpUnitIds = new Set<string>();
+      if (userProfile?.unitId) {
+        (allUnits || []).forEach((u) => {
+          if (u.vicePresidentId === userProfile.unitId) vpUnitIds.add(u.id);
+        });
+        vpUnitIds.add(userProfile.unitId);
+      }
+      return { kind: 'vp', vpUnitIds };
+    }
+    if (userProfile?.campusId) return { kind: 'campus', campusId: userProfile.campusId };
+    if (userProfile?.unitId) return { kind: 'unit', unitId: userProfile.unitId };
+    return { kind: 'system' };
+  }, [isAdmin, isVp, allUnits, userProfile]);
+
+  const inScope = useCallback(
+    (campusId?: string, unitId?: string): boolean => {
+      if (scope.kind === 'system') return true;
+      if (scope.kind === 'campus') return campusId === scope.campusId;
+      if (scope.kind === 'unit') return unitId === scope.unitId;
+      if (scope.kind === 'vp') return !!unitId && scope.vpUnitIds.has(unitId);
+      return true;
+    },
+    [scope],
+  );
+
+  // A program is in scope when its home college unit falls inside the scope.
+  const programInScope = useCallback(
+    (p: AcademicProgram): boolean => {
+      if (scope.kind === 'system') return true;
+      if (scope.kind === 'campus') return p.campusId === scope.campusId;
+      const unit = (allUnits || []).find((x) => x.id === p.collegeId || x.name === p.collegeId);
+      if (scope.kind === 'unit') return unit?.id === scope.unitId;
+      if (scope.kind === 'vp') return !!unit && scope.vpUnitIds.has(unit.id);
+      return true;
+    },
+    [scope, allUnits],
+  );
 
   const scopeLabel = useMemo(() => {
-    if (!scopedCampusId) return 'RSU SYSTEM PERFORMANCE';
-    const cName = allCampuses?.find((c) => c.id === scopedCampusId)?.name;
-    return cName ? `${cName} CAMPUS` : 'CAMPUS VIEW';
-  }, [scopedCampusId, allCampuses]);
+    if (scope.kind === 'system') return 'RSU SYSTEM PERFORMANCE';
+    if (scope.kind === 'campus') {
+      const cName = allCampuses?.find((c) => c.id === scope.campusId)?.name;
+      return cName ? `${cName} CAMPUS` : 'CAMPUS VIEW';
+    }
+    if (scope.kind === 'unit') {
+      const u = (allUnits || []).find((x) => x.id === scope.unitId);
+      return u ? `${u.name.toUpperCase()}` : 'UNIT VIEW';
+    }
+    if (scope.kind === 'vp') {
+      const u = (allUnits || []).find((x) => x.id === userProfile?.unitId);
+      const office = u?.name || userProfile?.role || 'Vice President';
+      return `${office.toUpperCase()}`;
+    }
+    return 'RSU SYSTEM PERFORMANCE';
+  }, [scope, allCampuses, allUnits, userProfile]);
 
   // ── Memoised derivations ──────────────────────────────────────────────────
   const submissions = useMemo(() => {
     let all = rawSubs || [];
-    if (scopedCampusId) {
-      all = all.filter((s) => s.campusId === scopedCampusId);
+    if (scope.kind === 'system') {
+      // full system keeps everything
+    } else {
+      all = all.filter((s) => inScope(s.campusId, s.unitId));
     }
     return all.map((s) => ({ ...s, reportType: normalizeReportType(s.reportType) }));
-  }, [rawSubs, scopedCampusId]);
+  }, [rawSubs, inScope, scope.kind]);
 
   const yearSubs = useMemo(
     () => submissions.filter((s) => Number(s.year) === Number(selectedYear)),
@@ -2228,35 +2750,39 @@ export default function ExecutiveDisplayPage() {
 
   const yearRisks = useMemo(() => {
     let all = rawRisks || [];
-    if (scopedCampusId) {
-      all = all.filter((r) => r.campusId === scopedCampusId);
+    if (scope.kind === 'system') {
+      // full system keeps everything
+    } else {
+      all = all.filter((r) => inScope(r.campusId, r.unitId));
     }
     return all.filter((r) => Number(r.year) === Number(selectedYear));
-  }, [rawRisks, selectedYear, scopedCampusId]);
+  }, [rawRisks, selectedYear, inScope, scope.kind]);
 
   const yearCars = useMemo(() => {
     let all = rawCars || [];
-    if (scopedCampusId) {
-      all = all.filter((c) => c.campusId === scopedCampusId);
+    if (scope.kind === 'system') {
+      // full system keeps everything
+    } else {
+      all = all.filter((c) => inScope(c.campusId, c.unitId));
     }
     return all.filter((c) => {
       if (!c.createdAt) return true;
       const d = c.createdAt instanceof Timestamp ? c.createdAt.toDate() : new Date(c.createdAt as any);
       return d.getFullYear() === Number(selectedYear);
     });
-  }, [rawCars, selectedYear, scopedCampusId]);
+  }, [rawCars, selectedYear, inScope, scope.kind]);
 
   const yearSch = useMemo(() => {
     let all = rawSchedules || [];
-    if (scopedCampusId) {
-      all = all.filter((s) => s.campusId === scopedCampusId);
+    if (scope.kind !== 'system') {
+      all = all.filter((s) => inScope(s.campusId, s.targetType === 'Unit' ? s.targetId : undefined));
     }
     return all.filter((s) => {
       if (!s.scheduledDate) return false;
       const d = s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate as any);
       return d.getFullYear() === Number(selectedYear);
     });
-  }, [rawSchedules, selectedYear, scopedCampusId]);
+  }, [rawSchedules, selectedYear, inScope, scope.kind]);
 
   const campusMap = useMemo(() => new Map((allCampuses || []).map((c) => [c.id, c.name])), [allCampuses]);
 
@@ -2266,19 +2792,43 @@ export default function ExecutiveDisplayPage() {
     const map = new Map<string, CampusPerf>();
     const targets: { id: string; name: string; type: 'campus' | 'unit'; campusId: string }[] = [];
 
-    const campusUnits = (allUnits || []).filter((u) => u.campusIds?.includes(scopedCampusId || ''));
+    const campusUnits = (allUnits || []).filter((u) =>
+      scope.kind === 'campus' ? u.campusIds?.includes(scope.campusId) : false,
+    );
     const mainCampusUnits = (allUnits || []).filter((u) => u.campusIds?.includes(MAIN_CAMPUS_ID));
 
-    if (scopedCampusId) {
+    if (scope.kind === 'campus') {
       // Campus-level user: show all units under this campus
       campusUnits.forEach((u) => {
         targets.push({
           id: u.id,
           name: u.name,
           type: 'unit',
-          campusId: scopedCampusId,
+          campusId: scope.campusId,
         });
       });
+    } else if (scope.kind === 'vp') {
+      // VP office: show units supervised under the VP
+      (allUnits || []).forEach((u) => {
+        if (scope.vpUnitIds.has(u.id)) {
+          targets.push({
+            id: u.id,
+            name: u.name,
+            type: 'unit',
+            campusId: u.campusIds?.[0] || '',
+          });
+        }
+      });
+    } else if (scope.kind === 'unit') {
+      const u = (allUnits || []).find((x) => x.id === scope.unitId);
+      if (u) {
+        targets.push({
+          id: u.id,
+          name: u.name,
+          type: 'unit',
+          campusId: u.campusIds?.[0] || '',
+        });
+      }
     } else {
       // Entire RSU System: show other campuses + Main Campus units
       const otherCampuses = (allCampuses || []).filter((c) => c.id !== MAIN_CAMPUS_ID);
@@ -2337,40 +2887,46 @@ export default function ExecutiveDisplayPage() {
     });
 
     const getTargetId = (campusId: string, unitId: string): string | null => {
-      if (scopedCampusId) {
-        if (campusId === scopedCampusId && map.has(unitId)) {
+      if (scope.kind === 'campus') {
+        if (campusId === scope.campusId && map.has(unitId)) {
           return unitId;
         }
         return null;
-      } else {
-        if (campusId === MAIN_CAMPUS_ID) {
-          if (map.has(unitId)) return unitId;
-          return null;
-        }
-        if (map.has(campusId)) return campusId;
+      }
+      if (scope.kind === 'vp' || scope.kind === 'unit') {
+        if (map.has(unitId)) return unitId;
         return null;
       }
+      if (campusId === MAIN_CAMPUS_ID) {
+        if (map.has(unitId)) return unitId;
+        return null;
+      }
+      if (map.has(campusId)) return campusId;
+      return null;
     };
 
     const getAuditTargetId = (s: AuditSchedule): string | null => {
-      if (scopedCampusId) {
-        if (s.campusId === scopedCampusId && s.targetType === 'Unit' && map.has(s.targetId)) {
+      if (scope.kind === 'campus') {
+        if (s.campusId === scope.campusId && s.targetType === 'Unit' && map.has(s.targetId)) {
           return s.targetId;
         }
         return null;
-      } else {
-        if (s.campusId === MAIN_CAMPUS_ID) {
-          if (s.targetType === 'Unit' && map.has(s.targetId)) return s.targetId;
-          return null;
-        }
-        if (map.has(s.campusId)) return s.campusId;
+      }
+      if (scope.kind === 'vp' || scope.kind === 'unit') {
+        if (s.targetType === 'Unit' && map.has(s.targetId)) return s.targetId;
         return null;
       }
+      if (s.campusId === MAIN_CAMPUS_ID) {
+        if (s.targetType === 'Unit' && map.has(s.targetId)) return s.targetId;
+        return null;
+      }
+      if (map.has(s.campusId)) return s.campusId;
+      return null;
     };
 
     const getProgramTargetId = (p: AcademicProgram): string | null => {
-      if (scopedCampusId) {
-        if (p.campusId === scopedCampusId) {
+      if (scope.kind === 'campus') {
+        if (p.campusId === scope.campusId) {
           const matchedUnit = campusUnits.find(
             (u) =>
               u.id.toLowerCase() === p.collegeId?.toLowerCase() || u.name.toLowerCase() === p.collegeId?.toLowerCase(),
@@ -2378,18 +2934,28 @@ export default function ExecutiveDisplayPage() {
           if (matchedUnit && map.has(matchedUnit.id)) return matchedUnit.id;
         }
         return null;
-      } else {
-        if (p.campusId === MAIN_CAMPUS_ID) {
-          const matchedUnit = mainCampusUnits.find(
-            (u) =>
-              u.id.toLowerCase() === p.collegeId?.toLowerCase() || u.name.toLowerCase() === p.collegeId?.toLowerCase(),
-          );
-          if (matchedUnit && map.has(matchedUnit.id)) return matchedUnit.id;
-          return null;
-        }
-        if (map.has(p.campusId)) return p.campusId;
+      }
+      if (scope.kind === 'vp' || scope.kind === 'unit') {
+        const pool = (allUnits || []).filter((u) =>
+          scope.kind === 'vp' ? scope.vpUnitIds.has(u.id) : u.id === scope.unitId,
+        );
+        const matchedUnit = pool.find(
+          (u) =>
+            u.id.toLowerCase() === p.collegeId?.toLowerCase() || u.name.toLowerCase() === p.collegeId?.toLowerCase(),
+        );
+        if (matchedUnit && map.has(matchedUnit.id)) return matchedUnit.id;
         return null;
       }
+      if (p.campusId === MAIN_CAMPUS_ID) {
+        const matchedUnit = mainCampusUnits.find(
+          (u) =>
+            u.id.toLowerCase() === p.collegeId?.toLowerCase() || u.name.toLowerCase() === p.collegeId?.toLowerCase(),
+        );
+        if (matchedUnit && map.has(matchedUnit.id)) return matchedUnit.id;
+        return null;
+      }
+      if (map.has(p.campusId)) return p.campusId;
+      return null;
     };
 
     // Submissions
@@ -2477,7 +3043,7 @@ export default function ExecutiveDisplayPage() {
     });
 
     return Array.from(map.values());
-  }, [yearSubs, yearRisks, yearCars, yearSch, rawPrograms, rawCompliances, allCampuses, allUnits, scopedCampusId]);
+  }, [yearSubs, yearRisks, yearCars, yearSch, rawPrograms, rawCompliances, allCampuses, allUnits, scope]);
 
   // ── Per-unit submission performance ───────────────────────────────────────
   interface UnitSubPerf {
@@ -2494,8 +3060,12 @@ export default function ExecutiveDisplayPage() {
   const unitSubData = useMemo(() => {
     const map = new Map<string, UnitSubPerf>();
     let list = allUnits || [];
-    if (scopedCampusId) {
-      list = list.filter((u) => u.campusIds?.includes(scopedCampusId));
+    if (scope.kind === 'campus') {
+      list = list.filter((u) => u.campusIds?.includes(scope.campusId));
+    } else if (scope.kind === 'vp') {
+      list = list.filter((u) => scope.vpUnitIds.has(u.id));
+    } else if (scope.kind === 'unit') {
+      list = list.filter((u) => u.id === scope.unitId);
     }
     list.forEach((u) => {
       const cName = campusMap.get(u.campusIds?.[0] || '') || 'Unknown';
@@ -2523,7 +3093,7 @@ export default function ExecutiveDisplayPage() {
       u.subRate = u.subsTotal > 0 ? Math.round((u.subsApproved / u.subsTotal) * 100) : 0;
     });
     return Array.from(map.values()).sort((a, b) => a.subRate - b.subRate);
-  }, [yearSubs, allUnits, campusMap, scopedCampusId]);
+  }, [yearSubs, allUnits, campusMap, scope]);
   const unitSubTop = useMemo(
     () =>
       [...unitSubData]
@@ -2723,10 +3293,7 @@ export default function ExecutiveDisplayPage() {
 
   // ── COPC status distribution ──────────────────────────────────────────
   const copcDist = useMemo(() => {
-    let active = (rawPrograms || []).filter((p) => p.isActive);
-    if (scopedCampusId) {
-      active = active.filter((p) => p.campusId === scopedCampusId);
-    }
+    const active = (rawPrograms || []).filter((p) => p.isActive && programInScope(p));
     const withCopc = active.filter((p) => {
       const comp = (rawCompliances || []).find((c) => c.programId === p.id);
       return comp?.ched?.copcStatus === 'With COPC';
@@ -2741,7 +3308,7 @@ export default function ExecutiveDisplayPage() {
       { name: 'In Progress', value: inProg, color: P.gold },
       { name: 'No COPC', value: none, color: P.whiteDim },
     ].filter((d) => d.value > 0);
-  }, [rawPrograms, rawCompliances, scopedCampusId]);
+  }, [rawPrograms, rawCompliances, programInScope]);
 
   // ── Accreditation level distribution ──────────────────────────────────
   const accredLevelDist = useMemo(() => {
@@ -2753,12 +3320,8 @@ export default function ExecutiveDisplayPage() {
       Candidate: 0,
       'Non Accredited': 0,
     };
-    let active = rawPrograms || [];
-    if (scopedCampusId) {
-      active = active.filter((p) => p.campusId === scopedCampusId);
-    }
-    active
-      .filter((p) => p.isActive)
+    (rawPrograms || [])
+      .filter((p) => p.isActive && programInScope(p))
       .forEach((p) => {
         const comp = (rawCompliances || []).find((c) => c.programId === p.id);
         const records = comp?.accreditationRecords || [];
@@ -2792,17 +3355,13 @@ export default function ExecutiveDisplayPage() {
                     ? P.whiteDim
                     : P.whiteMuted,
       }));
-  }, [rawPrograms, rawCompliances, scopedCampusId]);
+  }, [rawPrograms, rawCompliances, programInScope]);
 
   // ── Programs grouped by accreditation level (for card cycling) ────────────
   const programsByLevel = useMemo(() => {
     const groups: Record<string, { name: string; campus: string }[]> = {};
-    let active = rawPrograms || [];
-    if (scopedCampusId) {
-      active = active.filter((p) => p.campusId === scopedCampusId);
-    }
-    active
-      .filter((p) => p.isActive)
+    (rawPrograms || [])
+      .filter((p) => p.isActive && programInScope(p))
       .forEach((p) => {
         const comp = (rawCompliances || []).find((c) => c.programId === p.id);
         const records = comp?.accreditationRecords || [];
@@ -2820,7 +3379,7 @@ export default function ExecutiveDisplayPage() {
         groups[matched].push({ name: p.name, campus: campusMap.get(p.campusId) || '' });
       });
     return groups;
-  }, [rawPrograms, rawCompliances, campusMap, scopedCampusId]);
+  }, [rawPrograms, rawCompliances, campusMap, programInScope]);
   const levelKeys = useMemo(
     () => Object.keys(programsByLevel).filter((k) => programsByLevel[k].length > 0),
     [programsByLevel],
@@ -2831,12 +3390,8 @@ export default function ExecutiveDisplayPage() {
   // ── COPC yearly performance trend ──────────────────────────────────────
   const copcYearlyTrend = useMemo(() => {
     const years: Record<number, { total: number; withCopc: number }> = {};
-    let active = rawPrograms || [];
-    if (scopedCampusId) {
-      active = active.filter((p) => p.campusId === scopedCampusId);
-    }
-    active
-      .filter((p) => p.isActive)
+    (rawPrograms || [])
+      .filter((p) => p.isActive && programInScope(p))
       .forEach((p) => {
         const comps = (rawCompliances || []).filter((c) => c.programId === p.id);
         comps.forEach((c) => {
@@ -2850,17 +3405,13 @@ export default function ExecutiveDisplayPage() {
     return Object.entries(years)
       .sort(([a], [b]) => Number(a) - Number(b))
       .map(([year, d]) => ({ year: Number(year), rate: d.total > 0 ? Math.round((d.withCopc / d.total) * 100) : 0 }));
-  }, [rawPrograms, rawCompliances, scopedCampusId]);
+  }, [rawPrograms, rawCompliances, programInScope]);
 
   // ── Program level distribution ────────────────────────────────────────
   const progLevelDist = useMemo(() => {
     const levels: Record<string, number> = { Undergraduate: 0, Graduate: 0, TVET: 0 };
-    let active = rawPrograms || [];
-    if (scopedCampusId) {
-      active = active.filter((p) => p.campusId === scopedCampusId);
-    }
-    active
-      .filter((p) => p.isActive)
+    (rawPrograms || [])
+      .filter((p) => p.isActive && programInScope(p))
       .forEach((p) => {
         const lvl = p.level || 'Undergraduate';
         if (levels[lvl] !== undefined) levels[lvl]++;
@@ -2872,7 +3423,7 @@ export default function ExecutiveDisplayPage() {
         value: v,
         color: k === 'Undergraduate' ? P.green : k === 'Graduate' ? P.gold : P.greenLight,
       }));
-  }, [rawPrograms, scopedCampusId]);
+  }, [rawPrograms, programInScope]);
 
   // ── Ticker items ─────────────────────────────────────────────────────────
   const tickerItems = useMemo(() => {
@@ -2891,20 +3442,180 @@ export default function ExecutiveDisplayPage() {
     return items;
   }, [totals, eomsScore]);
 
+  // ── Faculty & staff intelligence (Academic/VPAA lens) ──────────────────────
+  // Built from the latest ProgramComplianceRecord per active in-scope program.
+  const facultyAgg = useMemo(() => {
+    const activePrograms = (rawPrograms || []).filter((p) => p.isActive && programInScope(p));
+    const latestByProgram = new Map<string, ProgramComplianceRecord>();
+    (rawCompliances || []).forEach((c) => {
+      const existing = latestByProgram.get(c.programId);
+      if (!existing || Number(c.academicYear) > Number(existing.academicYear)) {
+        latestByProgram.set(c.programId, c);
+      }
+    });
+
+    const byCampus = new Map<
+      string,
+      { core: number; professional: number; genEd: number; staff: number; total: number }
+    >();
+    const byCollege = new Map<
+      string,
+      { core: number; professional: number; genEd: number; staff: number; total: number }
+    >();
+
+    activePrograms.forEach((p) => {
+      const comp = latestByProgram.get(p.id);
+      const members = comp?.faculty?.members || [];
+      const campusKey = p.campusId || 'unknown';
+      const collegeKey = p.collegeId || 'unknown';
+      const get = (m: Map<string, any>, key: string) => {
+        if (!m.has(key)) m.set(key, { core: 0, professional: 0, genEd: 0, staff: 0, total: 0 });
+        return m.get(key);
+      };
+      members.forEach((m) => {
+        const cat = m.category || 'Staff';
+        if (cat === 'Core') get(byCampus, campusKey).core++;
+        else if (cat === 'Professional Special') get(byCampus, campusKey).professional++;
+        else if (cat === 'General Education') get(byCampus, campusKey).genEd++;
+        else get(byCampus, campusKey).staff++;
+        get(byCampus, campusKey).total++;
+        if (cat === 'Core') get(byCollege, collegeKey).core++;
+        else if (cat === 'Professional Special') get(byCollege, collegeKey).professional++;
+        else if (cat === 'General Education') get(byCollege, collegeKey).genEd++;
+        else get(byCollege, collegeKey).staff++;
+        get(byCollege, collegeKey).total++;
+      });
+    });
+
+    return { byCampus, byCollege, programCount: activePrograms.length };
+  }, [rawPrograms, rawCompliances, programInScope]);
+
+  // ── Faculty rank audit (Instructor I–III · Asst Prof I–IV · Assoc Prof I–V ·
+  //    Professor I–VI · University Professor) ─────────────────────────────────
+  const rankAudit = useMemo(() => {
+    const latestByProgram = new Map<string, ProgramComplianceRecord>();
+    (rawCompliances || []).forEach((c) => {
+      const existing = latestByProgram.get(c.programId);
+      if (!existing || Number(c.academicYear) > Number(existing.academicYear)) {
+        latestByProgram.set(c.programId, c);
+      }
+    });
+    const groups: Record<string, number[]> = {};
+    const order = RANK_GROUP_ORDER.map((g) => g.key);
+    order.forEach((k) => (groups[k] = Array(RANK_GROUP_ORDER.find((g) => g.key === k)!.maxLevel).fill(0)));
+    let university = 0;
+    let nonPermanent = 0;
+
+    (rawPrograms || [])
+      .filter((p) => p.isActive && programInScope(p))
+      .forEach((p) => {
+        const comp = latestByProgram.get(p.id);
+        (comp?.faculty?.members || []).forEach((m) => {
+          const group = rankGroupOf(m.academicRank);
+          if (group === 'University Professor') {
+            university++;
+            return;
+          }
+          if (group === 'Non-Permanent') {
+            nonPermanent++;
+            return;
+          }
+          const level = rankLevelOf(m.academicRank);
+          if (groups[group] && level >= 1 && level <= groups[group].length) {
+            groups[group][level - 1]++;
+          }
+        });
+      });
+
+    return { groups, university, nonPermanent, order };
+  }, [rawPrograms, rawCompliances, programInScope]);
+
+  // ── EOMS submissions for Academic Programs only ───────────────────────────
+  // Academic programs live under college units (unit.id/name === program.collegeId).
+  const academicUnitIds = useMemo(() => {
+    const ids = new Set<string>();
+    (rawPrograms || []).forEach((p) => {
+      const unit = (allUnits || []).find(
+        (u) => u.id.toLowerCase() === p.collegeId?.toLowerCase() || u.name.toLowerCase() === p.collegeId?.toLowerCase(),
+      );
+      if (unit) ids.add(unit.id);
+    });
+    return ids;
+  }, [rawPrograms, allUnits]);
+
+  const programSubs = useMemo(() => {
+    const list = yearSubs.filter((s) => academicUnitIds.has(s.unitId));
+    const approved = list.filter((s) => s.statusId === 'approved').length;
+    const pending = list.filter((s) => s.statusId === 'pending' || s.statusId === 'submitted').length;
+    const rejected = list.filter((s) => s.statusId === 'rejected').length;
+    return {
+      list,
+      total: list.length,
+      approved,
+      pending,
+      rejected,
+      rate: list.length > 0 ? Math.round((approved / list.length) * 100) : 0,
+      distinctPrograms: new Set(list.map((s) => s.unitId)).size,
+    };
+  }, [yearSubs, academicUnitIds]);
+
+  // Academic-program submission monthly trend
+  const programSubTrend = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const counts: Record<string, number> = {};
+    months.forEach((m) => (counts[m] = 0));
+    programSubs.list.forEach((s) => {
+      const d = (s as any).submissionDate;
+      if (!d) return;
+      const date = d instanceof Timestamp ? d.toDate() : new Date(d);
+      const m = months[date.getMonth()];
+      if (m) counts[m]++;
+    });
+    return months.map((m) => ({ name: m, value: counts[m] })).filter((d) => d.value > 0);
+  }, [programSubs.list]);
+
   // ── Views ─────────────────────────────────────────────────────────────────
-  const views = useMemo(
-    () => [
+  const isVpaaRole = vpKind === 'vpaa';
+  const isVpScope = scope.kind === 'vp';
+
+  const viewMeta = useMemo(() => {
+    if (isVpaaRole) {
+      return [
+        { label: 'Academic Overview', icon: ShieldCheck, color: P.green },
+        { label: 'Program Submissions', icon: ClipboardCheck, color: P.greenLight },
+        { label: 'Faculty & Staff', icon: Users, color: P.gold },
+        { label: 'Rank Audit', icon: GraduationCap, color: P.gold },
+        { label: 'Academic CARs', icon: CheckCircle2, color: P.greenLight },
+        { label: 'Academic Risks', icon: AlertTriangle, color: P.gold },
+      ];
+    }
+    if (isVpScope) {
+      return [
+        { label: 'Overview', icon: ShieldCheck, color: P.green },
+        { label: 'Submissions', icon: ClipboardCheck, color: P.greenLight },
+        { label: 'CARs', icon: CheckCircle2, color: P.greenLight },
+        { label: 'Risks', icon: AlertTriangle, color: P.gold },
+        { label: 'Units', icon: Users, color: P.greenLight },
+      ];
+    }
+    return VIEW_META;
+  }, [isVpaaRole, isVpScope]);
+
+  const views = useMemo(() => {
+    const overview = (
       <ViewOverview
-        key="v0"
+        key="v-overview"
         campuses={campusData}
         eomsScore={eomsScore}
         radarData={radarData}
         trendData={submissionTrend}
         riskDist={riskSeverityDist}
         carDist={carStatusDist}
-      />,
+      />
+    );
+    const submissions = (
       <ViewSubmissions
-        key="v1"
+        key="v-subs"
         campuses={campusData}
         totalApproved={totals.subsApproved}
         totalPending={totals.subsPending}
@@ -2914,9 +3625,11 @@ export default function ExecutiveDisplayPage() {
         trendData={submissionTrend}
         cardPhase={cardPhase}
         periodLabel={periodLabel}
-      />,
+      />
+    );
+    const risks = (
       <ViewRisks
-        key="v2"
+        key="v-risks"
         campuses={campusData}
         totalRisks={totals.risksTotal}
         closedRisks={totals.risksClosed}
@@ -2925,9 +3638,11 @@ export default function ExecutiveDisplayPage() {
         statusDist={riskStatusDist}
         cardPhase={cardPhase}
         periodLabel={periodLabel}
-      />,
+      />
+    );
+    const cars = (
       <ViewCars
-        key="v3"
+        key="v-cars"
         campuses={campusData}
         totalCars={totals.carsTotal}
         closedCars={totals.carsClosed}
@@ -2937,9 +3652,11 @@ export default function ExecutiveDisplayPage() {
         auditDist={auditStatusDist}
         cardPhase={cardPhase}
         periodLabel={periodLabel}
-      />,
+      />
+    );
+    const accred = (
       <ViewAccred
-        key="v4"
+        key="v-accred"
         campuses={campusData}
         totalPrograms={totals.programsTotal}
         withCopc={totals.programsWithCopc}
@@ -2953,9 +3670,11 @@ export default function ExecutiveDisplayPage() {
         copcYearlyTrend={copcYearlyTrend.map((d) => ({ name: String(d.year), value: d.rate }))}
         cardPhase={cardPhase}
         periodLabel={periodLabel}
-      />,
+      />
+    );
+    const units = (
       <ViewUnitSubmission
-        key="v5"
+        key="v-units"
         unitSubTop={unitSubTop}
         unitSubBottom={unitSubBottom}
         totalUnits={totalUnits}
@@ -2964,36 +3683,78 @@ export default function ExecutiveDisplayPage() {
         unitSubData={unitSubData}
         cardPhase={cardPhase}
         periodLabel={periodLabel}
-      />,
-    ],
-    [
-      campusData,
-      eomsScore,
-      radarData,
-      totals,
-      submissionTrend,
-      subStatusDist,
-      riskSeverityDist,
-      riskStatusDist,
-      carStatusDist,
-      carNatureDist,
-      auditStatusDist,
-      copcDist,
-      accredLevelDist,
-      progLevelDist,
-      unitSubTop,
-      unitSubBottom,
-      totalUnits,
-      unitsWithSubs,
-      unitsWithoutSubs,
-      unitSubData,
-      currentLevelKey,
-      currentLevelPrograms,
-      copcYearlyTrend,
-      cardPhase,
-      periodLabel,
-    ],
-  );
+      />
+    );
+
+    if (isVpaaRole) {
+      return [
+        overview,
+        <ViewProgramSubmissions
+          key="v-prog-subs"
+          programSubs={programSubs}
+          trendData={programSubTrend}
+          cardPhase={cardPhase}
+          periodLabel={periodLabel}
+        />,
+        <ViewFacultyStaff
+          key="v-faculty"
+          byCampus={facultyAgg.byCampus}
+          byCollege={facultyAgg.byCollege}
+          programCount={facultyAgg.programCount}
+          campusMap={campusMap}
+          periodLabel={periodLabel}
+        />,
+        <ViewRankAudit key="v-rank" rankAudit={rankAudit} periodLabel={periodLabel} />,
+        cars,
+        risks,
+      ];
+    }
+    if (isVpScope) {
+      return [overview, submissions, cars, risks, units];
+    }
+    return [overview, submissions, risks, cars, accred, units];
+  }, [
+    campusData,
+    eomsScore,
+    radarData,
+    totals,
+    submissionTrend,
+    subStatusDist,
+    riskSeverityDist,
+    riskStatusDist,
+    carStatusDist,
+    carNatureDist,
+    auditStatusDist,
+    copcDist,
+    accredLevelDist,
+    progLevelDist,
+    unitSubTop,
+    unitSubBottom,
+    totalUnits,
+    unitsWithSubs,
+    unitsWithoutSubs,
+    unitSubData,
+    currentLevelKey,
+    currentLevelPrograms,
+    copcYearlyTrend,
+    cardPhase,
+    periodLabel,
+    isVpaaRole,
+    isVpScope,
+    programSubs,
+    programSubTrend,
+    facultyAgg,
+    campusMap,
+    rankAudit,
+  ]);
+
+  const totalViews = viewMeta.length;
+  viewCountRef.current = totalViews;
+
+  // Keep currentView valid when the role/view set changes (e.g. admin -> VP).
+  useEffect(() => {
+    if (currentView >= (viewCountRef.current || 1)) setCurrentView(0);
+  }, [currentView, viewMeta]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -3090,7 +3851,13 @@ export default function ExecutiveDisplayPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <ScrollableTitle
-                  text="RSU Executive Academic and Operations Overview"
+                  text={
+                    isVpaaRole
+                      ? 'RSU Office of the Vice President for Academic Affairs'
+                      : isVpScope
+                        ? 'RSU Executive Operations Overview'
+                        : 'RSU Executive Academic and Operations Overview'
+                  }
                   className="text-[11px] font-black uppercase tracking-[0.2em] text-white"
                 />
                 <ScrollableTitle
@@ -3114,13 +3881,19 @@ export default function ExecutiveDisplayPage() {
               <span
                 className="px-6 py-2 rounded-2xl text-base font-black tracking-widest uppercase text-white shadow-xl border select-none transition-all duration-500 hover:scale-105"
                 style={{
-                  background: scopedCampusId
-                    ? 'linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6)'
-                    : `linear-gradient(135deg, ${P.greenDark}, ${P.green}, ${P.greenLight})`,
+                  background:
+                    scope.kind === 'campus'
+                      ? 'linear-gradient(135deg, #1d4ed8, #2563eb, #3b82f6)'
+                      : scope.kind === 'vp'
+                        ? 'linear-gradient(135deg, #7c3aed, #8b5cf6, #a78bfa)'
+                        : `linear-gradient(135deg, ${P.greenDark}, ${P.green}, ${P.greenLight})`,
                   borderColor: 'rgba(255, 255, 255, 0.25)',
-                  boxShadow: scopedCampusId
-                    ? '0 6px 20px rgba(59, 130, 246, 0.45)'
-                    : `0 6px 20px rgba(34, 197, 94, 0.45)`,
+                  boxShadow:
+                    scope.kind === 'campus'
+                      ? '0 6px 20px rgba(59, 130, 246, 0.45)'
+                      : scope.kind === 'vp'
+                        ? '0 6px 20px rgba(139, 92, 246, 0.45)'
+                        : `0 6px 20px rgba(34, 197, 94, 0.45)`,
                 }}
               >
                 {scopeLabel}
@@ -3131,7 +3904,7 @@ export default function ExecutiveDisplayPage() {
             <div className="flex items-center justify-end gap-3 w-1/3 min-w-0">
               {/* View indicator dots */}
               <div className="flex gap-2 items-center">
-                {VIEW_META.map((v, i) => (
+                {viewMeta.map((v, i) => (
                   <button
                     key={i}
                     onClick={() => handleViewChange(i)}
@@ -3193,7 +3966,7 @@ export default function ExecutiveDisplayPage() {
               AY {selectedYear}–{selectedYear + 1} &middot; Real-time
             </p>
             <div className="flex items-center gap-2">
-              {VIEW_META.map((v, i) => (
+              {viewMeta.map((v, i) => (
                 <button
                   key={i}
                   onClick={() => handleViewChange(i)}
