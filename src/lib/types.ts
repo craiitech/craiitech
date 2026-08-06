@@ -1635,9 +1635,21 @@ export interface FiamoActivityLog {
   unitId: string;
 }
 
+export interface FiamoCampusPersonnel {
+  coordinatorIds: string[];
+  coordinatorNames: string[];
+  odimoIds: string[];
+  odimoNames: string[];
+  staffIds: string[];
+}
+
 export interface FiamoSettings {
   enabled: boolean;
   officeName: string;
+  officeUnitId?: string;
+  officeUnitName?: string;
+  fiamoAdminId?: string;
+  fiamoAdminName?: string;
   directorId?: string;
   directorName?: string;
   coordinatorIds: string[];
@@ -1647,6 +1659,7 @@ export interface FiamoSettings {
   vpafIds: string[];
   vpafNames: string[];
   staffIds: string[];
+  campusPersonnel?: Record<string, FiamoCampusPersonnel>;
   campuses: string[];
   units: string[];
   notificationChannels: ('in-app' | 'email' | 'sms')[];

@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FiamoStatusBadge } from '@/components/fiamo/shared/fiamo-status-badge';
+import { FiamoCampusBadge } from '@/components/fiamo/shared/fiamo-campus-badge';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -68,7 +69,7 @@ export function RepairRequestInbox({ campusId }: RepairRequestInboxProps) {
     return (users || []).filter((u) => u.workerTypeId === wt.id || u.fiamoRole === 'FIAMO Staff');
   }, [selectedWorkerType, workerTypes, users]);
 
-  const executeAction = async (action: 'review' | 'assign' | 'approve' | 'file' | 'reject', request: RepairRequest) => {
+  const executeAction = async (action: 'review' | 'assign' | 'file' | 'reject', request: RepairRequest) => {
     if (!firestore || !userProfile) return;
     setActionInProgress(true);
     try {
@@ -92,12 +93,6 @@ export function RepairRequestInbox({ campusId }: RepairRequestInboxProps) {
         updateData.assignedWorkerTypeName = wt?.name || '';
         updateData.programOfWorkRef = programOfWorkRef || undefined;
         updateData.assignedAt = serverTimestamp();
-      } else if (action === 'approve') {
-        updateData.status = 'Completed';
-        updateData.approvedBy = userProfile.id;
-        updateData.approvedByName = `${userProfile.firstName} ${userProfile.lastName}`;
-        updateData.approvedAt = serverTimestamp();
-        updateData.completedAt = serverTimestamp();
       } else if (action === 'file') {
         updateData.status = 'Filed';
         updateData.filedAt = serverTimestamp();
@@ -115,17 +110,15 @@ export function RepairRequestInbox({ campusId }: RepairRequestInboxProps) {
             ? 'repair_request_reviewed'
             : action === 'assign'
               ? 'repair_request_assigned'
-              : action === 'approve'
-                ? 'repair_request_approved'
-                : action === 'file'
-                  ? 'repair_request_filed'
-                  : 'repair_request_rejected',
+              : action === 'file'
+                ? 'repair_request_filed'
+                : 'repair_request_rejected',
         module: 'RepairRequest',
         recordId: request.id,
         userId: userProfile.id,
         userName: `${userProfile.firstName} ${userProfile.lastName}`,
         userRole: userRole || 'Unit Coordinator',
-        description: `${action === 'review' ? 'Reviewed' : action === 'assign' ? 'Assigned to ' + updateData.assignedStaffName : action === 'approve' ? 'Approved completion of' : action === 'file' ? 'Filed' : 'Rejected'} repair request ${request.description?.slice(0, 50)}`,
+        description: `${action === 'review' ? 'Reviewed' : action === 'assign' ? 'Assigned to ' + updateData.assignedStaffName : action === 'file' ? 'Filed' : 'Rejected'} repair request ${request.description?.slice(0, 50)}`,
         details: updateData,
         campusId: request.campusId,
         unitId: request.unitId,
@@ -343,6 +336,7 @@ export function RepairRequestInbox({ campusId }: RepairRequestInboxProps) {
               {req.category}
             </Badge>
             <FiamoStatusBadge status={req.status} />
+            <FiamoCampusBadge campusId={req.campusId} />
           </div>
           <span className="text-[10px] text-muted-foreground">
             {format(req.createdAt?.toDate?.() || new Date(req.createdAt), 'MMM d')}

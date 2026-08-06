@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FiamoStatusBadge } from '@/components/fiamo/shared/fiamo-status-badge';
+import { FiamoCampusBadge } from '@/components/fiamo/shared/fiamo-campus-badge';
 import { Loader2, MapPin, User, Wrench, CalendarClock } from 'lucide-react';
 import { format } from 'date-fns';
 import type { RepairRequest } from '@/lib/types';
@@ -84,6 +85,7 @@ export function RepairRequestList({ onSelect, filterStatus, campusId }: RepairRe
                       {req.category}
                     </Badge>
                     <FiamoStatusBadge status={req.status} />
+                    <FiamoCampusBadge campusId={req.campusId} />
                   </div>
                   <p className="font-bold text-sm mt-1 line-clamp-1">{req.description}</p>
                   <div className="flex items-center gap-4 text-[11px] text-muted-foreground mt-1 flex-wrap">

@@ -39,11 +39,11 @@ const EVIDENCE_CATEGORIES: { value: FiamoEvidenceType['category']; label: string
 
 export function FiamoSettingsManagement() {
   const firestore = useFirestore();
-  const { userProfile, isAdmin, userRole } = useUser();
+  const { userProfile, isAdmin } = useUser();
   const { toast } = useToast();
   const { logSessionActivity } = useSessionActivity();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState('office');
+  const [activeTab, setActiveTab] = useState(() => (isAdmin ? 'office' : 'evidence'));
   const [selectedCampusId, setSelectedCampusId] = useState('');
 
   // FIAMO settings
@@ -83,10 +83,13 @@ export function FiamoSettingsManagement() {
   // Form states
   const [officeName, setOfficeName] = useState('Facilities, Infrastructure and Auxiliary Management Office');
   const [enabled, setEnabled] = useState(false);
+  const [officeUnitId, setOfficeUnitId] = useState('');
+  const [fiamoAdminId, setFiamoAdminId] = useState('');
   const [coordinatorIds, setCoordinatorIds] = useState<string[]>([]);
   const [odimoIds, setOdimoIds] = useState<string[]>([]);
   const [vpafIds, setVpafIds] = useState<string[]>([]);
   const [staffIds, setStaffIds] = useState<string[]>([]);
+  const [personnelCampusId, setPersonnelCampusId] = useState('');
   const [coveredCampuses, setCoveredCampuses] = useState<string[]>([]);
   const [coveredUnits, setCoveredUnits] = useState<string[]>([]);
 
@@ -106,6 +109,8 @@ export function FiamoSettingsManagement() {
     if (settings) {
       setOfficeName(settings.officeName || 'Facilities, Infrastructure and Auxiliary Management Office');
       setEnabled(!!settings.enabled);
+      setOfficeUnitId(settings.officeUnitId || '');
+      setFiamoAdminId(settings.fiamoAdminId || '');
       setCoordinatorIds(settings.coordinatorIds || []);
       setOdimoIds(settings.odimoIds || []);
       setVpafIds(settings.vpafIds || []);
@@ -115,26 +120,39 @@ export function FiamoSettingsManagement() {
     }
   }, [settings]);
 
-  const canManage = isAdmin || userRole === 'Unit Coordinator';
+  const canManageOffice = isAdmin;
 
   const handleSaveOffice = async () => {
-    if (!firestore || !userProfile || !canManage) return;
+    if (!firestore || !userProfile || !canManageOffice) return;
     setIsSubmitting(true);
     try {
-      await setDoc(
-        doc(firestore, 'system', 'fiamoSettings'),
-        {
-          enabled,
-          officeName,
+      const nextCampusPersonnel = { ...(settings?.campusPersonnel || {}) };
+      if (personnelCampusId) {
+        nextCampusPersonnel[personnelCampusId] = {
           coordinatorIds,
           coordinatorNames: (users || [])
             .filter((u) => coordinatorIds.includes(u.id))
             .map((u) => `${u.firstName} ${u.lastName}`),
           odimoIds,
           odimoNames: (users || []).filter((u) => odimoIds.includes(u.id)).map((u) => `${u.firstName} ${u.lastName}`),
+          staffIds,
+        };
+      }
+
+      await setDoc(
+        doc(firestore, 'system', 'fiamoSettings'),
+        {
+          enabled,
+          officeName,
+          officeUnitId: officeUnitId || undefined,
+          officeUnitName: units?.find((u) => u.id === officeUnitId)?.name || undefined,
+          fiamoAdminId: fiamoAdminId || undefined,
+          fiamoAdminName: users?.find((u) => u.id === fiamoAdminId)
+            ? `${users.find((u) => u.id === fiamoAdminId)?.firstName} ${users.find((u) => u.id === fiamoAdminId)?.lastName}`
+            : undefined,
+          campusPersonnel: nextCampusPersonnel,
           vpafIds,
           vpafNames: (users || []).filter((u) => vpafIds.includes(u.id)).map((u) => `${u.firstName} ${u.lastName}`),
-          staffIds,
           campuses: coveredCampuses,
           units: coveredUnits,
           notificationChannels: settings?.notificationChannels || ['in-app'],
@@ -251,6 +269,41 @@ export function FiamoSettingsManagement() {
     return units.filter((u) => u.campusIds?.includes(selectedCampusId));
   }, [units, selectedCampusId]);
 
+  const mainCampus = useMemo(() => campuses?.find((c) => c.name === 'Main Campus'), [campuses]);
+
+  const mainCampusUnits = useMemo(() => {
+    if (!units || !mainCampus) return [];
+    return units.filter((u) => u.campusIds?.includes(mainCampus.id));
+  }, [units, mainCampus]);
+
+  const officeUsers = useMemo(() => {
+    if (!users || !officeUnitId) return [];
+    return users.filter((u) => u.unitId === officeUnitId);
+  }, [users, officeUnitId]);
+
+  const personnelUsers = useMemo(() => {
+    if (!users || !personnelCampusId) return [];
+    return users.filter((u) => u.campusId === personnelCampusId);
+  }, [users, personnelCampusId]);
+
+  useEffect(() => {
+    if (settings?.campusPersonnel && personnelCampusId) {
+      const cp = settings.campusPersonnel[personnelCampusId];
+      setCoordinatorIds(cp?.coordinatorIds || []);
+      setOdimoIds(cp?.odimoIds || []);
+      setStaffIds(cp?.staffIds || []);
+    }
+  }, [personnelCampusId, settings?.campusPersonnel]);
+
+  const vpafOfficeUsers = useMemo(() => {
+    if (!users) return [];
+    return users.filter((u) => {
+      const role = u.role?.toLowerCase() || '';
+      const unitName = u.unitName?.toLowerCase() || '';
+      return role.includes('vice president') || unitName.includes('vice president');
+    });
+  }, [users]);
+
   const getEvidenceLabel = (id: string) => evidenceTypes?.find((e) => e.id === id)?.label || id;
   const getUserName = (id: string) =>
     users?.find((u) => u.id === id)?.firstName + ' ' + users?.find((u) => u.id === id)?.lastName || id;
@@ -290,9 +343,14 @@ export function FiamoSettingsManagement() {
         <CardContent className="pt-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="bg-muted p-1 w-full md:w-auto">
-              <TabsTrigger value="office" className="text-[10px] font-black uppercase tracking-widest px-6 h-8 gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5" /> Office Setup
-              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger
+                  value="office"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8 gap-1.5"
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" /> Office Setup
+                </TabsTrigger>
+              )}
               <TabsTrigger
                 value="evidence"
                 className="text-[10px] font-black uppercase tracking-widest px-6 h-8 gap-1.5"
@@ -308,313 +366,426 @@ export function FiamoSettingsManagement() {
             </TabsList>
 
             {/* OFFICE SETUP TAB */}
-            <TabsContent value="office" className="space-y-5 animate-in fade-in duration-300">
-              <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/10">
-                <div>
-                  <p className="font-bold text-sm">Enable FIAMO Monitoring</p>
-                  <p className="text-xs text-muted-foreground">Turns on the FIAMO module for the whole university.</p>
+            {isAdmin && (
+              <TabsContent value="office" className="space-y-5 animate-in fade-in duration-300">
+                <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/10">
+                  <div>
+                    <p className="font-bold text-sm">Enable FIAMO Monitoring</p>
+                    <p className="text-xs text-muted-foreground">Turns on the FIAMO module for the whole university.</p>
+                  </div>
+                  <Switch checked={enabled} onCheckedChange={setEnabled} />
                 </div>
-                <Switch checked={enabled} onCheckedChange={setEnabled} />
-              </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Office Name</label>
-                <Input
-                  value={officeName}
-                  onChange={(e) => setOfficeName(e.target.value)}
-                  placeholder="Facilities, Infrastructure and Auxiliary Management Office"
-                />
-              </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Office Name</label>
+                  <Input
+                    value={officeName}
+                    onChange={(e) => setOfficeName(e.target.value)}
+                    placeholder="Facilities, Infrastructure and Auxiliary Management Office"
+                  />
+                </div>
 
-              <Separator />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                      FIAMO Office (Unit in Main Campus)
+                    </label>
+                    <Select
+                      value={officeUnitId}
+                      onValueChange={(val) => {
+                        setOfficeUnitId(val);
+                        setFiamoAdminId('');
+                        setCoordinatorIds([]);
+                        setOdimoIds([]);
+                        setStaffIds([]);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                        <SelectValue placeholder="Select the FIAMO office..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mainCampusUnits.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                        {mainCampusUnits.length === 0 && (
+                          <SelectItem value="__none" disabled>
+                            No units found on Main Campus
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      Personnel assignment lists below are limited to staff of this office.
+                    </p>
+                  </div>
 
-              <div className="space-y-3">
-                <p className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                  <Users className="h-4 w-4" /> Personnel Assignments
-                </p>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                      FIAMO Admin
+                    </label>
+                    <Select value={fiamoAdminId} onValueChange={setFiamoAdminId} disabled={!officeUnitId}>
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                        <SelectValue placeholder={officeUnitId ? 'Select FIAMO admin...' : 'Select the office first'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {officeUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.firstName} {u.lastName} ({u.role})
+                          </SelectItem>
+                        ))}
+                        {officeUsers.length === 0 && (
+                          <SelectItem value="__none" disabled>
+                            No users in the selected office
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      The FIAMO admin manages this office aside from the system administrator.
+                    </p>
+                  </div>
+                </div>
 
-                {/* Unit Coordinators (Approvers) */}
-                <div className="space-y-2 p-4 rounded-lg border border-green-200 bg-green-50/40">
-                  <div className="flex items-center justify-between">
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <Users className="h-4 w-4" /> Personnel Assignments
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 p-4 rounded-lg border bg-muted/10">
+                    <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                      Campus (for personnel assignment)
+                    </label>
+                    <Select value={personnelCampusId} onValueChange={setPersonnelCampusId}>
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                        <SelectValue placeholder="Select a covered campus to assign its personnel..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(coveredCampuses.length > 0 ? coveredCampuses : campuses?.map((c) => c.id) || []).map((id) => (
+                          <SelectItem key={id} value={id}>
+                            {campuses?.find((c) => c.id === id)?.name || id}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground">
+                      Assign coordinators, ODIMOs, and staff for each covered campus. VPAF is university-wide.
+                    </p>
+                  </div>
+
+                  {/* Unit Coordinators (Approvers) */}
+                  <div className="space-y-2 p-4 rounded-lg border border-green-200 bg-green-50/40">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold">
+                          Unit Coordinator(s) — <span className="text-green-700">Can Approve & Assign</span>
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Review, assign staff, and approve completion of repair requests for this campus.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {coordinatorIds.map((id) => (
+                        <Badge key={id} variant="secondary" className="gap-1">
+                          {getUserName(id)}
+                          <button
+                            onClick={() => setCoordinatorIds((prev) => prev.filter((x) => x !== id))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <Select
+                      value=""
+                      onValueChange={(val) => {
+                        if (val && !coordinatorIds.includes(val)) setCoordinatorIds((prev) => [...prev, val]);
+                      }}
+                      disabled={!personnelCampusId}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                        <SelectValue
+                          placeholder={personnelCampusId ? 'Add Unit Coordinator...' : 'Select a campus first'}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {personnelUsers
+                          .filter((u) => u.role?.toLowerCase().includes('coordinator'))
+                          .map((u) => (
+                            <SelectItem key={u.id} value={u.id} disabled={coordinatorIds.includes(u.id)}>
+                              {u.firstName} {u.lastName} ({u.role})
+                            </SelectItem>
+                          ))}
+                        {personnelUsers.filter((u) => u.role?.toLowerCase().includes('coordinator')).length === 0 && (
+                          <SelectItem value="__none" disabled>
+                            No coordinators on this campus
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Unit ODIMOs (Overseers) */}
+                  <div className="space-y-2 p-4 rounded-lg border border-blue-200 bg-blue-50/40">
                     <div>
                       <p className="text-sm font-bold">
-                        Unit Coordinator(s) — <span className="text-green-700">Can Approve & Assign</span>
+                        Unit ODIMO(s) — <span className="text-blue-700">Read-only Oversight</span>
                       </p>
                       <p className="text-[10px] text-muted-foreground">
-                        Review, assign staff, and approve completion of repair requests.
+                        Can view all requests and performance but cannot approve or assign. Assigned per campus.
                       </p>
                     </div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {coordinatorIds.map((id) => (
-                      <Badge key={id} variant="secondary" className="gap-1">
-                        {getUserName(id)}
-                        <button
-                          onClick={() => setCoordinatorIds((prev) => prev.filter((x) => x !== id))}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <Select
-                    value=""
-                    onValueChange={(val) => {
-                      if (val && !coordinatorIds.includes(val)) setCoordinatorIds((prev) => [...prev, val]);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs bg-white">
-                      <SelectValue placeholder="Add Unit Coordinator..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users
-                        ?.filter((u) => u.role?.toLowerCase().includes('coordinator'))
-                        .map((u) => (
-                          <SelectItem key={u.id} value={u.id} disabled={coordinatorIds.includes(u.id)}>
-                            {u.firstName} {u.lastName} ({u.role})
+                    <div className="flex flex-wrap gap-2">
+                      {odimoIds.map((id) => (
+                        <Badge key={id} variant="secondary" className="gap-1">
+                          {getUserName(id)}
+                          <button
+                            onClick={() => setOdimoIds((prev) => prev.filter((x) => x !== id))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <Select
+                      value=""
+                      onValueChange={(val) => {
+                        if (val && !odimoIds.includes(val)) setOdimoIds((prev) => [...prev, val]);
+                      }}
+                      disabled={!personnelCampusId}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                        <SelectValue placeholder={personnelCampusId ? 'Add Unit ODIMO...' : 'Select a campus first'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {personnelUsers
+                          .filter((u) => u.role?.toLowerCase().includes('odimo'))
+                          .map((u) => (
+                            <SelectItem key={u.id} value={u.id} disabled={odimoIds.includes(u.id)}>
+                              {u.firstName} {u.lastName} ({u.role})
+                            </SelectItem>
+                          ))}
+                        {personnelUsers.filter((u) => u.role?.toLowerCase().includes('odimo')).length === 0 && (
+                          <SelectItem value="__none" disabled>
+                            No ODIMOs on this campus
                           </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                {/* Unit ODIMOs (Overseers) */}
-                <div className="space-y-2 p-4 rounded-lg border border-blue-200 bg-blue-50/40">
-                  <div>
-                    <p className="text-sm font-bold">
-                      Unit ODIMO(s) — <span className="text-blue-700">Read-only Oversight</span>
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Can view all requests and performance but cannot approve or assign.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {odimoIds.map((id) => (
-                      <Badge key={id} variant="secondary" className="gap-1">
-                        {getUserName(id)}
-                        <button
-                          onClick={() => setOdimoIds((prev) => prev.filter((x) => x !== id))}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <Select
-                    value=""
-                    onValueChange={(val) => {
-                      if (val && !odimoIds.includes(val)) setOdimoIds((prev) => [...prev, val]);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs bg-white">
-                      <SelectValue placeholder="Add Unit ODIMO..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users
-                        ?.filter((u) => u.role?.toLowerCase().includes('odimo'))
-                        .map((u) => (
-                          <SelectItem key={u.id} value={u.id} disabled={odimoIds.includes(u.id)}>
-                            {u.firstName} {u.lastName} ({u.role})
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* VPAF */}
-                <div className="space-y-2 p-4 rounded-lg border border-purple-200 bg-purple-50/40">
-                  <div>
-                    <p className="text-sm font-bold">
-                      VPAF — <span className="text-purple-700">Budget & Dashboard View</span>
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Vice President for Admin & Finance - read-only financial view.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {vpafIds.map((id) => (
-                      <Badge key={id} variant="secondary" className="gap-1">
-                        {getUserName(id)}
-                        <button
-                          onClick={() => setVpafIds((prev) => prev.filter((x) => x !== id))}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <Select
-                    value=""
-                    onValueChange={(val) => {
-                      if (val && !vpafIds.includes(val)) setVpafIds((prev) => [...prev, val]);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs bg-white">
-                      <SelectValue placeholder="Add VPAF..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users
-                        ?.filter((u) => u.role?.toLowerCase().includes('vice president'))
-                        .map((u) => (
+                  {/* VPAF */}
+                  <div className="space-y-2 p-4 rounded-lg border border-purple-200 bg-purple-50/40">
+                    <div>
+                      <p className="text-sm font-bold">
+                        VPAF — <span className="text-purple-700">Budget & Dashboard View</span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Vice President for Admin & Finance - read-only financial view. Selected from the Vice President
+                        offices.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {vpafIds.map((id) => (
+                        <Badge key={id} variant="secondary" className="gap-1">
+                          {getUserName(id)}
+                          <button
+                            onClick={() => setVpafIds((prev) => prev.filter((x) => x !== id))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <Select
+                      value=""
+                      onValueChange={(val) => {
+                        if (val && !vpafIds.includes(val)) setVpafIds((prev) => [...prev, val]);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                        <SelectValue placeholder="Add VPAF..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {vpafOfficeUsers.map((u) => (
                           <SelectItem key={u.id} value={u.id} disabled={vpafIds.includes(u.id)}>
-                            {u.firstName} {u.lastName} ({u.role})
+                            {u.firstName} {u.lastName} ({u.unitName || u.role})
                           </SelectItem>
                         ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Staff */}
-                <div className="space-y-2 p-4 rounded-lg border border-amber-200 bg-amber-50/40">
-                  <div>
-                    <p className="text-sm font-bold">
-                      FIAMO Staff — <span className="text-amber-700">Execute Tasks</span>
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Assigned repairs & maintenance tasks, provide evidence.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {staffIds.map((id) => (
-                      <Badge key={id} variant="secondary" className="gap-1">
-                        {getUserName(id)}
-                        <button
-                          onClick={() => setStaffIds((prev) => prev.filter((x) => x !== id))}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <Select
-                    value=""
-                    onValueChange={(val) => {
-                      if (val && !staffIds.includes(val)) setStaffIds((prev) => [...prev, val]);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs bg-white">
-                      <SelectValue placeholder="Add FIAMO Staff..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {users
-                        ?.filter((u) => !coordinatorIds.includes(u.id) && !odimoIds.includes(u.id))
-                        .map((u) => (
-                          <SelectItem key={u.id} value={u.id} disabled={staffIds.includes(u.id)}>
-                            {u.firstName} {u.lastName} ({u.role})
+                        {vpafOfficeUsers.length === 0 && (
+                          <SelectItem value="__none" disabled>
+                            No Vice President office personnel found
                           </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Covered Campuses */}
-              <div className="space-y-3">
-                <p className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                  <Layers className="h-4 w-4" /> Covered Sites & Units
-                </p>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Campuses</label>
-                  <div className="flex flex-wrap gap-2">
-                    {coveredCampuses.map((id) => (
-                      <Badge key={id} variant="secondary" className="gap-1">
-                        {campuses?.find((c) => c.id === id)?.name || id}
-                        <button
-                          onClick={() => setCoveredCampuses((prev) => prev.filter((x) => x !== id))}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Select
-                    value=""
-                    onValueChange={(val) => {
-                      if (val && !coveredCampuses.includes(val)) setCoveredCampuses((prev) => [...prev, val]);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs bg-white">
-                      <SelectValue placeholder="Add Campus..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {campuses?.map((c) => (
-                        <SelectItem key={c.id} value={c.id} disabled={coveredCampuses.includes(c.id)}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
-                    Units / Offices
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {coveredUnits.map((id) => (
-                      <Badge key={id} variant="secondary" className="gap-1">
-                        {units?.find((u) => u.id === id)?.name || id}
-                        <button
-                          onClick={() => setCoveredUnits((prev) => prev.filter((x) => x !== id))}
-                          className="ml-1 hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                  <Select
-                    value=""
-                    onValueChange={(val) => {
-                      if (val && !coveredUnits.includes(val)) setCoveredUnits((prev) => [...prev, val]);
-                    }}
-                  >
-                    <SelectTrigger className="h-9 text-xs bg-white">
-                      <SelectValue placeholder="Add Unit..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {units?.map((u) => (
-                        <SelectItem key={u.id} value={u.id} disabled={coveredUnits.includes(u.id)}>
-                          {u.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
 
-              <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 flex items-start gap-3">
-                <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-xs font-black uppercase text-blue-800">Personnel Authority Note</p>
-                  <p className="text-[10px] text-blue-700 leading-relaxed italic">
-                    Only Unit Coordinators can approve and assign. Unit ODIMOs can oversee but cannot perform approval
-                    actions. VPAF has read-only financial oversight.
+                  {/* Staff */}
+                  <div className="space-y-2 p-4 rounded-lg border border-amber-200 bg-amber-50/40">
+                    <div>
+                      <p className="text-sm font-bold">
+                        FIAMO Staff — <span className="text-amber-700">Execute Tasks</span>
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Assigned repairs & maintenance tasks, provide evidence. Assigned per campus.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {staffIds.map((id) => (
+                        <Badge key={id} variant="secondary" className="gap-1">
+                          {getUserName(id)}
+                          <button
+                            onClick={() => setStaffIds((prev) => prev.filter((x) => x !== id))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <Select
+                      value=""
+                      onValueChange={(val) => {
+                        if (val && !staffIds.includes(val)) setStaffIds((prev) => [...prev, val]);
+                      }}
+                      disabled={!personnelCampusId}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                        <SelectValue placeholder={personnelCampusId ? 'Add FIAMO Staff...' : 'Select a campus first'} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {personnelUsers
+                          .filter((u) => !coordinatorIds.includes(u.id) && !odimoIds.includes(u.id))
+                          .map((u) => (
+                            <SelectItem key={u.id} value={u.id} disabled={staffIds.includes(u.id)}>
+                              {u.firstName} {u.lastName} ({u.role})
+                            </SelectItem>
+                          ))}
+                        {personnelUsers.filter((u) => !coordinatorIds.includes(u.id) && !odimoIds.includes(u.id))
+                          .length === 0 && (
+                          <SelectItem value="__none" disabled>
+                            No remaining staff on this campus
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Covered Campuses */}
+                <div className="space-y-3">
+                  <p className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                    <Layers className="h-4 w-4" /> Covered Sites & Units
                   </p>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Campuses</label>
+                    <div className="flex flex-wrap gap-2">
+                      {coveredCampuses.map((id) => (
+                        <Badge key={id} variant="secondary" className="gap-1">
+                          {campuses?.find((c) => c.id === id)?.name || id}
+                          <button
+                            onClick={() => setCoveredCampuses((prev) => prev.filter((x) => x !== id))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <Select
+                      value=""
+                      onValueChange={(val) => {
+                        if (val && !coveredCampuses.includes(val)) setCoveredCampuses((prev) => [...prev, val]);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                        <SelectValue placeholder="Add Campus..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {campuses?.map((c) => (
+                          <SelectItem key={c.id} value={c.id} disabled={coveredCampuses.includes(c.id)}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                      Units / Offices
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {coveredUnits.map((id) => (
+                        <Badge key={id} variant="secondary" className="gap-1">
+                          {units?.find((u) => u.id === id)?.name || id}
+                          <button
+                            onClick={() => setCoveredUnits((prev) => prev.filter((x) => x !== id))}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                    </div>
+                    <Select
+                      value=""
+                      onValueChange={(val) => {
+                        if (val && !coveredUnits.includes(val)) setCoveredUnits((prev) => [...prev, val]);
+                      }}
+                    >
+                      <SelectTrigger className="h-9 text-xs bg-white">
+                        <SelectValue placeholder="Add Unit..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {units?.map((u) => (
+                          <SelectItem key={u.id} value={u.id} disabled={coveredUnits.includes(u.id)}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
 
-              <CardFooter className="bg-muted/10 border-t py-4 px-0">
-                <Button
-                  onClick={handleSaveOffice}
-                  disabled={isSubmitting}
-                  className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <ShieldCheck className="mr-2 h-4 w-4" />
-                  )}
-                  Save FIAMO Office Setup
-                </Button>
-              </CardFooter>
-            </TabsContent>
+                <div className="p-4 rounded-lg bg-blue-50 border border-blue-100 flex items-start gap-3">
+                  <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-xs font-black uppercase text-blue-800">Personnel Authority Note</p>
+                    <p className="text-[10px] text-blue-700 leading-relaxed italic">
+                      Only Unit Coordinators can approve and assign. Unit ODIMOs can oversee but cannot perform approval
+                      actions. VPAF has read-only financial oversight.
+                    </p>
+                  </div>
+                </div>
+
+                <CardFooter className="bg-muted/10 border-t py-4 px-0">
+                  <Button
+                    onClick={handleSaveOffice}
+                    disabled={isSubmitting}
+                    className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]"
+                  >
+                    {isSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="mr-2 h-4 w-4" />
+                    )}
+                    Save FIAMO Office Setup
+                  </Button>
+                </CardFooter>
+              </TabsContent>
+            )}
 
             {/* EVIDENCE TYPES TAB */}
             <TabsContent value="evidence" className="space-y-5 animate-in fade-in duration-300">

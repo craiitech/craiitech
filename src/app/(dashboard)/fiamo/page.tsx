@@ -30,11 +30,13 @@ import { FiamoSettingsManagement } from '@/components/fiamo/settings/fiamo-setti
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RepairRequestDetail } from '@/components/fiamo/repair-request/repair-request-detail';
 import { FiamoStatusBadge } from '@/components/fiamo/shared/fiamo-status-badge';
+import { useFiamoScope } from '@/lib/fiamo-scope';
 import { format } from 'date-fns';
-import type { RepairRequest } from '@/lib/types';
+import type { RepairRequest, Campus } from '@/lib/types';
 
 export default function FiamoPage() {
-  const { isAdmin, isUnitCoordinator, isUnitOdimo, isVpaf, isFiamoStaff, isUnitHead } = useUser();
+  const { isUnitCoordinator, isUnitOdimo, isVpaf, isFiamoStaff, can } = useUser();
+  const { scopeCampusId, isMainCampusMonitor } = useFiamoScope();
   const [selectedRequest, setSelectedRequest] = useState<RepairRequest | null>(null);
   const [isNewRequestOpen, setIsNewRequestOpen] = useState(false);
 
@@ -52,14 +54,14 @@ export default function FiamoPage() {
     setActiveTab(defaultTab);
   }, [defaultTab]);
 
-  const canSubmit = isAdmin || isUnitHead || isUnitCoordinator || isUnitOdimo;
+  const canSubmit = can('fiamo.repair_request.create');
 
-  const showDashboard = isAdmin || isUnitCoordinator || isUnitOdimo || isVpaf;
-  const showInbox = isAdmin || isUnitCoordinator;
-  const showOversight = isAdmin || isUnitCoordinator || isUnitOdimo || isVpaf;
-  const showMyTasks = isAdmin || isFiamoStaff;
-  const showLog = isAdmin || isUnitCoordinator || isUnitOdimo || isVpaf;
-  const showSettings = isAdmin || isUnitCoordinator;
+  const showDashboard = can('fiamo.dashboard.view');
+  const showInbox = can('fiamo.repair_request.review');
+  const showOversight = can('fiamo.oversight.view');
+  const showMyTasks = can('fiamo.repair_request.execute');
+  const showLog = can('fiamo.activity_log.view');
+  const showSettings = can('fiamo.settings.manage');
 
   return (
     <div className="space-y-6">
@@ -146,20 +148,20 @@ export default function FiamoPage() {
         <div className="pt-2">
           {showDashboard && (
             <TabsContent value="dashboard" className="animate-in fade-in duration-500">
-              <FiamoDashboard />
+              <FiamoDashboard scopeCampusId={scopeCampusId || undefined} isMainCampusMonitor={isMainCampusMonitor} />
             </TabsContent>
           )}
           <TabsContent value="requests" className="animate-in fade-in duration-500">
-            <RepairRequestList onSelect={setSelectedRequest} />
+            <RepairRequestList onSelect={setSelectedRequest} campusId={scopeCampusId || undefined} />
           </TabsContent>
           {showInbox && (
             <TabsContent value="inbox" className="animate-in fade-in duration-500">
-              <RepairRequestInbox />
+              <RepairRequestInbox campusId={scopeCampusId || undefined} />
             </TabsContent>
           )}
           {showOversight && (
             <TabsContent value="oversight" className="animate-in fade-in duration-500">
-              <RepairRequestOversight />
+              <RepairRequestOversight campusId={scopeCampusId || undefined} />
             </TabsContent>
           )}
           {showMyTasks && (
@@ -169,7 +171,7 @@ export default function FiamoPage() {
           )}
           {showLog && (
             <TabsContent value="log" className="animate-in fade-in duration-500">
-              <FiamoActivityLog />
+              <FiamoActivityLog campusId={scopeCampusId || undefined} />
             </TabsContent>
           )}
           {showSettings && (
@@ -201,9 +203,18 @@ export default function FiamoPage() {
   );
 }
 
-function FiamoDashboard() {
+function FiamoDashboard({
+  scopeCampusId,
+  isMainCampusMonitor,
+}: {
+  scopeCampusId?: string;
+  isMainCampusMonitor?: boolean;
+}) {
   const firestore = useFirestore();
   const { userProfile } = useUser();
+
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
 
   const requestsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'repairRequests') : null),
@@ -213,7 +224,7 @@ function FiamoDashboard() {
 
   const stats = useMemo(() => {
     const list = requests || [];
-    const myCampus = userProfile?.campusId ? list.filter((r) => r.campusId === userProfile.campusId) : list;
+    const myCampus = scopeCampusId ? list.filter((r) => r.campusId === scopeCampusId) : list;
     const byStatus: Record<string, number> = {};
     myCampus.forEach((r) => {
       byStatus[r.status] = (byStatus[r.status] || 0) + 1;
@@ -225,13 +236,33 @@ function FiamoDashboard() {
       active: myCampus.filter((r) => ['Assigned', 'InProgress', 'Reviewed'].includes(r.status)).length,
       completed: myCampus.filter((r) => ['Completed', 'Filed'].includes(r.status)).length,
     };
-  }, [requests, userProfile]);
+  }, [requests, scopeCampusId]);
+
+  const campusBreakdown = useMemo(() => {
+    if (!isMainCampusMonitor || !campuses) return null;
+    const list = requests || [];
+    const byCampus: { campusName: string; total: number; pending: number; active: number; completed: number }[] = [];
+    campuses.forEach((c) => {
+      const cList = list.filter((r) => r.campusId === c.id);
+      if (cList.length === 0) return;
+      byCampus.push({
+        campusName: c.name,
+        total: cList.length,
+        pending: cList.filter((r) => r.status === 'Submitted').length,
+        active: cList.filter((r) => ['Assigned', 'InProgress', 'Reviewed'].includes(r.status)).length,
+        completed: cList.filter((r) => ['Completed', 'Filed'].includes(r.status)).length,
+      });
+    });
+    return byCampus.sort((a, b) => b.total - a.total);
+  }, [isMainCampusMonitor, campuses, requests]);
 
   const recent = useMemo(() => {
     const list = requests || [];
-    const myCampus = userProfile?.campusId ? list.filter((r) => r.campusId === userProfile.campusId) : list;
+    const myCampus = scopeCampusId ? list.filter((r) => r.campusId === scopeCampusId) : list;
     return [...myCampus].sort((a, b) => (b.createdAt?.toDate?.() || 0) - (a.createdAt?.toDate?.() || 0)).slice(0, 8);
-  }, [requests, userProfile]);
+  }, [requests, scopeCampusId]);
+
+  const campusName = (campusId?: string) => campuses?.find((c) => c.id === campusId)?.name || 'Unknown Campus';
 
   if (isLoading) {
     return (
@@ -243,6 +274,17 @@ function FiamoDashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-2 text-slate-500 mb-2">
+        {isMainCampusMonitor ? (
+          <span className="text-[10px] font-black uppercase tracking-widest">
+            Monitoring all campuses · {userProfile?.firstName} {userProfile?.lastName}
+          </span>
+        ) : (
+          <span className="text-[10px] font-black uppercase tracking-widest">
+            Scope: {campusName(scopeCampusId)} · {userProfile?.firstName} {userProfile?.lastName}
+          </span>
+        )}
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="border-primary/20">
           <CardContent className="p-4">
@@ -270,6 +312,40 @@ function FiamoDashboard() {
         </Card>
       </div>
 
+      {campusBreakdown && campusBreakdown.length > 0 && (
+        <Card className="shadow-sm">
+          <CardContent className="p-4">
+            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">
+              Campus Breakdown (All Campuses)
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b text-left text-muted-foreground uppercase tracking-wider text-[10px]">
+                    <th className="py-2 pr-3">Campus</th>
+                    <th className="py-2 pr-3">Total</th>
+                    <th className="py-2 pr-3">Pending</th>
+                    <th className="py-2 pr-3">Active</th>
+                    <th className="py-2 pr-3">Completed/Filed</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {campusBreakdown.map((c) => (
+                    <tr key={c.campusName} className="border-b last:border-0">
+                      <td className="py-2 pr-3 font-bold">{c.campusName}</td>
+                      <td className="py-2 pr-3 font-black text-primary">{c.total}</td>
+                      <td className="py-2 pr-3">{c.pending}</td>
+                      <td className="py-2 pr-3">{c.active}</td>
+                      <td className="py-2 pr-3">{c.completed}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Card className="shadow-sm">
         <CardContent className="p-4">
           <p className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-3">Status Distribution</p>
@@ -294,7 +370,7 @@ function FiamoDashboard() {
                 <div className="min-w-0">
                   <p className="text-sm font-bold line-clamp-1">{r.description}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    {r.location} · {r.requestedByName}
+                    {campusName(r.campusId)} · {r.location} · {r.requestedByName}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">

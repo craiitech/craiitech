@@ -56,6 +56,80 @@ service cloud.firestore {
       return isAdmin() || isFiamoRole('Unit ODIMO') || isFiamoRole('VPAF') || isSupervisor();
     }
 
+    function hasFiamoSettings() {
+      return exists(/databases/$(database)/documents/system/fiamoSettings);
+    }
+
+    function fiamoSettingsData() {
+      return get(/databases/$(database)/documents/system/fiamoSettings).data;
+    }
+
+    // Main Campus FIAMO office members monitor every campus:
+    // system admin, FIAMO admin, VPAF, FIAMO office unit members, and the
+    // legacy top-level coordinator / ODIMO / staff assignments.
+    function isMainCampusFiamoMonitor() {
+      return isSignedIn() && hasProfile() && (
+        isAdmin() ||
+        profile().get('fiamoRole', '') == 'VPAF' ||
+        (hasFiamoSettings() && (
+          fiamoSettingsData().get('fiamoAdminId', '') == request.auth.uid ||
+          fiamoSettingsData().get('vpafIds', []).hasAny([request.auth.uid]) ||
+          fiamoSettingsData().get('coordinatorIds', []).hasAny([request.auth.uid]) ||
+          fiamoSettingsData().get('odimoIds', []).hasAny([request.auth.uid]) ||
+          fiamoSettingsData().get('staffIds', []).hasAny([request.auth.uid]) ||
+          (fiamoSettingsData().get('officeUnitId', '') != '' &&
+           profile().get('unitId', '') == fiamoSettingsData().get('officeUnitId', ''))
+        ))
+      );
+    }
+
+    // Personnel assigned to a specific campus via settings.campusPersonnel.
+    function campusPersonnelFor(campusId) {
+      return hasFiamoSettings()
+        ? fiamoSettingsData().get('campusPersonnel', {}).get(campusId, {})
+        : {};
+    }
+
+    function isCampusCoordinator(campusId) {
+      return isSignedIn() && hasProfile() &&
+        campusPersonnelFor(campusId).get('coordinatorIds', []).hasAny([request.auth.uid]);
+    }
+
+    function isCampusOdimo(campusId) {
+      return isSignedIn() && hasProfile() &&
+        campusPersonnelFor(campusId).get('odimoIds', []).hasAny([request.auth.uid]);
+    }
+
+    function isCampusStaff(campusId) {
+      return isSignedIn() && hasProfile() &&
+        campusPersonnelFor(campusId).get('staffIds', []).hasAny([request.auth.uid]);
+    }
+
+    function isCampusPersonnel(campusId) {
+      return isCampusCoordinator(campusId) || isCampusOdimo(campusId) || isCampusStaff(campusId);
+    }
+
+    // Backwards-compatible scoped checks: campusPersonnel assignment OR a legacy
+    // fiamoRole whose profile campus matches the request campus.
+    function isScopedCoordinator(campusId) {
+      return isCampusCoordinator(campusId) ||
+        (isFiamoRole('Unit Coordinator') && profile().get('campusId', '') == campusId);
+    }
+
+    function isScopedOdimo(campusId) {
+      return isCampusOdimo(campusId) ||
+        (isFiamoRole('Unit ODIMO') && profile().get('campusId', '') == campusId);
+    }
+
+    function isScopedStaff(campusId) {
+      return isCampusStaff(campusId) ||
+        (isFiamoRole('FIAMO Staff') && profile().get('campusId', '') == campusId);
+    }
+
+    function isScopedPersonnel(campusId) {
+      return isScopedCoordinator(campusId) || isScopedOdimo(campusId) || isScopedStaff(campusId);
+    }
+
     // --------------------------------------------------------------------------
     // CORE WORKFLOW COLLECTIONS
     // --------------------------------------------------------------------------
@@ -443,19 +517,32 @@ service cloud.firestore {
     // FIAMO (Facilities, Infrastructure & Auxiliary Management Office)
     // --------------------------------------------------------------------------
 
-    // Repair requests: any signed-in user can view; anyone can submit.
-    // State transitions are guarded by role + current status.
+    // Repair requests are scoped by campus: campus personnel work only their own
+    // campus's requests, requesters can see their own submissions, and Main Campus
+    // FIAMO monitors can see and advance anything. State transitions are guarded
+    // by role + current status.
     match /repairRequests/{id} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
+      allow get, list: if isSignedIn() && (
+        isMainCampusFiamoMonitor() ||
+        isScopedPersonnel(resource.data.campusId) ||
+        request.auth.uid == resource.data.requestedBy ||
+        request.auth.uid == resource.data.assignedStaffId
+      );
+      allow create: if isSignedIn() && (
+        isMainCampusFiamoMonitor() ||
+        request.resource.data.campusId == profile().get('campusId', '')
+      );
       allow update: if isSignedIn() && (
-        // Only Unit Coordinator (or admin) advances the workflow after submission
-        (isFiamoCoordinator() && (
+        // Main Campus monitor or the request's own campus coordinator advances
+        // the workflow after submission.
+        (isMainCampusFiamoMonitor() || isScopedCoordinator(resource.data.campusId)) && (
           resource.data.status in ['Submitted', 'Reviewed', 'Completed'] ||
           request.resource.data.status != resource.data.status
-        )) ||
-        // Staff can start work / submit evidence only on their own assigned requests
-        (isFiamoStaff() &&
+        )
+        ||
+        // Campus staff can start work / submit evidence only on their own
+        // assigned requests.
+        (isScopedStaff(resource.data.campusId) &&
          request.auth.uid == resource.data.assignedStaffId &&
          resource.data.status in ['Assigned', 'InProgress'])
       );
@@ -474,16 +561,21 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // FIAMO activity logs are immutable audit trail entries.
+    // FIAMO activity logs are immutable audit trail entries. Campus personnel can
+    // read their own campus's logs; Main Campus monitors can read everything.
     match /fiamoActivityLogs/{id} {
       allow create: if isSignedIn();
-      allow get, list: if isFiamoOversight();
+      allow get, list: if isSignedIn() && (
+        isMainCampusFiamoMonitor() ||
+        isScopedPersonnel(resource.data.campusId) ||
+        isFiamoOversight()
+      );
       allow update, delete: if false;
     }
 
     match /system/fiamoSettings {
       allow read: if isSignedIn();
-      allow write: if isFiamoCoordinator();
+      allow write: if isFiamoCoordinator() || isMainCampusFiamoMonitor();
     }
 
     // Final catch-all for anything else

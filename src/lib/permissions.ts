@@ -301,10 +301,10 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
 
   // FIAMO-specific permissions
   if (isUnitCoordinator) {
+    perms['fiamo.repair_request.create'] = true;
     perms['fiamo.repair_request.view_all'] = true;
     perms['fiamo.repair_request.review'] = true;
     perms['fiamo.repair_request.assign'] = true;
-    perms['fiamo.repair_request.approve'] = true;
     perms['fiamo.repair_request.close'] = true;
     perms['fiamo.worker_type.manage'] = true;
     perms['fiamo.evidence_type.manage'] = true;
@@ -315,6 +315,7 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
   }
 
   if (isUnitOdimo) {
+    perms['fiamo.repair_request.create'] = true;
     perms['fiamo.repair_request.view_all'] = true;
     perms['fiamo.dashboard.view'] = true;
     perms['fiamo.activity_log.view'] = true;
@@ -331,7 +332,7 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
 
   if (isFiamoStaff) {
     perms['fiamo.repair_request.execute'] = true;
-    perms['fiamo.activity_log.view'] = true;
+    perms['fiamo.repair_request.view_all'] = true; // own assigned tasks only (enforced in queries)
   }
 
   if (isUnitHead) {
@@ -340,7 +341,8 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
   }
 
   if (isDriverMechanic) {
-    perms['fiamo.activity_log.view'] = true;
+    perms['fiamo.repair_request.execute'] = true;
+    perms['fiamo.repair_request.view_all'] = true; // own assigned tasks only (enforced in queries)
   }
 
   return perms;
