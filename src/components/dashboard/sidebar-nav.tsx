@@ -29,6 +29,8 @@ import {
   QrCode,
   ExternalLink,
   Download,
+  Wrench,
+  Building2,
 } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
@@ -359,6 +361,24 @@ export function SidebarNav({
       active: pathname.startsWith('/monitoring'),
       roles: ['Admin', 'Campus Director', 'Campus ODIMO', 'Vice President', 'Unit Coordinator', 'Unit ODIMO'],
       icon: <ClipboardList />,
+    },
+    {
+      href: '/fiamo',
+      label: 'FIAMO Monitoring',
+      active: pathname.startsWith('/fiamo'),
+      roles: [
+        'Admin',
+        'Campus Director',
+        'Campus ODIMO',
+        'Vice President',
+        'Unit Coordinator',
+        'Unit ODIMO',
+        'Unit Head',
+        'FIAMO Staff',
+        'Driver/Operator/Mechanic',
+        'VPAF',
+      ],
+      icon: <Building2 />,
     },
     {
       href: '/academic-programs',

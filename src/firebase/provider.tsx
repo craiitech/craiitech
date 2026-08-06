@@ -49,6 +49,13 @@ export interface FirebaseContextState {
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
   isDoi: boolean;
+  // FIAMO-specific role flags
+  isUnitCoordinator: boolean;
+  isUnitOdimo: boolean;
+  isVpaf: boolean;
+  isFiamoStaff: boolean;
+  isUnitHead: boolean;
+  isDriverMechanic: boolean;
   systemSettings: SystemSettings | null;
   can: (permission: string) => boolean;
 }
@@ -73,6 +80,13 @@ export interface UseFirebaseResult {
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
   isDoi: boolean;
+  // FIAMO-specific role flags
+  isUnitCoordinator: boolean;
+  isUnitOdimo: boolean;
+  isVpaf: boolean;
+  isFiamoStaff: boolean;
+  isUnitHead: boolean;
+  isDriverMechanic: boolean;
   systemSettings: SystemSettings | null;
   can: (permission: string) => boolean;
 }
@@ -91,6 +105,13 @@ export interface UseUserResult {
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
   isDoi: boolean;
+  // FIAMO-specific role flags
+  isUnitCoordinator: boolean;
+  isUnitOdimo: boolean;
+  isVpaf: boolean;
+  isFiamoStaff: boolean;
+  isUnitHead: boolean;
+  isDriverMechanic: boolean;
   systemSettings: SystemSettings | null;
   firestore: Firestore | null; // Added for convenience in some hooks
   can: (permission: string) => boolean;
@@ -218,6 +239,16 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
       roleLower.includes('head') ||
       isDOI;
 
+    // FIAMO-specific role detection
+    const isUnitCoordinator = roleLower.includes('unit coordinator');
+    const isUnitOdimo = roleLower.includes('unit odimo') || (roleLower.includes('odimo') && roleLower.includes('unit'));
+    const isVpaf =
+      roleLower.includes('vice president') && (roleLower.includes('admin') || roleLower.includes('finance'));
+    const isFiamoStaff = roleLower.includes('fiamo staff') || roleLower.includes('fiamo-staff');
+    const isUnitHead = roleLower.includes('unit head');
+    const isDriverMechanic =
+      roleLower.includes('driver') || roleLower.includes('mechanic') || roleLower.includes('operator');
+
     const mainCampus = campuses?.find((c) => c.name === 'Main Campus');
     const isMainCampusCoordinator = !!(
       userProfile &&
@@ -265,6 +296,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
       isMainCampusCoordinator,
       isMainCampusDOI,
       isDoi: isDOI,
+      // FIAMO-specific role flags
+      isUnitCoordinator,
+      isUnitOdimo,
+      isVpaf,
+      isFiamoStaff,
+      isUnitHead,
+      isDriverMechanic,
       systemSettings: systemSettings || null,
       can,
     };
@@ -349,6 +387,13 @@ export const useFirebase = (): UseFirebaseResult | { areServicesAvailable: false
     isMainCampusCoordinator: context.isMainCampusCoordinator,
     isMainCampusDOI: context.isMainCampusDOI,
     isDoi: context.isDoi,
+    // FIAMO-specific role flags
+    isUnitCoordinator: context.isUnitCoordinator,
+    isUnitOdimo: context.isUnitOdimo,
+    isVpaf: context.isVpaf,
+    isFiamoStaff: context.isFiamoStaff,
+    isUnitHead: context.isUnitHead,
+    isDriverMechanic: context.isDriverMechanic,
     systemSettings: context.systemSettings,
     can: context.can,
   };
@@ -402,6 +447,13 @@ export const useUser = (): UseUserResult => {
       isMainCampusCoordinator: false,
       isMainCampusDOI: false,
       isDoi: false,
+      // FIAMO-specific role flags
+      isUnitCoordinator: false,
+      isUnitOdimo: false,
+      isVpaf: false,
+      isFiamoStaff: false,
+      isUnitHead: false,
+      isDriverMechanic: false,
       systemSettings: null,
       firestore: null,
       can: () => false,
@@ -421,6 +473,13 @@ export const useUser = (): UseUserResult => {
     isMainCampusCoordinator,
     isMainCampusDOI,
     isDoi,
+    // FIAMO-specific role flags
+    isUnitCoordinator,
+    isUnitOdimo,
+    isVpaf,
+    isFiamoStaff,
+    isUnitHead,
+    isDriverMechanic,
     systemSettings,
     can,
   } = context;
@@ -438,6 +497,13 @@ export const useUser = (): UseUserResult => {
     isMainCampusCoordinator,
     isMainCampusDOI,
     isDoi,
+    // FIAMO-specific role flags
+    isUnitCoordinator,
+    isUnitOdimo,
+    isVpaf,
+    isFiamoStaff,
+    isUnitHead,
+    isDriverMechanic,
     systemSettings,
     can,
   };

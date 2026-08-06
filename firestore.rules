@@ -37,6 +37,26 @@ service cloud.firestore {
     }
 
     // --------------------------------------------------------------------------
+    // FIAMO Helper Functions
+    // --------------------------------------------------------------------------
+
+    function isFiamoRole(role) {
+      return isSignedIn() && hasProfile() && profile().get('fiamoRole', '') == role;
+    }
+
+    function isFiamoCoordinator() {
+      return isAdmin() || isFiamoRole('Unit Coordinator');
+    }
+
+    function isFiamoStaff() {
+      return isFiamoRole('FIAMO Staff');
+    }
+
+    function isFiamoOversight() {
+      return isAdmin() || isFiamoRole('Unit ODIMO') || isFiamoRole('VPAF') || isSupervisor();
+    }
+
+    // --------------------------------------------------------------------------
     // CORE WORKFLOW COLLECTIONS
     // --------------------------------------------------------------------------
     
@@ -417,6 +437,53 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn();
       allow delete: if isAdmin();
+    }
+
+    // --------------------------------------------------------------------------
+    // FIAMO (Facilities, Infrastructure & Auxiliary Management Office)
+    // --------------------------------------------------------------------------
+
+    // Repair requests: any signed-in user can view; anyone can submit.
+    // State transitions are guarded by role + current status.
+    match /repairRequests/{id} {
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        // Only Unit Coordinator (or admin) advances the workflow after submission
+        (isFiamoCoordinator() && (
+          resource.data.status in ['Submitted', 'Reviewed', 'Completed'] ||
+          request.resource.data.status != resource.data.status
+        )) ||
+        // Staff can start work / submit evidence only on their own assigned requests
+        (isFiamoStaff() &&
+         request.auth.uid == resource.data.assignedStaffId &&
+         resource.data.status in ['Assigned', 'InProgress'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /fiamoEvidenceTypes/{id} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isFiamoCoordinator();
+      allow delete: if isAdmin();
+    }
+
+    match /fiamoWorkerTypes/{id} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isFiamoCoordinator();
+      allow delete: if isAdmin();
+    }
+
+    // FIAMO activity logs are immutable audit trail entries.
+    match /fiamoActivityLogs/{id} {
+      allow create: if isSignedIn();
+      allow get, list: if isFiamoOversight();
+      allow update, delete: if false;
+    }
+
+    match /system/fiamoSettings {
+      allow read: if isSignedIn();
+      allow write: if isFiamoCoordinator();
     }
 
     // Final catch-all for anything else

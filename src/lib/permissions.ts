@@ -1,7 +1,7 @@
 export type PermissionGroup = {
-  label: string
-  permissions: Record<string, string>
-}
+  label: string;
+  permissions: Record<string, string>;
+};
 
 export const PERMISSION_GROUPS: Record<string, PermissionGroup> = {
   submissions: {
@@ -181,17 +181,42 @@ export const PERMISSION_GROUPS: Record<string, PermissionGroup> = {
       'okr.check_in': 'Perform Check-ins',
     },
   },
-}
+  fiamo: {
+    label: 'FIAMO Monitoring',
+    permissions: {
+      'fiamo.repair_request.create': 'Submit Repair Request',
+      'fiamo.repair_request.view_all': 'View All Repair Requests',
+      'fiamo.repair_request.review': 'Review Repair Requests',
+      'fiamo.repair_request.assign': 'Assign Repair Requests to Staff',
+      'fiamo.repair_request.approve': 'Approve Repair Request Completion',
+      'fiamo.repair_request.execute': 'Execute Assigned Repairs',
+      'fiamo.repair_request.close': 'File Completed Repairs',
+      'fiamo.worker_type.manage': 'Manage Worker Types',
+      'fiamo.evidence_type.manage': 'Manage Evidence Types',
+      'fiamo.settings.manage': 'Manage FIAMO Settings',
+      'fiamo.dashboard.view': 'View FIAMO Dashboard',
+      'fiamo.activity_log.view': 'View FIAMO Activity Log',
+      'fiamo.oversight.view': 'View FIAMO Oversight (Read-only)',
+    },
+  },
+};
 
-export const ALL_PERMISSION_IDS: string[] = Object.values(PERMISSION_GROUPS).flatMap(
-  (g) => Object.keys(g.permissions),
-)
+export const ALL_PERMISSION_IDS: string[] = Object.values(PERMISSION_GROUPS).flatMap((g) => Object.keys(g.permissions));
 
 export function getDefaultPermissions(roleName: string): Record<string, boolean> {
-  const lower = roleName.toLowerCase()
-  const isAdminRole = lower.includes('admin')
-  const isVp = lower.includes('vice president')
-  const isAuditor = lower.includes('auditor')
+  const lower = roleName.toLowerCase();
+  const isAdminRole = lower.includes('admin');
+  const isVp = lower.includes('vice president');
+  const isAuditor = lower.includes('auditor');
+
+  // FIAMO-specific role detection
+  const isUnitCoordinator = lower.includes('unit coordinator');
+  const isUnitOdimo = lower.includes('unit odimo') || (lower.includes('odimo') && lower.includes('unit'));
+  const isVpaf = lower.includes('vice president') && (lower.includes('admin') || lower.includes('finance'));
+  const isFiamoStaff = lower.includes('fiamo staff') || lower.includes('fiamo-staff');
+  const isUnitHead = lower.includes('unit head');
+  const isDriverMechanic = lower.includes('driver') || lower.includes('mechanic') || lower.includes('operator');
+
   const isSupervisor =
     isAdminRole ||
     isVp ||
@@ -200,12 +225,12 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
     lower.includes('president') ||
     lower.includes('head') ||
     lower.includes('dean of instruction') ||
-    lower === 'doi'
+    lower === 'doi';
 
   if (isAdminRole) {
-    const all: Record<string, boolean> = {}
-    for (const id of ALL_PERMISSION_IDS) all[id] = true
-    return all
+    const all: Record<string, boolean> = {};
+    for (const id of ALL_PERMISSION_IDS) all[id] = true;
+    return all;
   }
 
   const perms: Record<string, boolean> = {
@@ -220,59 +245,103 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
     'kpi.view': true,
     'okr.view': true,
     'okr.check_in': true,
-  }
+  };
 
   if (isSupervisor) {
-    perms['submissions.view_all'] = true
-    perms['submissions.approve'] = true
-    perms['submissions.edit'] = true
-    perms['submissions.delete'] = true
-    perms['risks.view_all'] = true
-    perms['risks.approve'] = true
-    perms['risks.edit'] = true
-    perms['risks.delete'] = true
-    perms['car.view_all'] = true
-    perms['car.verify'] = true
-    perms['car.edit'] = true
-    perms['car.delete'] = true
-    perms['reports.view'] = true
-    perms['reports.export'] = true
-    perms['monitoring.view_all'] = true
-    perms['monitoring.create'] = true
-    perms['gad.view_all'] = true
-    perms['strategic.view'] = true
-    perms['eval.view_results'] = true
-    perms['kpi.manage'] = true
-    perms['kpi.export'] = true
-    perms['okr.create'] = true
-    perms['okr.edit'] = true
-    perms['okr.view_all'] = true
-    perms['users.view'] = true
-    perms['units.view'] = true
-    perms['campuses.view'] = true
-    perms['comm.view_all'] = true
-    perms['settings.access'] = true
+    perms['submissions.view_all'] = true;
+    perms['submissions.approve'] = true;
+    perms['submissions.edit'] = true;
+    perms['submissions.delete'] = true;
+    perms['risks.view_all'] = true;
+    perms['risks.approve'] = true;
+    perms['risks.edit'] = true;
+    perms['risks.delete'] = true;
+    perms['car.view_all'] = true;
+    perms['car.verify'] = true;
+    perms['car.edit'] = true;
+    perms['car.delete'] = true;
+    perms['reports.view'] = true;
+    perms['reports.export'] = true;
+    perms['monitoring.view_all'] = true;
+    perms['monitoring.create'] = true;
+    perms['gad.view_all'] = true;
+    perms['strategic.view'] = true;
+    perms['eval.view_results'] = true;
+    perms['kpi.manage'] = true;
+    perms['kpi.export'] = true;
+    perms['okr.create'] = true;
+    perms['okr.edit'] = true;
+    perms['okr.view_all'] = true;
+    perms['users.view'] = true;
+    perms['units.view'] = true;
+    perms['campuses.view'] = true;
+    perms['comm.view_all'] = true;
+    perms['settings.access'] = true;
     if (!isAdminRole) {
-      perms['settings.campuses'] = true
-      perms['settings.units'] = true
+      perms['settings.campuses'] = true;
+      perms['settings.units'] = true;
     }
   }
 
   if (isAuditor) {
-    perms['audit.view'] = true
-    perms['audit.conduct'] = true
-    perms['audit.manage_findings'] = true
-    perms['car.view_all'] = true
+    perms['audit.view'] = true;
+    perms['audit.conduct'] = true;
+    perms['audit.manage_findings'] = true;
+    perms['car.view_all'] = true;
   }
 
   if (isVp) {
-    perms['programs.view'] = true
-    perms['programs.create'] = true
-    perms['programs.edit'] = true
-    perms['programs.delete'] = true
-    perms['eval.view_results'] = true
-    perms['eval.manage_cycles'] = true
+    perms['programs.view'] = true;
+    perms['programs.create'] = true;
+    perms['programs.edit'] = true;
+    perms['programs.delete'] = true;
+    perms['eval.view_results'] = true;
+    perms['eval.manage_cycles'] = true;
   }
 
-  return perms
+  // FIAMO-specific permissions
+  if (isUnitCoordinator) {
+    perms['fiamo.repair_request.view_all'] = true;
+    perms['fiamo.repair_request.review'] = true;
+    perms['fiamo.repair_request.assign'] = true;
+    perms['fiamo.repair_request.approve'] = true;
+    perms['fiamo.repair_request.close'] = true;
+    perms['fiamo.worker_type.manage'] = true;
+    perms['fiamo.evidence_type.manage'] = true;
+    perms['fiamo.settings.manage'] = true;
+    perms['fiamo.dashboard.view'] = true;
+    perms['fiamo.activity_log.view'] = true;
+    perms['fiamo.oversight.view'] = true;
+  }
+
+  if (isUnitOdimo) {
+    perms['fiamo.repair_request.view_all'] = true;
+    perms['fiamo.dashboard.view'] = true;
+    perms['fiamo.activity_log.view'] = true;
+    perms['fiamo.oversight.view'] = true;
+    // Note: NO approve/assign permissions - read-only oversight
+  }
+
+  if (isVpaf) {
+    perms['fiamo.dashboard.view'] = true;
+    perms['fiamo.activity_log.view'] = true;
+    perms['fiamo.oversight.view'] = true;
+    // Budget oversight - read-only
+  }
+
+  if (isFiamoStaff) {
+    perms['fiamo.repair_request.execute'] = true;
+    perms['fiamo.activity_log.view'] = true;
+  }
+
+  if (isUnitHead) {
+    perms['fiamo.repair_request.create'] = true;
+    perms['fiamo.repair_request.view_all'] = true; // own unit only (enforced in queries)
+  }
+
+  if (isDriverMechanic) {
+    perms['fiamo.activity_log.view'] = true;
+  }
+
+  return perms;
 }

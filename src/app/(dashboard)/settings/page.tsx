@@ -19,6 +19,7 @@ import { UnitGroupingExplorer } from '@/components/admin/unit-grouping-explorer'
 import { PbbSettingsManagement } from '@/components/admin/pbb-settings-management';
 import { CommunicationSettingsManagement } from '@/components/admin/communication-settings-management';
 import { NotificationSettingsManagement } from '@/components/notifications/notification-settings';
+import { FiamoSettingsManagement } from '@/components/fiamo/settings/fiamo-settings-management';
 
 import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
@@ -155,6 +156,9 @@ export default function SettingsPage() {
                 >
                   Notifications & Push
                 </TabsTrigger>
+                <TabsTrigger value="fiamo" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  FIAMO Office
+                </TabsTrigger>
               </TabsList>
             </ScrollArea>
           </div>
@@ -221,6 +225,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="notifications" className="space-y-4 animate-in fade-in duration-500">
             <NotificationSettingsManagement />
+          </TabsContent>
+          <TabsContent value="fiamo" className="space-y-4 animate-in fade-in duration-500">
+            <FiamoSettingsManagement />
           </TabsContent>
         </Tabs>
       </div>

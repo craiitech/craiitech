@@ -38,6 +38,10 @@ export type User = {
   accessibility?: UserAccessibility;
   lastSeenVersion?: string; // Track the last changelog version seen by the user
   portfolios?: PortfolioItem[];
+  // FIAMO-specific fields
+  fiamoRole?: FiamoRole;
+  workerTypeId?: string;
+  workerTypeName?: string;
 };
 
 export type Status = 'Pending' | 'Approved' | 'Rejected' | 'Submitted';
@@ -1519,3 +1523,134 @@ export type OkrCheckIn = {
   updatedByName: string;
   updatedAt: any;
 };
+
+// ============================================================
+// FIAMO Monitoring Types
+// ============================================================
+
+export type FiamoRole =
+  'Unit Coordinator' | 'Unit ODIMO' | 'VPAF' | 'FIAMO Staff' | 'Unit Head' | 'Driver/Operator/Mechanic';
+
+export type RepairCategory = 'Ceiling' | 'Roofing' | 'ComfortRoom' | 'Walls' | 'Other';
+
+export type RepairRequestStatus = 'Submitted' | 'Reviewed' | 'Assigned' | 'InProgress' | 'Completed' | 'Filed';
+
+export type FiamoActivityLogType =
+  | 'repair_request_created'
+  | 'repair_request_reviewed'
+  | 'repair_request_assigned'
+  | 'repair_request_started'
+  | 'repair_request_completed'
+  | 'repair_request_approved'
+  | 'repair_request_filed'
+  | 'repair_request_rejected'
+  | 'evidence_submitted'
+  | 'worker_type_created'
+  | 'worker_type_updated'
+  | 'evidence_type_created'
+  | 'evidence_type_updated';
+
+export interface RepairRequest {
+  id: string;
+  requestedBy: string;
+  requestedByName: string;
+  category: RepairCategory;
+  description: string;
+  location: string;
+  status: RepairRequestStatus;
+  assignedStaffId?: string;
+  assignedStaffName?: string;
+  assignedWorkerTypeId?: string;
+  assignedWorkerTypeName?: string;
+  programOfWorkRef?: string;
+  completionNotes?: string;
+  photos?: string[];
+  evidenceSubmitted?: RepairCompletionEvidence[];
+  approvedBy?: string;
+  approvedByName?: string;
+  approvedAt?: any;
+  createdAt: any;
+  reviewedAt?: any;
+  assignedAt?: any;
+  startedAt?: any;
+  completedAt?: any;
+  filedAt?: any;
+  unitId: string;
+  campusId: string;
+}
+
+export interface RepairCompletionEvidence {
+  evidenceTypeId: string;
+  evidenceTypeLabel: string;
+  evidenceCategory: 'photo' | 'document' | 'checklist' | 'receipt' | 'signoff';
+  fileUrl?: string;
+  remarks?: string;
+  submittedAt: any;
+  submittedBy: string;
+  submittedByName: string;
+}
+
+export interface FiamoEvidenceType {
+  id: string;
+  label: string;
+  description: string;
+  category: 'photo' | 'document' | 'checklist' | 'receipt' | 'signoff';
+  isRequired: boolean;
+  sortOrder: number;
+  campusId: string;
+  unitId: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: any;
+  updatedAt?: any;
+}
+
+export interface FiamoWorkerType {
+  id: string;
+  name: string;
+  description: string;
+  unitId: string;
+  unitName?: string;
+  campusId: string;
+  requiredEvidenceTypeIds: string[];
+  isActive: boolean;
+  createdBy: string;
+  createdByName: string;
+  createdAt: any;
+  updatedAt?: any;
+}
+
+export interface FiamoActivityLog {
+  id: string;
+  type: FiamoActivityLogType;
+  module: 'RepairRequest' | 'WorkerType' | 'EvidenceType';
+  recordId: string;
+  userId: string;
+  userName: string;
+  userRole: string;
+  description: string;
+  details?: Record<string, any>;
+  timestamp: any;
+  campusId: string;
+  unitId: string;
+}
+
+export interface FiamoSettings {
+  enabled: boolean;
+  officeName: string;
+  directorId?: string;
+  directorName?: string;
+  coordinatorIds: string[];
+  coordinatorNames: string[];
+  odimoIds: string[];
+  odimoNames: string[];
+  vpafIds: string[];
+  vpafNames: string[];
+  staffIds: string[];
+  campuses: string[];
+  units: string[];
+  notificationChannels: ('in-app' | 'email' | 'sms')[];
+  presidentApprovalMode: 'digital' | 'pdf_upload';
+  updatedAt: any;
+  updatedBy: string;
+}
