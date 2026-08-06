@@ -182,8 +182,6 @@ export function RepairRequestMyTasks() {
     </Card>
   );
 
-  const selectedEvidenceReady = selectedRequest?.status === 'Assigned';
-
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="space-y-4">
@@ -314,8 +312,6 @@ export function RepairRequestMyTasks() {
                   ))}
                 </div>
               )}
-
-              {selectedEvidenceReady && selectedRequest.status === 'Completed' && null}
             </CardContent>
           </Card>
         )}

@@ -97,8 +97,9 @@ export function RepairRequestInbox({ campusId }: RepairRequestInboxProps) {
         updateData.status = 'Filed';
         updateData.filedAt = serverTimestamp();
       } else if (action === 'reject') {
-        updateData.status = 'Submitted';
-        updateData.completionNotes = request.completionNotes + ' [REJECTED - please redo evidence]';
+        updateData.status = request.status === 'Completed' ? 'InProgress' : 'Submitted';
+        updateData.completionNotes =
+          (request.completionNotes ? `${request.completionNotes} ` : '') + '[REJECTED - please redo evidence]';
       }
 
       await updateDoc(doc(firestore, 'repairRequests', request.id), updateData);

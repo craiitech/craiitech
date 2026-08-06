@@ -24,6 +24,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useSessionActivity } from '@/lib/activity-log-provider';
+import { MAIN_CAMPUS_NAME, MAIN_CAMPUS_ID } from '@/lib/constants';
 import type { FiamoSettings, FiamoEvidenceType, FiamoWorkerType, User, Campus, Unit } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
@@ -269,11 +270,16 @@ export function FiamoSettingsManagement() {
     return units.filter((u) => u.campusIds?.includes(selectedCampusId));
   }, [units, selectedCampusId]);
 
-  const mainCampus = useMemo(() => campuses?.find((c) => c.name === 'Main Campus'), [campuses]);
+  const mainCampus = useMemo(
+    () => campuses?.find((c) => c.name === MAIN_CAMPUS_NAME) || campuses?.find((c) => c.id === MAIN_CAMPUS_ID),
+    [campuses],
+  );
 
   const mainCampusUnits = useMemo(() => {
-    if (!units || !mainCampus) return [];
-    return units.filter((u) => u.campusIds?.includes(mainCampus.id));
+    if (!units) return [];
+    if (!mainCampus) return [...units].sort((a, b) => a.name.localeCompare(b.name));
+    const scoped = units.filter((u) => u.campusIds?.includes(mainCampus.id));
+    return (scoped.length > 0 ? scoped : units).sort((a, b) => a.name.localeCompare(b.name));
   }, [units, mainCampus]);
 
   const officeUsers = useMemo(() => {
@@ -305,8 +311,10 @@ export function FiamoSettingsManagement() {
   }, [users]);
 
   const getEvidenceLabel = (id: string) => evidenceTypes?.find((e) => e.id === id)?.label || id;
-  const getUserName = (id: string) =>
-    users?.find((u) => u.id === id)?.firstName + ' ' + users?.find((u) => u.id === id)?.lastName || id;
+  const getUserName = (id: string) => {
+    const user = users?.find((u) => u.id === id);
+    return user ? `${user.firstName} ${user.lastName}` : id;
+  };
 
   const isLoading =
     isLoadingSettings ||
