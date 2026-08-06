@@ -593,23 +593,28 @@ export function ProgramAnalytics({
     return groups;
   }, [analytics?.roadmapData, programs]);
 
-  // Accreditation schedule years derived from survey / next-schedule dates
+  // Accreditation schedule years: current year +5, plus years found in the data
   const roadmapYears = useMemo(() => {
     const years = new Set<number>();
+    const currentYearNum = new Date().getFullYear();
+    // Scheduling horizon: current year through +5 years
+    for (let y = currentYearNum; y <= currentYearNum + 5; y++) years.add(y);
     compliances.forEach((c) => {
       (c.accreditationRecords || []).forEach((rec) => {
         const surveyYear = rec.dateOfSurvey ? parseInt(rec.dateOfSurvey.match(/\d{4}/)?.[0] || '0') : 0;
         if (surveyYear > 0) years.add(surveyYear);
         if (rec.nextScheduleYear) years.add(rec.nextScheduleYear);
+        const validityYear = rec.statusValidityDate ? parseInt(rec.statusValidityDate.match(/\d{4}/)?.[0] || '0') : 0;
+        if (validityYear > 0) years.add(validityYear);
       });
     });
-    years.add(new Date().getFullYear());
     return Array.from(years).sort((a, b) => b - a);
   }, [compliances]);
 
-  // Programs to be accredited for the selected roadmap year (Date, Campus, Program, Level)
+  // Programs to be accredited for the selected roadmap year.
+  // The Validity Date is the Date of the Next Accreditation, so we match on it.
   const roadmapSchedule = useMemo(() => {
-    if (!programs.length) return [];
+    if (!analytics?.roadmapData) return [];
 
     const rows: {
       date: string;
@@ -620,40 +625,23 @@ export function ProgramAnalytics({
       level: string;
     }[] = [];
 
-    programs.forEach((p) => {
-      const pId = String(p.id).toLowerCase().trim();
-      const programRecords = compliances.filter(
-        (c) =>
-          String(c.programId || '')
-            .toLowerCase()
-            .trim() === pId,
-      );
+    analytics.roadmapData.forEach((item) => {
+      // Only active programs are subject to accreditation scheduling
+      if (!item.isActive) return;
 
-      programRecords.forEach((rec) => {
-        (rec.accreditationRecords || []).forEach((acc) => {
-          const surveyYear = acc.dateOfSurvey ? parseInt(acc.dateOfSurvey.match(/\d{4}/)?.[0] || '0') : 0;
-          const nextYear = acc.nextScheduleYear;
-          const matchesYear =
-            roadmapYearFilter === 'all'
-              ? surveyYear > 0 || !!nextYear
-              : surveyYear === roadmapYearFilter || nextYear === roadmapYearFilter;
-          if (!matchesYear) return;
+      const validity = item.validity; // current milestone's statusValidityDate (next accreditation date)
+      const validityYear = validity ? parseInt((validity.match(/\d{4}/) || ['0'])[0]) : 0;
+      const matchesYear = roadmapYearFilter === 'all' ? validityYear > 0 : validityYear === roadmapYearFilter;
+      if (!matchesYear) return;
 
-          const scheduleDate =
-            acc.nextScheduleYear === roadmapYearFilter && !(surveyYear === roadmapYearFilter)
-              ? acc.nextSchedule ||
-                `${acc.nextScheduleMonth ? String(acc.nextScheduleMonth).padStart(2, '0') : ''}/${acc.nextScheduleYear}`
-              : acc.dateOfSurvey || acc.nextSchedule || 'TBA';
-
-          rows.push({
-            date: scheduleDate,
-            campus: campusMap.get(rec.campusId || p.campusId) || campusMap.get(p.campusId) || p.campusId,
-            campusId: rec.campusId || p.campusId,
-            program: p.name,
-            abbreviation: p.abbreviation || '',
-            level: acc.level || p.level || 'Non Accredited',
-          });
-        });
+      const p = programs.find((pg) => pg.id === item.id);
+      rows.push({
+        date: validity && validity !== 'TBA' && validity !== 'AWAITING RESULT' ? validity : 'TBA',
+        campus: item.campus,
+        campusId: item.campusId,
+        program: item.name,
+        abbreviation: p?.abbreviation || '',
+        level: item.currentLevel,
       });
     });
 
@@ -662,7 +650,7 @@ export function ProgramAnalytics({
       const dateB = b.date === 'TBA' ? 9999 : parseInt((b.date.match(/\d{4}/) || ['9999'])[0]);
       return dateA - dateB || a.program.localeCompare(b.program);
     });
-  }, [programs, compliances, campusMap, roadmapYearFilter]);
+  }, [analytics?.roadmapData, programs, roadmapYearFilter]);
 
   const handlePrintRoadmapSchedule = () => {
     if (!roadmapSchedule.length) {
