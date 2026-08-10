@@ -208,6 +208,11 @@ export function CorrectiveActionRequestTab({
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState('all');
   const [notifyingCarId, setNotifyingCarId] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<'ALL' | 'IQA' | 'EQA'>('IQA');
+
+  // When a specific audit type is enforced by the parent (e.g. the EQA tab), use it;
+  // otherwise fall back to the in-page IQA/EQA/All toggle.
+  const effectiveTypeFilter: 'IQA' | 'EQA' | 'ALL' = auditTypeFilter !== 'ALL' ? auditTypeFilter : typeFilter;
 
   const handleNotifyCar = async (car: CorrectiveActionRequest) => {
     if (!firestore) return;
@@ -290,8 +295,8 @@ export function CorrectiveActionRequestTab({
   const filteredCars = useMemo(() => {
     if (!rawCars) return [];
     return rawCars.filter((car) => {
-      if (auditTypeFilter === 'EQA' && car.auditType !== 'EQA') return false;
-      if (auditTypeFilter === 'IQA' && car.auditType === 'EQA') return false;
+      if (effectiveTypeFilter === 'EQA' && car.auditType !== 'EQA') return false;
+      if (effectiveTypeFilter === 'IQA' && car.auditType === 'EQA') return false;
       if (!isInstitutionalViewer) {
         const isCampusSupervisor =
           userRole === 'Campus Director' ||
@@ -318,7 +323,7 @@ export function CorrectiveActionRequestTab({
         unitMap.get(car.unitId)?.toLowerCase().includes(lowerSearch);
       return matchesCampus && matchesSearch;
     });
-  }, [rawCars, campusFilter, searchTerm, unitMap, isInstitutionalViewer, userRole, userProfile, auditTypeFilter]);
+  }, [rawCars, campusFilter, searchTerm, unitMap, isInstitutionalViewer, userRole, userProfile, effectiveTypeFilter]);
 
   const carsForAction = useMemo(() => {
     return filteredCars.filter((car) => car.status !== 'Open' && car.status !== 'Closed');
@@ -902,7 +907,7 @@ export function CorrectiveActionRequestTab({
       campusId: primaryUnit.campusId,
       unitHead: primaryUnit.unitHead,
       assignedUnits,
-      auditType: editingCar?.auditType || (auditTypeFilter === 'EQA' ? 'EQA' : 'IQA'),
+      auditType: editingCar?.auditType || (effectiveTypeFilter === 'EQA' ? 'EQA' : 'IQA'),
       status: nextStatus,
       needsVerification,
       comments: updatedComments,
@@ -969,14 +974,14 @@ export function CorrectiveActionRequestTab({
     setEditingCar(null);
     const yr = new Date().getFullYear();
     const rand = String(Math.floor(Math.random() * 900) + 100).padStart(3, '0');
-    const autoCarNumber = auditTypeFilter === 'EQA' ? `EQA-CAR-${yr}-${rand}` : `CAR-${yr}-${rand}`;
+    const autoCarNumber = effectiveTypeFilter === 'EQA' ? `EQA-CAR-${yr}-${rand}` : `CAR-${yr}-${rand}`;
     const defaultReplyDate = format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
     const defaultRequestDate = format(new Date(), 'yyyy-MM-dd');
 
     form.reset({
       carNumber: autoCarNumber,
       ncReportNumber: '',
-      source: auditTypeFilter === 'EQA' ? 'Others' : 'Audit Finding',
+      source: effectiveTypeFilter === 'EQA' ? 'Others' : 'Audit Finding',
       procedureTitle: '',
       initiator: userProfile
         ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim()
@@ -1054,10 +1059,63 @@ export function CorrectiveActionRequestTab({
             className="shadow-lg shadow-primary/20 shrink-0 font-black uppercase text-[10px] tracking-widest"
           >
             <PlusCircle className="mr-2 h-4 w-4" />
-            {auditTypeFilter === 'EQA' ? 'Issue New EQA CAR' : 'Issue New CAR'}
+            {effectiveTypeFilter === 'EQA' ? 'Issue New EQA CAR' : 'Issue New CAR'}
           </Button>
         )}
       </div>
+
+      {auditTypeFilter === 'ALL' && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1 bg-muted p-1 border shadow-sm rounded-lg w-fit">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setTypeFilter('IQA')}
+              className={cn(
+                'h-7 px-4 text-[10px] font-black uppercase tracking-widest gap-1.5',
+                typeFilter === 'IQA'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'bg-transparent text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <ShieldCheck className="h-3.5 w-3.5 text-primary" /> IQA CAR Registry
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setTypeFilter('EQA')}
+              className={cn(
+                'h-7 px-4 text-[10px] font-black uppercase tracking-widest gap-1.5',
+                typeFilter === 'EQA'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'bg-transparent text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <ShieldAlert className="h-3.5 w-3.5 text-violet-600" /> EQA CAR Registry
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setTypeFilter('ALL')}
+              className={cn(
+                'h-7 px-4 text-[10px] font-black uppercase tracking-widest gap-1.5',
+                typeFilter === 'ALL'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'bg-transparent text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <ClipboardList className="h-3.5 w-3.5 text-muted-foreground" /> All CARs
+            </Button>
+          </div>
+          <span className="text-[10px] font-bold uppercase text-muted-foreground">
+            {effectiveTypeFilter === 'EQA'
+              ? 'Showing External Quality Audit CARs only'
+              : effectiveTypeFilter === 'IQA'
+                ? 'Showing Internal Quality Audit CARs only'
+                : 'Showing all CARs with audit type badges'}
+          </span>
+        </div>
+      )}
 
       <Card className="border-primary/10 shadow-sm">
         <CardHeader className="pb-2">
@@ -1210,7 +1268,18 @@ export function CorrectiveActionRequestTab({
                     <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
                       <TableCell className="pl-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                            {car.auditType === 'EQA' ? (
+                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                EQA
+                              </Badge>
+                            ) : (
+                              <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                IQA
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                             {car.procedureTitle}
                           </span>
@@ -1314,7 +1383,18 @@ export function CorrectiveActionRequestTab({
                     <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
                       <TableCell className="pl-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                            {car.auditType === 'EQA' ? (
+                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                EQA
+                              </Badge>
+                            ) : (
+                              <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                IQA
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                             {car.procedureTitle}
                           </span>
@@ -1414,7 +1494,18 @@ export function CorrectiveActionRequestTab({
                     <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
                       <TableCell className="pl-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                            {car.auditType === 'EQA' ? (
+                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                EQA
+                              </Badge>
+                            ) : (
+                              <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                IQA
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                             {car.procedureTitle}
                           </span>
@@ -1515,7 +1606,18 @@ export function CorrectiveActionRequestTab({
                     <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
                       <TableCell className="pl-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                            {car.auditType === 'EQA' ? (
+                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                EQA
+                              </Badge>
+                            ) : (
+                              <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                IQA
+                              </Badge>
+                            )}
+                          </div>
                           <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                             {car.procedureTitle}
                           </span>
