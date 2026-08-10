@@ -79,19 +79,22 @@ export function AccreditationRecommendationReport({
       <table className="w-full border-collapse border-2 border-black mb-12">
         <thead>
           <tr className="bg-slate-50 dark:bg-slate-800/50 font-black text-center uppercase border-b-2 border-black">
-            <th className="border border-black p-2 w-[22%]" style={{ fontSize: '9pt' }}>
+            <th className="border border-black p-2 w-[20%]" style={{ fontSize: '9pt' }}>
               Program Offering
             </th>
-            <th className="border border-black p-2 w-[10%]" style={{ fontSize: '9pt' }}>
+            <th className="border border-black p-2 w-[12%]" style={{ fontSize: '9pt' }}>
+              Report Link
+            </th>
+            <th className="border border-black p-2 w-[9%]" style={{ fontSize: '9pt' }}>
               Type
             </th>
-            <th className="border border-black p-2 w-[30%]" style={{ fontSize: '9pt' }}>
+            <th className="border border-black p-2 w-[27%]" style={{ fontSize: '9pt' }}>
               Accreditor's Recommendation
             </th>
-            <th className="border border-black p-2 w-[18%]" style={{ fontSize: '9pt' }}>
+            <th className="border border-black p-2 w-[17%]" style={{ fontSize: '9pt' }}>
               Assigned Responsibility (Offices)
             </th>
-            <th className="border border-black p-2 w-[10%]" style={{ fontSize: '9pt' }}>
+            <th className="border border-black p-2 w-[9%]" style={{ fontSize: '9pt' }}>
               Status
             </th>
             <th className="border border-black p-2 text-center" style={{ fontSize: '8pt' }}>
@@ -119,17 +122,19 @@ export function AccreditationRecommendationReport({
                     {item.noEntry ? 'Awaiting Compliance Log Entry' : `${item.level} | ${item.surveyDate || 'TBA'}`}
                   </p>
                 </div>
-                {item.certificateLink && (
-                  <div className="mt-2 pt-1 border-t border-slate-200 dark:border-slate-700">
-                    <a
-                      href={item.certificateLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-700 underline font-bold uppercase tracking-tight text-[7.5pt] block hover:text-blue-900"
-                    >
-                      View Certificate
-                    </a>
-                  </div>
+              </td>
+              <td className="border border-black p-2 align-top" style={{ fontSize: '8pt' }}>
+                {item.certificateLink ? (
+                  <a
+                    href={item.certificateLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-700 underline font-bold uppercase tracking-tight block break-all hover:text-blue-900"
+                  >
+                    View Report
+                  </a>
+                ) : (
+                  <span className="text-slate-400 font-black">—</span>
                 )}
               </td>
               <td
@@ -188,7 +193,7 @@ export function AccreditationRecommendationReport({
           ))}
           {items.length === 0 && (
             <tr>
-              <td colSpan={6} className="p-8 text-center italic text-gray-400">
+              <td colSpan={7} className="p-8 text-center italic text-gray-400">
                 No active accreditation gaps recorded for this cycle.
               </td>
             </tr>

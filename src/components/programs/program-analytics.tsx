@@ -80,7 +80,18 @@ import {
   FileWarning,
   ArrowUpRight,
   Calculator,
+  ExternalLink,
+  FolderOpen,
 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { Separator } from '../ui/separator';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
@@ -384,6 +395,7 @@ export function ProgramAnalytics({
         isActive: p.isActive,
         isNewProgram: p.isNewProgram,
         sortYear,
+        accreditationRecords: programRecords.flatMap((pr) => pr.accreditationRecords || []),
       });
     });
 
@@ -622,6 +634,13 @@ export function ProgramAnalytics({
       activePrograms = activePrograms.filter((p) => validityByProgram.get(p.id) === recoYearFilter);
     }
 
+    const certByProgram = new Map<string, string>();
+    (analytics?.roadmapData || []).forEach((item) => {
+      const recs: any[] = item.accreditationRecords || [];
+      const official = recs.find((r: any) => r.lifecycleStatus === 'Current') || recs[recs.length - 1];
+      if (official?.certificateLink) certByProgram.set(item.id, official.certificateLink);
+    });
+
     const yearRecos = (analytics?.allRecommendations || []).filter((item) => {
       if (recoYearFilter !== 'all' && item.year !== recoYearFilter) return false;
       return true;
@@ -640,6 +659,7 @@ export function ProgramAnalytics({
           campusId: p.campusId,
           campus: campusMap.get(p.campusId) || p.campusId,
           noEntry: true,
+          certificateLink: certByProgram.get(p.id),
           recommendation: {
             id: `no-entry-${p.id}`,
             type: '—',
@@ -1965,6 +1985,8 @@ export function ProgramAnalytics({
 }
 
 function RoadmapTable({ data, campusMap }: { data: any[]; campusMap: Map<string, string> }) {
+  const [viewItem, setViewItem] = useState<any | null>(null);
+
   if (data.length === 0)
     return (
       <div className="py-20 text-center text-muted-foreground font-black uppercase text-[10px] tracking-widest opacity-20">
@@ -1972,58 +1994,147 @@ function RoadmapTable({ data, campusMap }: { data: any[]; campusMap: Map<string,
       </div>
     );
 
+  const linkedRecords = (viewItem?.accreditationRecords || []).filter(
+    (rec: any) => rec?.certificateLink || (rec?.areas || []).some((a: any) => a?.googleDriveLink),
+  );
+
   return (
-    <ScrollArea className="h-[500px]">
-      <Table>
-        <TableHeader className="bg-muted/30 sticky top-0 z-10">
-          <TableRow>
-            <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Program Offering</TableHead>
-            <TableHead className="py-4 text-[10px] font-black uppercase">Campus Site</TableHead>
-            <TableHead className="py-4 text-[10px] font-black uppercase">Current Level</TableHead>
-            <TableHead className="py-4 text-[10px] font-black uppercase">Validity Date</TableHead>
-            <TableHead className="text-right pr-8 py-4 text-[10px] font-black uppercase">Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((item) => (
-            <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
-              <TableCell className="pl-8 py-5">
-                <div className="flex flex-col gap-1">
-                  <span className="font-black text-sm text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
-                    {item.name}
-                  </span>
-                  <span className="text-[9px] font-black text-muted-foreground uppercase">{item.level}</span>
-                </div>
-              </TableCell>
-              <TableCell className="py-5 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">
-                {campusMap.get(item.campusId) || item.campus}
-              </TableCell>
-              <TableCell className="py-5">
-                <Badge variant="outline" className="h-5 text-[9px] font-black text-primary border-primary/20 bg-white">
-                  {item.currentLevel}
-                </Badge>
-              </TableCell>
-              <TableCell className="py-5 text-xs font-black uppercase tabular-nums">{item.validity}</TableCell>
-              <TableCell className="text-right pr-8 py-5">
-                <Badge
-                  className={cn(
-                    'text-[10px] font-black uppercase border-none px-3 shadow-sm',
-                    item.status === 'COMPLIANT'
-                      ? 'bg-emerald-600 text-white'
-                      : item.status === 'OVERDUE'
-                        ? 'bg-rose-600 text-white animate-pulse'
-                        : item.status === 'NEW PROGRAM'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-500 text-white',
-                  )}
-                >
-                  {item.status}
-                </Badge>
-              </TableCell>
+    <>
+      <ScrollArea className="h-[500px]">
+        <Table>
+          <TableHeader className="bg-muted/30 sticky top-0 z-10">
+            <TableRow>
+              <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Program Offering</TableHead>
+              <TableHead className="py-4 text-[10px] font-black uppercase">Campus Site</TableHead>
+              <TableHead className="py-4 text-[10px] font-black uppercase">Current Level</TableHead>
+              <TableHead className="py-4 text-[10px] font-black uppercase">Validity Date</TableHead>
+              <TableHead className="py-4 text-[10px] font-black uppercase">Actions</TableHead>
+              <TableHead className="text-right pr-8 py-4 text-[10px] font-black uppercase">Status</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </ScrollArea>
+          </TableHeader>
+          <TableBody>
+            {data.map((item) => (
+              <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
+                <TableCell className="pl-8 py-5">
+                  <div className="flex flex-col gap-1">
+                    <span className="font-black text-sm text-slate-900 dark:text-slate-100 group-hover:text-primary transition-colors">
+                      {item.name}
+                    </span>
+                    <span className="text-[9px] font-black text-muted-foreground uppercase">{item.level}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="py-5 text-xs font-bold text-slate-600 dark:text-slate-400 uppercase">
+                  {campusMap.get(item.campusId) || item.campus}
+                </TableCell>
+                <TableCell className="py-5">
+                  <Badge
+                    variant="outline"
+                    className="h-5 text-[9px] font-black text-primary border-primary/20 bg-white"
+                  >
+                    {item.currentLevel}
+                  </Badge>
+                </TableCell>
+                <TableCell className="py-5 text-xs font-black uppercase tabular-nums">{item.validity}</TableCell>
+                <TableCell className="py-5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setViewItem(item)}
+                    className="h-7 text-[9px] font-black uppercase gap-1 bg-white border-primary/20 text-primary"
+                  >
+                    <ExternalLink className="h-3 w-3" /> View
+                  </Button>
+                </TableCell>
+                <TableCell className="text-right pr-8 py-5">
+                  <Badge
+                    className={cn(
+                      'text-[10px] font-black uppercase border-none px-3 shadow-sm',
+                      item.status === 'COMPLIANT'
+                        ? 'bg-emerald-600 text-white'
+                        : item.status === 'OVERDUE'
+                          ? 'bg-rose-600 text-white animate-pulse'
+                          : item.status === 'NEW PROGRAM'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-500 text-white',
+                    )}
+                  >
+                    {item.status}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </ScrollArea>
+
+      <AlertDialog open={!!viewItem} onOpenChange={(o) => !o && setViewItem(null)}>
+        <AlertDialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-base">
+              <ExternalLink className="h-4 w-4 text-primary" />
+              {viewItem?.name}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-[10px] font-black uppercase tracking-widest">
+              Accreditation Google Drive Links
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4">
+            {linkedRecords.length === 0 && (
+              <div className="py-10 text-center text-muted-foreground font-black uppercase text-[10px] tracking-widest">
+                No accreditation Google Drive links on record.
+              </div>
+            )}
+            {linkedRecords.map((rec: any) => (
+              <div key={rec.id || rec.level} className="rounded-xl border border-primary/10 bg-white/50 p-4 space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="bg-primary text-white h-5 text-[9px] font-black uppercase">{rec.level}</Badge>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase">
+                    {rec.typeOfVisit || 'Survey'} {rec.dateOfSurvey ? `• ${rec.dateOfSurvey}` : ''}
+                  </span>
+                  {rec.statusValidityDate && (
+                    <Badge
+                      variant="outline"
+                      className="h-5 text-[9px] font-black border-primary/20 text-primary uppercase"
+                    >
+                      Valid Until: {rec.statusValidityDate}
+                    </Badge>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  {rec.certificateLink && (
+                    <a
+                      href={rec.certificateLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-xs font-bold text-primary hover:underline break-all"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> Certificate / Official Result
+                    </a>
+                  )}
+                  {(rec.areas || [])
+                    .filter((a: any) => a?.googleDriveLink)
+                    .map((a: any) => (
+                      <a
+                        key={a.areaCode || a.areaName}
+                        href={a.googleDriveLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-xs font-bold text-muted-foreground hover:text-primary hover:underline break-all"
+                      >
+                        <FolderOpen className="h-3.5 w-3.5 shrink-0" /> {a.areaCode} — {a.areaName}
+                      </a>
+                    ))}
+                </div>
+              </div>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setViewItem(null)} className="bg-primary text-white">
+              Close
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
