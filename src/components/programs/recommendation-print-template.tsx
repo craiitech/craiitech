@@ -123,15 +123,15 @@ export function AccreditationRecommendationReport({
                   </p>
                 </div>
               </td>
-              <td className="border border-black p-2 align-top" style={{ fontSize: '8pt' }}>
+              <td className="border border-black p-2 align-top" style={{ fontSize: '7pt' }}>
                 {item.certificateLink ? (
                   <a
                     href={item.certificateLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-700 underline font-bold uppercase tracking-tight block break-all hover:text-blue-900"
+                    className="text-blue-800 underline font-bold break-all block hover:text-blue-900"
                   >
-                    View Report
+                    {item.certificateLink}
                   </a>
                 ) : (
                   <span className="text-slate-400 font-black">—</span>
