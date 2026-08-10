@@ -585,12 +585,20 @@ export function ProgramAnalytics({
   }, [analytics, isAdmin, userProfile, userRole, isDoi, recoSearch, recoStatusFilter, recoUnitFilter, recoYearFilter]);
 
   const recoYears = useMemo(() => {
-    const years = new Set<number>([new Date().getFullYear(), selectedYear]);
+    const years = new Set<number>();
+    const currentYearNum = new Date().getFullYear();
+    for (let y = currentYearNum; y <= currentYearNum + 8; y++) years.add(y);
+    years.add(selectedYear);
     compliances.forEach((c) => {
       if (c.academicYear) years.add(c.academicYear);
     });
+    (analytics?.roadmapData || []).forEach((item) => {
+      const v = item.validity;
+      const yr = v ? parseInt((v.match(/\d{4}/) || ['0'])[0]) : 0;
+      if (yr > 0) years.add(yr);
+    });
     return Array.from(years).sort((a, b) => b - a);
-  }, [compliances, selectedYear]);
+  }, [compliances, analytics?.roadmapData, selectedYear]);
 
   /**
    * INSTITUTIONAL GAPS REGISTRY ROWS (program basis)
@@ -599,7 +607,21 @@ export function ProgramAnalytics({
    */
   const institutionalGaps = useMemo(() => {
     if (!isAdmin || recoUnitFilter !== 'all') return [];
-    const activePrograms = programs.filter((p) => p.isActive);
+
+    const validityByProgram = new Map<string, number>();
+    (analytics?.roadmapData || []).forEach((item) => {
+      const v = item.validity;
+      if (v && v !== 'NEW PROGRAM' && v !== 'AWAITING RESULT' && v !== 'TBA') {
+        const yr = parseInt((v.match(/\d{4}/) || ['0'])[0]);
+        if (yr > 0) validityByProgram.set(item.id, yr);
+      }
+    });
+
+    let activePrograms = programs.filter((p) => p.isActive);
+    if (recoYearFilter !== 'all') {
+      activePrograms = activePrograms.filter((p) => validityByProgram.get(p.id) === recoYearFilter);
+    }
+
     const yearRecos = (analytics?.allRecommendations || []).filter((item) => {
       if (recoYearFilter !== 'all' && item.year !== recoYearFilter) return false;
       return true;
