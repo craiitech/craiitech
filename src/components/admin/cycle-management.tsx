@@ -1,5 +1,4 @@
-﻿
-'use client';
+﻿'use client';
 
 import { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
@@ -8,21 +7,8 @@ import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc } from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   Dialog,
   DialogContent,
@@ -61,32 +47,88 @@ import { FirestorePermissionError } from '@/firebase/errors';
 const currentYear = new Date().getFullYear();
 const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i);
 const months = [
-  { value: 0, label: 'January' }, { value: 1, label: 'February' }, { value: 2, label: 'March' },
-  { value: 3, label: 'April' }, { value: 4, label: 'May' }, { value: 5, label: 'June' },
-  { value: 6, label: 'July' }, { value: 7, label: 'August' }, { value: 8, label: 'September' },
-  { value: 9, label: 'October' }, { value: 10, label: 'November' }, { value: 11, label: 'December' },
+  { value: 0, label: 'January' },
+  { value: 1, label: 'February' },
+  { value: 2, label: 'March' },
+  { value: 3, label: 'April' },
+  { value: 4, label: 'May' },
+  { value: 5, label: 'June' },
+  { value: 6, label: 'July' },
+  { value: 7, label: 'August' },
+  { value: 8, label: 'September' },
+  { value: 9, label: 'October' },
+  { value: 10, label: 'November' },
+  { value: 11, label: 'December' },
 ];
 const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
+const cycleSchema = z
+  .object({
+    name: z.enum(['first', 'final']),
+    year: z
+      .number()
+      .min(new Date().getFullYear() - 5)
+      .max(new Date().getFullYear() + 5),
+    startYear: z.string().min(1),
+    startMonth: z.string().min(1),
+    startDay: z.string().min(1),
+    endYear: z.string().min(1),
+    endMonth: z.string().min(1),
+    endDay: z.string().min(1),
+    submissionStartYear: z.string().optional(),
+    submissionStartMonth: z.string().optional(),
+    submissionStartDay: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      const startDate = new Date(Number(data.startYear), Number(data.startMonth), Number(data.startDay));
+      const endDate = new Date(Number(data.endYear), Number(data.endMonth), Number(data.endDay));
+      return endDate > startDate;
+    },
+    {
+      message: 'End date must be after start date.',
+      path: ['endDay'], // Assign error to a field
+    },
+  )
+  .refine(
+    (data) => {
+      const submissionStartDate = buildSubmissionStartDate(data);
+      if (!submissionStartDate) return true;
+      const startDate = new Date(Number(data.startYear), Number(data.startMonth), Number(data.startDay));
+      const endDate = new Date(Number(data.endYear), Number(data.endMonth), Number(data.endDay));
+      return submissionStartDate >= startDate && submissionStartDate <= endDate;
+    },
+    {
+      message: 'Submission start date must be between the cycle start and end dates.',
+      path: ['submissionStartDay'],
+    },
+  );
 
-const cycleSchema = z.object({
-  name: z.enum(['first', 'final']),
-  year: z.number().min(new Date().getFullYear() - 5).max(new Date().getFullYear() + 5),
-  startYear: z.string().min(1),
-  startMonth: z.string().min(1),
-  startDay: z.string().min(1),
-  endYear: z.string().min(1),
-  endMonth: z.string().min(1),
-  endDay: z.string().min(1),
-}).refine(data => {
-    const startDate = new Date(Number(data.startYear), Number(data.startMonth), Number(data.startDay));
-    const endDate = new Date(Number(data.endYear), Number(data.endMonth), Number(data.endDay));
-    return endDate > startDate;
-}, {
-  message: 'End date must be after start date.',
-  path: ['endDay'], // Assign error to a field
-});
+function buildSubmissionStartDate(data: {
+  submissionStartYear?: string;
+  submissionStartMonth?: string;
+  submissionStartDay?: string;
+}) {
+  if (!data.submissionStartYear || !data.submissionStartMonth || !data.submissionStartDay) return null;
+  return new Date(Number(data.submissionStartYear), Number(data.submissionStartMonth), Number(data.submissionStartDay));
+}
 
+function safeToDate(value: unknown): Date | undefined {
+  if (!value) return undefined;
+  if (
+    typeof value === 'object' &&
+    'toDate' in value &&
+    typeof (value as { toDate: () => Date }).toDate === 'function'
+  ) {
+    return (value as { toDate: () => Date }).toDate();
+  }
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    return isNaN(parsed.getTime()) ? undefined : parsed;
+  }
+  return undefined;
+}
 
 export function CycleManagement() {
   const firestore = useFirestore();
@@ -98,22 +140,23 @@ export function CycleManagement() {
 
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: cycles, isLoading } = useCollection<Cycle>(cyclesQuery);
-  
+
   const sortedCycles = useMemo(() => {
     if (!cycles) return [];
-    return [...cycles].sort((a,b) => b.year - a.year || a.name.localeCompare(b.name));
+    return [...cycles].sort((a, b) => b.year - a.year || a.name.localeCompare(b.name));
   }, [cycles]);
 
   const form = useForm<z.infer<typeof cycleSchema>>({
     resolver: zodResolver(cycleSchema),
     defaultValues: { year: currentYear },
   });
-  
+
   const handleOpenDialog = (cycle: Cycle | null = null) => {
     setEditingCycle(cycle);
     if (cycle) {
       const startDate = cycle.startDate?.toDate();
       const endDate = cycle.endDate?.toDate();
+      const submissionStartDate = safeToDate(cycle.submissionStartDate);
       form.reset({
         name: cycle.name as 'first' | 'final',
         year: cycle.year,
@@ -123,17 +166,27 @@ export function CycleManagement() {
         endYear: endDate ? String(endDate.getFullYear()) : undefined,
         endMonth: endDate ? String(endDate.getMonth()) : undefined,
         endDay: endDate ? String(endDate.getDate()) : undefined,
+        submissionStartYear: submissionStartDate ? String(submissionStartDate.getFullYear()) : undefined,
+        submissionStartMonth: submissionStartDate ? String(submissionStartDate.getMonth()) : undefined,
+        submissionStartDay: submissionStartDate ? String(submissionStartDate.getDate()) : undefined,
       });
     } else {
       form.reset({
-          name: undefined,
-          year: currentYear,
-          startYear: undefined, startMonth: undefined, startDay: undefined,
-          endYear: undefined, endMonth: undefined, endDay: undefined,
+        name: undefined,
+        year: currentYear,
+        startYear: undefined,
+        startMonth: undefined,
+        startDay: undefined,
+        endYear: undefined,
+        endMonth: undefined,
+        endDay: undefined,
+        submissionStartYear: undefined,
+        submissionStartMonth: undefined,
+        submissionStartDay: undefined,
       });
     }
     setIsDialogOpen(true);
-  }
+  };
 
   const onSubmit = async (values: z.infer<typeof cycleSchema>) => {
     if (!firestore) return;
@@ -141,28 +194,34 @@ export function CycleManagement() {
 
     const cycleId = `${values.name}-${values.year}`;
     const cycleRef = doc(firestore, 'cycles', cycleId);
-    
+
+    const submissionStartDate = buildSubmissionStartDate(values);
+
     const cycleData = {
-        id: cycleId,
-        name: values.name,
-        year: values.year,
-        startDate: new Date(Number(values.startYear), Number(values.startMonth), Number(values.startDay)),
-        endDate: new Date(Number(values.endYear), Number(values.endMonth), Number(values.endDay)),
+      id: cycleId,
+      name: values.name,
+      year: values.year,
+      startDate: new Date(Number(values.startYear), Number(values.startMonth), Number(values.startDay)),
+      endDate: new Date(Number(values.endYear), Number(values.endMonth), Number(values.endDay)),
+      ...(submissionStartDate ? { submissionStartDate } : {}),
     };
 
     try {
-        await setDoc(cycleRef, cycleData, { merge: true });
-        toast({ title: 'Success', description: `Cycle '${cycleData.name} ${cycleData.year}' saved.` });
-        setIsDialogOpen(false);
+      await setDoc(cycleRef, cycleData, { merge: true });
+      toast({ title: 'Success', description: `Cycle '${cycleData.name} ${cycleData.year}' saved.` });
+      setIsDialogOpen(false);
     } catch (error) {
-        console.error("Error saving cycle:", error);
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: cycleRef.path,
-            operation: 'write',
-            requestResourceData: cycleData,
-        }));
+      console.error('Error saving cycle:', error);
+      errorEmitter.emit(
+        'permission-error',
+        new FirestorePermissionError({
+          path: cycleRef.path,
+          operation: 'write',
+          requestResourceData: cycleData,
+        }),
+      );
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -171,23 +230,23 @@ export function CycleManagement() {
     setIsSubmitting(true);
     const cycleRef = doc(firestore, 'cycles', deletingCycle.id);
     try {
-        await deleteDoc(cycleRef);
-        toast({
-            title: "Cycle Deleted",
-            description: "The submission cycle has been successfully deleted.",
-        });
+      await deleteDoc(cycleRef);
+      toast({
+        title: 'Cycle Deleted',
+        description: 'The submission cycle has been successfully deleted.',
+      });
     } catch (error) {
-        console.error("Error deleting cycle:", error);
-        toast({
-            title: "Error",
-            description: "Could not delete the cycle.",
-            variant: "destructive",
-        });
+      console.error('Error deleting cycle:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not delete the cycle.',
+        variant: 'destructive',
+      });
     } finally {
-        setIsSubmitting(false);
-        setDeletingCycle(null);
+      setIsSubmitting(false);
+      setDeletingCycle(null);
     }
-  }
+  };
 
   return (
     <>
@@ -195,7 +254,9 @@ export function CycleManagement() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Cycles & Deadlines</CardTitle>
-            <CardDescription>Manage submission cycles and their official start and end dates.</CardDescription>
+            <CardDescription>
+              Manage submission cycles, their official start and end dates, and when the submission window opens.
+            </CardDescription>
           </div>
           <Button onClick={() => handleOpenDialog()}>
             <PlusCircle className="mr-2 h-4 w-4" />
@@ -214,6 +275,7 @@ export function CycleManagement() {
                   <TableHead>Cycle Name</TableHead>
                   <TableHead>Year</TableHead>
                   <TableHead>Start Date</TableHead>
+                  <TableHead>Submission Start</TableHead>
                   <TableHead>End Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -224,27 +286,34 @@ export function CycleManagement() {
                     <TableCell className="font-medium capitalize">{cycle.name}</TableCell>
                     <TableCell>{cycle.year}</TableCell>
                     <TableCell>{cycle.startDate ? format(cycle.startDate.toDate(), 'PPP') : 'N/A'}</TableCell>
+                    <TableCell>
+                      {safeToDate(cycle.submissionStartDate) ? (
+                        format(safeToDate(cycle.submissionStartDate)!, 'PPP')
+                      ) : (
+                        <span className="text-muted-foreground">N/A</span>
+                      )}
+                    </TableCell>
                     <TableCell>{cycle.endDate ? format(cycle.endDate.toDate(), 'PPP') : 'N/A'}</TableCell>
                     <TableCell className="text-right">
-                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => handleOpenDialog(cycle)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="text-destructive" onClick={() => setDeletingCycle(cycle)}>
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleOpenDialog(cycle)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive" onClick={() => setDeletingCycle(cycle)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -253,115 +322,334 @@ export function CycleManagement() {
           )}
         </CardContent>
       </Card>
-      
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
-            <DialogHeader>
-                <DialogTitle>{editingCycle ? 'Edit Cycle' : 'Create New Cycle'}</DialogTitle>
-                <DialogDescription>Set the start and end dates for a submission cycle.</DialogDescription>
-            </DialogHeader>
-             <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Cycle</FormLabel>
-                                    <Select onValueChange={field.onChange} value={field.value} disabled={!!editingCycle}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select a cycle" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent modal={false}>
-                                            <SelectItem value="first">First Cycle</SelectItem>
-                                            <SelectItem value="final">Final Cycle</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="year"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Year</FormLabel>
-                                    <Select onValueChange={(v) => field.onChange(Number(v))} value={String(field.value)} disabled={!!editingCycle}>
-                                        <FormControl>
-                                            <SelectTrigger><SelectValue placeholder="Select a year" /></SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent modal={false}>
-                                            {years.map(year => <SelectItem key={year} value={String(year)}>{year}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-                    
-                    <div>
-                        <FormLabel>Start Date</FormLabel>
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                             <FormField control={form.control} name="startMonth" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month"/></SelectTrigger></FormControl><SelectContent modal={false}>{months.map(m=><SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
-                             )}/>
-                             <FormField control={form.control} name="startDay" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Day"/></SelectTrigger></FormControl><SelectContent modal={false}>{days.map(d=><SelectItem key={d} value={String(d)}>{d}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
-                             )}/>
-                             <FormField control={form.control} name="startYear" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Year"/></SelectTrigger></FormControl><SelectContent modal={false}>{years.map(y=><SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
-                             )}/>
-                        </div>
-                    </div>
-                    
-                     <div>
-                        <FormLabel>End Date</FormLabel>
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                            <FormField control={form.control} name="endMonth" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Month"/></SelectTrigger></FormControl><SelectContent modal={false}>{months.map(m=><SelectItem key={m.value} value={String(m.value)}>{m.label}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="endDay" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Day"/></SelectTrigger></FormControl><SelectContent modal={false}>{days.map(d=><SelectItem key={d} value={String(d)}>{d}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
-                            )}/>
-                            <FormField control={form.control} name="endYear" render={({field}) => (
-                                <FormItem><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Year"/></SelectTrigger></FormControl><SelectContent modal={false}>{years.map(y=><SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent></Select><FormMessage/></FormItem>
-                            )}/>
-                        </div>
-                        <FormMessage>{form.formState.errors.endDay?.message}</FormMessage>
-                    </div>
+          <DialogHeader>
+            <DialogTitle>{editingCycle ? 'Edit Cycle' : 'Create New Cycle'}</DialogTitle>
+            <DialogDescription>
+              Set the start, submission start, and end dates for a submission cycle.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cycle</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={!!editingCycle}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a cycle" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent modal={false}>
+                          <SelectItem value="first">First Cycle</SelectItem>
+                          <SelectItem value="final">Final Cycle</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="year"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Year</FormLabel>
+                      <Select
+                        onValueChange={(v) => field.onChange(Number(v))}
+                        value={String(field.value)}
+                        disabled={!!editingCycle}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a year" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent modal={false}>
+                          {years.map((year) => (
+                            <SelectItem key={year} value={String(year)}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-                    <DialogFooter>
-                        <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                            Save
-                        </Button>
-                    </DialogFooter>
-                </form>
-             </Form>
+              <div>
+                <FormLabel>Start Date</FormLabel>
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <FormField
+                    control={form.control}
+                    name="startMonth"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {months.map((m) => (
+                              <SelectItem key={m.value} value={String(m.value)}>
+                                {m.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="startDay"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Day" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {days.map((d) => (
+                              <SelectItem key={d} value={String(d)}>
+                                {d}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="startYear"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {years.map((y) => (
+                              <SelectItem key={y} value={String(y)}>
+                                {y}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <FormLabel>End Date</FormLabel>
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <FormField
+                    control={form.control}
+                    name="endMonth"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {months.map((m) => (
+                              <SelectItem key={m.value} value={String(m.value)}>
+                                {m.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="endDay"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Day" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {days.map((d) => (
+                              <SelectItem key={d} value={String(d)}>
+                                {d}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="endYear"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {years.map((y) => (
+                              <SelectItem key={y} value={String(y)}>
+                                {y}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormMessage>{form.formState.errors.endDay?.message}</FormMessage>
+              </div>
+
+              <div>
+                <FormLabel>
+                  Submission Start Date <span className="text-muted-foreground font-normal">(optional)</span>
+                </FormLabel>
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  <FormField
+                    control={form.control}
+                    name="submissionStartMonth"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {months.map((m) => (
+                              <SelectItem key={m.value} value={String(m.value)}>
+                                {m.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="submissionStartDay"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Day" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {days.map((d) => (
+                              <SelectItem key={d} value={String(d)}>
+                                {d}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="submissionStartYear"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {years.map((y) => (
+                              <SelectItem key={y} value={String(y)}>
+                                {y}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormMessage>{form.formState.errors.submissionStartDay?.message}</FormMessage>
+              </div>
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 
-       <AlertDialog open={!!deletingCycle} onOpenChange={() => setDeletingCycle(null)}>
+      <AlertDialog open={!!deletingCycle} onOpenChange={() => setDeletingCycle(null)}>
         <AlertDialogContent>
-            <AlertDialogHeader>
-                <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete the cycle "{deletingCycle?.name} {deletingCycle?.year}".
-                </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteCycle} disabled={isSubmitting} className="bg-destructive hover:bg-destructive/90">
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Delete
-                </AlertDialogAction>
-            </AlertDialogFooter>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the cycle "{deletingCycle?.name}{' '}
+              {deletingCycle?.year}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCycle}
+              disabled={isSubmitting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
-    </AlertDialog>
+      </AlertDialog>
     </>
   );
 }

@@ -333,6 +333,7 @@ export type Cycle = {
   year: number;
   startDate: any; // Can be Timestamp
   endDate: any; // Timestamp
+  submissionStartDate?: any; // Timestamp - when the submission window officially opens
 };
 
 export type ErrorReport = {

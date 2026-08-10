@@ -1,39 +1,39 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { 
-  Risk, 
-  CorrectiveActionRequest, 
-  ProgramComplianceRecord, 
-  AcademicProgram, 
-  AuditSchedule, 
-  Campus, 
+import type {
+  Risk,
+  CorrectiveActionRequest,
+  ProgramComplianceRecord,
+  AcademicProgram,
+  AuditSchedule,
+  Campus,
   Unit,
   Cycle,
-  ManagementReviewOutput
+  ManagementReviewOutput,
 } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { 
-  Calendar as CalendarIcon, 
-  Clock, 
-  AlertCircle, 
-  CheckCircle2, 
-  Search, 
-  Filter, 
-  MapPin, 
-  Building2, 
-  User, 
-  Activity, 
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  Search,
+  Filter,
+  MapPin,
+  Building2,
+  User,
+  Activity,
   Info,
   CalendarCheck2,
   ClipboardCheck,
   AlertTriangle,
   Zap,
   ShieldAlert,
-  Award
+  Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format, isToday, isBefore, isAfter, addDays, startOfDay, endOfDay } from 'date-fns';
@@ -51,7 +51,7 @@ interface ScheduleTabProps {
   selectedYear: number;
 }
 
-type EventCategory = 
+type EventCategory =
   | 'Internal Quality Audit'
   | 'Risk & Opportunity'
   | 'Actionable Decision'
@@ -77,11 +77,31 @@ interface ScheduleEvent {
 }
 
 const CATEGORY_STYLING: Record<EventCategory, { bg: string; border: string; text: string; dot: string }> = {
-  'Internal Quality Audit': { bg: 'bg-emerald-50/50', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
-  'Risk & Opportunity': { bg: 'bg-amber-50/50', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-500' },
-  'Actionable Decision': { bg: 'bg-purple-50/50', border: 'border-purple-200', text: 'text-purple-700', dot: 'bg-purple-500' },
-  'Corrective Action Request': { bg: 'bg-rose-50/50', border: 'border-rose-200', text: 'text-rose-700', dot: 'bg-rose-500' },
-  'Accreditation': { bg: 'bg-blue-50/50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
+  'Internal Quality Audit': {
+    bg: 'bg-emerald-50/50',
+    border: 'border-emerald-200',
+    text: 'text-emerald-700',
+    dot: 'bg-emerald-500',
+  },
+  'Risk & Opportunity': {
+    bg: 'bg-amber-50/50',
+    border: 'border-amber-200',
+    text: 'text-amber-700',
+    dot: 'bg-amber-500',
+  },
+  'Actionable Decision': {
+    bg: 'bg-purple-50/50',
+    border: 'border-purple-200',
+    text: 'text-purple-700',
+    dot: 'bg-purple-500',
+  },
+  'Corrective Action Request': {
+    bg: 'bg-rose-50/50',
+    border: 'border-rose-200',
+    text: 'text-rose-700',
+    dot: 'bg-rose-500',
+  },
+  Accreditation: { bg: 'bg-blue-50/50', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
   'Submission Cycle': { bg: 'bg-teal-50/50', border: 'border-teal-200', text: 'text-teal-700', dot: 'bg-teal-500' },
 };
 
@@ -91,7 +111,7 @@ const MODULES: EventCategory[] = [
   'Actionable Decision',
   'Corrective Action Request',
   'Accreditation',
-  'Submission Cycle'
+  'Submission Cycle',
 ];
 
 function parseDateValue(dateVal: any): Date | null {
@@ -108,7 +128,7 @@ function parseDateValue(dateVal: any): Date | null {
     if (!isNaN(parsed)) return new Date(parsed);
     const match = dateVal.match(/([a-zA-Z]+)\s+(\d{4})/);
     if (match) {
-      const monthNames = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+      const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
       const mStr = match[1].toLowerCase().substring(0, 3);
       const mIdx = monthNames.indexOf(mStr);
       if (mIdx !== -1) {
@@ -121,29 +141,39 @@ function parseDateValue(dateVal: any): Date | null {
 
 function EventItemCard({ event: e, styles }: { event: ScheduleEvent; styles: any }) {
   const isEventOverdue = isBefore(e.date, startOfDay(new Date())) && e.status !== 'Closed' && e.status !== 'Completed';
-  
+
   return (
-    <div className={cn(
-      "p-3 rounded-xl border bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all flex items-start gap-3 relative group shadow-sm hover:shadow-md",
-      isEventOverdue && "border-rose-100 bg-rose-50/20"
-    )}>
+    <div
+      className={cn(
+        'p-3 rounded-xl border bg-slate-50/50 dark:bg-slate-800/50 hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all flex items-start gap-3 relative group shadow-sm hover:shadow-md',
+        isEventOverdue && 'border-rose-100 bg-rose-50/20',
+      )}
+    >
       {/* Date badge */}
-      <div className={cn(
-        "flex flex-col items-center justify-center h-10 w-10 rounded-lg border shrink-0 text-center font-bold select-none text-[8px]",
-        isEventOverdue ? "border-rose-200 bg-rose-50 text-rose-700 font-black" : "border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300"
-      )}>
+      <div
+        className={cn(
+          'flex flex-col items-center justify-center h-10 w-10 rounded-lg border shrink-0 text-center font-bold select-none text-[8px]',
+          isEventOverdue
+            ? 'border-rose-200 bg-rose-50 text-rose-700 font-black'
+            : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-300',
+        )}
+      >
         <span className="font-black uppercase leading-none">{format(e.date, 'MMM')}</span>
         <span className="text-sm font-black leading-none mt-0.5">{format(e.date, 'd')}</span>
       </div>
 
       <div className="flex-1 min-w-0 space-y-1 pr-16">
         <div className="flex flex-wrap items-center gap-1.5">
-          <Badge 
+          <Badge
             className={cn(
-              "h-4 px-1.5 text-[7px] font-black uppercase border-none",
-              e.status === 'Completed' || e.status === 'Closed' ? "bg-emerald-100 text-emerald-800" :
-              e.status === 'In Progress' ? "bg-amber-100 text-amber-800" :
-              isEventOverdue ? "bg-rose-600 text-white font-black animate-pulse" : "bg-blue-100 text-blue-800"
+              'h-4 px-1.5 text-[7px] font-black uppercase border-none',
+              e.status === 'Completed' || e.status === 'Closed'
+                ? 'bg-emerald-100 text-emerald-800'
+                : e.status === 'In Progress'
+                  ? 'bg-amber-100 text-amber-800'
+                  : isEventOverdue
+                    ? 'bg-rose-600 text-white font-black animate-pulse'
+                    : 'bg-blue-100 text-blue-800',
             )}
           >
             {isEventOverdue ? 'Overdue' : e.status}
@@ -155,7 +185,10 @@ function EventItemCard({ event: e, styles }: { event: ScheduleEvent; styles: any
             </span>
           )}
           {e.unitName && (
-            <span className="text-[8px] font-bold text-slate-400 flex items-center gap-0.5 uppercase max-w-[100px] truncate" title={e.unitName}>
+            <span
+              className="text-[8px] font-bold text-slate-400 flex items-center gap-0.5 uppercase max-w-[100px] truncate"
+              title={e.unitName}
+            >
               <Building2 className="h-2.5 w-2.5 shrink-0 text-slate-300" />
               {e.unitName}
             </span>
@@ -167,7 +200,7 @@ function EventItemCard({ event: e, styles }: { event: ScheduleEvent; styles: any
         <p className="text-[10px] text-slate-500 font-medium leading-normal line-clamp-2" title={e.description}>
           {e.description}
         </p>
-        
+
         {e.responsibleName && (
           <div className="text-[8px] font-bold text-slate-400 uppercase flex items-center gap-1 mt-1">
             <User className="h-3 w-3 text-slate-400 shrink-0" />
@@ -193,16 +226,16 @@ export function ScheduleTab({
   allUnits,
   cycles,
   mrOutputs,
-  selectedYear
+  selectedYear,
 }: ScheduleTabProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [timeframeFilter, setTimeframeFilter] = useState('all');
 
-  const unitMap = useMemo(() => new Map(allUnits.map(u => [u.id, u.name])), [allUnits]);
-  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
-  const programMap = useMemo(() => new Map(academicPrograms.map(p => [p.id, p.name])), [academicPrograms]);
+  const unitMap = useMemo(() => new Map(allUnits.map((u) => [u.id, u.name])), [allUnits]);
+  const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
+  const programMap = useMemo(() => new Map(academicPrograms.map((p) => [p.id, p.name])), [academicPrograms]);
 
   const allEvents = useMemo(() => {
     const events: ScheduleEvent[] = [];
@@ -214,7 +247,7 @@ export function ScheduleTab({
     };
 
     // 1. IQA
-    schedules.forEach(s => {
+    schedules.forEach((s) => {
       const parsedDate = parseDateValue(s.scheduledDate);
       if (parsedDate) {
         events.push({
@@ -231,13 +264,13 @@ export function ScheduleTab({
           campusId: s.campusId,
           campusName: campusMap.get(s.campusId),
           additionalInfo: s.isoClausesToAudit?.length ? `Clauses: ${s.isoClausesToAudit.join(', ')}` : undefined,
-          sourceRecord: s
+          sourceRecord: s,
         });
       }
     });
 
     // 2. Risks
-    risks.forEach(r => {
+    risks.forEach((r) => {
       const parsedDate = parseDateValue(r.targetDate);
       if (parsedDate && r.type === 'Risk') {
         events.push({
@@ -254,13 +287,13 @@ export function ScheduleTab({
           campusId: r.campusId,
           campusName: campusMap.get(r.campusId),
           additionalInfo: `Pre-treatment rating: ${r.preTreatment?.rating || 'Low'}`,
-          sourceRecord: r
+          sourceRecord: r,
         });
       }
     });
 
     // 3. Actionable Decisions
-    mrOutputs.forEach(o => {
+    mrOutputs.forEach((o) => {
       const parsedDate = parseDateValue(o.followUpDate);
       if (parsedDate) {
         events.push({
@@ -273,13 +306,13 @@ export function ScheduleTab({
           status: o.status === 'Closed' ? 'Closed' : o.status === 'On-going' ? 'In Progress' : 'Open',
           responsibleName: o.initiator || undefined,
           additionalInfo: o.followUpRemarks ? `Remarks: ${o.followUpRemarks}` : undefined,
-          sourceRecord: o
+          sourceRecord: o,
         });
       }
     });
 
     // 4. CAR
-    cars.forEach(c => {
+    cars.forEach((c) => {
       const replyDeadline = parseDateValue(c.timeLimitForReply);
       if (replyDeadline) {
         events.push({
@@ -296,7 +329,7 @@ export function ScheduleTab({
           campusId: c.campusId,
           campusName: campusMap.get(c.campusId),
           additionalInfo: `NC Description: ${c.descriptionOfNonconformance?.substring(0, 100)}`,
-          sourceRecord: c
+          sourceRecord: c,
         });
       }
 
@@ -316,7 +349,7 @@ export function ScheduleTab({
           campusId: c.campusId,
           campusName: campusMap.get(c.campusId),
           additionalInfo: `Current CAR Status: ${c.status}`,
-          sourceRecord: c
+          sourceRecord: c,
         });
       }
 
@@ -336,14 +369,14 @@ export function ScheduleTab({
             campusId: c.campusId,
             campusName: campusMap.get(c.campusId),
             additionalInfo: step.verificationRemarks ? `QA Verification: ${step.verificationRemarks}` : undefined,
-            sourceRecord: c
+            sourceRecord: c,
           });
         }
       });
     });
 
     // 5. Accreditation Milestones
-    allCompliances.forEach(comp => {
+    allCompliances.forEach((comp) => {
       comp.accreditationRecords?.forEach((ar, idx) => {
         let targetDate: Date | null = null;
         const dateLabel = ar.nextSchedule || ar.dateOfSurvey || 'TBA';
@@ -364,21 +397,30 @@ export function ScheduleTab({
             description: `Targeting Level: ${ar.level} (${ar.typeOfVisit || 'Regular Visit'})`,
             date: targetDate,
             displayDate: dateLabel,
-            status: ar.lifecycleStatus === 'Current' ? 'Completed' : ar.lifecycleStatus === 'Completed' ? 'Completed' : ar.lifecycleStatus === 'Undergoing' ? 'In Progress' : 'Scheduled',
+            status:
+              ar.lifecycleStatus === 'Current'
+                ? 'Completed'
+                : ar.lifecycleStatus === 'Completed'
+                  ? 'Completed'
+                  : ar.lifecycleStatus === 'Undergoing'
+                    ? 'In Progress'
+                    : 'Scheduled',
             responsibleName: ar.overallTaskForceHead || undefined,
             unitId: comp.programId,
             unitName: programMap.get(comp.programId),
             campusId: comp.campusId,
             campusName: campusMap.get(comp.campusId),
-            additionalInfo: ar.ratingsSummary?.grandMean ? `Grand Mean Score: ${ar.ratingsSummary.grandMean}` : undefined,
-            sourceRecord: ar
+            additionalInfo: ar.ratingsSummary?.grandMean
+              ? `Grand Mean Score: ${ar.ratingsSummary.grandMean}`
+              : undefined,
+            sourceRecord: ar,
           });
         }
       });
     });
 
     // 6. Cycles
-    cycles.forEach(cy => {
+    cycles.forEach((cy) => {
       const start = parseDateValue(cy.startDate);
       const end = parseDateValue(cy.endDate);
       const cycleName = cy.name === 'first' ? '1st Semester Cycle' : 'Final Semester Cycle';
@@ -393,7 +435,22 @@ export function ScheduleTab({
           displayDate: getDisplayDateStr(start, cy.startDate),
           status: isBefore(new Date(), start) ? 'Scheduled' : 'Completed',
           additionalInfo: `Target Year: AY ${cy.year}`,
-          sourceRecord: cy
+          sourceRecord: cy,
+        });
+      }
+
+      const submissionStart = parseDateValue(cy.submissionStartDate);
+      if (submissionStart) {
+        events.push({
+          id: `cycle-submission-start-${cy.id}`,
+          category: 'Submission Cycle',
+          title: `Submission Window Opens: ${cycleName} (AY ${cy.year})`,
+          description: `Units may begin filing mandatory QMS uploads.`,
+          date: submissionStart,
+          displayDate: getDisplayDateStr(submissionStart, cy.submissionStartDate),
+          status: isBefore(new Date(), submissionStart) ? 'Scheduled' : 'Completed',
+          additionalInfo: `Target Year: AY ${cy.year}`,
+          sourceRecord: cy,
         });
       }
 
@@ -409,7 +466,7 @@ export function ScheduleTab({
           displayDate: getDisplayDateStr(end, cy.endDate),
           status: isOver ? 'Closed' : 'Open',
           additionalInfo: `Target Year: AY ${cy.year}`,
-          sourceRecord: cy
+          sourceRecord: cy,
         });
       }
     });
@@ -420,7 +477,7 @@ export function ScheduleTab({
   // Filters & sorting
   const filteredEvents = useMemo(() => {
     return allEvents
-      .filter(e => {
+      .filter((e) => {
         if (searchTerm) {
           const term = searchTerm.toLowerCase();
           const matchTitle = e.title.toLowerCase().includes(term);
@@ -473,9 +530,9 @@ export function ScheduleTab({
 
   // Visible modules with matches
   const visibleModules = useMemo(() => {
-    return MODULES.filter(module => {
+    return MODULES.filter((module) => {
       if (categoryFilter !== 'all' && categoryFilter !== module) return false;
-      return filteredEvents.some(e => e.category === module);
+      return filteredEvents.some((e) => e.category === module);
     });
   }, [filteredEvents, categoryFilter]);
 
@@ -489,7 +546,7 @@ export function ScheduleTab({
     let upcomingMonth = 0;
     let overdueCount = 0;
 
-    allEvents.forEach(e => {
+    allEvents.forEach((e) => {
       const isCompleted = e.status === 'Closed' || e.status === 'Completed';
 
       if (isToday(e.date)) {
@@ -507,22 +564,48 @@ export function ScheduleTab({
       activeToday,
       upcomingMonth,
       overdueCount,
-      totalTracked: allEvents.length
+      totalTracked: allEvents.length,
     };
   }, [allEvents]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Active Today', value: kpis.activeToday, icon: <Activity className="h-5 w-5" />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-          { label: 'Upcoming (30 Days)', value: kpis.upcomingMonth, icon: <CalendarIcon className="h-5 w-5" />, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-          { label: 'Overdue Activities', value: kpis.overdueCount, icon: <AlertCircle className="h-5 w-5" />, color: 'text-rose-600', bg: 'bg-rose-50' },
-          { label: 'Total Tracked Activities', value: kpis.totalTracked, icon: <CalendarCheck2 className="h-5 w-5" />, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-50 dark:bg-slate-800/50' },
+          {
+            label: 'Active Today',
+            value: kpis.activeToday,
+            icon: <Activity className="h-5 w-5" />,
+            color: 'text-indigo-600',
+            bg: 'bg-indigo-50',
+          },
+          {
+            label: 'Upcoming (30 Days)',
+            value: kpis.upcomingMonth,
+            icon: <CalendarIcon className="h-5 w-5" />,
+            color: 'text-emerald-600',
+            bg: 'bg-emerald-50',
+          },
+          {
+            label: 'Overdue Activities',
+            value: kpis.overdueCount,
+            icon: <AlertCircle className="h-5 w-5" />,
+            color: 'text-rose-600',
+            bg: 'bg-rose-50',
+          },
+          {
+            label: 'Total Tracked Activities',
+            value: kpis.totalTracked,
+            icon: <CalendarCheck2 className="h-5 w-5" />,
+            color: 'text-slate-600 dark:text-slate-400',
+            bg: 'bg-slate-50 dark:bg-slate-800/50',
+          },
         ].map(({ label, value, icon, color, bg }) => (
-          <Card key={label} className="bg-white border-primary/10 shadow-md transition-all hover:scale-105 duration-200">
+          <Card
+            key={label}
+            className="bg-white border-primary/10 shadow-md transition-all hover:scale-105 duration-200"
+          >
             <CardContent className="p-5">
               <div className="flex justify-between items-start mb-3">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
@@ -539,7 +622,9 @@ export function ScheduleTab({
         <CardHeader className="bg-primary/5 pb-4 border-b">
           <div className="flex items-center gap-2 text-primary">
             <Filter className="h-4 w-4" />
-            <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Schedule Filters</CardTitle>
+            <CardTitle className="text-sm font-black uppercase tracking-tight">
+              Institutional Schedule Filters
+            </CardTitle>
           </div>
           <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-0.5">
             Refine activities by description, campus, module, status or implementation timeline
@@ -552,7 +637,7 @@ export function ScheduleTab({
               <Input
                 placeholder="Search schedule events..."
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8 text-xs h-9 bg-white"
               />
             </div>
@@ -603,19 +688,30 @@ export function ScheduleTab({
 
       {/* Module Separated Cards */}
       <div className="space-y-8">
-        {visibleModules.map(module => {
-          const moduleEvents = filteredEvents.filter(e => e.category === module);
+        {visibleModules.map((module) => {
+          const moduleEvents = filteredEvents.filter((e) => e.category === module);
           // Today events (includes overdue events for direct priority action)
-          const todayEvents = moduleEvents.filter(e => isToday(e.date) || (isBefore(e.date, startOfDay(new Date())) && e.status !== 'Closed' && e.status !== 'Completed'));
+          const todayEvents = moduleEvents.filter(
+            (e) =>
+              isToday(e.date) ||
+              (isBefore(e.date, startOfDay(new Date())) && e.status !== 'Closed' && e.status !== 'Completed'),
+          );
           // Upcoming events (tomorrow onwards)
-          const upcomingEvents = moduleEvents.filter(e => isAfter(e.date, endOfDay(new Date())));
+          const upcomingEvents = moduleEvents.filter((e) => isAfter(e.date, endOfDay(new Date())));
           const styles = CATEGORY_STYLING[module];
 
           return (
-            <Card key={module} className={cn("shadow-lg border-l-4 transition-all hover:shadow-xl overflow-hidden bg-white", styles.border, `border-l-[6px]`)}>
-              <CardHeader className={cn("py-4 px-6 border-b flex flex-row items-center justify-between", styles.bg)}>
+            <Card
+              key={module}
+              className={cn(
+                'shadow-lg border-l-4 transition-all hover:shadow-xl overflow-hidden bg-white',
+                styles.border,
+                `border-l-[6px]`,
+              )}
+            >
+              <CardHeader className={cn('py-4 px-6 border-b flex flex-row items-center justify-between', styles.bg)}>
                 <div className="flex items-center gap-3">
-                  <span className={cn("p-1.5 rounded-lg bg-white shadow-sm border", styles.text)}>
+                  <span className={cn('p-1.5 rounded-lg bg-white shadow-sm border', styles.text)}>
                     {module === 'Internal Quality Audit' && <ClipboardCheck className="h-4.5 w-4.5" />}
                     {module === 'Risk & Opportunity' && <AlertTriangle className="h-4.5 w-4.5" />}
                     {module === 'Actionable Decision' && <Zap className="h-4.5 w-4.5" />}
@@ -624,7 +720,7 @@ export function ScheduleTab({
                     {module === 'Submission Cycle' && <CalendarIcon className="h-4.5 w-4.5" />}
                   </span>
                   <div>
-                    <CardTitle className={cn("text-sm font-black uppercase tracking-wider", styles.text)}>
+                    <CardTitle className={cn('text-sm font-black uppercase tracking-wider', styles.text)}>
                       {module}
                     </CardTitle>
                     <CardDescription className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">
@@ -632,13 +728,15 @@ export function ScheduleTab({
                     </CardDescription>
                   </div>
                 </div>
-                <Badge variant="outline" className={cn("bg-white border-none font-black text-[10px] shadow-sm px-3", styles.text)}>
+                <Badge
+                  variant="outline"
+                  className={cn('bg-white border-none font-black text-[10px] shadow-sm px-3', styles.text)}
+                >
                   {moduleEvents.length} Active Items
                 </Badge>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                  
                   {/* Left Column: Scheduled Today & Overdue */}
                   <div className="p-6 space-y-4">
                     <div className="flex items-center justify-between border-b pb-2 border-slate-100 dark:border-slate-700 select-none">
@@ -653,7 +751,7 @@ export function ScheduleTab({
                       )}
                     </div>
                     <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
-                      {todayEvents.map(e => (
+                      {todayEvents.map((e) => (
                         <EventItemCard key={e.id} event={e} styles={styles} />
                       ))}
                       {todayEvents.length === 0 && (
@@ -678,7 +776,7 @@ export function ScheduleTab({
                       )}
                     </div>
                     <div className="space-y-4 max-h-[380px] overflow-y-auto pr-1">
-                      {upcomingEvents.map(e => (
+                      {upcomingEvents.map((e) => (
                         <EventItemCard key={e.id} event={e} styles={styles} />
                       ))}
                       {upcomingEvents.length === 0 && (
@@ -688,7 +786,6 @@ export function ScheduleTab({
                       )}
                     </div>
                   </div>
-
                 </div>
               </CardContent>
             </Card>
@@ -698,7 +795,9 @@ export function ScheduleTab({
         {visibleModules.length === 0 && (
           <div className="py-20 flex flex-col items-center justify-center text-center opacity-25 border border-dashed bg-slate-50/30 dark:bg-slate-800/30 rounded-2xl">
             <CalendarIcon className="h-12 w-12 text-muted-foreground mb-4" />
-            <h4 className="font-black text-slate-900 dark:text-slate-100 uppercase text-sm">No Activities Match Selection</h4>
+            <h4 className="font-black text-slate-900 dark:text-slate-100 uppercase text-sm">
+              No Activities Match Selection
+            </h4>
             <p className="text-xs text-muted-foreground mt-1 max-w-md">
               Try adjusting your query or resetting filters to find scheduled activities in the active registry.
             </p>
@@ -710,11 +809,11 @@ export function ScheduleTab({
         <CardFooter className="bg-muted/5 py-4 px-6 text-[9px] text-muted-foreground italic font-medium flex items-center justify-between">
           <span>Real-time integrated module schedules feed.</span>
           <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" /> Overdue alerts are calculated relative to local system date: {format(new Date(), 'PP')}.
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" /> Overdue alerts are calculated
+            relative to local system date: {format(new Date(), 'PP')}.
           </span>
         </CardFooter>
       </Card>
-
     </div>
   );
 }
