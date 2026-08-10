@@ -108,6 +108,28 @@ interface ProgramAnalyticsProps {
 
 const COLORS = ['#1B6535', '#EAB308', '#3b82f6', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
 
+type GapRegistryRow = {
+  programId?: string;
+  programName: string;
+  abbreviation: string;
+  level: string;
+  surveyDate?: string;
+  year?: number;
+  college?: string;
+  campusId?: string;
+  campus?: string;
+  certificateLink?: string;
+  noEntry?: boolean;
+  recommendation: {
+    id: string;
+    text: string;
+    type: string;
+    assignedUnitIds: string[];
+    status: string;
+    additionalInfo?: string;
+  };
+};
+
 export function ProgramAnalytics({
   programs,
   compliances,
@@ -126,6 +148,7 @@ export function ProgramAnalytics({
   const [recoSearch, setRecoSearch] = useState('');
   const [recoStatusFilter, setRecoStatusFilter] = useState('all');
   const [recoUnitFilter, setRecoUnitFilter] = useState('all');
+  const [recoYearFilter, setRecoYearFilter] = useState<number | 'all'>(selectedYear);
 
   // Roadmap State
   const [roadmapSearch, setRoadmapSearch] = useState('');
@@ -212,20 +235,24 @@ export function ProgramAnalytics({
         rawLevel !== 'AWAITING RESULT';
       const hasCopc = record?.ched?.copcStatus === 'With COPC';
 
-      // Flatten recommendations for the registry
-      milestones.forEach((m) => {
-        m.recommendations?.forEach((reco) => {
-          allRecommendations.push({
-            id: reco.id,
-            programName: p.name,
-            abbreviation: p.abbreviation,
-            level: m.level,
-            surveyDate: m.dateOfSurvey,
-            recommendation: reco,
-            certificateLink: certificateLink,
-            college: p.collegeId,
-            campusId: p.campusId,
-            campus: campusMap.get(p.campusId) || p.campusId,
+      // Flatten recommendations for the registry (across all recorded years)
+      programRecords.forEach((pr) => {
+        (pr.accreditationRecords || []).forEach((m) => {
+          m.recommendations?.forEach((reco) => {
+            allRecommendations.push({
+              id: reco.id,
+              programId: p.id,
+              programName: p.name,
+              abbreviation: p.abbreviation,
+              level: m.level,
+              surveyDate: m.dateOfSurvey,
+              year: pr.academicYear,
+              recommendation: reco,
+              certificateLink: m.certificateLink || certificateLink,
+              college: p.collegeId,
+              campusId: p.campusId,
+              campus: campusMap.get(p.campusId) || p.campusId,
+            });
           });
         });
       });
@@ -512,6 +539,8 @@ export function ProgramAnalytics({
 
     return analytics.allRecommendations
       .filter((item) => {
+        if (recoYearFilter !== 'all' && item.year !== recoYearFilter) return false;
+
         const isSiteOversight =
           userRole?.includes('Director') ||
           userRole?.includes('ODIMO') ||
@@ -553,7 +582,64 @@ export function ProgramAnalytics({
           assignedUnitIds: item.recommendation.assignedUnitIds || [],
         },
       }));
-  }, [analytics, isAdmin, userProfile, userRole, isDoi, recoSearch, recoStatusFilter, recoUnitFilter]);
+  }, [analytics, isAdmin, userProfile, userRole, isDoi, recoSearch, recoStatusFilter, recoUnitFilter, recoYearFilter]);
+
+  const recoYears = useMemo(() => {
+    const years = new Set<number>([new Date().getFullYear(), selectedYear]);
+    compliances.forEach((c) => {
+      if (c.academicYear) years.add(c.academicYear);
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [compliances, selectedYear]);
+
+  /**
+   * INSTITUTIONAL GAPS REGISTRY ROWS (program basis)
+   * Lists every active program in the current scope for the selected registry year (or all years).
+   * Programs without any recommendation entry in that year are flagged with "No Entry Yet".
+   */
+  const institutionalGaps = useMemo(() => {
+    if (!isAdmin || recoUnitFilter !== 'all') return [];
+    const activePrograms = programs.filter((p) => p.isActive);
+    const yearRecos = (analytics?.allRecommendations || []).filter((item) => {
+      if (recoYearFilter !== 'all' && item.year !== recoYearFilter) return false;
+      return true;
+    });
+
+    const rows: GapRegistryRow[] = [];
+    activePrograms.forEach((p) => {
+      const pRecos = yearRecos.filter((item) => item.programId === p.id);
+      if (pRecos.length === 0) {
+        rows.push({
+          programId: p.id,
+          programName: p.name,
+          abbreviation: p.abbreviation,
+          level: '—',
+          college: p.collegeId,
+          campusId: p.campusId,
+          campus: campusMap.get(p.campusId) || p.campusId,
+          noEntry: true,
+          recommendation: {
+            id: `no-entry-${p.id}`,
+            type: '—',
+            text: 'No Entry Yet',
+            status: '—',
+            assignedUnitIds: [],
+          },
+        });
+      } else {
+        pRecos.forEach((item) => {
+          rows.push({
+            ...item,
+            recommendation: {
+              ...item.recommendation,
+              assignedUnitIds: item.recommendation.assignedUnitIds || [],
+            },
+          });
+        });
+      }
+    });
+    return rows;
+  }, [isAdmin, recoUnitFilter, recoYearFilter, programs, analytics, campusMap]);
 
   const programsByLevel = useMemo(() => {
     if (!analytics?.roadmapData) return {};
@@ -699,7 +785,10 @@ export function ProgramAnalytics({
   };
 
   const handlePrintGaps = () => {
-    if (!filteredRecommendations.length) {
+    const isInstitutional = isAdmin && recoUnitFilter === 'all';
+    const items = isInstitutional ? institutionalGaps : filteredRecommendations;
+
+    if (!items.length) {
       toast({
         title: 'No Gaps Recorded',
         description: 'There are no active records matching the current selection.',
@@ -711,16 +800,18 @@ export function ProgramAnalytics({
     try {
       const reportHtml = renderToStaticMarkup(
         <AccreditationRecommendationReport
-          items={filteredRecommendations}
+          items={items}
           unitMap={unitMap}
-          scope={isAdmin && recoUnitFilter === 'all' ? 'institutional' : 'unit'}
-          year={selectedYear}
+          scope={isInstitutional ? 'institutional' : 'unit'}
+          year={recoYearFilter}
           unitName={
-            !isAdmin
-              ? unitMap.get(userProfile?.unitId || '')
-              : recoUnitFilter !== 'all'
-                ? unitMap.get(recoUnitFilter)
-                : undefined
+            isInstitutional
+              ? undefined
+              : !isAdmin
+                ? unitMap.get(userProfile?.unitId || '')
+                : recoUnitFilter !== 'all'
+                  ? unitMap.get(recoUnitFilter)
+                  : undefined
           }
         />,
       );
@@ -731,7 +822,7 @@ export function ProgramAnalytics({
         printWindow.document.write(`
                 <html>
                     <head>
-                        <title>Accreditation Gaps Registry - AY ${selectedYear}</title>
+                        <title>Accreditation Gaps Registry - ${recoYearFilter === 'all' ? 'All Years' : `AY ${recoYearFilter}`}</title>
                         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                         <style>
                             @page { size: 8.5in 13in !important; margin: 0.5in !important; }
@@ -1529,7 +1620,28 @@ export function ProgramAnalytics({
                 {isAdmin ? 'Print Institutional Gaps Registry' : 'Print Unit Compliance Report'}
               </Button>
             </div>
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/50 p-4 rounded-xl border border-primary/5">
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4 bg-white/50 p-4 rounded-xl border border-primary/5">
+              <div>
+                <label className="text-[10px] font-bold uppercase text-muted-foreground mb-1 block">
+                  Registry Year
+                </label>
+                <Select
+                  value={recoYearFilter === 'all' ? 'all' : String(recoYearFilter)}
+                  onValueChange={(v) => setRecoYearFilter(v === 'all' ? 'all' : Number(v))}
+                >
+                  <SelectTrigger className="h-9 text-xs bg-white">
+                    <SelectValue placeholder="All Years" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Years</SelectItem>
+                    {recoYears.map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        AY {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
