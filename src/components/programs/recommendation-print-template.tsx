@@ -116,7 +116,7 @@ export function AccreditationRecommendationReport({
                   className="text-slate-600 dark:text-slate-400 mt-1 font-bold uppercase space-y-0.5"
                   style={{ fontSize: '8pt' }}
                 >
-                  {item.college && <p>College: {item.college}</p>}
+                  {item.college && <p>College: {unitMap.get(item.college) || item.college}</p>}
                   {item.campus && <p>Campus: {item.campus}</p>}
                   <p>
                     {item.noEntry ? 'Awaiting Compliance Log Entry' : `${item.level} | ${item.surveyDate || 'TBA'}`}
