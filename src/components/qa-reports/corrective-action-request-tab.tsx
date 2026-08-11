@@ -433,9 +433,9 @@ export function CorrectiveActionRequestTab({
       unitResponseCacheRef.current = {};
       form.reset({
         carNumber: autoCarNumber,
-        ncReportNumber: '',
+        ncReportNumber: schedule?.auditNumber || '',
         source: 'Audit Finding',
-        procedureTitle: finding.ncStatement || finding.description || '',
+        procedureTitle: schedule?.procedureDescription || finding.ncStatement || finding.description || '',
         initiator: userProfile
           ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim()
           : 'Quality Assurance Office',

@@ -77,6 +77,7 @@ export function AuditorNCManager({
           const matches =
             schedule.targetName.toLowerCase().includes(lowerSearch) ||
             (schedule.auditorName || '').toLowerCase().includes(lowerSearch) ||
+            (schedule.procedureDescription || '').toLowerCase().includes(lowerSearch) ||
             finding.isoClause.toLowerCase().includes(lowerSearch);
           if (!matches) return null;
         }
@@ -219,6 +220,7 @@ export function AuditorNCManager({
               <TableHeader className="bg-muted/30">
                 <TableRow>
                   <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Unit & Auditor</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase">Procedure</TableHead>
                   <TableHead className="text-[10px] font-black uppercase">Finding & Clause</TableHead>
                   <TableHead className="text-center text-[10px] font-black uppercase">CAR Status</TableHead>
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
@@ -239,6 +241,11 @@ export function AuditorNCManager({
                           <User className="h-3 w-3" /> {item.schedule.auditorName || 'TBA'}
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell className="max-w-xs py-5">
+                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-relaxed line-clamp-2">
+                        {item.schedule.procedureDescription || 'N/A'}
+                      </p>
                     </TableCell>
                     <TableCell className="max-w-md py-5">
                       <div className="space-y-2">
@@ -305,7 +312,7 @@ export function AuditorNCManager({
                 ))}
                 {ncData.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-40 text-center opacity-20">
+                    <TableCell colSpan={5} className="h-40 text-center opacity-20">
                       <Activity className="h-10 w-10 mx-auto mb-2" />
                       <p className="text-[10px] font-black uppercase tracking-widest">
                         No unresolved NCs detected for this scope
