@@ -1892,7 +1892,10 @@ export function CorrectiveActionRequestTab({
         open={isDialogOpen}
         onOpenChange={(open) => {
           setIsDialogOpen(open);
-          if (!open) setEditingCar(null);
+          if (!open) {
+            setEditingCar(null);
+            lastConsumedParamKey.current = '';
+          }
         }}
       >
         <DialogContent className="max-w-[95vw] lg:max-w-[1400px] h-[95dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
