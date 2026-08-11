@@ -203,8 +203,8 @@ export function CorrectiveActionRequestTab({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  // Prevents the URL-param effect from firing more than once per navigation
-  const urlParamsConsumed = useRef(false);
+  // Prevents the URL-param effect from double-firing for the same param value
+  const lastConsumedParamKey = useRef<string>('');
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<CorrectiveActionRequest | null>(null);
@@ -298,25 +298,28 @@ export function CorrectiveActionRequestTab({
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: currentSignatories } = useDoc<Signatories>(signatoryRef);
 
-  // ── URL-param consumer: fires when data is ready and params haven't been consumed yet ──
+  // ── URL-param consumer: fires when data is ready ──
   useEffect(() => {
-    // Wait until data is fully loaded
-    if (urlParamsConsumed.current) return;
     if (!rawCars || !findings || !schedules) return;
 
     const action = searchParams.get('action');
     const findingId = searchParams.get('findingId');
     const carId = searchParams.get('id');
 
+    // Build a signature for the current relevant params
+    const paramKey = carId ? `id:${carId}` : action === 'new' && findingId ? `new:${findingId}` : '';
+
+    // Nothing to consume, or already consumed this exact param set
+    if (!paramKey || lastConsumedParamKey.current === paramKey) return;
+    lastConsumedParamKey.current = paramKey;
+
     // ── MANAGE: open an existing CAR's Modify dialog ──
     if (carId) {
       const targetCar = rawCars.find((c) => c.id === carId);
       if (targetCar) {
-        urlParamsConsumed.current = true;
         const params = new URLSearchParams(searchParams.toString());
         params.delete('id');
         router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-        // Defer to next tick so dialog state is set after URL clean-up
         setTimeout(() => {
           const safeDate = (d: any) =>
             d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : d ? format(new Date(d), 'yyyy-MM-dd') : '';
@@ -381,10 +384,13 @@ export function CorrectiveActionRequestTab({
     // ── ISSUE CAR: open a new CAR form pre-filled from the NC finding ──
     if (action === 'new' && findingId) {
       const finding = findings.find((f) => f.id === findingId);
-      if (!finding) return; // finding not loaded yet — wait
+      if (!finding) {
+        // Finding not loaded yet — reset signature so we retry on next render
+        lastConsumedParamKey.current = '';
+        return;
+      }
       const schedule = schedules.find((s) => s.id === finding.auditScheduleId);
 
-      urlParamsConsumed.current = true;
       const params = new URLSearchParams(searchParams.toString());
       params.delete('action');
       params.delete('findingId');
@@ -397,7 +403,6 @@ export function CorrectiveActionRequestTab({
       const defaultReplyDate = format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
       const defaultRequestDate = format(new Date(), 'yyyy-MM-dd');
 
-      // Derive unit/campus from the linked audit schedule
       const targetUnitId = schedule?.targetId || units[0]?.id || '';
       const targetCampusId = schedule?.campusId || campuses[0]?.id || '';
       const targetUnitName = unitMap.get(targetUnitId) || '';
