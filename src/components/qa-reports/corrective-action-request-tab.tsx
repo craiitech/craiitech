@@ -71,6 +71,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/use-notifications';
 import { format } from 'date-fns';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Dialog,
   DialogContent,
@@ -199,6 +200,11 @@ export function CorrectiveActionRequestTab({
   const firestore = useFirestore();
   const { toast } = useToast();
   const { triggerLocalNotification } = useNotifications();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  // Prevents the URL-param effect from firing more than once per navigation
+  const urlParamsConsumed = useRef(false);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<CorrectiveActionRequest | null>(null);
@@ -291,6 +297,154 @@ export function CorrectiveActionRequestTab({
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: currentSignatories } = useDoc<Signatories>(signatoryRef);
+
+  // ── URL-param consumer: fires when data is ready and params haven't been consumed yet ──
+  useEffect(() => {
+    // Wait until data is fully loaded
+    if (urlParamsConsumed.current) return;
+    if (!rawCars || !findings || !schedules) return;
+
+    const action = searchParams.get('action');
+    const findingId = searchParams.get('findingId');
+    const carId = searchParams.get('id');
+
+    // ── MANAGE: open an existing CAR's Modify dialog ──
+    if (carId) {
+      const targetCar = rawCars.find((c) => c.id === carId);
+      if (targetCar) {
+        urlParamsConsumed.current = true;
+        const params = new URLSearchParams(searchParams.toString());
+        params.delete('id');
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+        // Defer to next tick so dialog state is set after URL clean-up
+        setTimeout(() => {
+          const safeDate = (d: any) =>
+            d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : d ? format(new Date(d), 'yyyy-MM-dd') : '';
+          setEditingCar(targetCar);
+          const assignedUnits = (targetCar.assignedUnits || []).map((a) => ({
+            id: a.id,
+            campusId: a.campusId,
+            unitId: a.unitId,
+            unitName: a.unitName || '',
+            unitHead: a.unitHead || '',
+          }));
+          const defaultActiveIndex = Math.max(
+            0,
+            assignedUnits.findIndex((a) => a.unitId === userProfile?.unitId),
+          );
+          setActiveUnitIndex(defaultActiveIndex);
+          const active = targetCar.assignedUnits?.[defaultActiveIndex];
+          form.reset({
+            ...targetCar,
+            unitId: active?.unitId || targetCar.unitId || '',
+            campusId: active?.campusId || targetCar.campusId || '',
+            unitHead: active?.unitHead || targetCar.unitHead || '',
+            assignedUnits:
+              assignedUnits.length > 0
+                ? assignedUnits
+                : [
+                    {
+                      id: genCarId(),
+                      campusId: targetCar.campusId || '',
+                      unitId: targetCar.unitId || '',
+                      unitName: unitMap.get(targetCar.unitId || '') || '',
+                      unitHead: targetCar.unitHead || '',
+                    },
+                  ],
+            adminFeedback: '',
+            requestDate: safeDate(targetCar.requestDate),
+            timeLimitForReply: safeDate(targetCar.timeLimitForReply),
+            rootCauseAnalysis: active?.rootCauseAnalysis || targetCar.rootCauseAnalysis || '',
+            actionSteps: (active?.actionSteps || targetCar.actionSteps || []).map((s) => ({
+              ...s,
+              completionDate: safeDate(s.completionDate),
+              evidenceLink: s.evidenceLink || '',
+              verificationStatus: s.verificationStatus || 'Pending',
+            })),
+            followUpLogs: (active?.followUpLogs || targetCar.followUpLogs || []).map((log) => ({
+              ...log,
+              date: safeDate(log.date),
+              remarks: log.remarks || '',
+            })),
+            effectivenessAudits: (active?.effectivenessAudits || targetCar.effectivenessAudits || []).map((av) => ({
+              ...av,
+              date: safeDate(av.date),
+              remarks: av.remarks || '',
+            })),
+          });
+          setIsDialogOpen(true);
+        }, 0);
+      }
+      return;
+    }
+
+    // ── ISSUE CAR: open a new CAR form pre-filled from the NC finding ──
+    if (action === 'new' && findingId) {
+      const finding = findings.find((f) => f.id === findingId);
+      if (!finding) return; // finding not loaded yet — wait
+      const schedule = schedules.find((s) => s.id === finding.auditScheduleId);
+
+      urlParamsConsumed.current = true;
+      const params = new URLSearchParams(searchParams.toString());
+      params.delete('action');
+      params.delete('findingId');
+      params.delete('scheduleId');
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+
+      const yr = new Date().getFullYear();
+      const rand = String(Math.floor(Math.random() * 900) + 100).padStart(3, '0');
+      const autoCarNumber = `CAR-${yr}-${rand}`;
+      const defaultReplyDate = format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+      const defaultRequestDate = format(new Date(), 'yyyy-MM-dd');
+
+      // Derive unit/campus from the linked audit schedule
+      const targetUnitId = schedule?.targetId || units[0]?.id || '';
+      const targetCampusId = schedule?.campusId || campuses[0]?.id || '';
+      const targetUnitName = unitMap.get(targetUnitId) || '';
+
+      setEditingCar(null);
+      unitResponseCacheRef.current = {};
+      form.reset({
+        carNumber: autoCarNumber,
+        ncReportNumber: '',
+        source: 'Audit Finding',
+        procedureTitle: finding.ncStatement || finding.description || '',
+        initiator: userProfile
+          ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim()
+          : 'Quality Assurance Office',
+        natureOfFinding: 'NC',
+        concerningClause: finding.isoClause || '4.1',
+        concerningTopManagementName: 'Unit Head',
+        timeLimitForReply: defaultReplyDate,
+        unitId: targetUnitId,
+        campusId: targetCampusId,
+        unitHead: '',
+        assignedUnits: [
+          {
+            id: genCarId(),
+            campusId: targetCampusId,
+            unitId: targetUnitId,
+            unitName: targetUnitName,
+            unitHead: '',
+          },
+        ],
+        descriptionOfNonconformance: finding.ncStatement || finding.description || '',
+        requestDate: defaultRequestDate,
+        preparedBy: userProfile ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() : 'QA Auditor',
+        approvedBy: currentSignatories?.qaoDirector || 'Director, QAO',
+        rootCauseAnalysis: '',
+        adminFeedback: '',
+        actionSteps: [],
+        followUpLogs: [],
+        effectivenessAudits: [],
+        status: 'Open',
+        findingId: finding.id,
+      });
+      setActiveUnitIndex(0);
+      setIsDialogOpen(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawCars, findings, schedules, searchParams]);
 
   const filteredCars = useMemo(() => {
     if (!rawCars) return [];
