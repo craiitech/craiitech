@@ -190,6 +190,29 @@ const carSchema = z.object({
 
 const genCarId = () => Math.random().toString(36).substr(2, 9);
 
+/**
+ * Returns the next sequential CAR number for the given year and prefix.
+ * Scans existing CARs to find the highest sequence number already used,
+ * then returns prefix-YYYY-NNN where NNN = highest + 1 (minimum 001).
+ */
+function getNextCarNumber(
+  rawCars: CorrectiveActionRequest[] | null | undefined,
+  yr: number,
+  prefix: 'CAR' | 'EQA-CAR',
+): string {
+  const pattern = new RegExp(`^${prefix}-${yr}-(\\d+)$`);
+  let highest = 0;
+  (rawCars || []).forEach((car) => {
+    const match = car.carNumber?.match(pattern);
+    if (match) {
+      const seq = parseInt(match[1], 10);
+      if (seq > highest) highest = seq;
+    }
+  });
+  const next = String(highest + 1).padStart(3, '0');
+  return `${prefix}-${yr}-${next}`;
+}
+
 export function CorrectiveActionRequestTab({
   campuses,
   units,
@@ -398,8 +421,7 @@ export function CorrectiveActionRequestTab({
       router.replace(`${pathname}?${params.toString()}`, { scroll: false });
 
       const yr = new Date().getFullYear();
-      const rand = String(Math.floor(Math.random() * 900) + 100).padStart(3, '0');
-      const autoCarNumber = `CAR-${yr}-${rand}`;
+      const autoCarNumber = getNextCarNumber(rawCars, yr, 'CAR');
       const defaultReplyDate = format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
       const defaultRequestDate = format(new Date(), 'yyyy-MM-dd');
 
@@ -1132,8 +1154,8 @@ export function CorrectiveActionRequestTab({
   const handleOpenCreateNew = () => {
     setEditingCar(null);
     const yr = new Date().getFullYear();
-    const rand = String(Math.floor(Math.random() * 900) + 100).padStart(3, '0');
-    const autoCarNumber = effectiveTypeFilter === 'EQA' ? `EQA-CAR-${yr}-${rand}` : `CAR-${yr}-${rand}`;
+    const autoCarNumber =
+      effectiveTypeFilter === 'EQA' ? getNextCarNumber(rawCars, yr, 'EQA-CAR') : getNextCarNumber(rawCars, yr, 'CAR');
     const defaultReplyDate = format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
     const defaultRequestDate = format(new Date(), 'yyyy-MM-dd');
 
