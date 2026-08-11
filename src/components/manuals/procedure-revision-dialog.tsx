@@ -142,9 +142,10 @@ export function ProcedureRevisionDialog({
     }
     if (step === 3) {
       // Validate Google Drive Links
-      const isDrrfValid = !!scannedDRRFLinkVal && scannedDRRFLinkVal.startsWith('https://drive.google.com/');
-      const isWordValid =
-        !!revisedManualDocxLinkVal && revisedManualDocxLinkVal.startsWith('https://drive.google.com/');
+      const isValidLink = (url?: string) =>
+        !!url && (/^https?:\/\/(drive|docs)\.google\.com\//i.test(url.trim()) || /^https?:\/\//i.test(url.trim()));
+      const isDrrfValid = isValidLink(scannedDRRFLinkVal);
+      const isWordValid = isValidLink(revisedManualDocxLinkVal);
       return isDrrfValid && isWordValid;
     }
     return true; // Step 4 is review summary

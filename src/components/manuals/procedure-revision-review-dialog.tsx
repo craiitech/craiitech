@@ -72,7 +72,7 @@ const adminChecklistItems = [
 ];
 
 function GDrivePreview({ url, title }: { url?: string; title: string }) {
-  if (!url || !url.startsWith('https://drive.google.com/')) return null;
+  if (!url || !/^https?:\/\/(drive|docs)\.google\.com\//i.test(url.trim())) return null;
   const embedUrl = url.replace('/view', '/preview').replace('?usp=sharing', '');
   return (
     <Card className="col-span-full border-primary/10 shadow-md overflow-hidden bg-muted/5 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -516,7 +516,7 @@ export function ProcedureRevisionReviewDialog({
                                     }
                                     disabled={
                                       isProcessing ||
-                                      !approvedDRRFLink.startsWith('https://drive.google.com/') ||
+                                      !/^https?:\/\/(drive|docs)\.google\.com\//i.test(approvedDRRFLink.trim()) ||
                                       !manualRevisionNumber.trim() ||
                                       !manualDateImplemented.trim()
                                     }
