@@ -554,6 +554,11 @@ export function CorrectiveActionRequestTab({
       if (f.type !== 'Non-Conformance') return false;
       const schedule = schedules.find((s) => s.id === f.auditScheduleId);
       if (!schedule) return false;
+
+      // Exclude findings that already have an issued CAR
+      const isCarIssued = rawCars?.some((car) => car.findingId === f.id);
+      if (isCarIssued) return false;
+
       if (!isInstitutionalViewer) {
         if (userRole?.includes('Director') || userRole?.includes('ODIMO')) {
           if (schedule.campusId !== userProfile?.campusId) return false;
@@ -572,7 +577,7 @@ export function CorrectiveActionRequestTab({
       }
       return true;
     }).length;
-  }, [findings, schedules, isInstitutionalViewer, userRole, userProfile, campusFilter, searchTerm]);
+  }, [findings, schedules, rawCars, isInstitutionalViewer, userRole, userProfile, campusFilter, searchTerm]);
 
   const form = useForm<z.infer<typeof carSchema>>({
     resolver: zodResolver(carSchema),

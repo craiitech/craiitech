@@ -106,6 +106,10 @@ export function AuditorNCManager({
     return { total, issued, pending, closureRate };
   }, [ncData]);
 
+  const unissuedNcData = useMemo(() => {
+    return ncData.filter((item) => !item.isIssued);
+  }, [ncData]);
+
   const handleIssueCar = (item: any) => {
     const params = new URLSearchParams();
     params.set('tab', 'car');
@@ -227,7 +231,7 @@ export function AuditorNCManager({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ncData.map((item, idx) => (
+                {unissuedNcData.map((item, idx) => (
                   <TableRow key={idx} className="hover:bg-muted/20 transition-colors group">
                     <TableCell className="pl-8 py-5">
                       <div className="space-y-1">
@@ -310,12 +314,12 @@ export function AuditorNCManager({
                     </TableCell>
                   </TableRow>
                 ))}
-                {ncData.length === 0 && (
+                {unissuedNcData.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="h-40 text-center opacity-20">
                       <Activity className="h-10 w-10 mx-auto mb-2" />
                       <p className="text-[10px] font-black uppercase tracking-widest">
-                        No unresolved NCs detected for this scope
+                        No unissued NC findings detected for this scope
                       </p>
                     </TableCell>
                   </TableRow>

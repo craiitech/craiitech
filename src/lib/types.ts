@@ -212,6 +212,9 @@ export type Unit = {
 export type CampusSetting = {
   id: string;
   announcement?: string;
+  announcementEndsAt?: string;
+  announcement2?: string;
+  announcement2EndsAt?: string;
   formsDriveLink?: string;
   formsDriveRevision?: string;
   formsDriveUpdatedAt?: string;

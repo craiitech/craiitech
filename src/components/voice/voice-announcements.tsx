@@ -643,8 +643,13 @@ export function VoiceAnnouncements() {
         if (globalSnap.exists()) {
           const data = globalSnap.data();
           const anns = [];
-          if (data.announcement) anns.push(data.announcement);
-          if (data.announcement2) anns.push(data.announcement2);
+          const now = Date.now();
+          if (data.announcement && (!data.announcementEndsAt || new Date(data.announcementEndsAt).getTime() > now)) {
+            anns.push(data.announcement);
+          }
+          if (data.announcement2 && (!data.announcement2EndsAt || new Date(data.announcement2EndsAt).getTime() > now)) {
+            anns.push(data.announcement2);
+          }
           if (anns.length > 0) {
             globalAnnouncementText = `Here is a global announcement: ${anns.join(' ')}`;
           }

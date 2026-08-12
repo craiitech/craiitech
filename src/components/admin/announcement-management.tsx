@@ -1,30 +1,15 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import {
-  useFirestore,
-  useCollection,
-  useMemoFirebase,
-} from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, doc, deleteDoc, updateDoc } from '@/firebase/firestore-wrapper';
 import type { Campus, CampusSetting } from '@/lib/types';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Loader2, MoreHorizontal, Globe, Building } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, MoreHorizontal, Globe, Building, Clock } from 'lucide-react';
+import { format } from 'date-fns';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -57,39 +42,65 @@ export function AnnouncementManagement() {
 
   const announcementsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'campusSettings') : null),
-    [firestore]
+    [firestore],
   );
-  const { data: announcements, isLoading: isLoadingAnnouncements } =
-    useCollection<CampusSetting>(announcementsQuery);
+  const { data: announcements, isLoading: isLoadingAnnouncements } = useCollection<CampusSetting>(announcementsQuery);
 
-  const campusesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'campuses') : null),
-    [firestore]
-  );
-  const { data: campuses, isLoading: isLoadingCampuses } =
-    useCollection<Campus>(campusesQuery);
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const campusMap = useMemo(() => {
     if (!campuses) return new Map();
     return new Map(campuses.map((c) => [c.id, c.name]));
   }, [campuses]);
-  
+
   const getTargetName = (announcement: CampusSetting) => {
     if (announcement.id === 'global') {
-        return (
-            <div className="flex items-center gap-2">
-                <Globe className="h-4 w-4" />
-                <span>Global (All Campuses)</span>
-            </div>
-        );
+      return (
+        <div className="flex items-center gap-2">
+          <Globe className="h-4 w-4" />
+          <span>Global (All Campuses)</span>
+        </div>
+      );
     }
     return (
-       <div className="flex items-center gap-2">
-            <Building className="h-4 w-4 text-muted-foreground" />
-            <span>{campusMap.get(announcement.id) || 'Unknown Campus'}</span>
-        </div>
+      <div className="flex items-center gap-2">
+        <Building className="h-4 w-4 text-muted-foreground" />
+        <span>{campusMap.get(announcement.id) || 'Unknown Campus'}</span>
+      </div>
     );
-  }
+  };
+
+  const renderScheduleBadge = (endsAt?: string) => {
+    if (!endsAt) {
+      return (
+        <Badge variant="outline" className="text-[9px] font-bold uppercase text-slate-500">
+          No Expiration
+        </Badge>
+      );
+    }
+    const dateObj = new Date(endsAt);
+    if (isNaN(dateObj.getTime())) {
+      return (
+        <Badge variant="outline" className="text-[9px] font-bold uppercase text-slate-500">
+          No Expiration
+        </Badge>
+      );
+    }
+    const isExpired = dateObj.getTime() <= Date.now();
+    if (isExpired) {
+      return (
+        <Badge className="bg-rose-100 text-rose-800 border-rose-200 text-[9px] font-black uppercase flex items-center gap-1 w-fit">
+          <Clock className="h-3 w-3" /> Expired ({format(dateObj, 'MMM dd, h:mm a')})
+        </Badge>
+      );
+    }
+    return (
+      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-black uppercase flex items-center gap-1 w-fit">
+        <Clock className="h-3 w-3" /> Ends: {format(dateObj, 'MMM dd, h:mm a')}
+      </Badge>
+    );
+  };
 
   const handleDelete = async () => {
     if (!firestore || !deletingAnnouncement) return;
@@ -108,14 +119,14 @@ export function AnnouncementManagement() {
         new FirestorePermissionError({
           path: docRef.path,
           operation: 'delete',
-        })
+        }),
       );
     } finally {
       setIsSubmitting(false);
       setDeletingAnnouncement(null);
     }
   };
-  
+
   const isLoading = isLoadingAnnouncements || isLoadingCampuses;
 
   return (
@@ -124,8 +135,7 @@ export function AnnouncementManagement() {
         <CardHeader>
           <CardTitle>Manage Announcements</CardTitle>
           <CardDescription>
-            View, edit, or delete active global and campus-specific
-            announcements.
+            View, edit, or delete active global and campus-specific announcements and schedules.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -139,75 +149,81 @@ export function AnnouncementManagement() {
                 <TableRow>
                   <TableHead>Target</TableHead>
                   <TableHead>Announcement</TableHead>
+                  <TableHead>Schedule / Auto-Expiration</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {announcements?.filter(a => a.announcement || (a as any).announcement2).map((ann) => (
-                  <TableRow key={ann.id}>
-                    <TableCell className="font-medium">
-                      {getTargetName(ann)}
-                    </TableCell>
-                    <TableCell className="max-w-md truncate">
-                      {ann.announcement}
-                      {ann.id === 'global' && (ann as any).announcement2 && (
-                        <div className="text-xs text-muted-foreground mt-1 border-t pt-1">
-                          {(ann as any).announcement2}
+                {announcements
+                  ?.filter((a) => a.announcement || (a as any).announcement2)
+                  .map((ann) => (
+                    <TableRow key={ann.id}>
+                      <TableCell className="font-medium">{getTargetName(ann)}</TableCell>
+                      <TableCell className="max-w-md">
+                        <div>{ann.announcement}</div>
+                        {ann.id === 'global' && (ann as any).announcement2 && (
+                          <div className="text-xs text-muted-foreground mt-1 border-t pt-1">
+                            {(ann as any).announcement2}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {renderScheduleBadge(ann.announcementEndsAt)}
+                          {ann.id === 'global' && (ann as any).announcement2 && (
+                            <div className="pt-0.5">{renderScheduleBadge((ann as any).announcement2EndsAt)}</div>
+                          )}
                         </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onSelect={() => { setTimeout(() => setEditingAnnouncement(ann), 0); }}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onSelect={() => { setTimeout(() => setDeletingAnnouncement(ann), 0); }}
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                setTimeout(() => setEditingAnnouncement(ann), 0);
+                              }}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onSelect={() => {
+                                setTimeout(() => setDeletingAnnouncement(ann), 0);
+                              }}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           )}
-           {!isLoading && announcements?.filter(a => a.announcement || (a as any).announcement2).length === 0 && (
-            <div className="py-10 text-center text-sm text-muted-foreground">
-                No active announcements found.
-            </div>
+          {!isLoading && announcements?.filter((a) => a.announcement || (a as any).announcement2).length === 0 && (
+            <div className="py-10 text-center text-sm text-muted-foreground">No active announcements found.</div>
           )}
         </CardContent>
       </Card>
 
-      <AlertDialog
-        open={!!deletingAnnouncement}
-        onOpenChange={() => setDeletingAnnouncement(null)}
-      >
+      <AlertDialog open={!!deletingAnnouncement} onOpenChange={() => setDeletingAnnouncement(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this
-              announcement.
+              This action cannot be undone. This will permanently delete this announcement.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isSubmitting}
-            >
+            <AlertDialogAction onClick={handleDelete} disabled={isSubmitting}>
               {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete
             </AlertDialogAction>
@@ -220,7 +236,6 @@ export function AnnouncementManagement() {
         isOpen={!!editingAnnouncement}
         onOpenChange={(open) => !open && setEditingAnnouncement(null)}
       />
-
     </>
   );
 }

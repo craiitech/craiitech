@@ -2,47 +2,58 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
-import { collection, query, where, doc, setDoc, serverTimestamp, updateDoc, addDoc } from '@/firebase/firestore-wrapper';
+import {
+  collection,
+  query,
+  where,
+  doc,
+  setDoc,
+  serverTimestamp,
+  updateDoc,
+  addDoc,
+} from '@/firebase/firestore-wrapper';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Unit, UnitForm, CampusSetting, UnitFormRequest, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
-import { 
-    Loader2, 
-    Download, 
-    ShieldCheck, 
-    Building, 
-    Search, 
-    ChevronLeft, 
-    ChevronRight,
-    Link as LinkIcon,
-    FolderKanban,
-    Save,
-    Layers,
-    FileText,
-    FilePlus,
-    Eye,
-    Info,
-    ListChecks,
-    ExternalLink,
-    Hash,
-    PlusCircle,
-    Send,
-    Inbox,
-    History,
-    Edit,
-    PanelLeftClose,
-    PanelLeftOpen,
-    Clock,
-    BookOpen,
-    Gavel,
-    Cloud,
-    FileSignature,
-    CheckCircle,
-    LayoutList,
-    School
+import {
+  Loader2,
+  Download,
+  ShieldCheck,
+  Building,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Link as LinkIcon,
+  FolderKanban,
+  Save,
+  Layers,
+  FileText,
+  FilePlus,
+  Eye,
+  Info,
+  ListChecks,
+  ExternalLink,
+  Hash,
+  PlusCircle,
+  Send,
+  Inbox,
+  History,
+  Edit,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Clock,
+  BookOpen,
+  Gavel,
+  Cloud,
+  FileSignature,
+  CheckCircle,
+  LayoutList,
+  School,
+  Filter,
+  X,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -51,6 +62,7 @@ import { FormRequestReviewDialog } from '@/components/manuals/form-request-revie
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
@@ -59,11 +71,11 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 const SHARED_ACADEMIC_ID = 'academic-shared';
 
 const statusColors: Record<string, string> = {
-    'Submitted': 'bg-blue-100 text-blue-700',
-    'QA Review': 'bg-indigo-100 text-indigo-700',
-    'Returned for Correction': 'bg-rose-100 text-rose-700',
-    'Endorsement for Approval': 'bg-amber-100 text-amber-700',
-    'Approved & Registered': 'bg-emerald-100 text-emerald-700',
+  Submitted: 'bg-blue-100 text-blue-700',
+  'QA Review': 'bg-indigo-100 text-indigo-700',
+  'Returned for Correction': 'bg-rose-100 text-rose-700',
+  'Endorsement for Approval': 'bg-amber-100 text-amber-700',
+  'Approved & Registered': 'bg-emerald-100 text-emerald-700',
 };
 
 export default function UnitFormsPage() {
@@ -73,29 +85,33 @@ export default function UnitFormsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
+
   const currentTab = searchParams.get('tab') || 'roster';
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [isSidebarVisible, setIsSidebarVisible] = useState(true);
-  
+
   const [isRegOpen, setIsRegOpen] = useState(false);
   const [editingRequest, setEditingRequest] = useState<UnitFormRequest | null>(null);
   const [isSavingLinks, setIsSavingLinks] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [editRosterLink, setEditRosterLink] = useState('');
   const [editRosterRevision, setEditRosterRevision] = useState('');
   const [editRosterDate, setEditRosterDate] = useState('');
-  
+
   const [editMasterlistLink, setEditMasterlistLink] = useState('');
   const [editMasterlistRevision, setEditMasterlistRevision] = useState('');
   const [editMasterlistDate, setEditMasterlistDate] = useState('');
-  
+
   const [downloadingForm, setDownloadingForm] = useState<UnitForm | null>(null);
   const [isRosterLogOpen, setIsRosterLogOpen] = useState(false);
   const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
   const [isHistoryActive, setIsHistoryActive] = useState(false);
+
+  const [inboxSearchTerm, setInboxSearchTerm] = useState('');
+  const [inboxStatusFilter, setInboxStatusFilter] = useState<string>('all');
+  const [inboxCampusFilter, setInboxCampusFilter] = useState<string>('all');
 
   const handleTabChange = (value: string) => {
     if (value === 'inbox') {
@@ -120,36 +136,33 @@ export default function UnitFormsPage() {
 
   const allRequestsQuery = useMemoFirebase(
     () => (firestore && isAdmin && isHistoryActive ? collection(firestore, 'unitFormRequests') : null),
-    [firestore, isAdmin, isHistoryActive]
+    [firestore, isAdmin, isHistoryActive],
   );
   const { data: allRequests, isLoading: isLoadingAllRequests } = useCollection<UnitFormRequest>(allRequestsQuery);
 
-  const unitRequestsQuery = useMemoFirebase(
-    () => {
-        if (!firestore || !userProfile?.unitId || !isHistoryActive) return null;
-        const unitObj = allUnits?.find(u => u.id === userProfile.unitId);
-        const targetId = (unitObj?.category === 'Academic') ? SHARED_ACADEMIC_ID : userProfile.unitId;
-        return query(collection(firestore, 'unitFormRequests'), where('unitId', '==', targetId));
-    },
-    [firestore, userProfile?.unitId, allUnits, isHistoryActive]
-  );
+  const unitRequestsQuery = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId || !isHistoryActive) return null;
+    const unitObj = allUnits?.find((u) => u.id === userProfile.unitId);
+    const targetId = unitObj?.category === 'Academic' ? SHARED_ACADEMIC_ID : userProfile.unitId;
+    return query(collection(firestore, 'unitFormRequests'), where('unitId', '==', targetId));
+  }, [firestore, userProfile?.unitId, allUnits, isHistoryActive]);
   const { data: unitRequests, isLoading: isLoadingUnitRequests } = useCollection<UnitFormRequest>(unitRequestsQuery);
 
   const sortedAllRequests = useMemo(() => {
     if (!allRequests) return [];
     return [...allRequests].sort((a, b) => {
-        const dateA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime();
-        const dateB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime();
-        return dateB - dateA;
+      const dateA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime();
+      const dateB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime();
+      return dateB - dateA;
     });
   }, [allRequests]);
 
   const sortedUnitRequests = useMemo(() => {
     if (!unitRequests) return [];
     return [...unitRequests].sort((a, b) => {
-        const dateA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime();
-        const dateB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime();
-        return dateB - dateA;
+      const dateA = a.createdAt?.toMillis?.() || new Date(a.createdAt).getTime();
+      const dateB = b.createdAt?.toMillis?.() || new Date(b.createdAt).getTime();
+      return dateB - dateA;
     });
   }, [unitRequests]);
 
@@ -157,35 +170,67 @@ export default function UnitFormsPage() {
     return isAdmin ? sortedAllRequests : sortedUnitRequests;
   }, [isAdmin, sortedAllRequests, sortedUnitRequests]);
 
+  const filteredInboxRequests = useMemo(() => {
+    let list = requestsToShow;
+
+    if (inboxStatusFilter !== 'all') {
+      list = list.filter((req) => req.status === inboxStatusFilter);
+    }
+
+    if (inboxCampusFilter !== 'all') {
+      list = list.filter((req) => req.campusId === inboxCampusFilter);
+    }
+
+    if (inboxSearchTerm.trim()) {
+      const lower = inboxSearchTerm.toLowerCase();
+      list = list.filter((req) => {
+        const matchesUnit = (req.unitName || '').toLowerCase().includes(lower);
+        const matchesSubmitter = (req.submitterName || '').toLowerCase().includes(lower);
+        const matchesControlNo = (req.controlNumber || '').toLowerCase().includes(lower);
+        const matchesForms = (req.requestedForms || []).some(
+          (f) => f.name.toLowerCase().includes(lower) || f.code.toLowerCase().includes(lower),
+        );
+        return matchesUnit || matchesSubmitter || matchesControlNo || matchesForms;
+      });
+    }
+
+    return list;
+  }, [requestsToShow, inboxStatusFilter, inboxCampusFilter, inboxSearchTerm]);
+
   const isLoadingRequests = isAdmin ? isLoadingAllRequests : isLoadingUnitRequests;
 
   const sidebarUnits = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
-    
-    let filtered = allUnits.filter(u => u.category !== 'Academic');
-    
+
+    let filtered = allUnits.filter((u) => u.category !== 'Academic');
+
     if (!isAdmin && userRole !== 'Auditor') {
-        filtered = filtered.filter(u => u.campusIds?.includes(userProfile.campusId));
-        if (!isSupervisor || userRole === 'Unit ODIMO') {
-            filtered = filtered.filter(u => u.id === userProfile.unitId);
-        }
+      filtered = filtered.filter((u) => u.campusIds?.includes(userProfile.campusId));
+      if (!isSupervisor || userRole === 'Unit ODIMO') {
+        filtered = filtered.filter((u) => u.id === userProfile.unitId);
+      }
     }
 
     if (searchTerm) {
-        const lower = searchTerm.toLowerCase();
-        filtered = filtered.filter(u => u.name.toLowerCase().includes(lower));
+      const lower = searchTerm.toLowerCase();
+      filtered = filtered.filter((u) => u.name.toLowerCase().includes(lower));
     }
 
-    const items = filtered.map(u => ({ id: u.id, name: u.name, category: u.category, isShared: false }));
+    const items = filtered.map((u) => ({ id: u.id, name: u.name, category: u.category, isShared: false }));
 
-    const hasAcademic = allUnits.some(u => u.category === 'Academic');
+    const hasAcademic = allUnits.some((u) => u.category === 'Academic');
     if (hasAcademic) {
-        const myUnit = allUnits.find(u => u.id === userProfile.unitId);
-        const canSeeAcademic = isAdmin || isSupervisor || userRole === 'Auditor' || myUnit?.category === 'Academic';
-        
-        if (canSeeAcademic) {
-            items.push({ id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Registry)', category: 'Academic', isShared: true });
-        }
+      const myUnit = allUnits.find((u) => u.id === userProfile.unitId);
+      const canSeeAcademic = isAdmin || isSupervisor || userRole === 'Auditor' || myUnit?.category === 'Academic';
+
+      if (canSeeAcademic) {
+        items.push({
+          id: SHARED_ACADEMIC_ID,
+          name: 'Academic Units (Shared Registry)',
+          category: 'Academic',
+          isShared: true,
+        });
+      }
     }
 
     return items.sort((a, b) => (a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name)));
@@ -193,24 +238,29 @@ export default function UnitFormsPage() {
 
   useEffect(() => {
     if (userProfile && !isUserLoading && !isAdmin && allUnits && allUnits.length > 0) {
-        const iUnit = allUnits.find(u => u.id === userProfile.unitId);
-        if (iUnit) {
-            if (!selectedUnitId || selectedUnitId === userProfile.unitId) {
-                if (iUnit.category === 'Academic') {
-                    setSelectedUnitId(SHARED_ACADEMIC_ID);
-                } else {
-                    setSelectedUnitId(userProfile.unitId);
-                }
-            }
+      const iUnit = allUnits.find((u) => u.id === userProfile.unitId);
+      if (iUnit) {
+        if (!selectedUnitId || selectedUnitId === userProfile.unitId) {
+          if (iUnit.category === 'Academic') {
+            setSelectedUnitId(SHARED_ACADEMIC_ID);
+          } else {
+            setSelectedUnitId(userProfile.unitId);
+          }
         }
+      }
     }
   }, [userProfile, allUnits, selectedUnitId, isUserLoading, isAdmin]);
 
   const selectedUnit = useMemo(() => {
-      if (selectedUnitId === SHARED_ACADEMIC_ID) {
-          return { id: SHARED_ACADEMIC_ID, name: 'Academic Units (Shared Registry)', category: 'Academic' as const, isShared: true };
-      }
-      return allUnits?.find(u => u.id === selectedUnitId);
+    if (selectedUnitId === SHARED_ACADEMIC_ID) {
+      return {
+        id: SHARED_ACADEMIC_ID,
+        name: 'Academic Units (Shared Registry)',
+        category: 'Academic' as const,
+        isShared: true,
+      };
+    }
+    return allUnits?.find((u) => u.id === selectedUnitId);
   }, [allUnits, selectedUnitId]);
 
   const canRegister = useMemo(() => {
@@ -218,90 +268,100 @@ export default function UnitFormsPage() {
     if (isAdmin) return true;
     if (userRole !== 'Unit Coordinator' && userRole !== 'Unit ODIMO') return false;
     if (!selectedUnit) return false;
-    
+
     if (selectedUnitId === userProfile.unitId) return true;
     if (selectedUnitId === SHARED_ACADEMIC_ID) {
-        const myUnitObj = allUnits?.find(u => u.id === userProfile.unitId);
-        return myUnitObj?.category === 'Academic';
+      const myUnitObj = allUnits?.find((u) => u.id === userProfile.unitId);
+      return myUnitObj?.category === 'Academic';
     }
     return false;
   }, [userProfile, isAdmin, userRole, selectedUnit, selectedUnitId, allUnits]);
 
-  const academicSharedRef = useMemoFirebase(() => (firestore ? doc(firestore, 'campusSettings', 'academic-shared') : null), [firestore]);
+  const academicSharedRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'campusSettings', 'academic-shared') : null),
+    [firestore],
+  );
   const { data: sharedSettings } = useDoc<CampusSetting>(academicSharedRef);
 
-  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
+  const campusMap = useMemo(() => new Map(campuses?.map((c) => [c.id, c.name])), [campuses]);
 
   const activeRosterData = useMemo(() => {
-      if (selectedUnitId === SHARED_ACADEMIC_ID) return { 
-          link: sharedSettings?.formsDriveLink || '', 
-          rev: sharedSettings?.formsDriveRevision || '00', 
-          date: sharedSettings?.formsDriveUpdatedAt || 'TBA' 
+    if (selectedUnitId === SHARED_ACADEMIC_ID)
+      return {
+        link: sharedSettings?.formsDriveLink || '',
+        rev: sharedSettings?.formsDriveRevision || '00',
+        date: sharedSettings?.formsDriveUpdatedAt || 'TBA',
       };
-      const unit = selectedUnit as Unit;
-      return { 
-          link: unit?.formsDriveLink || '', 
-          rev: unit?.formsDriveRevision || '00', 
-          date: unit?.formsDriveUpdatedAt || 'TBA' 
-      };
+    const unit = selectedUnit as Unit;
+    return {
+      link: unit?.formsDriveLink || '',
+      rev: unit?.formsDriveRevision || '00',
+      date: unit?.formsDriveUpdatedAt || 'TBA',
+    };
   }, [selectedUnitId, sharedSettings, selectedUnit]);
 
   const activeMasterlistData = useMemo(() => {
-      if (selectedUnitId === SHARED_ACADEMIC_ID) return { 
-          link: sharedSettings?.masterlistPdfLink || '', 
-          rev: sharedSettings?.masterlistRevision || '00', 
-          date: sharedSettings?.masterlistUpdatedAt || 'TBA' 
+    if (selectedUnitId === SHARED_ACADEMIC_ID)
+      return {
+        link: sharedSettings?.masterlistPdfLink || '',
+        rev: sharedSettings?.masterlistRevision || '00',
+        date: sharedSettings?.masterlistUpdatedAt || 'TBA',
       };
-      const unit = selectedUnit as Unit;
-      return { 
-          link: unit?.masterlistPdfLink || '', 
-          rev: unit?.masterlistRevision || '00', 
-          date: unit?.masterlistUpdatedAt || 'TBA' 
-      };
+    const unit = selectedUnit as Unit;
+    return {
+      link: unit?.masterlistPdfLink || '',
+      rev: unit?.masterlistRevision || '00',
+      date: unit?.masterlistUpdatedAt || 'TBA',
+    };
   }, [selectedUnitId, sharedSettings, selectedUnit]);
 
   useEffect(() => {
-      setEditRosterLink(activeRosterData.link);
-      setEditRosterRevision(activeRosterData.rev);
-      setEditRosterDate(activeRosterData.date === 'TBA' ? format(new Date(), 'yyyy-MM-dd') : activeRosterData.date);
-      
-      setEditMasterlistLink(activeMasterlistData.link);
-      setEditMasterlistRevision(activeMasterlistData.rev);
-      setEditMasterlistDate(activeMasterlistData.date === 'TBA' ? format(new Date(), 'yyyy-MM-dd') : activeMasterlistData.date);
+    setEditRosterLink(activeRosterData.link);
+    setEditRosterRevision(activeRosterData.rev);
+    setEditRosterDate(activeRosterData.date === 'TBA' ? format(new Date(), 'yyyy-MM-dd') : activeRosterData.date);
+
+    setEditMasterlistLink(activeMasterlistData.link);
+    setEditMasterlistRevision(activeMasterlistData.rev);
+    setEditMasterlistDate(
+      activeMasterlistData.date === 'TBA' ? format(new Date(), 'yyyy-MM-dd') : activeMasterlistData.date,
+    );
   }, [activeRosterData, activeMasterlistData]);
 
   const formsQuery = useMemoFirebase(
-    () => (firestore && selectedUnitId ? query(collection(firestore, 'unitForms'), where('unitId', '==', selectedUnitId)) : null),
-    [firestore, selectedUnitId]
+    () =>
+      firestore && selectedUnitId
+        ? query(collection(firestore, 'unitForms'), where('unitId', '==', selectedUnitId))
+        : null,
+    [firestore, selectedUnitId],
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
   const handleSaveAdminLinks = async () => {
-      if (!firestore) return;
-      setIsSubmitting(true);
-      setIsSavingLinks(true);
-      try {
-          const links = { 
-              formsDriveLink: editRosterLink, 
-              formsDriveRevision: editRosterRevision,
-              formsDriveUpdatedAt: editRosterDate,
-              masterlistPdfLink: editMasterlistLink, 
-              masterlistRevision: editMasterlistRevision,
-              masterlistUpdatedAt: editMasterlistDate
-          };
+    if (!firestore) return;
+    setIsSubmitting(true);
+    setIsSavingLinks(true);
+    try {
+      const links = {
+        formsDriveLink: editRosterLink,
+        formsDriveRevision: editRosterRevision,
+        formsDriveUpdatedAt: editRosterDate,
+        masterlistPdfLink: editMasterlistLink,
+        masterlistRevision: editMasterlistRevision,
+        masterlistUpdatedAt: editMasterlistDate,
+      };
 
-          if (selectedUnitId === SHARED_ACADEMIC_ID) {
-              await setDoc(doc(firestore, 'campusSettings', 'academic-shared'), links, { merge: true });
-          } else if (selectedUnitId) {
-              await setDoc(doc(firestore, 'units', selectedUnitId!), links, { merge: true });
-          }
-          toast({ title: 'Repository Updated', description: 'Institutional repository parameters saved.' });
-      } catch (e) {
-          toast({ title: 'Error', description: 'Failed to update links.', variant: 'destructive' });
-      } finally {
-          setIsSubmitting(false);
-          setIsSavingLinks(false);
+      if (selectedUnitId === SHARED_ACADEMIC_ID) {
+        await setDoc(doc(firestore, 'campusSettings', 'academic-shared'), links, { merge: true });
+      } else if (selectedUnitId) {
+        await setDoc(doc(firestore, 'units', selectedUnitId!), links, { merge: true });
       }
+      toast({ title: 'Repository Updated', description: 'Institutional repository parameters saved.' });
+    } catch (e) {
+      toast({ title: 'Error', description: 'Failed to update links.', variant: 'destructive' });
+    } finally {
+      setIsSubmitting(false);
+      setIsSavingLinks(false);
+    }
   };
 
   return (
@@ -309,326 +369,719 @@ export default function UnitFormsPage() {
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         {/* Branded Header Area */}
         <div className="sticky top-0 z-20 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-4 institutional-header">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">Unit Forms & Records</h2>
-                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Access official operating forms for verified university units.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="lg:hidden" onClick={() => setIsSidebarVisible(!isSidebarVisible)}>
-                        {isSidebarVisible ? <PanelLeftClose className="mr-2 h-4 w-4" /> : <PanelLeftOpen className="mr-2 h-4 w-4" />}
-                        {isSidebarVisible ? 'Hide Units' : 'Show Units'}
-                    </Button>
-                </div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
+                Unit Forms & Records
+              </h2>
+              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
+                Access official operating forms for verified university units.
+              </p>
             </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="lg:hidden"
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+              >
+                {isSidebarVisible ? (
+                  <PanelLeftClose className="mr-2 h-4 w-4" />
+                ) : (
+                  <PanelLeftOpen className="mr-2 h-4 w-4" />
+                )}
+                {isSidebarVisible ? 'Hide Units' : 'Show Units'}
+              </Button>
+            </div>
+          </div>
 
-            <ScrollArea className="w-full">
-                <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
-                    <TabsTrigger value="roster" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <ListChecks className="h-3.5 w-3.5" /> Unit Forms
-                    </TabsTrigger>
-                    <TabsTrigger value="register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <FilePlus className="h-3.5 w-3.5" /> Apply for New Form
-                    </TabsTrigger>
-                    {isAdmin && (
-                        <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                            <Inbox className="h-3.5 w-3.5" /> Registration Review Inbox
-                        </TabsTrigger>
-                    )}
-                </TabsList>
-            </ScrollArea>
+          <ScrollArea className="w-full">
+            <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
+              <TabsTrigger value="roster" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <ListChecks className="h-3.5 w-3.5" /> Unit Forms
+              </TabsTrigger>
+              <TabsTrigger value="register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <FilePlus className="h-3.5 w-3.5" /> Apply for New Form
+              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="inbox" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                  <Inbox className="h-3.5 w-3.5" /> Registration Review Inbox
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </ScrollArea>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6 min-h-0 lg:h-[calc(100dvh-16rem)]">
-            <div className={cn("transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0", isSidebarVisible ? "w-full lg:w-1/4 opacity-100" : "w-0 opacity-0 lg:-mr-6")}>
-                <Card className="flex flex-col h-[300px] lg:h-full shadow-sm border-primary/10">
-                    <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
-                        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Unit Selection</CardTitle>
-                        <div className="relative pt-2">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input placeholder="Search units..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-9 text-xs bg-white" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-0 flex-1 overflow-hidden">
-                        {isLoadingUnits ? <div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div> : (
-                        <ScrollArea className="h-full">
-                            <div className="flex flex-col">
-                                {sidebarUnits.map(unit => (
-                                <button key={unit.id} onClick={() => setSelectedUnitId(unit.id)} className={cn("w-full text-left py-2.5 px-4 text-xs border-l-2 transition-all", selectedUnitId === unit.id ? "bg-primary/5 text-primary border-primary font-bold shadow-inner" : "border-transparent text-muted-foreground hover:bg-muted/30")}>
-                                    <div className="flex items-center gap-3">
-                                        {unit.isShared ? <Layers className="h-3.5 w-3.5 shrink-0 text-primary" /> : <Building className="h-3.5 w-3.5 shrink-0 opacity-40" />}
-                                        <span className={cn("truncate", unit.isShared && "font-black uppercase tracking-tighter")}>{unit.name}</span>
-                                    </div>
-                                </button>
-                                ))}
-                            </div>
-                        </ScrollArea>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {!isAdmin && (
-                    <Card className="flex flex-col overflow-hidden shadow-sm border-primary/10 bg-muted/5 min-h-0 h-1/2">
-                        <CardHeader className="pb-3 border-b py-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <History className="h-4 w-4 text-primary" />
-                                    <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">My Requests</CardTitle>
-                                </div>
-                                {!isHistoryActive && (
-                                    <button onClick={() => setIsHistoryActive(true)} className="text-[9px] font-black uppercase text-primary hover:underline">Load History</button>
-                                )}
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-0 flex-1 overflow-hidden">
-                            <ScrollArea className="h-full">
-                                {isLoadingUnitRequests ? <div className="p-10 text-center"><Loader2 className="h-4 w-4 animate-spin text-primary opacity-20 mx-auto" /></div> : sortedUnitRequests.length > 0 ? (
-                                    <div className="divide-y divide-primary/5">
-                                        {sortedUnitRequests.map(req => (
-                                            <div key={req.id} className="p-3 hover:bg-white transition-colors group cursor-pointer" onClick={() => setReviewRequestId(req.id)}>
-                                                 <div className="flex justify-between items-center gap-2 mb-1.5">
-                                                     <Badge className={cn("text-[7px] font-black uppercase h-3.5 px-1 border-none", statusColors[req.status])}>{req.status}</Badge>
-                                                     <div className="flex items-center gap-1.5">
-                                                         {req.status === 'Returned for Correction' && (
-                                                             <Button 
-                                                                 size="icon" 
-                                                                 variant="ghost" 
-                                                                 className="h-5 w-5 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                                                                 onClick={(e) => {
-                                                                     e.stopPropagation();
-                                                                     setEditingRequest(req);
-                                                                     setIsRegOpen(true);
-                                                                 }}
-                                                                 title="Edit & Resubmit"
-                                                             >
-                                                                 <Edit className="h-3 w-3" />
-                                                             </Button>
-                                                         )}
-                                                         <span className="text-[8px] font-mono text-muted-foreground">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</span>
-                                                     </div>
-                                                 </div>
-                                                 <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 leading-tight line-clamp-1">{req.requestedForms.length} Forms Application</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="py-10 text-center opacity-20 text-[9px] font-black uppercase tracking-widest">{isHistoryActive ? 'No history' : 'Click "Load History" to view'}</div>
-                                )}
-                            </ScrollArea>
-                        </CardContent>
-                    </Card>
-                )}
-            </div>
-
-            <div className="flex-1 min-0 flex flex-col relative">
-                <Button variant="secondary" size="icon" className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors" onClick={() => setIsSidebarVisible(!isSidebarVisible)}>
-                    {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                </Button>
-
-                {currentTab === 'inbox' ? (
-                    <div className="flex-1 overflow-y-auto pt-4">
-                        <TabsContent value="inbox" className="animate-in fade-in duration-500">
-                            {!isHistoryActive ? (
-                                <div className="p-12 text-center bg-white border rounded-2xl shadow-sm"><Button onClick={() => setIsHistoryActive(true)} className="font-black uppercase tracking-widest text-xs">Load Active Inbox & Review History</Button></div>
+          <div
+            className={cn(
+              'transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0',
+              isSidebarVisible ? 'w-full lg:w-1/4 opacity-100' : 'w-0 opacity-0 lg:-mr-6',
+            )}
+          >
+            <Card className="flex flex-col h-[300px] lg:h-full shadow-sm border-primary/10">
+              <CardHeader className="bg-muted/30 border-b pb-4 shrink-0">
+                <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                  Unit Selection
+                </CardTitle>
+                <div className="relative pt-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search units..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-9 h-9 text-xs bg-white"
+                  />
+                </div>
+              </CardHeader>
+              <CardContent className="p-0 flex-1 overflow-hidden">
+                {isLoadingUnits ? (
+                  <div className="flex h-full items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                  </div>
+                ) : (
+                  <ScrollArea className="h-full">
+                    <div className="flex flex-col">
+                      {sidebarUnits.map((unit) => (
+                        <button
+                          key={unit.id}
+                          onClick={() => setSelectedUnitId(unit.id)}
+                          className={cn(
+                            'w-full text-left py-2.5 px-4 text-xs border-l-2 transition-all',
+                            selectedUnitId === unit.id
+                              ? 'bg-primary/5 text-primary border-primary font-bold shadow-inner'
+                              : 'border-transparent text-muted-foreground hover:bg-muted/30',
+                          )}
+                        >
+                          <div className="flex items-center gap-3">
+                            {unit.isShared ? (
+                              <Layers className="h-3.5 w-3.5 shrink-0 text-primary" />
                             ) : (
-                                <Card className="shadow-md border-primary/10 overflow-hidden">
-                                    <CardHeader className="bg-primary/5 border-b py-4"><CardTitle className="text-sm font-black uppercase tracking-tight">Form Registration Inbox</CardTitle></CardHeader>
-                                    <CardContent className="p-0">
-                                        <Table>
-                                            <TableHeader className="bg-muted/30">
-                                                <TableRow>
-                                                    <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase">Unit, Site & Type</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
-                                                    <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
-                                                    <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {sortedAllRequests.map(req => (
-                                                    <TableRow key={req.id} className="hover:bg-muted/20">
-                                                        <TableCell className="pl-6 py-4 font-mono text-xs">{req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}</TableCell>
-                                                        <TableCell>
-                                                            <div className="flex flex-col">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className="font-bold text-xs uppercase">{req.unitName}</span>
-                                                                    {req.isDraft && (
-                                                                        <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
-                                                                            <LayoutList className="h-2.5 w-2.5" /> DRAFT
-                                                                        </Badge>
-                                                                    )}
-                                                                </div>
-                                                                <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
-                                                                    <School className="h-2.5 w-2.5" />
-                                                                    {campusMap.get(req.campusId) || 'Site Context'}
-                                                                </span>
-                                                            </div>
-                                                        </TableCell>
-                                                        <TableCell className="text-xs">{req.submitterName}</TableCell>
-                                                        <TableCell className="text-center"><Badge className={cn("text-[8px] font-black uppercase h-4", statusColors[req.status])}>{req.status}</Badge></TableCell>
-                                                        <TableCell className="text-right pr-6">
-                                                            <Button size="sm" onClick={() => setReviewRequestId(req.id)} className="h-7 text-[9px] font-black uppercase tracking-widest">
-                                                                {req.status === 'QA Review' 
-                                                                    ? 'Provide Decision' 
-                                                                    : req.status === 'Endorsement for Approval' 
-                                                                    ? 'Finalize / Update' 
-                                                                    : 'Review'}
-                                                            </Button>
-                                                        </TableCell>
-                                                    </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
-                                    </CardContent>
-                                </Card>
+                              <Building className="h-3.5 w-3.5 shrink-0 opacity-40" />
                             )}
-                        </TabsContent>
+                            <span className={cn('truncate', unit.isShared && 'font-black uppercase tracking-tighter')}>
+                              {unit.name}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
                     </div>
-                ) : selectedUnit ? (
-                    <div className="flex-1 flex flex-col min-h-0">
-                        <div className="flex items-center justify-between border-b pb-2 shrink-0 px-1">
-                            <Badge variant="outline" className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary max-w-full truncate">Active Context: {selectedUnit.name}</Badge>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+
+            {!isAdmin && (
+              <Card className="flex flex-col overflow-hidden shadow-sm border-primary/10 bg-muted/5 min-h-0 h-1/2">
+                <CardHeader className="pb-3 border-b py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <History className="h-4 w-4 text-primary" />
+                      <CardTitle className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
+                        My Requests
+                      </CardTitle>
+                    </div>
+                    {!isHistoryActive && (
+                      <button
+                        onClick={() => setIsHistoryActive(true)}
+                        className="text-[9px] font-black uppercase text-primary hover:underline"
+                      >
+                        Load History
+                      </button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0 flex-1 overflow-hidden">
+                  <ScrollArea className="h-full">
+                    {isLoadingUnitRequests ? (
+                      <div className="p-10 text-center">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary opacity-20 mx-auto" />
+                      </div>
+                    ) : sortedUnitRequests.length > 0 ? (
+                      <div className="divide-y divide-primary/5">
+                        {sortedUnitRequests.map((req) => (
+                          <div
+                            key={req.id}
+                            className="p-3 hover:bg-white transition-colors group cursor-pointer"
+                            onClick={() => setReviewRequestId(req.id)}
+                          >
+                            <div className="flex justify-between items-center gap-2 mb-1.5">
+                              <Badge
+                                className={cn(
+                                  'text-[7px] font-black uppercase h-3.5 px-1 border-none',
+                                  statusColors[req.status],
+                                )}
+                              >
+                                {req.status}
+                              </Badge>
+                              <div className="flex items-center gap-1.5">
+                                {req.status === 'Returned for Correction' && (
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-5 w-5 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingRequest(req);
+                                      setIsRegOpen(true);
+                                    }}
+                                    title="Edit & Resubmit"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                )}
+                                <span className="text-[8px] font-mono text-muted-foreground">
+                                  {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}
+                                </span>
+                              </div>
+                            </div>
+                            <p className="text-[10px] font-bold text-slate-700 dark:text-slate-300 leading-tight line-clamp-1">
+                              {req.requestedForms.length} Forms Application
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="py-10 text-center opacity-20 text-[9px] font-black uppercase tracking-widest">
+                        {isHistoryActive ? 'No history' : 'Click "Load History" to view'}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="flex-1 min-0 flex flex-col relative">
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
+              onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+            >
+              {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+
+            {currentTab === 'inbox' ? (
+              <div className="flex-1 overflow-y-auto pt-4">
+                <TabsContent value="inbox" className="animate-in fade-in duration-500 space-y-4">
+                  {!isHistoryActive ? (
+                    <div className="p-12 text-center bg-white border rounded-2xl shadow-sm">
+                      <Button
+                        onClick={() => setIsHistoryActive(true)}
+                        className="font-black uppercase tracking-widest text-xs"
+                      >
+                        Load Active Inbox & Review History
+                      </Button>
+                    </div>
+                  ) : (
+                    <Card className="shadow-md border-primary/10 overflow-hidden">
+                      <CardHeader className="bg-primary/5 border-b py-4">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex items-center gap-2">
+                            <Inbox className="h-5 w-5 text-primary" />
+                            <div>
+                              <CardTitle className="text-sm font-black uppercase tracking-tight">
+                                Form Registration Inbox
+                              </CardTitle>
+                              <CardDescription className="text-[10px] font-bold text-muted-foreground uppercase">
+                                Review and process controlled form registration applications across units.
+                              </CardDescription>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="bg-white font-black text-[10px] uppercase w-fit">
+                            {filteredInboxRequests.length} of {requestsToShow.length} Applications
+                          </Badge>
+                        </div>
+                      </CardHeader>
+
+                      {/* SEARCH & FILTER CONTROLS */}
+                      <div className="p-4 bg-muted/10 border-b grid grid-cols-1 md:grid-cols-4 gap-3 items-center">
+                        <div className="md:col-span-2 relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search by unit, submitter, form name/code..."
+                            value={inboxSearchTerm}
+                            onChange={(e) => setInboxSearchTerm(e.target.value)}
+                            className="pl-9 pr-8 h-9 text-xs bg-white border-slate-200"
+                          />
+                          {inboxSearchTerm && (
+                            <button
+                              onClick={() => setInboxSearchTerm('')}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                         </div>
 
-                        <div className="flex-1 overflow-hidden pt-4">
-                            <TabsContent value="roster" className="h-full m-0 animate-in fade-in slide-in-from-left-2 duration-300">
-                                <ScrollArea className="h-full pr-4">
-                                    <div className="space-y-8 pb-10">
-                                        <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden">
-                                            <CardHeader className="bg-primary/10 border-b py-4">
-                                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <FolderKanban className="h-5 w-5 text-primary" />
-                                                        <CardTitle className="text-sm font-black uppercase tracking-tight">Official Roster Access</CardTitle>
-                                                    </div>
-                                                    <div className="flex gap-2">
-                                                        <Badge variant="secondary" className="h-5 text-[9px] font-black uppercase border-none bg-white/50">Rev {activeRosterData.rev}</Badge>
-                                                        <Badge variant="outline" className="h-5 text-[9px] font-bold border-primary/20 bg-white">{activeRosterData.date}</Badge>
-                                                    </div>
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="p-6 space-y-6">
-                                                <div className="flex flex-col xl:flex-row items-start justify-between gap-6">
-                                                    <div className="space-y-4 flex-1 w-full">
-                                                        <div className="p-4 bg-white rounded-xl border border-dashed flex gap-4">
-                                                            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                                                            <div className="space-y-1">
-                                                                <p className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">Operational Continuity</p>
-                                                                <p className="text-[11px] text-muted-foreground leading-relaxed italic">This folder contains the complete roster of forms for <strong>{selectedUnit.name}</strong>.</p>
-                                                            </div>
-                                                        </div>
-                                                        {activeRosterData.link ? (
-                                                            <Button onClick={() => setIsRosterLogOpen(true)} className="w-full md:w-auto h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20">
-                                                                <ExternalLink className="h-4 w-4 mr-2" /> Access Official Roster
-                                                            </Button>
-                                                        ) : <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex items-start gap-3"><Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" /><p className="text-[10px] text-amber-700 font-bold uppercase">Pending Repository Setup</p></div>}
-                                                    </div>
-                                                    {isAdmin && (
-                                                        <div className="w-full xl:w-[450px] p-5 bg-white rounded-2xl border border-primary/20 shadow-xl space-y-4">
-                                                            <div className="flex items-center gap-2 border-b pb-2 mb-2"><PlusCircle className="h-4 w-4 text-primary" /><h4 className="text-[10px] font-black uppercase text-slate-900 dark:text-slate-100">Log New Roster Revision</h4></div>
-                                                            <div className="space-y-3">
-                                                                <div className="space-y-1"><Label className="text-[9px] font-black uppercase text-primary">Folder Link</Label><Input value={editRosterLink} onChange={(e) => setEditRosterLink(e.target.value)} className="h-8 text-[10px]" /></div>
-                                                                <div className="grid grid-cols-2 gap-3">
-                                                                    <div className="space-y-1"><Label className="text-[9px] font-black uppercase text-primary">Rev No.</Label><Input value={editRosterRevision} onChange={(e) => setEditRosterRevision(e.target.value)} className="h-8 text-[10px]" /></div>
-                                                                    <div className="space-y-1"><Label className="text-[9px] font-black uppercase text-primary">Effective</Label><Input type="date" value={editRosterDate} onChange={(e) => setEditRosterDate(e.target.value)} className="h-8 text-[10px]" /></div>
-                                                                </div>
-                                                            </div>
-                                                            <Button size="sm" onClick={handleSaveAdminLinks} disabled={isSubmitting} className="w-full h-9 font-black uppercase text-[10px]">{isSavingLinks ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Save className="h-3.5 w-3.5 mr-2" />}Commit Update</Button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </CardContent>
-                                        </Card>
+                        <div>
+                          <Select value={inboxStatusFilter} onValueChange={setInboxStatusFilter}>
+                            <SelectTrigger className="h-9 text-xs bg-white border-slate-200 font-bold">
+                              <SelectValue placeholder="Status Filter" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Statuses</SelectItem>
+                              <SelectItem value="Submitted">Submitted</SelectItem>
+                              <SelectItem value="QA Review">QA Review</SelectItem>
+                              <SelectItem value="Returned for Correction">Returned for Correction</SelectItem>
+                              <SelectItem value="Endorsement for Approval">Endorsement for Approval</SelectItem>
+                              <SelectItem value="Approved & Registered">Approved & Registered</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
 
-                                        <Card className="shadow-lg border-primary/10 overflow-hidden">
-                                            <CardHeader className="bg-muted/10 border-b py-4">
-                                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                                                    <div className="flex items-center gap-2"><Eye className="h-5 w-5 text-primary" /><CardTitle className="text-sm font-black uppercase tracking-tight">Unit Masterlist Preview</CardTitle></div>
-                                                    <Badge variant="secondary" className="h-5 text-[9px] font-black uppercase border-none bg-primary/5 text-primary">Rev {activeMasterlistData.rev}</Badge>
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="p-0 bg-slate-100 dark:bg-slate-700 min-h-[500px] relative shadow-inner">
-                                                {activeMasterlistData.link ? <iframe src={activeMasterlistData.link.replace('/view', '/preview').replace('?usp=sharing', '')} className="absolute inset-0 h-full w-full border-none bg-white" allow="autoplay" title="Unit Masterlist Preview" /> : <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground opacity-20 text-center gap-3"><FileText className="h-16 w-16" /><p className="text-sm font-black uppercase tracking-widest">Masterlist Unavailable</p></div>}
-                                            </CardContent>
-                                        </Card>
+                        <div className="flex items-center gap-2">
+                          <Select value={inboxCampusFilter} onValueChange={setInboxCampusFilter}>
+                            <SelectTrigger className="h-9 text-xs bg-white border-slate-200 font-bold flex-1">
+                              <SelectValue placeholder="Site / Campus" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Sites / Campuses</SelectItem>
+                              {campuses?.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
 
-                                        <Card className="shadow-sm border-primary/10 overflow-hidden">
-                                            <CardHeader className="bg-muted/10 border-b py-4"><CardTitle className="text-xs font-black uppercase tracking-tight">Enrolled Controlled Forms Log</CardTitle></CardHeader>
-                                            <CardContent className="p-0">
-                                                <Table>
-                                                    <TableHeader className="bg-muted/30">
-                                                        <TableRow>
-                                                            <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
-                                                            <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
-                                                            <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
-                                                            <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
-                                                        </TableRow>
-                                                    </TableHeader>
-                                                    <TableBody>
-                                                        {isLoadingForms ? <TableRow><TableCell colSpan={4} className="h-32 text-center"><Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" /></TableCell></TableRow> : forms?.length ? forms.sort((a,b) => a.formCode.localeCompare(b.formCode)).map(form => (
-                                                            <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
-                                                                <TableCell className="pl-6 font-mono text-xs font-bold text-primary">{form.formCode}</TableCell>
-                                                                <TableCell className="text-[12px] font-bold text-slate-800 dark:text-slate-200">{form.formName}</TableCell>
-                                                                <TableCell className="text-center"><Badge variant="secondary" className="h-4 text-[9px] font-bold uppercase">{form.revision}</Badge></TableCell>
-                                                                <TableCell className="text-right pr-6"><Button variant="default" size="sm" className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5" onClick={() => setDownloadingForm(form)}><Download className="h-3 w-3" /> Request Download</Button></TableCell>
-                                                            </TableRow>
-                                                        )) : <TableRow><TableCell colSpan={4} className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic">No individual forms enrolled.</TableCell></TableRow>}
-                                                    </TableBody>
-                                                </Table>
-                                            </CardContent>
-                                        </Card>
-                                    </div>
-                                </ScrollArea>
-                            </TabsContent>
+                          {(inboxSearchTerm || inboxStatusFilter !== 'all' || inboxCampusFilter !== 'all') && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setInboxSearchTerm('');
+                                setInboxStatusFilter('all');
+                                setInboxCampusFilter('all');
+                              }}
+                              className="h-9 text-[10px] font-black uppercase text-rose-600 hover:bg-rose-50 px-2 shrink-0"
+                              title="Clear all filters"
+                            >
+                              Reset
+                            </Button>
+                          )}
+                        </div>
+                      </div>
 
-                            <TabsContent value="register" className="h-full m-0 animate-in fade-in slide-in-from-right-2 duration-300">
-                                <ScrollArea className="h-full rounded-xl border bg-background shadow-sm">
-                                    <div className="p-6">
-                                        {!canRegister ? (
-                                            <div className="max-w-md mx-auto space-y-6 pt-12">
-                                                <Alert className="bg-amber-50 border-amber-200 text-amber-950">
-                                                    <Info className="h-4 w-4 text-amber-600" />
-                                                    <AlertTitle className="text-xs font-black uppercase">Oversight Mode Only</AlertTitle>
-                                                    <AlertDescription className="text-[11px] leading-relaxed font-medium text-amber-700">
-                                                        You are viewing this registry in read-only mode. Only authorized Unit Coordinators or ODIMOs of <strong>{selectedUnit?.name || 'this unit'}</strong> can submit registration requests.
-                                                    </AlertDescription>
-                                                </Alert>
-                                            </div>
-                                        ) : (
-                                            <FormRegistrationDialog
-                                                isOpen={true}
-                                                onOpenChange={() => {}}
-                                                unit={selectedUnit as any}
-                                                request={null}
-                                                isInline={true}
-                                                onSuccess={() => handleTabChange('roster')}
-                                            />
+                      <CardContent className="p-0">
+                        <Table>
+                          <TableHeader className="bg-muted/30">
+                            <TableRow>
+                              <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Unit, Site & Type</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase">Submitter</TableHead>
+                              <TableHead className="text-[10px] font-black uppercase text-center">Status</TableHead>
+                              <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {isLoadingRequests ? (
+                              <TableRow>
+                                <TableCell colSpan={5} className="h-40 text-center">
+                                  <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20 mx-auto" />
+                                </TableCell>
+                              </TableRow>
+                            ) : (
+                              filteredInboxRequests.map((req) => (
+                                <TableRow key={req.id} className="hover:bg-muted/20">
+                                  <TableCell className="pl-6 py-4 font-mono text-xs">
+                                    {req.createdAt?.toDate ? format(req.createdAt.toDate(), 'MM/dd/yy') : '--'}
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-bold text-xs uppercase">{req.unitName}</span>
+                                        {req.isDraft && (
+                                          <Badge className="bg-blue-600 text-white border-none h-4 px-1.5 font-black text-[8px] gap-1 shadow-sm">
+                                            <LayoutList className="h-2.5 w-2.5" /> DRAFT
+                                          </Badge>
                                         )}
-                    </div>
-                                </ScrollArea>
-                            </TabsContent>
-                        </div>
-                    </div>
-                ) : <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground p-12"><Building className="h-12 w-12 opacity-10 mb-4" /><h4 className="font-black text-xs uppercase tracking-[0.2em]">Form Control Hub</h4><p className="text-[10px] mt-2 max-w-[250px] text-center leading-relaxed">Select a unit from the directory to access its quality forms registry.</p></div>}
-            </div>
+                                      </div>
+                                      <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter mt-0.5 flex items-center gap-1">
+                                        <School className="h-2.5 w-2.5" />
+                                        {campusMap.get(req.campusId) || 'Site Context'}
+                                      </span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-xs">{req.submitterName}</TableCell>
+                                  <TableCell className="text-center">
+                                    <Badge
+                                      className={cn('text-[8px] font-black uppercase h-4', statusColors[req.status])}
+                                    >
+                                      {req.status}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right pr-6">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => setReviewRequestId(req.id)}
+                                      className="h-7 text-[9px] font-black uppercase tracking-widest"
+                                    >
+                                      {req.status === 'QA Review'
+                                        ? 'Provide Decision'
+                                        : req.status === 'Endorsement for Approval'
+                                          ? 'Finalize / Update'
+                                          : 'Review'}
+                                    </Button>
+                                  </TableCell>
+                                </TableRow>
+                              ))
+                            )}
+                            {!isLoadingRequests && filteredInboxRequests.length === 0 && (
+                              <TableRow>
+                                <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
+                                  <div className="flex flex-col items-center justify-center gap-2 opacity-30">
+                                    <Search className="h-8 w-8" />
+                                    <p className="text-[10px] font-black uppercase tracking-widest">
+                                      No form registration requests match your search/filter
+                                    </p>
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  )}
+                </TabsContent>
+              </div>
+            ) : selectedUnit ? (
+              <div className="flex-1 flex flex-col min-h-0">
+                <div className="flex items-center justify-between border-b pb-2 shrink-0 px-1">
+                  <Badge
+                    variant="outline"
+                    className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary max-w-full truncate"
+                  >
+                    Active Context: {selectedUnit.name}
+                  </Badge>
+                </div>
+
+                <div className="flex-1 overflow-hidden pt-4">
+                  <TabsContent
+                    value="roster"
+                    className="h-full m-0 animate-in fade-in slide-in-from-left-2 duration-300"
+                  >
+                    <ScrollArea className="h-full pr-4">
+                      <div className="space-y-8 pb-10">
+                        <Card className="border-primary/20 bg-primary/5 shadow-md overflow-hidden">
+                          <CardHeader className="bg-primary/10 border-b py-4">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <FolderKanban className="h-5 w-5 text-primary" />
+                                <CardTitle className="text-sm font-black uppercase tracking-tight">
+                                  Official Roster Access
+                                </CardTitle>
+                              </div>
+                              <div className="flex gap-2">
+                                <Badge
+                                  variant="secondary"
+                                  className="h-5 text-[9px] font-black uppercase border-none bg-white/50"
+                                >
+                                  Rev {activeRosterData.rev}
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="h-5 text-[9px] font-bold border-primary/20 bg-white"
+                                >
+                                  {activeRosterData.date}
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-6 space-y-6">
+                            <div className="flex flex-col xl:flex-row items-start justify-between gap-6">
+                              <div className="space-y-4 flex-1 w-full">
+                                <div className="p-4 bg-white rounded-xl border border-dashed flex gap-4">
+                                  <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                                  <div className="space-y-1">
+                                    <p className="text-xs font-black uppercase text-slate-800 dark:text-slate-200">
+                                      Operational Continuity
+                                    </p>
+                                    <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+                                      This folder contains the complete roster of forms for{' '}
+                                      <strong>{selectedUnit.name}</strong>.
+                                    </p>
+                                  </div>
+                                </div>
+                                {activeRosterData.link ? (
+                                  <Button
+                                    onClick={() => setIsRosterLogOpen(true)}
+                                    className="w-full md:w-auto h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                                  >
+                                    <ExternalLink className="h-4 w-4 mr-2" /> Access Official Roster
+                                  </Button>
+                                ) : (
+                                  <div className="p-4 rounded-lg bg-amber-50 border border-amber-100 flex items-start gap-3">
+                                    <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                                    <p className="text-[10px] text-amber-700 font-bold uppercase">
+                                      Pending Repository Setup
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                              {isAdmin && (
+                                <div className="w-full xl:w-[450px] p-5 bg-white rounded-2xl border border-primary/20 shadow-xl space-y-4">
+                                  <div className="flex items-center gap-2 border-b pb-2 mb-2">
+                                    <PlusCircle className="h-4 w-4 text-primary" />
+                                    <h4 className="text-[10px] font-black uppercase text-slate-900 dark:text-slate-100">
+                                      Log New Roster Revision
+                                    </h4>
+                                  </div>
+                                  <div className="space-y-3">
+                                    <div className="space-y-1">
+                                      <Label className="text-[9px] font-black uppercase text-primary">
+                                        Folder Link
+                                      </Label>
+                                      <Input
+                                        value={editRosterLink}
+                                        onChange={(e) => setEditRosterLink(e.target.value)}
+                                        className="h-8 text-[10px]"
+                                      />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                      <div className="space-y-1">
+                                        <Label className="text-[9px] font-black uppercase text-primary">Rev No.</Label>
+                                        <Input
+                                          value={editRosterRevision}
+                                          onChange={(e) => setEditRosterRevision(e.target.value)}
+                                          className="h-8 text-[10px]"
+                                        />
+                                      </div>
+                                      <div className="space-y-1">
+                                        <Label className="text-[9px] font-black uppercase text-primary">
+                                          Effective
+                                        </Label>
+                                        <Input
+                                          type="date"
+                                          value={editRosterDate}
+                                          onChange={(e) => setEditRosterDate(e.target.value)}
+                                          className="h-8 text-[10px]"
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    onClick={handleSaveAdminLinks}
+                                    disabled={isSubmitting}
+                                    className="w-full h-9 font-black uppercase text-[10px]"
+                                  >
+                                    {isSavingLinks ? (
+                                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                                    ) : (
+                                      <Save className="h-3.5 w-3.5 mr-2" />
+                                    )}
+                                    Commit Update
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+
+                        <Card className="shadow-lg border-primary/10 overflow-hidden">
+                          <CardHeader className="bg-muted/10 border-b py-4">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <Eye className="h-5 w-5 text-primary" />
+                                <CardTitle className="text-sm font-black uppercase tracking-tight">
+                                  Unit Masterlist Preview
+                                </CardTitle>
+                              </div>
+                              <Badge
+                                variant="secondary"
+                                className="h-5 text-[9px] font-black uppercase border-none bg-primary/5 text-primary"
+                              >
+                                Rev {activeMasterlistData.rev}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="p-0 bg-slate-100 dark:bg-slate-700 min-h-[500px] relative shadow-inner">
+                            {activeMasterlistData.link ? (
+                              <iframe
+                                src={activeMasterlistData.link.replace('/view', '/preview').replace('?usp=sharing', '')}
+                                className="absolute inset-0 h-full w-full border-none bg-white"
+                                allow="autoplay"
+                                title="Unit Masterlist Preview"
+                              />
+                            ) : (
+                              <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground opacity-20 text-center gap-3">
+                                <FileText className="h-16 w-16" />
+                                <p className="text-sm font-black uppercase tracking-widest">Masterlist Unavailable</p>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+
+                        <Card className="shadow-sm border-primary/10 overflow-hidden">
+                          <CardHeader className="bg-muted/10 border-b py-4">
+                            <CardTitle className="text-xs font-black uppercase tracking-tight">
+                              Enrolled Controlled Forms Log
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-0">
+                            <Table>
+                              <TableHeader className="bg-muted/30">
+                                <TableRow>
+                                  <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
+                                  <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
+                                  <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
+                                  <TableHead className="text-right text-[10px] font-black uppercase pr-6">
+                                    Action
+                                  </TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {isLoadingForms ? (
+                                  <TableRow>
+                                    <TableCell colSpan={4} className="h-32 text-center">
+                                      <Loader2 className="h-6 w-6 animate-spin text-primary opacity-20 mx-auto" />
+                                    </TableCell>
+                                  </TableRow>
+                                ) : forms?.length ? (
+                                  forms
+                                    .sort((a, b) => a.formCode.localeCompare(b.formCode))
+                                    .map((form) => (
+                                      <TableRow key={form.id} className="hover:bg-muted/20 transition-colors">
+                                        <TableCell className="pl-6 font-mono text-xs font-bold text-primary">
+                                          {form.formCode}
+                                        </TableCell>
+                                        <TableCell className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
+                                          {form.formName}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                          <Badge variant="secondary" className="h-4 text-[9px] font-bold uppercase">
+                                            {form.revision}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right pr-6">
+                                          <Button
+                                            variant="default"
+                                            size="sm"
+                                            className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
+                                            onClick={() => setDownloadingForm(form)}
+                                          >
+                                            <Download className="h-3 w-3" /> Request Download
+                                          </Button>
+                                        </TableCell>
+                                      </TableRow>
+                                    ))
+                                ) : (
+                                  <TableRow>
+                                    <TableCell
+                                      colSpan={4}
+                                      className="h-32 text-center text-[10px] font-bold text-muted-foreground uppercase opacity-20 italic"
+                                    >
+                                      No individual forms enrolled.
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </TableBody>
+                            </Table>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+
+                  <TabsContent
+                    value="register"
+                    className="h-full m-0 animate-in fade-in slide-in-from-right-2 duration-300"
+                  >
+                    <ScrollArea className="h-full rounded-xl border bg-background shadow-sm">
+                      <div className="p-6">
+                        {!canRegister ? (
+                          <div className="max-w-md mx-auto space-y-6 pt-12">
+                            <Alert className="bg-amber-50 border-amber-200 text-amber-950">
+                              <Info className="h-4 w-4 text-amber-600" />
+                              <AlertTitle className="text-xs font-black uppercase">Oversight Mode Only</AlertTitle>
+                              <AlertDescription className="text-[11px] leading-relaxed font-medium text-amber-700">
+                                You are viewing this registry in read-only mode. Only authorized Unit Coordinators or
+                                ODIMOs of <strong>{selectedUnit?.name || 'this unit'}</strong> can submit registration
+                                requests.
+                              </AlertDescription>
+                            </Alert>
+                          </div>
+                        ) : (
+                          <FormRegistrationDialog
+                            isOpen={true}
+                            onOpenChange={() => {}}
+                            unit={selectedUnit as any}
+                            request={null}
+                            isInline={true}
+                            onSuccess={() => handleTabChange('roster')}
+                          />
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </TabsContent>
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center border border-dashed rounded-2xl bg-muted/5 text-muted-foreground p-12">
+                <Building className="h-12 w-12 opacity-10 mb-4" />
+                <h4 className="font-black text-xs uppercase tracking-[0.2em]">Form Control Hub</h4>
+                <p className="text-[10px] mt-2 max-w-[250px] text-center leading-relaxed">
+                  Select a unit from the directory to access its quality forms registry.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </Tabs>
 
-
-      {selectedUnit && <FormRegistrationDialog isOpen={isRegOpen} onOpenChange={(open) => { setIsRegOpen(open); if (!open) setEditingRequest(null); }} unit={selectedUnit as any} request={editingRequest} />}
-      {downloadingForm && <FormDownloadDialog form={downloadingForm} unitId={selectedUnitId!} isOpen={!!downloadingForm} onOpenChange={(open) => !open && setDownloadingForm(null)} />}
-      {isRosterLogOpen && selectedUnitId && activeRosterData.link && <FormDownloadDialog form={{ id: 'roster-folder', formName: 'Official Roster & Forms Folder', formCode: 'MASTER-ROSTER', googleDriveLink: activeRosterData.link, unitId: selectedUnitId, campusId: userProfile?.campusId || '', revision: activeRosterData.rev, requestId: 'system', createdAt: new Date() } as any} unitId={selectedUnitId} isOpen={isRosterLogOpen} onOpenChange={setIsRosterLogOpen} />}
-       {reviewRequestId && (
-         <FormRequestReviewDialog 
-           requestId={reviewRequestId} 
-           isOpen={!!reviewRequestId} 
-           onOpenChange={(open) => !open && setReviewRequestId(null)} 
-           onEditClick={(req) => {
-             setEditingRequest(req);
-             setIsRegOpen(true);
-           }}
-         />
-       )}
+      {selectedUnit && (
+        <FormRegistrationDialog
+          isOpen={isRegOpen}
+          onOpenChange={(open) => {
+            setIsRegOpen(open);
+            if (!open) setEditingRequest(null);
+          }}
+          unit={selectedUnit as any}
+          request={editingRequest}
+        />
+      )}
+      {downloadingForm && (
+        <FormDownloadDialog
+          form={downloadingForm}
+          unitId={selectedUnitId!}
+          isOpen={!!downloadingForm}
+          onOpenChange={(open) => !open && setDownloadingForm(null)}
+        />
+      )}
+      {isRosterLogOpen && selectedUnitId && activeRosterData.link && (
+        <FormDownloadDialog
+          form={
+            {
+              id: 'roster-folder',
+              formName: 'Official Roster & Forms Folder',
+              formCode: 'MASTER-ROSTER',
+              googleDriveLink: activeRosterData.link,
+              unitId: selectedUnitId,
+              campusId: userProfile?.campusId || '',
+              revision: activeRosterData.rev,
+              requestId: 'system',
+              createdAt: new Date(),
+            } as any
+          }
+          unitId={selectedUnitId}
+          isOpen={isRosterLogOpen}
+          onOpenChange={setIsRosterLogOpen}
+        />
+      )}
+      {reviewRequestId && (
+        <FormRequestReviewDialog
+          requestId={reviewRequestId}
+          isOpen={!!reviewRequestId}
+          onOpenChange={(open) => !open && setReviewRequestId(null)}
+          onEditClick={(req) => {
+            setEditingRequest(req);
+            setIsRegOpen(true);
+          }}
+        />
+      )}
     </div>
   );
 }
