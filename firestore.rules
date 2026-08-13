@@ -156,12 +156,18 @@ service cloud.firestore {
     match /unitOrgStructures/{id} {
       // All authenticated users can read (for admin/supervisor review)
       allow read: if isSignedIn() && hasProfile();
-      // Unit Coordinators and ODIMOs can create records for their own unit
+      // Unit Coordinators and ODIMOs can create records for their own unit.
+      // Fallback: Campus Directors and Campus ODIMOs can create for units
+      // within their own campus (when a unit lacks a coordinator/ODIMO).
       allow create: if isSignedIn() && hasProfile() && (
         isAdmin() ||
         (
           profile().get('unitId', '') == request.resource.data.unitId &&
           profile().get('role', '') in ['Unit Coordinator', 'Unit ODIMO']
+        ) ||
+        (
+          profile().get('campusId', '') == request.resource.data.campusId &&
+          profile().get('role', '') in ['Campus Director', 'Campus ODIMO']
         )
       );
       // Same restriction for updates
@@ -170,6 +176,10 @@ service cloud.firestore {
         (
           profile().get('unitId', '') == resource.data.unitId &&
           profile().get('role', '') in ['Unit Coordinator', 'Unit ODIMO']
+        ) ||
+        (
+          profile().get('campusId', '') == resource.data.campusId &&
+          profile().get('role', '') in ['Campus Director', 'Campus ODIMO']
         )
       );
       // Only admins can delete

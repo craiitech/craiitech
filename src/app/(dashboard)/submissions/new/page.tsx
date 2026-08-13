@@ -28,6 +28,7 @@ import {
   HelpCircle,
   ExternalLink,
   ArrowRight,
+  Building2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -391,9 +392,13 @@ export default function NewSubmissionPage() {
   const canSubmitOrgStructure = useMemo(() => {
     if (!userProfile) return false;
     const role = userProfile.role || '';
+    // Fallback: Campus Director / Campus ODIMO can upload org structures for
+    // units within their own campus, in addition to the unit-level roles.
     return [
       'Unit Coordinator',
       'Unit ODIMO',
+      'Campus Director',
+      'Campus ODIMO',
       'Admin',
       'admin',
       'Administrator',
@@ -405,15 +410,80 @@ export default function NewSubmissionPage() {
   // Track whether the org structure has been uploaded for the current cycle
   // Reset to null (loading) whenever year or cycle changes so we never show stale state
   const [isOrgStructureSubmitted, setIsOrgStructureSubmitted] = useState<boolean | null>(null);
+  // Status of the currently selected unit (may differ from the user's own unit
+  // when a campus officer/admin manages another unit's org structure).
+  const [selectedOrgStructureStatus, setSelectedOrgStructureStatus] = useState<boolean | null>(null);
 
   useEffect(() => {
     setIsOrgStructureSubmitted(null);
+    setSelectedOrgStructureStatus(null);
   }, [selectedYear, selectedCycle]);
 
   const currentUnitName = useMemo(() => {
     if (!units || !userProfile?.unitId) return 'Unknown Unit';
     return units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
   }, [units, userProfile?.unitId]);
+
+  // Unit selector for campus-wide uploaders (Campus Director / Campus ODIMO / Admins)
+  // so they can upload org structures for units in their campus that lack a
+  // Unit Coordinator / Unit ODIMO. Unit-level roles stay scoped to their own unit.
+  const isOrgAdmin = useMemo(() => {
+    const role = userProfile?.role || '';
+    return ['Admin', 'admin', 'Administrator', 'System Administrator', 'Super Admin'].includes(role);
+  }, [userProfile]);
+
+  const isCampusOrgManager = useMemo(() => {
+    if (!userProfile) return false;
+    const role = userProfile.role || '';
+    return ['Campus Director', 'Campus ODIMO'].includes(role);
+  }, [userProfile]);
+
+  const [orgStructureUnitId, setOrgStructureUnitId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOrgStructureUnitId(userProfile?.unitId || null);
+  }, [userProfile?.unitId]);
+
+  const handleOrgStructureStatusChange = (isSubmitted: boolean) => {
+    setSelectedOrgStructureStatus(isSubmitted);
+    // Only gate the user's own EOMS submissions on their own unit's status.
+    if ((orgStructureUnitId || userProfile?.unitId) === userProfile?.unitId) {
+      setIsOrgStructureSubmitted(isSubmitted);
+    }
+  };
+
+  const orgStructureTargetUnits = useMemo(() => {
+    if (!units) return [];
+    if (isOrgAdmin) return units;
+    if (isCampusOrgManager) {
+      const campusId = userProfile?.campusId || '';
+      return units.filter((u) => {
+        const unitCampusIds = u.campusIds || [];
+        const legacyCampusId = (u as Unit & { campusId?: string }).campusId;
+        return unitCampusIds.includes(campusId) || legacyCampusId === campusId;
+      });
+    }
+    return units.filter((u) => u.id === userProfile?.unitId);
+  }, [units, isOrgAdmin, isCampusOrgManager, userProfile?.campusId, userProfile?.unitId]);
+
+  const orgStructureTargetUnit = useMemo(() => {
+    if (!units || !orgStructureUnitId) return null;
+    return units.find((u) => u.id === orgStructureUnitId) || null;
+  }, [units, orgStructureUnitId]);
+
+  const orgStructureTargetName = useMemo(() => {
+    return orgStructureTargetUnit?.name || currentUnitName;
+  }, [orgStructureTargetUnit, currentUnitName]);
+
+  const orgStructureTargetCampusId = useMemo(() => {
+    // For campus officers the record campusId must equal their own campus to pass the
+    // Firestore rule; for admins fall back to the unit's campus when available.
+    if (isCampusOrgManager) return userProfile?.campusId || '';
+    const unitCampus = (orgStructureTargetUnit as (Unit & { campusId?: string }) | null)?.campusId;
+    return orgStructureTargetUnit?.campusIds?.[0] || unitCampus || userProfile?.campusId || '';
+  }, [isCampusOrgManager, orgStructureTargetUnit, userProfile?.campusId]);
+
+  const showOrgStructureUnitPicker = (isOrgAdmin || isCampusOrgManager) && orgStructureTargetUnits.length > 1;
 
   const currentTemplate = useMemo(() => {
     if (!selectedReport) return PlaceHolderImages.find((p) => p.id === 'general-template');
@@ -1273,27 +1343,50 @@ export default function NewSubmissionPage() {
       {isCycleSelected && userProfile?.unitId && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <div className={cn('h-px flex-1', isOrgStructureSubmitted ? 'bg-emerald-200' : 'bg-rose-200')} />
+            <div className={cn('h-px flex-1', selectedOrgStructureStatus ? 'bg-emerald-200' : 'bg-rose-200')} />
             <span
               className={cn(
                 'text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5',
-                isOrgStructureSubmitted ? 'text-emerald-600' : 'text-rose-600',
+                selectedOrgStructureStatus ? 'text-emerald-600' : 'text-rose-600',
               )}
             >
-              {isOrgStructureSubmitted ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
-              {isOrgStructureSubmitted ? 'Org Structure Submitted ✓' : 'Required Submission'}
+              {selectedOrgStructureStatus ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+              {selectedOrgStructureStatus ? 'Org Structure Submitted ✓' : 'Required Submission'}
             </span>
-            <div className={cn('h-px flex-1', isOrgStructureSubmitted ? 'bg-emerald-200' : 'bg-rose-200')} />
+            <div className={cn('h-px flex-1', selectedOrgStructureStatus ? 'bg-emerald-200' : 'bg-rose-200')} />
           </div>
+
+          {showOrgStructureUnitPicker && (
+            <Card className="border-primary/10 shadow-sm">
+              <CardContent className="p-4 space-y-1.5">
+                <label className="text-[10px] font-black uppercase text-primary tracking-widest ml-1 flex items-center gap-1.5">
+                  <Building2 className="h-3 w-3" /> Upload For Unit / Office
+                </label>
+                <Select value={orgStructureUnitId || ''} onValueChange={(value) => setOrgStructureUnitId(value)}>
+                  <SelectTrigger className="bg-white h-11 font-bold shadow-sm">
+                    <SelectValue placeholder="Select unit to manage organizational structure..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {orgStructureTargetUnits.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+          )}
+
           <OrgStructureUploadCard
-            key={`org-struct-${selectedYear}-${selectedCycle}`}
+            key={`org-struct-${selectedYear}-${selectedCycle}-${orgStructureUnitId || userProfile.unitId}`}
             year={selectedYear!}
             cycleId={selectedCycle!}
-            unitId={userProfile.unitId}
-            campusId={userProfile.campusId}
-            unitName={currentUnitName}
+            unitId={orgStructureUnitId || userProfile.unitId}
+            campusId={orgStructureTargetCampusId}
+            unitName={orgStructureTargetName}
             canSubmit={canSubmitOrgStructure}
-            onStatusChange={setIsOrgStructureSubmitted}
+            onStatusChange={handleOrgStructureStatusChange}
           />
         </div>
       )}

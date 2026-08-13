@@ -342,7 +342,7 @@ export function OrgStructureUploadCard({
               </div>
             ) : (
               <p className="text-[10px] text-muted-foreground font-bold uppercase text-center opacity-60">
-                Read-only — Only Unit Coordinators / ODIMOs can upload.
+                Read-only — Only Unit Coordinators / ODIMOs / Campus Officers can upload.
               </p>
             )}
           </CardContent>
