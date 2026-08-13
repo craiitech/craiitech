@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, addDoc } from '@/firebase/firestore-wrapper';
 import type { Submission, Comment, Unit, Cycle, Risk } from '@/lib/types';
+import { OrgStructureUploadCard } from '@/components/submissions/org-structure-upload-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SubmissionForm } from '@/components/dashboard/submission-form';
@@ -387,6 +388,33 @@ export default function NewSubmissionPage() {
 
   const isCycleSelected = selectedYear !== null && selectedCycle !== null;
 
+  const canSubmitOrgStructure = useMemo(() => {
+    if (!userProfile) return false;
+    const role = userProfile.role || '';
+    return [
+      'Unit Coordinator',
+      'Unit ODIMO',
+      'Admin',
+      'admin',
+      'Administrator',
+      'System Administrator',
+      'Super Admin',
+    ].includes(role);
+  }, [userProfile]);
+
+  // Track whether the org structure has been uploaded for the current cycle
+  // Reset to null (loading) whenever year or cycle changes so we never show stale state
+  const [isOrgStructureSubmitted, setIsOrgStructureSubmitted] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    setIsOrgStructureSubmitted(null);
+  }, [selectedYear, selectedCycle]);
+
+  const currentUnitName = useMemo(() => {
+    if (!units || !userProfile?.unitId) return 'Unknown Unit';
+    return units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
+  }, [units, userProfile?.unitId]);
+
   const currentTemplate = useMemo(() => {
     if (!selectedReport) return PlaceHolderImages.find((p) => p.id === 'general-template');
 
@@ -653,6 +681,18 @@ export default function NewSubmissionPage() {
                   <div className="space-y-2">
                     <Tabs value={selectedReport || ''} onValueChange={handleSelectReport}>
                       <TabsList className="flex flex-col w-full h-auto bg-transparent gap-2 animate-tab-highlight rounded-xl p-1">
+                        {/* Org Structure mandatory warning inline in the report list */}
+                        {isCycleSelected && userProfile?.unitId && isOrgStructureSubmitted === false && (
+                          <div className="w-full rounded-lg border-2 border-rose-300 bg-rose-50 p-3 text-left space-y-1.5 mb-1">
+                            <p className="text-[9px] font-black uppercase text-rose-700 tracking-wider flex items-center gap-1.5">
+                              <AlertCircle className="h-3.5 w-3.5" /> Required: Org Structure Missing
+                            </p>
+                            <p className="text-[10px] font-medium text-rose-600 leading-snug">
+                              Submit your unit&apos;s Organizational Structure (below) before proceeding with EOMS
+                              report submissions.
+                            </p>
+                          </div>
+                        )}
                         {submissionTypes.map((reportType) => {
                           const submission = submissionStatusMap.get(reportType);
                           const isActionPlan = reportType === 'Risk and Opportunity Action Plan';
@@ -1159,6 +1199,32 @@ export default function NewSubmissionPage() {
                           Submission Locked
                         </Button>
                       </div>
+                    ) : isOrgStructureSubmitted === false ? (
+                      <div className="space-y-4">
+                        <Alert variant="destructive" className="border-rose-300 bg-rose-50/50">
+                          <AlertCircle className="h-5 w-5 text-rose-600" />
+                          <AlertTitle className="font-black uppercase text-xs text-rose-800 tracking-wider">
+                            Organizational Structure Required First
+                          </AlertTitle>
+                          <AlertDescription className="text-xs font-semibold leading-relaxed mt-1 text-rose-700 space-y-2">
+                            <p>
+                              Your unit must upload or carry over its updated <strong>Organizational Structure</strong>{' '}
+                              for the {selectedCycle === 'first' ? 'First Cycle' : 'Final Cycle'} of {selectedYear}{' '}
+                              before submitting any EOMS reports.
+                            </p>
+                            <p className="text-[11px] font-medium text-rose-600">
+                              Please scroll down to the <strong>Required Submission</strong> section at the bottom of
+                              this page to complete this requirement.
+                            </p>
+                          </AlertDescription>
+                        </Alert>
+                        <Button
+                          className="w-full h-10 font-black uppercase text-[10px] tracking-wider bg-slate-200 text-slate-400 border-none cursor-not-allowed hover:bg-slate-200"
+                          disabled
+                        >
+                          EOMS Report Submission Blocked
+                        </Button>
+                      </div>
                     ) : showUpdateDialog === selectedReport && !showFormForUpdate ? (
                       <AlertDialog open={true} onOpenChange={(open) => !open && setShowUpdateDialog(null)}>
                         <AlertDialogContent>
@@ -1202,6 +1268,35 @@ export default function NewSubmissionPage() {
           )}
         </div>
       </div>
+
+      {/* Organizational Structure Upload — REQUIRED section */}
+      {isCycleSelected && userProfile?.unitId && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className={cn('h-px flex-1', isOrgStructureSubmitted ? 'bg-emerald-200' : 'bg-rose-200')} />
+            <span
+              className={cn(
+                'text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5',
+                isOrgStructureSubmitted ? 'text-emerald-600' : 'text-rose-600',
+              )}
+            >
+              {isOrgStructureSubmitted ? <CheckCircle className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+              {isOrgStructureSubmitted ? 'Org Structure Submitted ✓' : 'Required Submission'}
+            </span>
+            <div className={cn('h-px flex-1', isOrgStructureSubmitted ? 'bg-emerald-200' : 'bg-rose-200')} />
+          </div>
+          <OrgStructureUploadCard
+            key={`org-struct-${selectedYear}-${selectedCycle}`}
+            year={selectedYear!}
+            cycleId={selectedCycle!}
+            unitId={userProfile.unitId}
+            campusId={userProfile.campusId}
+            unitName={currentUnitName}
+            canSubmit={canSubmitOrgStructure}
+            onStatusChange={setIsOrgStructureSubmitted}
+          />
+        </div>
+      )}
 
       <FeedbackDialog isOpen={isFeedbackDialogOpen} onOpenChange={setIsFeedbackDialogOpen} feedback={feedbackToShow} />
     </div>

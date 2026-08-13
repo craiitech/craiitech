@@ -209,6 +209,22 @@ export type Unit = {
   masterlistUpdatedAt?: string;
 };
 
+export type UnitOrgStructure = {
+  id: string;
+  unitId: string;
+  unitName: string;
+  campusId: string;
+  year: number;
+  cycleId: 'first' | 'final';
+  googleDriveLink: string;
+  revisionNumber: string; // e.g. "02"
+  revisionDate: string; // ISO date string e.g. "2026-08-13"
+  submittedBy: string; // user displayName
+  submittedById: string;
+  createdAt: any; // Firestore Timestamp
+  isCarriedOver?: boolean; // true if auto-carried from First Cycle with no changes
+};
+
 export type CampusSetting = {
   id: string;
   announcement?: string;

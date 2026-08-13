@@ -153,6 +153,29 @@ service cloud.firestore {
       allow get, list, write: if isSignedIn();
     }
 
+    match /unitOrgStructures/{id} {
+      // All authenticated users can read (for admin/supervisor review)
+      allow read: if isSignedIn() && hasProfile();
+      // Unit Coordinators and ODIMOs can create records for their own unit
+      allow create: if isSignedIn() && hasProfile() && (
+        isAdmin() ||
+        (
+          profile().get('unitId', '') == request.resource.data.unitId &&
+          profile().get('role', '') in ['Unit Coordinator', 'Unit ODIMO']
+        )
+      );
+      // Same restriction for updates
+      allow update: if isSignedIn() && hasProfile() && (
+        isAdmin() ||
+        (
+          profile().get('unitId', '') == resource.data.unitId &&
+          profile().get('role', '') in ['Unit Coordinator', 'Unit ODIMO']
+        )
+      );
+      // Only admins can delete
+      allow delete: if isAdmin();
+    }
+
     match /pbbSubmissions/{id} {
       allow read, write: if isSignedIn();
     }
