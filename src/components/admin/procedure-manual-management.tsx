@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
-import type { Unit, ProcedureManual } from '@/lib/types';
+import type { Unit, ProcedureManual, ManualProcess } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,8 @@ import {
   Eye,
   ExternalLink,
   Copy,
+  Plus,
+  ListChecks,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -65,6 +67,9 @@ export function ProcedureManualManagement() {
   const [viewingUnit, setViewingUnit] = useState<VirtualUnit | null>(null);
   const [useOtherUnitManual, setUseOtherUnitManual] = useState(false);
   const [sourceUnitId, setSourceUnitId] = useState('');
+  const [processesList, setProcessesList] = useState<ManualProcess[]>([]);
+  const [newProcessNumber, setNewProcessNumber] = useState('');
+  const [newProcessTitle, setNewProcessTitle] = useState('');
 
   const [newPart, setNewPart] = useState('');
   const [isSavingConfig, setIsSavingConfig] = useState(false);
@@ -159,17 +164,28 @@ export function ProcedureManualManagement() {
     setUseOtherUnitManual(isCopied);
     setSourceUnitId(existingManual?.copiedFromUnitId || '');
 
+    const existingProcesses = existingManual?.processes || [];
+    setProcessesList(existingProcesses);
+    setNewProcessNumber('');
+    setNewProcessTitle('');
+
     const defaultStatus =
       (existingManual?.status as 'Updated' | 'Needs Revision' | 'Not Submitted') ||
       (existingManual && (existingManual.procedureNumber || existingManual.googleDriveLink)
         ? 'Updated'
         : 'Not Submitted');
 
+    const totalProcessesCount =
+      existingProcesses.length > 0
+        ? String(existingProcesses.length)
+        : existingManual?.numberOfProcesses !== undefined
+          ? String(existingManual.numberOfProcesses)
+          : '';
+
     form.reset({
       procedureNumber: existingManual?.procedureNumber || '',
       manualTitle: existingManual?.manualTitle || '',
-      numberOfProcesses:
-        existingManual?.numberOfProcesses !== undefined ? String(existingManual.numberOfProcesses) : '',
+      numberOfProcesses: totalProcessesCount,
       revisionNumber: existingManual?.revisionNumber || '00',
       revisionDate: existingManual?.revisionDate || existingManual?.dateImplemented || '',
       dateImplemented: existingManual?.dateImplemented || existingManual?.revisionDate || '',
@@ -183,7 +199,32 @@ export function ProcedureManualManagement() {
     setSelectedUnit(null);
     setUseOtherUnitManual(false);
     setSourceUnitId('');
+    setProcessesList([]);
+    setNewProcessNumber('');
+    setNewProcessTitle('');
     form.reset();
+  };
+
+  const handleAddProcess = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    if (e) e.preventDefault();
+    if (!newProcessNumber.trim() && !newProcessTitle.trim()) return;
+
+    const newProc: ManualProcess = {
+      processNumber: newProcessNumber.trim() || `6.${processesList.length + 1}`,
+      processTitle: newProcessTitle.trim() || 'Untitled Process',
+    };
+
+    const updated = [...processesList, newProc];
+    setProcessesList(updated);
+    form.setValue('numberOfProcesses', String(updated.length));
+    setNewProcessNumber('');
+    setNewProcessTitle('');
+  };
+
+  const handleRemoveProcess = (index: number) => {
+    const updated = processesList.filter((_, i) => i !== index);
+    setProcessesList(updated);
+    form.setValue('numberOfProcesses', String(updated.length));
   };
 
   const handleUpdateStatus = async (unit: VirtualUnit, newStatus: string) => {
@@ -218,13 +259,17 @@ export function ProcedureManualManagement() {
     if (!firestore || !selectedUnit) return;
     setIsSubmitting(true);
 
+    const calculatedProcessesCount =
+      processesList.length > 0 ? processesList.length : values.numberOfProcesses ? Number(values.numberOfProcesses) : 0;
+
     const manualRef = doc(firestore, 'procedureManuals', selectedUnit.id);
     const manualData: Partial<ProcedureManual> = {
       id: selectedUnit.id,
       unitName: selectedUnit.name,
       procedureNumber: values.procedureNumber?.trim() || '',
       manualTitle: values.manualTitle?.trim() || '',
-      numberOfProcesses: values.numberOfProcesses ? Number(values.numberOfProcesses) : 0,
+      numberOfProcesses: calculatedProcessesCount,
+      processes: processesList,
       revisionNumber: values.revisionNumber?.trim() || '00',
       revisionDate: values.revisionDate?.trim() || values.dateImplemented?.trim() || '',
       dateImplemented: values.dateImplemented?.trim() || values.revisionDate?.trim() || '',
@@ -629,8 +674,36 @@ export function ProcedureManualManagement() {
               </div>
             </div>
 
+            {/* REGISTERED PROCESSES LIST */}
+            {viewingManual?.processes && viewingManual.processes.length > 0 && (
+              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
+                  <ListChecks className="h-3.5 w-3.5 text-primary" />
+                  Processes Included in this Manual ({viewingManual.processes.length})
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
+                  {viewingManual.processes.map((proc, pIdx) => (
+                    <div
+                      key={pIdx}
+                      className="flex items-center gap-2 p-2 bg-white dark:bg-slate-900 rounded-lg border text-xs"
+                    >
+                      <Badge
+                        variant="outline"
+                        className="font-mono text-[10px] font-bold shrink-0 bg-primary/5 text-primary"
+                      >
+                        {proc.processNumber || `#${pIdx + 1}`}
+                      </Badge>
+                      <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
+                        {proc.processTitle}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* PREVIEW CONTAINER */}
-            <div className="h-[48vh] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 relative">
+            <div className="h-[44vh] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 relative">
               {viewingManual?.googleDriveLink ? (
                 <iframe
                   src={viewingManual.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')}
@@ -738,12 +811,14 @@ export function ProcedureManualManagement() {
                         const sourceManual = manualMap.get(val);
                         const sourceUnit = manageableUnits.find((u) => u.id === val);
                         if (sourceManual) {
-                          form.setValue('procedureNumber', sourceManual.procedureNumber || '');
-                          form.setValue('manualTitle', sourceManual.manualTitle || '');
+                          const copiedProcs = sourceManual.processes || [];
+                          setProcessesList(copiedProcs);
                           form.setValue(
                             'numberOfProcesses',
-                            sourceManual.numberOfProcesses !== undefined ? String(sourceManual.numberOfProcesses) : '',
+                            String(copiedProcs.length || sourceManual.numberOfProcesses || ''),
                           );
+                          form.setValue('procedureNumber', sourceManual.procedureNumber || '');
+                          form.setValue('manualTitle', sourceManual.manualTitle || '');
                           form.setValue('revisionNumber', sourceManual.revisionNumber || '00');
                           form.setValue(
                             'revisionDate',
@@ -764,7 +839,7 @@ export function ProcedureManualManagement() {
                           );
                           toast({
                             title: 'Manual Data Copied',
-                            description: `Copied procedure manual specifications from ${sourceUnit?.name || 'source unit'}.`,
+                            description: `Copied procedure manual specifications and ${copiedProcs.length} process(es) from ${sourceUnit?.name || 'source unit'}.`,
                           });
                         }
                       }}
@@ -836,6 +911,107 @@ export function ProcedureManualManagement() {
                 />
               </div>
 
+              {/* PROCESS INVENTORY SECTION */}
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-primary font-black uppercase text-xs tracking-wider">
+                    <ListChecks className="h-4 w-4" />
+                    <span>Process List & Titles ({processesList.length} Processes)</span>
+                  </div>
+                  <Badge variant="outline" className="font-mono text-[10px] font-bold">
+                    Total: {processesList.length}
+                  </Badge>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground">
+                  Add individual process numbers (e.g. <strong>6.1</strong>) and process titles included in this manual.
+                  The total number of processes will be automatically calculated.
+                </p>
+
+                {/* Add process input row */}
+                <div className="grid grid-cols-12 gap-2">
+                  <div className="col-span-4 sm:col-span-3">
+                    <Input
+                      placeholder="No. (e.g., 6.1)"
+                      value={newProcessNumber}
+                      onChange={(e) => setNewProcessNumber(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddProcess();
+                        }
+                      }}
+                      className="h-9 text-xs font-bold font-mono bg-white dark:bg-slate-900"
+                    />
+                  </div>
+                  <div className="col-span-8 sm:col-span-6">
+                    <Input
+                      placeholder="Process Title (e.g., Admission & Enrollment)"
+                      value={newProcessTitle}
+                      onChange={(e) => setNewProcessTitle(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddProcess();
+                        }
+                      }}
+                      className="h-9 text-xs font-bold bg-white dark:bg-slate-900"
+                    />
+                  </div>
+                  <div className="col-span-12 sm:col-span-3">
+                    <Button
+                      type="button"
+                      onClick={handleAddProcess}
+                      disabled={!newProcessNumber.trim() && !newProcessTitle.trim()}
+                      className="h-9 w-full font-black uppercase text-[10px] tracking-wider bg-primary hover:bg-primary/90 text-white shadow-sm"
+                    >
+                      <Plus className="mr-1 h-3.5 w-3.5" /> Add Process
+                    </Button>
+                  </div>
+                </div>
+
+                {/* List of registered processes */}
+                {processesList.length > 0 ? (
+                  <div className="border rounded-lg overflow-hidden bg-white dark:bg-slate-900 max-h-48 overflow-y-auto divide-y dark:divide-slate-800">
+                    {processesList.map((proc, pIdx) => (
+                      <div
+                        key={pIdx}
+                        className="flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-800/60 text-xs transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                          <span className="text-[10px] font-mono text-muted-foreground w-4 text-center">
+                            {pIdx + 1}.
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-[10px] font-bold bg-primary/5 text-primary shrink-0"
+                          >
+                            {proc.processNumber}
+                          </Badge>
+                          <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
+                            {proc.processTitle}
+                          </span>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveProcess(pIdx)}
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
+                          title="Remove process"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 border border-dashed rounded-lg text-center text-xs text-muted-foreground italic bg-white/50 dark:bg-slate-900/50">
+                    No individual processes added yet. Enter process number and title above and click "+ Add Process".
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
@@ -843,7 +1019,7 @@ export function ProcedureManualManagement() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                        No. of Processes
+                        Total No. of Processes
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -852,6 +1028,8 @@ export function ProcedureManualManagement() {
                           placeholder="e.g., 4"
                           className="h-9 text-xs font-bold"
                           {...field}
+                          value={processesList.length > 0 ? processesList.length : field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
                         />
                       </FormControl>
                       <FormMessage />

@@ -481,12 +481,18 @@ export type CorrectiveActionPlan = {
   createdAt: any; // serverTimestamp()
 };
 
+export type ManualProcess = {
+  processNumber: string; // e.g., "6.1"
+  processTitle: string; // e.g., "Curriculum Review & Revision"
+};
+
 export type ProcedureManual = {
   id: string; // Same as unitId
   unitName: string;
   procedureNumber?: string;
   manualTitle?: string;
   numberOfProcesses?: number;
+  processes?: ManualProcess[];
   revisionNumber?: string;
   revisionDate?: string;
   dateImplemented?: string;
