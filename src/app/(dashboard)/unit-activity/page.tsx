@@ -38,6 +38,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -75,6 +76,11 @@ import {
   FileText,
   Printer,
   ClipboardCopy,
+  UserPlus,
+  PenLine,
+  User,
+  Phone,
+  ClipboardCheck,
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
@@ -89,6 +95,17 @@ export default function UnitActivityPage() {
 
   // Active sub-tab state
   const [activeTab, setActiveTab] = useState('activities');
+
+  // Manual Attendee Add Dialog State (Typing Name, Mobile & Sex)
+  const [isManualAddDialogOpen, setIsManualAddDialogOpen] = useState(false);
+  const [manualAddActivityId, setManualAddActivityId] = useState('');
+  const [manualAddSessionId, setManualAddSessionId] = useState('');
+  const [manualAddName, setManualAddName] = useState('');
+  const [manualAddContact, setManualAddContact] = useState('');
+  const [manualAddSex, setManualAddSex] = useState('');
+  const [manualAddUnit, setManualAddUnit] = useState('');
+  const [manualAddStatus, setManualAddStatus] = useState<'AUTO' | 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW'>('AUTO');
+  const [isSubmittingManualAdd, setIsSubmittingManualAdd] = useState(false);
 
   // DB queries
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
@@ -1155,6 +1172,117 @@ export default function UnitActivityPage() {
     document.body.removeChild(link);
   };
 
+  const handleManualAddAttendee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore) return;
+
+    const cleanName = manualAddName.trim();
+    const cleanContact = manualAddContact.trim();
+
+    if (!cleanName) {
+      toast({ title: 'Validation Error', description: 'Please enter attendee full name.', variant: 'destructive' });
+      return;
+    }
+    if (!cleanContact) {
+      toast({ title: 'Validation Error', description: 'Please enter mobile contact number.', variant: 'destructive' });
+      return;
+    }
+    if (!manualAddSex) {
+      toast({ title: 'Validation Error', description: 'Please select sex identification.', variant: 'destructive' });
+      return;
+    }
+
+    const targetActivity =
+      activities?.find((a) => a.id === (manualAddActivityId || activeActivity?.id)) || activeActivity;
+    if (!targetActivity) {
+      toast({ title: 'Error', description: 'Please select a valid event/activity.', variant: 'destructive' });
+      return;
+    }
+
+    const session =
+      targetActivity.sessions && targetActivity.sessions.length > 0
+        ? targetActivity.sessions.find((s) => s.id === manualAddSessionId) || targetActivity.sessions[0]
+        : {
+            id: 'default',
+            label: 'Default Session',
+            date: format(new Date(), 'yyyy-MM-dd'),
+            startTime: '08:00',
+            endTime: '17:00',
+          };
+
+    setIsSubmittingManualAdd(true);
+    try {
+      const now = new Date();
+      let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
+
+      if (manualAddStatus !== 'AUTO') {
+        logStatus = manualAddStatus;
+      } else {
+        const scanTime = now.getTime();
+        const actStart = parseSessionTime(session.date, session.startTime);
+        const actEnd = parseSessionTime(session.date, session.endTime);
+        const lateThreshold = Number(targetActivity.lateThresholdMinutes || 0);
+
+        if (lateThreshold === 0) {
+          logStatus = scanTime <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
+        } else {
+          const lateCutoff = actStart + lateThreshold * 60000;
+          if (scanTime < actStart || scanTime <= lateCutoff) {
+            logStatus = 'ON_TIME';
+          } else if (scanTime <= actEnd) {
+            logStatus = 'LATE';
+          } else {
+            logStatus = 'OUTSIDE_WINDOW';
+          }
+        }
+      }
+
+      const nameKey = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const phoneDigits = cleanContact.replace(/[^0-9]/g, '');
+      const pseudoUserId = `manual_${nameKey}_${phoneDigits.slice(-4) || 'user'}`;
+      const logId = `${targetActivity.id}_${session.id}_${pseudoUserId}`;
+
+      const newLog: ActivityAttendanceLog = {
+        id: logId,
+        activityId: targetActivity.id,
+        userId: pseudoUserId,
+        userName: cleanName,
+        unitId: targetActivity.unitId,
+        unitName:
+          manualAddUnit.trim() || units?.find((u) => u.id === targetActivity.unitId)?.name || 'General Attendee',
+        deviceFingerprint: 'DASHBOARD-MANUAL-LOG',
+        scannedAt: now,
+        status: logStatus,
+        contactNumber: cleanContact,
+        sex: manualAddSex,
+        sessionId: session.id,
+        sessionLabel: session.label,
+      };
+
+      await setDoc(doc(firestore, 'unitActivityAttendanceLogs', logId), newLog);
+      toast({
+        title: 'Attendee Added',
+        description: `Successfully recorded attendance for ${cleanName} (${logStatus.replace('_', ' ')}).`,
+      });
+
+      setIsManualAddDialogOpen(false);
+      setManualAddName('');
+      setManualAddContact('');
+      setManualAddSex('');
+      setManualAddUnit('');
+      setManualAddStatus('AUTO');
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: 'Save Failed',
+        description: err.message || 'Failed to record attendee attendance.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmittingManualAdd(false);
+    }
+  };
+
   const handlePrintAttendanceSheet = () => {
     if (!activeActivity) {
       toast({
@@ -2192,6 +2320,21 @@ export default function UnitActivityPage() {
                     </select>
                   </div>
                 )}
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setIsManualAddDialogOpen(true);
+                    if (activeActivity) {
+                      setManualAddActivityId(activeActivity.id);
+                      if (activeActivity.sessions && activeActivity.sessions.length > 0) {
+                        setManualAddSessionId(activeActivity.sessions[0].id);
+                      }
+                    }
+                  }}
+                  className="h-8 text-[9.5px] font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center justify-center gap-1.5"
+                >
+                  <UserPlus className="h-3.5 w-3.5 mr-1" /> Add Attendee
+                </Button>
                 <Button
                   size="sm"
                   onClick={handlePrintAttendanceSheet}
@@ -3903,6 +4046,164 @@ export default function UnitActivityPage() {
               Close
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ================================================================== */}
+      {/* MANUAL ATTENDEE ADD DIALOG (Dashboard Admin/Unit Entry)             */}
+      {/* ================================================================== */}
+      <Dialog open={isManualAddDialogOpen} onOpenChange={setIsManualAddDialogOpen}>
+        <DialogContent className="max-w-md p-6 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-2">
+              <UserPlus className="h-4 w-4 text-[#1B6535]" />
+              Add Attendee Attendance Log
+            </DialogTitle>
+            <DialogDescription className="text-[11px] text-slate-500">
+              Manually record attendance for an attendee by entering their name, mobile number, and sex.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleManualAddAttendee} className="space-y-3.5 pt-2">
+            {/* Target Activity */}
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase text-slate-500">Target Activity</Label>
+              <select
+                value={manualAddActivityId || activeActivity?.id || ''}
+                onChange={(e) => {
+                  setManualAddActivityId(e.target.value);
+                  const act = activities?.find((a) => a.id === e.target.value);
+                  if (act && act.sessions && act.sessions.length > 0) {
+                    setManualAddSessionId(act.sessions[0].id);
+                  }
+                }}
+                className="w-full h-9 px-3 bg-white dark:bg-slate-900 border rounded-xl font-bold text-xs outline-none"
+              >
+                {activities?.map((act) => (
+                  <option key={act.id} value={act.id}>
+                    {act.name} ({act.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Target Session if available */}
+            {(() => {
+              const curAct =
+                activities?.find((a) => a.id === (manualAddActivityId || activeActivity?.id)) || activeActivity;
+              if (curAct && curAct.sessions && curAct.sessions.length > 0) {
+                return (
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black uppercase text-slate-500">Session</Label>
+                    <select
+                      value={manualAddSessionId || curAct.sessions[0].id}
+                      onChange={(e) => setManualAddSessionId(e.target.value)}
+                      className="w-full h-9 px-3 bg-white dark:bg-slate-900 border rounded-xl font-bold text-xs outline-none"
+                    >
+                      {curAct.sessions.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.label} ({s.date})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+              return null;
+            })()}
+
+            {/* Full Name */}
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase text-slate-500">Attendee Full Name *</Label>
+              <Input
+                placeholder="e.g. Juan Dela Cruz"
+                value={manualAddName}
+                onChange={(e) => setManualAddName(e.target.value)}
+                className="h-9 font-bold text-xs"
+                required
+              />
+            </div>
+
+            {/* Mobile & Sex Grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-slate-500">Mobile Number *</Label>
+                <Input
+                  placeholder="09123456789"
+                  value={manualAddContact}
+                  onChange={(e) => setManualAddContact(e.target.value)}
+                  className="h-9 font-bold text-xs font-mono"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-slate-500">Sex *</Label>
+                <Select value={manualAddSex} onValueChange={setManualAddSex}>
+                  <SelectTrigger className="h-9 text-xs font-bold">
+                    <SelectValue placeholder="Select Sex" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Office / Department */}
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase text-slate-500">Office / Unit / Affiliation</Label>
+              <Input
+                placeholder="e.g. College of Education / Guest"
+                value={manualAddUnit}
+                onChange={(e) => setManualAddUnit(e.target.value)}
+                className="h-9 font-bold text-xs"
+              />
+            </div>
+
+            {/* Attendance Status Override */}
+            <div className="space-y-1">
+              <Label className="text-[10px] font-black uppercase text-slate-500">Status Calculation</Label>
+              <select
+                value={manualAddStatus}
+                onChange={(e) => setManualAddStatus(e.target.value as any)}
+                className="w-full h-9 px-3 bg-white dark:bg-slate-900 border rounded-xl font-bold text-xs outline-none"
+              >
+                <option value="AUTO">⚡ Automatic (Based on current time &amp; schedule)</option>
+                <option value="ON_TIME">✅ Force: On Time</option>
+                <option value="LATE">⚠️ Force: Late</option>
+                <option value="OUTSIDE_WINDOW">❌ Force: Outside Window</option>
+              </select>
+            </div>
+
+            <DialogFooter className="pt-3 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsManualAddDialogOpen(false)}
+                className="h-9 text-xs font-bold"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingManualAdd || !manualAddName.trim() || !manualAddContact.trim() || !manualAddSex}
+                className="h-9 text-xs font-black uppercase tracking-wider bg-emerald-700 hover:bg-emerald-800 text-white"
+              >
+                {isSubmittingManualAdd ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCheck className="h-3.5 w-3.5 mr-1.5" /> Save Attendance
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

@@ -483,8 +483,9 @@ service cloud.firestore {
         && request.resource.data.userId is string
         && request.resource.data.deviceFingerprint is string
         && request.resource.data.status in ['ON_TIME', 'LATE', 'OUTSIDE_WINDOW', 'REJECTED']
-        && request.resource.data.scannedAt is number;
-      allow update, delete: if false;
+        && (request.resource.data.scannedAt is timestamp || request.resource.data.scannedAt is number);
+      allow update: if true;
+      allow delete: if false;
     }
 
     // Evaluations are submitted once — no editing after submission prevents tampering.

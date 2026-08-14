@@ -13,6 +13,16 @@ import {
 } from '@/lib/unit-activity-crypto';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
@@ -33,6 +43,11 @@ import {
   FlipHorizontal2,
   KeyRound,
   RefreshCw,
+  PenLine,
+  User,
+  Phone,
+  Building2,
+  ClipboardCheck,
 } from 'lucide-react';
 
 function UnitActivityScannerTerminal() {
@@ -42,6 +57,15 @@ function UnitActivityScannerTerminal() {
 
   const [paramActivityId, setParamActivityId] = useState<string | null>(null);
   const [offlineLogs, setOfflineLogs] = useState<ActivityAttendanceLog[]>([]);
+
+  // Manual Attendee Entry Modal States
+  const [isManualDialogOpen, setIsManualDialogOpen] = useState(false);
+  const [manualName, setManualName] = useState('');
+  const [manualContact, setManualContact] = useState('');
+  const [manualSex, setManualSex] = useState('');
+  const [manualUnit, setManualUnit] = useState('');
+  const [manualSubmitting, setManualSubmitting] = useState(false);
+  const [manualError, setManualError] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -739,6 +763,233 @@ function UnitActivityScannerTerminal() {
     }
   };
 
+  // Manual Attendee Entry Submit Handler (Typing Name, Mobile & Sex)
+  const handleManualLogSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setManualError('');
+
+    const cleanName = manualName.trim();
+    const cleanContact = manualContact.trim();
+
+    if (!cleanName) {
+      setManualError('Please enter attendee full name.');
+      return;
+    }
+    if (!cleanContact) {
+      setManualError('Please enter mobile contact number.');
+      return;
+    }
+    if (!manualSex) {
+      setManualError('Please select sex identification (Male / Female / Others).');
+      return;
+    }
+
+    if (!activeActivity || !selectedSession) {
+      setManualError('No active activity or session selected.');
+      return;
+    }
+
+    setManualSubmitting(true);
+    try {
+      const scanTime = Date.now();
+      const actStart = parseSessionTime(selectedSession.date, selectedSession.startTime);
+      const actEnd = parseSessionTime(selectedSession.date, selectedSession.endTime);
+      const lateThreshold = Number(activeActivity.lateThresholdMinutes || 0);
+
+      let logStatus: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' = 'ON_TIME';
+      if (lateThreshold === 0) {
+        logStatus = scanTime <= actEnd ? 'ON_TIME' : 'OUTSIDE_WINDOW';
+      } else {
+        const lateCutoff = actStart + lateThreshold * 60000;
+        if (scanTime < actStart || scanTime <= lateCutoff) {
+          logStatus = 'ON_TIME';
+        } else if (scanTime <= actEnd) {
+          logStatus = 'LATE';
+        } else {
+          logStatus = 'OUTSIDE_WINDOW';
+        }
+      }
+
+      const nameKey = cleanName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const phoneDigits = cleanContact.replace(/[^0-9]/g, '');
+      const pseudoUserId = `walkin_${nameKey}_${phoneDigits.slice(-4) || 'user'}`;
+      const logId = `${activeActivity.id}_${selectedSession.id}_${pseudoUserId}`;
+      const unitName = manualUnit.trim() || activeActivityUnit || 'General Attendee';
+
+      const requiresLogout = selectedSession.requiresLogout ?? activeActivity.requiresLogout ?? false;
+      const logRef = firestore ? doc(firestore, 'unitActivityAttendanceLogs', logId) : null;
+      let existingLogData: ActivityAttendanceLog | null = null;
+      let isOnlineSuccess = false;
+
+      if (firestore && logRef) {
+        try {
+          const existingLog = await getDoc(logRef);
+          if (existingLog.exists()) {
+            existingLogData = existingLog.data() as ActivityAttendanceLog;
+          }
+          isOnlineSuccess = true;
+        } catch (err: any) {
+          console.warn('Online log check failed, falling back to offline check:', err);
+        }
+      }
+
+      if (!isOnlineSuccess) {
+        existingLogData = offlineLogs.find((l) => l.id === logId) || null;
+      }
+
+      // Handle existing log for logout / duplicate
+      if (existingLogData) {
+        if (requiresLogout && !existingLogData.logoutAt) {
+          const logoutTime = new Date();
+          if (isOnlineSuccess && logRef) {
+            try {
+              await updateDoc(logRef, { logoutAt: logoutTime });
+              showScanResult({
+                status: 'success',
+                message: `Logout registered for ${cleanName} (${selectedSession.label}).`,
+                details: {
+                  name: cleanName,
+                  office: unitName,
+                  time: format(logoutTime, 'hh:mm a'),
+                  status: 'LOGOUT',
+                },
+              });
+              setIsManualDialogOpen(false);
+              setManualName('');
+              setManualContact('');
+              setManualSex('');
+              setManualUnit('');
+              return;
+            } catch (err) {
+              console.warn('Online logout update failed, falling back to offline:', err);
+            }
+          }
+
+          const updatedLogs = offlineLogs.map((l) => {
+            if (l.id === logId) {
+              return { ...l, logoutAt: logoutTime, synced: false };
+            }
+            return l;
+          });
+          setOfflineLogs(updatedLogs);
+          await saveOfflineLogsSigned(updatedLogs);
+
+          showScanResult({
+            status: 'success',
+            message: `Logout registered for ${cleanName} (Saved Offline).`,
+            details: {
+              name: cleanName,
+              office: unitName,
+              time: format(logoutTime, 'hh:mm a'),
+              status: 'LOGOUT (OFFLINE)',
+            },
+          });
+          setIsManualDialogOpen(false);
+          setManualName('');
+          setManualContact('');
+          setManualSex('');
+          setManualUnit('');
+          return;
+        } else if (requiresLogout && existingLogData.logoutAt) {
+          showScanResult({
+            status: 'warning',
+            message: `${cleanName} has already completed login and logout for ${selectedSession.label}. Duplicate ignored.`,
+            details: { name: cleanName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' },
+          });
+          setIsManualDialogOpen(false);
+          return;
+        } else {
+          showScanResult({
+            status: 'warning',
+            message: `${cleanName} has already signed in for ${selectedSession.label}. Duplicate ignored.`,
+            details: { name: cleanName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' },
+          });
+          setIsManualDialogOpen(false);
+          return;
+        }
+      }
+
+      // First-time login / check-in
+      const newLog: ActivityAttendanceLog = {
+        id: logId,
+        activityId: activeActivity.id,
+        userId: pseudoUserId,
+        userName: cleanName,
+        unitId: 'manual',
+        unitName,
+        deviceFingerprint: 'WALK-IN-TERMINAL',
+        scannedAt: new Date(),
+        status: logStatus,
+        contactNumber: cleanContact,
+        sex: manualSex,
+        sessionId: selectedSession.id,
+        sessionLabel: selectedSession.label,
+      };
+
+      if (isOnlineSuccess && logRef) {
+        try {
+          await setDoc(logRef, newLog);
+          showScanResult({
+            status: logStatus === 'ON_TIME' ? 'success' : 'warning',
+            message:
+              logStatus === 'ON_TIME'
+                ? `Signed in on time for ${selectedSession.label}.${requiresLogout ? ' Sign again to logout.' : ''}`
+                : logStatus === 'LATE'
+                  ? `Lateness recorded for ${selectedSession.label}. Threshold was ${lateThreshold} mins.`
+                  : `Recorded outside session window.`,
+            details: {
+              name: cleanName,
+              office: unitName,
+              time: format(new Date(), 'hh:mm a'),
+              status:
+                logStatus === 'ON_TIME' ? 'LOGIN ON TIME' : logStatus === 'LATE' ? 'LOGIN LATE' : 'OUTSIDE WINDOW',
+            },
+          });
+          setIsManualDialogOpen(false);
+          setManualName('');
+          setManualContact('');
+          setManualSex('');
+          setManualUnit('');
+          return;
+        } catch (err: any) {
+          console.warn('Online manual setDoc failed, saving offline:', err);
+        }
+      }
+
+      // Offline fallback
+      const updatedLog = { ...newLog, synced: false };
+      const updatedLogs = [...offlineLogs, updatedLog];
+      setOfflineLogs(updatedLogs);
+      await saveOfflineLogsSigned(updatedLogs);
+
+      showScanResult({
+        status: 'success',
+        message: `Attendance Recorded (Saved Offline). Syncs automatically.`,
+        details: {
+          name: cleanName,
+          office: unitName,
+          time: format(new Date(), 'hh:mm a'),
+          status:
+            logStatus === 'ON_TIME'
+              ? 'LOGIN ON TIME (OFFLINE)'
+              : logStatus === 'LATE'
+                ? 'LOGIN LATE (OFFLINE)'
+                : 'OUTSIDE WINDOW (OFFLINE)',
+        },
+      });
+      setIsManualDialogOpen(false);
+      setManualName('');
+      setManualContact('');
+      setManualSex('');
+      setManualUnit('');
+    } catch (err: any) {
+      console.error(err);
+      setManualError(err.message || 'Failed to record attendance.');
+    } finally {
+      setManualSubmitting(false);
+    }
+  };
+
   // Monitor fullscreen state changes
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -1007,6 +1258,16 @@ function UnitActivityScannerTerminal() {
               <span className="text-[7.5px] font-black text-emerald-300 uppercase tracking-widest">Live</span>
             </div>
             <button
+              onClick={() => {
+                setIsManualDialogOpen(true);
+                setManualError('');
+              }}
+              className="inline-flex items-center gap-1 text-[7.5px] font-black uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-0.5 rounded-full transition-all shadow-sm"
+            >
+              <PenLine className="h-3 w-3" />
+              Manual Sign-In
+            </button>
+            <button
               onClick={toggleFullscreen}
               className="inline-flex items-center gap-1 text-[7.5px] font-black uppercase tracking-widest text-[#D4AF37]/80 hover:text-[#D4AF37] px-2.5 py-0.5 rounded-full transition-all"
               style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)' }}
@@ -1112,12 +1373,25 @@ function UnitActivityScannerTerminal() {
                   <h2 className="text-base sm:text-lg font-black uppercase tracking-wider text-white drop-shadow">
                     RSU Attendance Kiosk Active
                   </h2>
-                  <p
-                    className="text-[8px] sm:text-[9px] text-emerald-300 uppercase tracking-widest font-black max-w-lg mt-1.5 px-3 py-1 rounded-full"
-                    style={{ background: 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.2)' }}
-                  >
-                    ★ Align your mobile QR Code inside the scanner on the right ★
-                  </p>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <p
+                      className="text-[8px] sm:text-[9px] text-emerald-300 uppercase tracking-widest font-black px-3 py-1 rounded-full"
+                      style={{ background: 'rgba(52,211,153,0.10)', border: '1px solid rgba(52,211,153,0.2)' }}
+                    >
+                      ★ Align your mobile QR Code inside the scanner on the right ★
+                    </p>
+                    <button
+                      onClick={() => {
+                        setIsManualDialogOpen(true);
+                        setManualError('');
+                      }}
+                      className="text-[8px] sm:text-[9px] text-[#D4AF37] hover:text-white uppercase tracking-widest font-black px-3 py-1 rounded-full flex items-center gap-1 transition-all cursor-pointer"
+                      style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)' }}
+                    >
+                      <PenLine className="h-3 w-3" />
+                      Type Name &amp; Mobile
+                    </button>
+                  </div>
                   {/* Statistics Grid */}
                   <div className="grid grid-cols-3 gap-3 mt-4 w-full max-w-2xl">
                     {[
@@ -1733,6 +2007,132 @@ function UnitActivityScannerTerminal() {
           display: none !important;
         }
       `}</style>
+
+      {/* ================================================================== */}
+      {/* MANUAL ATTENDEE ENTRY DIALOG (Walk-in sign-in)                      */}
+      {/* ================================================================== */}
+      <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
+        <DialogContent className="bg-slate-900 border border-slate-700 text-white max-w-md p-6 rounded-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-black uppercase tracking-tight text-white flex items-center gap-2">
+              <PenLine className="h-5 w-5 text-[#D4AF37]" />
+              Walk-In / Manual Attendee Sign-In
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-400 font-medium">
+              Enter the attendee&apos;s name and mobile number, and select their sex to log attendance.
+            </DialogDescription>
+          </DialogHeader>
+
+          {manualError && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              <span>{manualError}</span>
+            </div>
+          )}
+
+          {activeActivity && (
+            <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
+              <div>
+                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">
+                  Activity &amp; Session
+                </span>
+                <span className="font-bold text-[#D4AF37] truncate block max-w-[260px]">{activeActivity.name}</span>
+              </div>
+              <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase">
+                {selectedSession?.label || 'General'}
+              </Badge>
+            </div>
+          )}
+
+          <form onSubmit={handleManualLogSubmit} className="space-y-4 pt-1">
+            <div className="space-y-1">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
+                <User className="h-3 w-3 text-[#D4AF37]" /> Full Name <span className="text-rose-400">*</span>
+              </label>
+              <Input
+                placeholder="e.g. Dr. Juan Dela Cruz"
+                value={manualName}
+                onChange={(e) => setManualName(e.target.value)}
+                className="bg-slate-950 border-slate-800 text-xs font-bold text-white h-10 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
+                disabled={manualSubmitting}
+                required
+                autoFocus
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
+                  <Phone className="h-3 w-3 text-[#D4AF37]" /> Mobile Number <span className="text-rose-400">*</span>
+                </label>
+                <Input
+                  placeholder="09123456789"
+                  value={manualContact}
+                  onChange={(e) => setManualContact(e.target.value)}
+                  className="bg-slate-950 border-slate-800 text-xs font-bold text-white h-10 rounded-xl font-mono focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
+                  disabled={manualSubmitting}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
+                  <Users className="h-3 w-3 text-[#D4AF37]" /> Sex <span className="text-rose-400">*</span>
+                </label>
+                <Select value={manualSex} onValueChange={setManualSex} disabled={manualSubmitting}>
+                  <SelectTrigger className="bg-slate-950 border-slate-800 text-xs font-bold text-white h-10 rounded-xl">
+                    <SelectValue placeholder="Select Sex" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-slate-800 text-white text-xs font-semibold">
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
+                <Building2 className="h-3 w-3 text-[#D4AF37]" /> Office / Department / Unit
+              </label>
+              <Input
+                placeholder="e.g. College of Engineering / Guest"
+                value={manualUnit}
+                onChange={(e) => setManualUnit(e.target.value)}
+                className="bg-slate-950 border-slate-800 text-xs font-bold text-white h-10 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
+                disabled={manualSubmitting}
+              />
+            </div>
+
+            <DialogFooter className="pt-2 gap-2 flex sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsManualDialogOpen(false)}
+                className="border-slate-700 hover:bg-slate-800 text-white text-xs font-bold h-10 rounded-xl"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={manualSubmitting || !manualName.trim() || !manualContact.trim() || !manualSex}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 dark:text-white text-xs font-black uppercase tracking-wider h-10 rounded-xl border-none shadow-lg"
+              >
+                {manualSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Logging...
+                  </>
+                ) : (
+                  <>
+                    <ClipboardCheck className="h-4 w-4 mr-2" /> Log Attendance
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
