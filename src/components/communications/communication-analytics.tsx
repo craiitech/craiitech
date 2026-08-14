@@ -19,7 +19,9 @@ import {
   CartesianGrid,
   AreaChart,
   Area,
+  LabelList,
 } from 'recharts';
+import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 import {
   Mail,
   Send,
@@ -34,7 +36,14 @@ import {
   BookmarkCheck,
   ShieldCheck,
   Zap,
+  Play,
+  Pause,
+  RotateCcw,
+  Sparkles,
+  Layers,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 
 interface CommunicationAnalyticsProps {
@@ -54,6 +63,15 @@ const KIND_COLORS: Record<string, string> = {
   'Transmittal Document': '#8b5cf6', // Violet
 };
 
+const KIND_GRADIENTS: Record<string, string> = {
+  'Memorandum Order': 'url(#comm3d-grad-indigo)',
+  'Office Order': 'url(#comm3d-grad-sky)',
+  'Office Memorandum': 'url(#comm3d-grad-cyan)',
+  'Communication Letter / Request': 'url(#comm3d-grad-emerald)',
+  Invitation: 'url(#comm3d-grad-amber)',
+  'Transmittal Document': 'url(#comm3d-grad-violet)',
+};
+
 const SCOPE_COLORS = {
   Internal: '#3b82f6',
   External: '#10b981',
@@ -66,10 +84,20 @@ const ACTION_COLORS: Record<string, string> = {
   'For Feedback / Consultation': '#8b5cf6',
 };
 
+const ACTION_GRADIENTS: Record<string, string> = {
+  'For Information': 'url(#comm3d-grad-sky)',
+  'For Action / Compliance': 'url(#comm3d-grad-rose)',
+  'For Decision / Approval': 'url(#comm3d-grad-amber)',
+  'For Feedback / Consultation': 'url(#comm3d-grad-violet)',
+};
+
 export function CommunicationAnalytics({ communications, units = [], campuses = [] }: CommunicationAnalyticsProps) {
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedScope, setSelectedScope] = useState<string>('all');
   const [selectedKind, setSelectedKind] = useState<string>('all');
+  const [is3DMode, setIs3DMode] = useState<boolean>(true);
+  const [isPlayingTimeline, setIsPlayingTimeline] = useState<boolean>(false);
+  const [timelineMonthIndex, setTimelineMonthIndex] = useState<number | null>(null);
 
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
@@ -91,8 +119,8 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
     return Array.from(yearsSet).sort((a, b) => Number(b) - Number(a));
   }, [communications]);
 
-  // Filter communications
-  const filteredComms = useMemo(() => {
+  // Base filtered communications (by Year, Scope, Kind)
+  const baseFilteredComms = useMemo(() => {
     return communications.filter((c) => {
       let commYear = '';
       if (c.createdAt?.toDate) {
@@ -112,6 +140,53 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
       return true;
     });
   }, [communications, selectedYear, selectedScope, selectedKind]);
+
+  // Extract unique sorted months
+  const allMonthsList = useMemo(() => {
+    const monthsSet = new Set<string>();
+    baseFilteredComms.forEach((c) => {
+      let date: Date | null = null;
+      if (c.createdAt?.toDate) date = c.createdAt.toDate();
+      else if (c.createdAt?.seconds) date = new Date(c.createdAt.seconds * 1000);
+      if (date && !isNaN(date.getTime())) {
+        monthsSet.add(format(date, 'yyyy-MM'));
+      }
+    });
+    return Array.from(monthsSet).sort();
+  }, [baseFilteredComms]);
+
+  // 4D Timeline Player Effect
+  React.useEffect(() => {
+    let timer: any;
+    if (isPlayingTimeline && allMonthsList.length > 0) {
+      timer = setInterval(() => {
+        setTimelineMonthIndex((prev) => {
+          if (prev === null || prev >= allMonthsList.length - 1) {
+            return 0;
+          }
+          return prev + 1;
+        });
+      }, 1200);
+    }
+    return () => clearInterval(timer);
+  }, [isPlayingTimeline, allMonthsList]);
+
+  // Effective filtered comms taking into account active 4D timeline slice
+  const filteredComms = useMemo(() => {
+    if (timelineMonthIndex !== null && allMonthsList[timelineMonthIndex]) {
+      const activeMonthStr = allMonthsList[timelineMonthIndex];
+      return baseFilteredComms.filter((c) => {
+        let date: Date | null = null;
+        if (c.createdAt?.toDate) date = c.createdAt.toDate();
+        else if (c.createdAt?.seconds) date = new Date(c.createdAt.seconds * 1000);
+        if (date && !isNaN(date.getTime())) {
+          return format(date, 'yyyy-MM') === activeMonthStr;
+        }
+        return false;
+      });
+    }
+    return baseFilteredComms;
+  }, [baseFilteredComms, timelineMonthIndex, allMonthsList]);
 
   // Key KPI Metrics
   const stats = useMemo(() => {
@@ -338,6 +413,9 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+      <Chart3DDefs idPrefix="comm3d" />
+
       {/* HEADER & FILTER CONTROLS */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-xl border border-indigo-900/50">
         <div className="space-y-1">
@@ -348,6 +426,11 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
             <Badge variant="outline" className="text-indigo-200 border-indigo-700/50 text-[10px] font-bold">
               EOMS Communication Analytics
             </Badge>
+            {is3DMode && (
+              <Badge className="bg-indigo-500/30 text-indigo-200 border-indigo-400/40 text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                <Sparkles className="h-2.5 w-2.5" /> 3D Depth Active
+              </Badge>
+            )}
           </div>
           <h2 className="text-xl font-black uppercase tracking-tight text-white flex items-center gap-2">
             <Activity className="h-5 w-5 text-indigo-400" />
@@ -359,8 +442,25 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
           </p>
         </div>
 
-        {/* Filters */}
+        {/* Filters & 3D/4D Controls */}
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
+          {/* 3D Depth Toggle */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIs3DMode(!is3DMode)}
+            className={cn(
+              'h-8 text-xs font-bold rounded-lg border flex items-center gap-1.5 transition-all',
+              is3DMode
+                ? 'bg-indigo-600/40 border-indigo-400 text-white shadow-lg shadow-indigo-600/30'
+                : 'bg-white/10 border-white/20 text-white hover:bg-white/20',
+            )}
+          >
+            <Layers className="h-3.5 w-3.5" />
+            {is3DMode ? '3D Isometric View' : '2D Flat View'}
+          </Button>
+
           {/* Year Filter */}
           <Select value={selectedYear} onValueChange={setSelectedYear}>
             <SelectTrigger className="h-8 text-xs font-bold bg-white/10 border-white/20 text-white w-28">
@@ -415,16 +515,68 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
         </div>
       </div>
 
+      {/* 4D TEMPORAL FLOW TIMELINE CONTROLLER */}
+      {allMonthsList.length > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 bg-gradient-to-r from-indigo-900/15 via-purple-900/15 to-indigo-900/15 border border-indigo-200 dark:border-indigo-800/60 rounded-2xl shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-indigo-600 animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-900 dark:text-indigo-200">
+              4D Temporal Flow Dimension:
+            </span>
+            <Badge
+              variant="outline"
+              className="font-mono text-[10px] font-bold bg-white dark:bg-slate-900 text-indigo-700 dark:text-indigo-300"
+            >
+              {timelineMonthIndex === null
+                ? 'Full Horizon (All Months)'
+                : `Month Focus: ${allMonthsList[timelineMonthIndex]}`}
+            </Badge>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setIsPlayingTimeline(!isPlayingTimeline)}
+              className="h-7 px-3 text-[10px] font-black uppercase rounded-lg border-indigo-300 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950 flex items-center gap-1.5"
+            >
+              {isPlayingTimeline ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+              {isPlayingTimeline ? 'Pause 4D Flow' : 'Play 4D Flow'}
+            </Button>
+            {timelineMonthIndex !== null && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsPlayingTimeline(false);
+                  setTimelineMonthIndex(null);
+                }}
+                className="h-7 px-2 text-[9px] font-black uppercase text-slate-500 hover:text-slate-800 flex items-center gap-1"
+              >
+                <RotateCcw className="h-2.5 w-2.5" /> Reset View
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* KPI METRIC CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Total Volume */}
-        <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-indigo-50/30 dark:from-slate-900 dark:to-slate-850">
+        <Card
+          className={cn(
+            'rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm transition-all duration-300 bg-gradient-to-br from-white to-indigo-50/30 dark:from-slate-900 dark:to-slate-850',
+            is3DMode && 'hover:-translate-y-1 hover:shadow-xl hover:border-indigo-300 dark:hover:border-indigo-700',
+          )}
+        >
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Total Logged
               </span>
-              <div className="h-8 w-8 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center shadow-inner">
                 <Mail className="h-4 w-4" />
               </div>
             </div>
@@ -444,13 +596,18 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
         </Card>
 
         {/* Scope Distribution */}
-        <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-slate-850">
+        <Card
+          className={cn(
+            'rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm transition-all duration-300 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-slate-850',
+            is3DMode && 'hover:-translate-y-1 hover:shadow-xl hover:border-blue-300 dark:hover:border-blue-700',
+          )}
+        >
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Internal vs External
               </span>
-              <div className="h-8 w-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center shadow-inner">
                 <Globe className="h-4 w-4" />
               </div>
             </div>
@@ -469,13 +626,18 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
         </Card>
 
         {/* Action Directives */}
-        <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-rose-50/30 dark:from-slate-900 dark:to-slate-850">
+        <Card
+          className={cn(
+            'rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm transition-all duration-300 bg-gradient-to-br from-white to-rose-50/30 dark:from-slate-900 dark:to-slate-850',
+            is3DMode && 'hover:-translate-y-1 hover:shadow-xl hover:border-rose-300 dark:hover:border-rose-700',
+          )}
+        >
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Action Required
               </span>
-              <div className="h-8 w-8 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-xl bg-rose-500/10 text-rose-600 flex items-center justify-center shadow-inner">
                 <BookmarkCheck className="h-4 w-4" />
               </div>
             </div>
@@ -491,13 +653,18 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
         </Card>
 
         {/* Urgent Traffic */}
-        <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-amber-50/30 dark:from-slate-900 dark:to-slate-850">
+        <Card
+          className={cn(
+            'rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm transition-all duration-300 bg-gradient-to-br from-white to-amber-50/30 dark:from-slate-900 dark:to-slate-850',
+            is3DMode && 'hover:-translate-y-1 hover:shadow-xl hover:border-amber-300 dark:hover:border-amber-700',
+          )}
+        >
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Urgent / Time-Critical
               </span>
-              <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center shadow-inner">
                 <Zap className="h-4 w-4" />
               </div>
             </div>
@@ -513,13 +680,18 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
         </Card>
 
         {/* Acknowledgment Rate */}
-        <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-white to-emerald-50/30 dark:from-slate-900 dark:to-slate-850">
+        <Card
+          className={cn(
+            'rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm transition-all duration-300 bg-gradient-to-br from-white to-emerald-50/30 dark:from-slate-900 dark:to-slate-850',
+            is3DMode && 'hover:-translate-y-1 hover:shadow-xl hover:border-emerald-300 dark:hover:border-emerald-700',
+          )}
+        >
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Receipt / Read Rate
               </span>
-              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shadow-inner">
                 <ShieldCheck className="h-4 w-4" />
               </div>
             </div>
@@ -557,28 +729,19 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
             {monthlyTrendData.length > 0 ? (
               <div className="h-72 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={monthlyTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="outgoingGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0.05} />
-                      </linearGradient>
-                      <linearGradient id="incomingGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.05} />
-                      </linearGradient>
-                    </defs>
+                  <AreaChart data={monthlyTrendData} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
-                    <XAxis dataKey="month" tickLine={false} tick={{ fontSize: 11, fontWeight: 600 }} />
-                    <YAxis allowDecimals={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600 }} />
+                    <XAxis dataKey="month" tickLine={false} tick={{ fontSize: 11, fontWeight: 700 }} />
+                    <YAxis allowDecimals={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 700 }} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#0f172a',
-                        borderColor: '#1e293b',
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        borderColor: '#334155',
                         borderRadius: '12px',
                         color: '#fff',
                         fontSize: '11px',
                         fontWeight: 'bold',
+                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)',
                       }}
                     />
                     <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', paddingTop: '10px' }} />
@@ -587,18 +750,20 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
                       dataKey="outgoing"
                       name="Outgoing Dispatches"
                       stroke="#6366f1"
-                      strokeWidth={2.5}
+                      strokeWidth={3}
                       fillOpacity={1}
-                      fill="url(#outgoingGrad)"
+                      fill={is3DMode ? 'url(#comm3d-area-indigo)' : '#6366f1'}
+                      filter={is3DMode ? 'url(#comm3d-elevation-shadow)' : undefined}
                     />
                     <Area
                       type="monotone"
                       dataKey="incoming"
                       name="Incoming Receipts"
                       stroke="#0ea5e9"
-                      strokeWidth={2.5}
+                      strokeWidth={3}
                       fillOpacity={1}
-                      fill="url(#incomingGrad)"
+                      fill={is3DMode ? 'url(#comm3d-area-emerald)' : '#0ea5e9'}
+                      filter={is3DMode ? 'url(#comm3d-elevation-shadow)' : undefined}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -611,7 +776,7 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
           </CardContent>
         </Card>
 
-        {/* Categories / Kinds Donut Chart */}
+        {/* Categories / Kinds Donut Chart with Direct 3D Labels */}
         <Card className="lg:col-span-4 rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900">
           <CardHeader className="pb-2 border-b border-slate-100 dark:border-slate-800">
             <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
@@ -625,26 +790,32 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
           <CardContent className="p-4 pt-6 flex flex-col items-center justify-center">
             {kindData.length > 0 ? (
               <>
-                <div className="h-52 w-full">
+                <div className="h-56 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={kindData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={50}
-                        outerRadius={78}
+                        innerRadius={48}
+                        outerRadius={82}
                         paddingAngle={3}
                         dataKey="value"
+                        label={is3DMode ? RenderPie3DLabel : undefined}
+                        labelLine={false}
                       >
                         {kindData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={is3DMode ? KIND_GRADIENTS[entry.name] || entry.color : entry.color}
+                            filter={is3DMode ? 'url(#comm3d-soft-depth)' : undefined}
+                          />
                         ))}
                       </Pie>
                       <Tooltip
                         contentStyle={{
-                          backgroundColor: '#0f172a',
-                          borderColor: '#1e293b',
+                          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                          borderColor: '#334155',
                           borderRadius: '12px',
                           color: '#fff',
                           fontSize: '11px',
@@ -654,21 +825,31 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
-                {/* Custom Legend List */}
+                {/* Custom Legend List with Percentages */}
                 <div className="w-full space-y-1.5 mt-2 max-h-32 overflow-y-auto pr-1">
-                  {kindData.map((k) => (
-                    <div key={k.name} className="flex items-center justify-between text-xs font-medium">
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: k.color }} />
-                        <span className="truncate text-slate-700 dark:text-slate-300 font-semibold">{k.name}</span>
+                  {kindData.map((k) => {
+                    const totalK = kindData.reduce((a, b) => a + b.value, 0);
+                    const pct = totalK > 0 ? ((k.value / totalK) * 100).toFixed(1) : '0';
+                    return (
+                      <div key={k.name} className="flex items-center justify-between text-xs font-medium">
+                        <div className="flex items-center gap-2 truncate">
+                          <span
+                            className="h-2.5 w-2.5 rounded-full shrink-0 shadow-sm"
+                            style={{ backgroundColor: k.color }}
+                          />
+                          <span className="truncate text-slate-700 dark:text-slate-300 font-semibold">{k.name}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="font-mono font-bold text-slate-900 dark:text-white">{k.value}</span>
+                          <span className="text-[10px] text-muted-foreground font-mono">({pct}%)</span>
+                        </div>
                       </div>
-                      <span className="font-mono font-bold text-slate-900 dark:text-white">{k.value}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </>
             ) : (
-              <div className="h-52 flex items-center justify-center text-muted-foreground text-xs italic">
+              <div className="h-56 flex items-center justify-center text-muted-foreground text-xs italic">
                 No category records available.
               </div>
             )}
@@ -678,7 +859,7 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
 
       {/* CHART ROW 2: ACTION MATRIX + TARGET STAKEHOLDERS + TOP ORIGINATING OFFICES */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Action Type / Purpose Matrix */}
+        {/* Action Type / Purpose Matrix with 3D Gradients & Direct Labels */}
         <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900">
           <CardHeader className="pb-2 border-b border-slate-100 dark:border-slate-800">
             <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
@@ -690,25 +871,30 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 pt-6">
-            <div className="h-60 w-full">
+            <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={actionTypeData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <BarChart data={actionTypeData} layout="vertical" margin={{ top: 5, right: 35, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.15} />
-                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fontWeight: 600 }} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fontWeight: 700 }} />
                   <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 10, fontWeight: 700 }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#0f172a',
-                      borderColor: '#1e293b',
+                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                      borderColor: '#334155',
                       borderRadius: '12px',
                       color: '#fff',
                       fontSize: '11px',
                       fontWeight: 'bold',
                     }}
                   />
-                  <Bar dataKey="count" name="Count" radius={[0, 6, 6, 0]}>
+                  <Bar dataKey="count" name="Count" radius={[0, 8, 8, 0]}>
+                    <LabelList content={<RenderBar3DLabel />} />
                     {actionTypeData.map((entry, index) => (
-                      <Cell key={`act-${index}`} fill={entry.color} />
+                      <Cell
+                        key={`act-${index}`}
+                        fill={is3DMode ? ACTION_GRADIENTS[entry.name] || entry.color : entry.color}
+                        filter={is3DMode ? 'url(#comm3d-soft-depth)' : undefined}
+                      />
                     ))}
                   </Bar>
                 </BarChart>
@@ -717,7 +903,7 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
           </CardContent>
         </Card>
 
-        {/* Target Stakeholders */}
+        {/* Target Stakeholders with 3D Gradients & Direct Labels */}
         <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900">
           <CardHeader className="pb-2 border-b border-slate-100 dark:border-slate-800">
             <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
@@ -729,30 +915,38 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 pt-6">
-            <div className="h-60 w-full">
+            <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={audienceData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <BarChart data={audienceData} layout="vertical" margin={{ top: 5, right: 35, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.15} />
-                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fontWeight: 600 }} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fontWeight: 700 }} />
                   <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 10, fontWeight: 700 }} />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#0f172a',
-                      borderColor: '#1e293b',
+                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                      borderColor: '#334155',
                       borderRadius: '12px',
                       color: '#fff',
                       fontSize: '11px',
                       fontWeight: 'bold',
                     }}
                   />
-                  <Bar dataKey="value" name="Communications" fill="#3b82f6" radius={[0, 6, 6, 0]} />
+                  <Bar
+                    dataKey="value"
+                    name="Communications"
+                    fill={is3DMode ? 'url(#comm3d-grad-sky)' : '#3b82f6'}
+                    radius={[0, 8, 8, 0]}
+                    filter={is3DMode ? 'url(#comm3d-soft-depth)' : undefined}
+                  >
+                    <LabelList content={<RenderBar3DLabel />} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        {/* Top Originating Units */}
+        {/* Top Originating Units with 3D Badge Ranking */}
         <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900">
           <CardHeader className="pb-2 border-b border-slate-100 dark:border-slate-800">
             <CardTitle className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
@@ -766,14 +960,31 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
           <CardContent className="p-4 pt-6">
             <div className="space-y-3">
               {topUnitsData.map((u, i) => (
-                <div key={u.name} className="flex items-center justify-between text-xs">
+                <div
+                  key={u.name}
+                  className="flex items-center justify-between text-xs p-2 rounded-xl bg-slate-50/70 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50"
+                >
                   <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                    <span className="h-5 w-5 rounded-full bg-slate-100 dark:bg-slate-800 font-mono text-[10px] font-bold flex items-center justify-center shrink-0">
+                    <span
+                      className={cn(
+                        'h-6 w-6 rounded-lg font-mono text-[10px] font-black flex items-center justify-center shrink-0 shadow-sm',
+                        i === 0
+                          ? 'bg-amber-500 text-white'
+                          : i === 1
+                            ? 'bg-slate-400 text-white'
+                            : i === 2
+                              ? 'bg-amber-700 text-white'
+                              : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300',
+                      )}
+                    >
                       {i + 1}
                     </span>
                     <span className="font-bold text-slate-800 dark:text-slate-200 truncate">{u.name}</span>
                   </div>
-                  <Badge variant="secondary" className="font-mono font-bold text-[11px] shrink-0">
+                  <Badge
+                    variant="secondary"
+                    className="font-mono font-bold text-[11px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 shrink-0"
+                  >
                     {u.count} comms
                   </Badge>
                 </div>
