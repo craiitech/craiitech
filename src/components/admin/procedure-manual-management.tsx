@@ -262,34 +262,48 @@ export function ProcedureManualManagement() {
     const calculatedProcessesCount =
       processesList.length > 0 ? processesList.length : values.numberOfProcesses ? Number(values.numberOfProcesses) : 0;
 
+    const cleanedProcesses = processesList.map((p) => ({
+      processNumber: (p.processNumber || '').trim(),
+      processTitle: (p.processTitle || '').trim(),
+    }));
+
     const manualRef = doc(firestore, 'procedureManuals', selectedUnit.id);
-    const manualData: Partial<ProcedureManual> = {
+    const manualData: Record<string, any> = {
       id: selectedUnit.id,
-      unitName: selectedUnit.name,
+      unitName: selectedUnit.name || '',
       procedureNumber: values.procedureNumber?.trim() || '',
       manualTitle: values.manualTitle?.trim() || '',
       numberOfProcesses: calculatedProcessesCount,
-      processes: processesList,
+      processes: cleanedProcesses,
       revisionNumber: values.revisionNumber?.trim() || '00',
       revisionDate: values.revisionDate?.trim() || values.dateImplemented?.trim() || '',
       dateImplemented: values.dateImplemented?.trim() || values.revisionDate?.trim() || '',
       pageCount: values.pageCount ? Number(values.pageCount) : 0,
       googleDriveLink: values.googleDriveLink?.trim() || '',
       status: values.status || 'Not Submitted',
-      copiedFromUnitId: useOtherUnitManual ? sourceUnitId || undefined : undefined,
-      copiedFromUnitName: useOtherUnitManual
-        ? manageableUnits.find((u) => u.id === sourceUnitId)?.name || undefined
-        : undefined,
       updatedAt: serverTimestamp(),
     };
+
+    if (useOtherUnitManual && sourceUnitId) {
+      manualData.copiedFromUnitId = sourceUnitId;
+      const sourceUnit = manageableUnits.find((u) => u.id === sourceUnitId);
+      manualData.copiedFromUnitName = sourceUnit?.name || '';
+    } else {
+      manualData.copiedFromUnitId = '';
+      manualData.copiedFromUnitName = '';
+    }
 
     try {
       await setDoc(manualRef, manualData, { merge: true });
       toast({ title: 'Success', description: `Manual configuration saved for ${selectedUnit.name}.` });
       handleCloseDialog();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving manual:', error);
-      toast({ title: 'Error', description: 'Could not save the manual.', variant: 'destructive' });
+      toast({
+        title: 'Error',
+        description: error?.message || 'Could not save the manual.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }

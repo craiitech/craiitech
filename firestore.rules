@@ -372,8 +372,8 @@ service cloud.firestore {
     
     match /cycles/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
     match /isoClauses/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
-    match /procedureManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
-    match /eomsPolicyManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
+    match /procedureManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
+    match /eomsPolicyManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
 
     match /system/csmSettings {
       allow read: if isSignedIn();
