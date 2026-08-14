@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -9,6 +8,8 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { FileText, Info, Activity } from 'lucide-react';
 import { submissionTypes } from '@/lib/constants';
 
+import { Chart3DDefs, RenderBar3DLabel } from '@/components/ui/chart-3d-defs';
+
 interface CycleSubmissionBreakdownProps {
   allSubmissions: Submission[] | null;
   selectedYear: number;
@@ -18,7 +19,7 @@ export function CycleSubmissionBreakdown({ allSubmissions, selectedYear }: Cycle
   const chartData = useMemo(() => {
     if (!allSubmissions) return [];
 
-    const yearSubmissions = allSubmissions.filter(s => s.year === selectedYear);
+    const yearSubmissions = allSubmissions.filter((s) => s.year === selectedYear);
 
     const dataMap: Record<string, { name: string; 'First Cycle': number; 'Final Cycle': number }> = {};
 
@@ -35,58 +36,97 @@ export function CycleSubmissionBreakdown({ allSubmissions, selectedYear }: Cycle
         }
       }
     }
-    
+
     return Object.values(dataMap);
   }, [allSubmissions, selectedYear]);
 
-  const hasData = useMemo(() => chartData.some(d => d['First Cycle'] > 0 || d['Final Cycle'] > 0), [chartData]);
+  const hasData = useMemo(() => chartData.some((d) => d['First Cycle'] > 0 || d['Final Cycle'] > 0), [chartData]);
 
   return (
-    <Card className="shadow-md border-primary/10 overflow-hidden">
+    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl border-primary/10 overflow-hidden bg-gradient-to-b from-white to-slate-50/40 dark:from-slate-900 dark:to-slate-850">
+      {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+      <Chart3DDefs idPrefix="cycle3d" />
+
       <CardHeader className="bg-muted/10 border-b py-4">
         <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Cycle Distribution Profile</CardTitle>
+          <FileText className="h-5 w-5 text-indigo-600" />
+          <CardTitle className="text-sm font-black uppercase tracking-tight">
+            Institutional Cycle Distribution Profile (3D)
+          </CardTitle>
         </div>
-        <CardDescription className="text-xs">Aggregate count of submissions per core EOMS document for AY {selectedYear}.</CardDescription>
+        <CardDescription className="text-xs font-medium">
+          Aggregate count of submissions per core EOMS document for AY {selectedYear}.
+        </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
         {hasData ? (
-            <ChartContainer config={{}} className="h-[450px] w-full">
+          <ChartContainer config={{}} className="h-[450px] w-full">
             <ResponsiveContainer>
-                <BarChart
-                data={chartData}
-                margin={{ top: 20, right: 30, left: 0, bottom: 100 }}
-                >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
-                <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 10, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+              <BarChart data={chartData} margin={{ top: 25, right: 30, left: 0, bottom: 100 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.15} />
+                <XAxis
+                  dataKey="name"
+                  angle={-45}
+                  textAnchor="end"
+                  interval={0}
+                  tick={{ fontSize: 10, fontWeight: 'bold' }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fontWeight: 'bold' }}
+                />
                 <Tooltip content={<ChartTooltipContent />} />
-                <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '30px', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }} />
-                <Bar dataKey="First Cycle" fill="hsl(var(--chart-1))" radius={[2, 2, 0, 0]}>
-                    <LabelList dataKey="First Cycle" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--chart-1))' }} />
+                <Legend
+                  verticalAlign="top"
+                  align="right"
+                  wrapperStyle={{
+                    paddingBottom: '30px',
+                    fontSize: '10px',
+                    textTransform: 'uppercase',
+                    fontWeight: 'bold',
+                  }}
+                />
+                <Bar
+                  dataKey="First Cycle"
+                  fill="url(#cycle3d-grad-indigo)"
+                  radius={[6, 6, 0, 0]}
+                  filter="url(#cycle3d-soft-depth)"
+                >
+                  <LabelList content={<RenderBar3DLabel />} />
                 </Bar>
-                <Bar dataKey="Final Cycle" fill="hsl(var(--chart-2))" radius={[2, 2, 0, 0]}>
-                    <LabelList dataKey="Final Cycle" position="top" style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--chart-2))' }} />
+                <Bar
+                  dataKey="Final Cycle"
+                  fill="url(#cycle3d-grad-emerald)"
+                  radius={[6, 6, 0, 0]}
+                  filter="url(#cycle3d-soft-depth)"
+                >
+                  <LabelList content={<RenderBar3DLabel />} />
                 </Bar>
-                </BarChart>
+              </BarChart>
             </ResponsiveContainer>
-            </ChartContainer>
+          </ChartContainer>
         ) : (
-            <div className="h-[450px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
-                <Activity className="h-12 w-12 mb-2" />
-                <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
-            </div>
+          <div className="h-[450px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+            <Activity className="h-12 w-12 mb-2" />
+            <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+          </div>
         )}
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-                <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
-                    <strong>Guidance for usage:</strong> This profile identifies "Document Friction". Uneven bars indicate procedural gaps where specific documents (e.g., SWOT vs. Action Plans) are lagging. High first-cycle density with low final-cycle density suggests a need for targeted follow-up on end-of-year evidence closure.
-                </p>
-            </div>
+          <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
+              <strong>Guidance for usage:</strong> This profile identifies "Document Friction". Uneven bars indicate
+              procedural gaps where specific documents (e.g., SWOT vs. Action Plans) are lagging. High first-cycle
+              density with low final-cycle density suggests a need for targeted follow-up on end-of-year evidence
+              closure.
+            </p>
+          </div>
         </div>
       </CardFooter>
     </Card>

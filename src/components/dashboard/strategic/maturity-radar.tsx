@@ -1,12 +1,23 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip, Legend, PolarRadiusAxis } from 'recharts';
+import {
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+  PolarRadiusAxis,
+} from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import type { Submission, Risk, Campus, ManagementReviewOutput } from '@/lib/types';
 import { ShieldCheck, Info, Target, Activity } from 'lucide-react';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT } from '@/lib/constants';
+
+import { Chart3DDefs } from '@/components/ui/chart-3d-defs';
 
 interface MaturityRadarProps {
   campuses: Campus[];
@@ -20,79 +31,124 @@ export function MaturityRadar({ campuses, submissions, risks, mrOutputs, selecte
   const radarData = useMemo(() => {
     if (!campuses.length) return [];
 
-    return campuses.map(campus => {
-      const campusSubmissions = submissions.filter(s => s.campusId === campus.id && s.year === selectedYear);
-      const campusRisks = risks.filter(r => r.campusId === campus.id && Number(r.year) === Number(selectedYear));
-      const campusActions = mrOutputs.filter(o => o.assignments?.some(a => a.campusId === campus.id));
+    return campuses.map((campus) => {
+      const campusSubmissions = submissions.filter((s) => s.campusId === campus.id && s.year === selectedYear);
+      const campusRisks = risks.filter((r) => r.campusId === campus.id && Number(r.year) === Number(selectedYear));
+      const campusActions = mrOutputs.filter((o) => o.assignments?.some((a) => a.campusId === campus.id));
 
       // Axis 1: Documentation Maturity (Approved / Required)
-      const approvedCount = campusSubmissions.filter(s => s.statusId === 'approved').length;
-      const campusUnitIds = new Set(campusSubmissions.map(s => s.unitId));
+      const approvedCount = campusSubmissions.filter((s) => s.statusId === 'approved').length;
+      const campusUnitIds = new Set(campusSubmissions.map((s) => s.unitId));
       const unitCount = Math.max(1, campusUnitIds.size);
       const expectedApproved = unitCount * TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT;
       const docMaturity = Math.min(100, (approvedCount / expectedApproved) * 100);
 
       // Axis 2: Risk Proactivity (Closed / Total)
       const totalRisks = campusRisks.length;
-      const closedRisks = campusRisks.filter(r => r.status === 'Closed').length;
+      const closedRisks = campusRisks.filter((r) => r.status === 'Closed').length;
       const riskMaturity = totalRisks > 0 ? (closedRisks / totalRisks) * 100 : 0;
 
       // Axis 3: Decision Resolution (Closed MR Outputs)
       const totalActions = campusActions.length;
-      const closedActions = campusActions.filter(a => a.status === 'Closed').length;
+      const closedActions = campusActions.filter((a) => a.status === 'Closed').length;
       const actionMaturity = totalActions > 0 ? (closedActions / totalActions) * 100 : 0;
 
       return {
         campus: campus.name,
-        'Documentation': Math.round(docMaturity),
+        Documentation: Math.round(docMaturity),
         'Risk Management': Math.round(riskMaturity),
         'Decision Resolution': Math.round(actionMaturity),
       };
     });
   }, [campuses, submissions, risks, mrOutputs, selectedYear]);
 
-  const hasData = useMemo(() => radarData.some(d => d.Documentation > 0 || d['Risk Management'] > 0 || d['Decision Resolution'] > 0), [radarData]);
+  const hasData = useMemo(
+    () => radarData.some((d) => d.Documentation > 0 || d['Risk Management'] > 0 || d['Decision Resolution'] > 0),
+    [radarData],
+  );
 
   return (
-    <Card className="shadow-lg border-primary/10 overflow-hidden">
-      <CardHeader className="bg-muted/10 border-b">
+    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl border-primary/10 overflow-hidden bg-gradient-to-b from-white to-slate-50/40 dark:from-slate-900 dark:to-slate-850">
+      {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+      <Chart3DDefs idPrefix="mat3d" />
+
+      <CardHeader className="bg-muted/10 border-b py-4">
         <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" />
-            <CardTitle className="text-sm font-black uppercase tracking-tight">Institutional Maturity Profile</CardTitle>
+          <ShieldCheck className="h-5 w-5 text-indigo-600" />
+          <CardTitle className="text-sm font-black uppercase tracking-tight">
+            Institutional Maturity Profile (3D Radar)
+          </CardTitle>
         </div>
-        <CardDescription className="text-[10px] font-bold uppercase tracking-widest">Comparative performance across key ISO 21001 pillars for {selectedYear}.</CardDescription>
+        <CardDescription className="text-xs font-medium">
+          Comparative performance across key ISO 21001 pillars for AY {selectedYear}.
+        </CardDescription>
       </CardHeader>
       <CardContent className="pt-6">
         {hasData ? (
-            <ChartContainer config={{}} className="h-[350px] w-full">
+          <ChartContainer config={{}} className="h-[350px] w-full">
             <ResponsiveContainer>
-                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                <PolarGrid strokeOpacity={0.1} />
+              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                <PolarGrid strokeOpacity={0.25} />
                 <PolarAngleAxis dataKey="campus" tick={{ fontSize: 10, fontWeight: 'bold' }} />
                 <PolarRadiusAxis angle={30} domain={[0, 100]} hide />
                 <Tooltip content={<ChartTooltipContent />} />
-                <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold', paddingTop: '20px' }} />
-                <Radar name="Documentation" dataKey="Documentation" stroke="hsl(var(--chart-1))" fill="hsl(var(--chart-1))" fillOpacity={0.3} />
-                <Radar name="Risk Mgmt" dataKey="Risk Management" stroke="hsl(var(--chart-2))" fill="hsl(var(--chart-2))" fillOpacity={0.3} />
-                <Radar name="MR Actions" dataKey="Decision Resolution" stroke="hsl(var(--chart-3))" fill="hsl(var(--chart-3))" fillOpacity={0.3} />
-                </RadarChart>
+                <Legend
+                  verticalAlign="bottom"
+                  height={36}
+                  wrapperStyle={{
+                    fontSize: '10px',
+                    textTransform: 'uppercase',
+                    fontWeight: 'bold',
+                    paddingTop: '20px',
+                  }}
+                />
+                <Radar
+                  name="Documentation"
+                  dataKey="Documentation"
+                  stroke="#6366f1"
+                  strokeWidth={2.5}
+                  fill="url(#mat3d-grad-indigo)"
+                  fillOpacity={0.5}
+                  filter="url(#mat3d-soft-depth)"
+                />
+                <Radar
+                  name="Risk Mgmt"
+                  dataKey="Risk Management"
+                  stroke="#10b981"
+                  strokeWidth={2.5}
+                  fill="url(#mat3d-grad-emerald)"
+                  fillOpacity={0.5}
+                  filter="url(#mat3d-soft-depth)"
+                />
+                <Radar
+                  name="MR Actions"
+                  dataKey="Decision Resolution"
+                  stroke="#0ea5e9"
+                  strokeWidth={2.5}
+                  fill="url(#mat3d-grad-sky)"
+                  fillOpacity={0.5}
+                  filter="url(#mat3d-soft-depth)"
+                />
+              </RadarChart>
             </ResponsiveContainer>
-            </ChartContainer>
+          </ChartContainer>
         ) : (
-            <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
-                <Activity className="h-12 w-12 mb-2" />
-                <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
-            </div>
+          <div className="h-[350px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
+            <Activity className="h-12 w-12 mb-2" />
+            <p className="text-xl font-black uppercase tracking-[0.2em]">NO DATA YET!</p>
+          </div>
         )}
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">
-            <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-                <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                    <strong>Strategic Insight:</strong> This radar chart identifies the "shape" of your quality system. A balanced radar indicates consistent adherence across modules. Sharp indentations suggest specific pillars (e.g., Risk Closure) that may require targeted administrative intervention or resource allocation.
-                </p>
-            </div>
+          <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="text-[11px] text-muted-foreground leading-relaxed italic">
+              <strong>Strategic Insight:</strong> This radar chart identifies the "shape" of your quality system. A
+              balanced radar indicates consistent adherence across modules. Sharp indentations suggest specific pillars
+              (e.g., Risk Closure) that may require targeted administrative intervention or resource allocation.
+            </p>
+          </div>
         </div>
       </CardFooter>
     </Card>
