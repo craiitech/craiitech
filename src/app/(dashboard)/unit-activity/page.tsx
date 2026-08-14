@@ -1145,14 +1145,14 @@ export default function UnitActivityPage() {
             ? format(new Date(log.logoutAt), 'MM/dd/yyyy hh:mm a')
             : 'Not logged out';
         return [
-          log.userName,
-          log.unitName,
-          log.contactNumber || 'N/A',
-          log.sex || 'Did not specify',
+          String(log.userName || '').toUpperCase(),
+          String(log.unitName || '').toUpperCase(),
+          String(log.contactNumber || 'N/A').toUpperCase(),
+          String(log.sex || 'N/A').toUpperCase(),
           loginStr,
           ...(hasLogout ? [logoutStr] : []),
-          log.status,
-          log.deviceFingerprint,
+          String(log.status || '').toUpperCase(),
+          String(log.deviceFingerprint || '').toUpperCase(),
         ];
       }),
     ]
@@ -1176,8 +1176,9 @@ export default function UnitActivityPage() {
     e.preventDefault();
     if (!firestore) return;
 
-    const cleanName = manualAddName.trim();
+    const cleanName = manualAddName.trim().toUpperCase();
     const cleanContact = manualAddContact.trim();
+    const cleanSex = manualAddSex.toUpperCase();
 
     if (!cleanName) {
       toast({ title: 'Validation Error', description: 'Please enter attendee full name.', variant: 'destructive' });
@@ -1204,7 +1205,7 @@ export default function UnitActivityPage() {
         ? targetActivity.sessions.find((s) => s.id === manualAddSessionId) || targetActivity.sessions[0]
         : {
             id: 'default',
-            label: 'Default Session',
+            label: 'GENERAL SESSION',
             date: format(new Date(), 'yyyy-MM-dd'),
             startTime: '08:00',
             endTime: '17:00',
@@ -1242,21 +1243,26 @@ export default function UnitActivityPage() {
       const pseudoUserId = `manual_${nameKey}_${phoneDigits.slice(-4) || 'user'}`;
       const logId = `${targetActivity.id}_${session.id}_${pseudoUserId}`;
 
+      const unitName = (
+        manualAddUnit.trim() ||
+        units?.find((u) => u.id === targetActivity.unitId)?.name ||
+        'GENERAL ATTENDEE'
+      ).toUpperCase();
+
       const newLog: ActivityAttendanceLog = {
         id: logId,
         activityId: targetActivity.id,
         userId: pseudoUserId,
         userName: cleanName,
         unitId: targetActivity.unitId,
-        unitName:
-          manualAddUnit.trim() || units?.find((u) => u.id === targetActivity.unitId)?.name || 'General Attendee',
+        unitName,
         deviceFingerprint: 'DASHBOARD-MANUAL-LOG',
         scannedAt: now,
         status: logStatus,
         contactNumber: cleanContact,
-        sex: manualAddSex,
+        sex: cleanSex,
         sessionId: session.id,
-        sessionLabel: session.label,
+        sessionLabel: session.label.toUpperCase(),
       };
 
       await setDoc(doc(firestore, 'unitActivityAttendanceLogs', logId), newLog);
@@ -2396,11 +2402,11 @@ export default function UnitActivityPage() {
                           {log.userName}
                         </TableCell>
                         <TableCell className="text-xs font-semibold text-slate-650 uppercase">{log.unitName}</TableCell>
-                        <TableCell className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                        <TableCell className="text-xs font-bold text-slate-600 dark:text-slate-400 font-mono">
                           {log.contactNumber || 'N/A'}
                         </TableCell>
-                        <TableCell className="text-xs font-semibold text-slate-500">
-                          {log.sex || 'Did not specify'}
+                        <TableCell className="text-xs font-semibold text-slate-500 uppercase">
+                          {log.sex || 'N/A'}
                         </TableCell>
                         <TableCell className="text-xs font-semibold text-slate-500">
                           {log.scannedAt?.toDate ? format(log.scannedAt.toDate(), 'MM/dd/yyyy hh:mm a') : 'N/A'}
@@ -4119,7 +4125,7 @@ export default function UnitActivityPage() {
                 placeholder="e.g. Juan Dela Cruz"
                 value={manualAddName}
                 onChange={(e) => setManualAddName(e.target.value)}
-                className="h-9 font-bold text-xs"
+                className="h-9 font-bold text-xs uppercase"
                 required
               />
             </div>
@@ -4159,7 +4165,7 @@ export default function UnitActivityPage() {
                 placeholder="e.g. College of Education / Guest"
                 value={manualAddUnit}
                 onChange={(e) => setManualAddUnit(e.target.value)}
-                className="h-9 font-bold text-xs"
+                className="h-9 font-bold text-xs uppercase"
               />
             </div>
 

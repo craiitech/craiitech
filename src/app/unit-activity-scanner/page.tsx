@@ -577,11 +577,11 @@ function UnitActivityScannerTerminal() {
       }
 
       // Extract user metadata from QR payload (avoids fetching attendanceDeviceBindings)
-      const userName = payload.n || payload.userName || 'Attendee';
+      const userName = String(payload.n || payload.userName || 'ATTENDEE').toUpperCase();
       const unitId = payload.i || payload.unitId || '';
-      const unitName = payload.o || payload.unitName || 'Office';
-      const finalContact = payload.c || payload.contactNumber || 'N/A';
-      const finalSex = payload.x || payload.sex || 'Did not specify';
+      const unitName = String(payload.o || payload.unitName || activeActivityUnit || 'OFFICE').toUpperCase();
+      const finalContact = String(payload.c || payload.contactNumber || 'N/A').toUpperCase();
+      const finalSex = String(payload.x || payload.sex || 'DID NOT SPECIFY').toUpperCase();
 
       const scanTime = Date.now();
       const actStart = parseSessionTime(selectedSession.date, selectedSession.startTime);
@@ -762,8 +762,9 @@ function UnitActivityScannerTerminal() {
     e.preventDefault();
     setManualError('');
 
-    const cleanName = manualName.trim();
+    const cleanName = manualName.trim().toUpperCase();
     const cleanContact = manualContact.trim();
+    const cleanSex = manualSex.toUpperCase();
 
     if (!cleanName) {
       setManualError('Please enter attendee full name.');
@@ -808,7 +809,7 @@ function UnitActivityScannerTerminal() {
       const phoneDigits = cleanContact.replace(/[^0-9]/g, '');
       const pseudoUserId = `walkin_${nameKey}_${phoneDigits.slice(-4) || 'user'}`;
       const logId = `${activeActivity.id}_${selectedSession.id}_${pseudoUserId}`;
-      const unitName = manualUnit.trim() || activeActivityUnit || 'General Attendee';
+      const unitName = (manualUnit.trim() || activeActivityUnit || 'GENERAL ATTENDEE').toUpperCase();
 
       const requiresLogout = selectedSession.requiresLogout ?? activeActivity.requiresLogout ?? false;
       const logRef = firestore ? doc(firestore, 'unitActivityAttendanceLogs', logId) : null;
@@ -915,9 +916,9 @@ function UnitActivityScannerTerminal() {
         scannedAt: new Date(),
         status: logStatus,
         contactNumber: cleanContact,
-        sex: manualSex,
+        sex: cleanSex,
         sessionId: selectedSession.id,
-        sessionLabel: selectedSession.label,
+        sessionLabel: selectedSession.label.toUpperCase(),
       };
 
       if (isOnlineSuccess && logRef) {
@@ -1953,7 +1954,7 @@ function UnitActivityScannerTerminal() {
                     placeholder="e.g. Dr. Juan Dela Cruz"
                     value={manualName}
                     onChange={(e) => setManualName(e.target.value)}
-                    className="bg-slate-950/80 border-slate-700/80 text-[11px] font-bold text-white h-8 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
+                    className="bg-slate-950/80 border-slate-700/80 text-[11px] font-bold text-white h-8 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50 uppercase"
                     disabled={manualSubmitting}
                     required
                   />
@@ -2002,7 +2003,7 @@ function UnitActivityScannerTerminal() {
                     placeholder="e.g. College of Engineering / Guest"
                     value={manualUnit}
                     onChange={(e) => setManualUnit(e.target.value)}
-                    className="bg-slate-950/80 border-slate-700/80 text-[11px] font-bold text-white h-8 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
+                    className="bg-slate-950/80 border-slate-700/80 text-[11px] font-bold text-white h-8 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50 uppercase"
                     disabled={manualSubmitting}
                   />
                 </div>

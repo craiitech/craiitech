@@ -572,19 +572,19 @@ export default function RsuAttendanceApp() {
       }
 
       // B. Fetch unit name for metadata
-      const unitName = units?.find((u) => u.id === selectedUnitId)?.name || 'Office';
+      const unitName = (units?.find((u) => u.id === selectedUnitId)?.name || 'Office').toUpperCase();
 
       // C. Construct device binding lock
       const newBinding: DeviceBinding = {
         id: deviceFingerprint,
         userId,
-        userName: fullName.trim(),
+        userName: fullName.trim().toUpperCase(),
         unitId: selectedUnitId,
         unitName,
         boundAt: new Date(),
         userAgent,
         contactNumber: contactNumber.trim(),
-        sex,
+        sex: sex.toUpperCase(),
         role: role || 'stakeholder',
       };
 
@@ -911,8 +911,9 @@ export default function RsuAttendanceApp() {
     setManualError('');
     setManualSuccessLog(null);
 
-    const cleanName = manualFullName.trim();
+    const cleanName = manualFullName.trim().toUpperCase();
     const cleanPhone = manualContactNumber.trim();
+    const cleanSex = manualSex.toUpperCase();
 
     if (!cleanName) {
       setManualError('Please enter attendee full name.');
@@ -959,7 +960,7 @@ export default function RsuAttendanceApp() {
         const defaultEnd = actData.endDateTime?.toDate ? format(actData.endDateTime.toDate(), 'HH:mm') : '17:00';
         sessionDetails = {
           id: sessionId,
-          label: 'General Session',
+          label: 'GENERAL SESSION',
           date: defaultDate,
           sessionType: 'custom',
           startTime: defaultStart,
@@ -976,13 +977,15 @@ export default function RsuAttendanceApp() {
 
       const selectedUnitObj = units?.find((u) => u.id === manualUnitId);
       const selectedCampusObj = campuses?.find((c) => c.id === manualCampusId);
-      const unitName = selectedUnitObj
-        ? selectedUnitObj.name
-        : manualAffiliation.trim()
-          ? manualAffiliation.trim()
-          : selectedCampusObj
-            ? selectedCampusObj.name
-            : 'Participant';
+      const unitName = (
+        selectedUnitObj
+          ? selectedUnitObj.name
+          : manualAffiliation.trim()
+            ? manualAffiliation.trim()
+            : selectedCampusObj
+              ? selectedCampusObj.name
+              : 'PARTICIPANT'
+      ).toUpperCase();
 
       const now = new Date();
       const requiresLogout = sessionDetails.requiresLogout;
@@ -1707,7 +1710,7 @@ export default function RsuAttendanceApp() {
                       placeholder="e.g. Juan Dela Cruz"
                       value={manualFullName}
                       onChange={(e) => setManualFullName(e.target.value)}
-                      className="bg-slate-950 border-slate-800 text-xs font-bold h-10 text-white rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
+                      className="bg-slate-950 border-slate-800 text-xs font-bold h-10 text-white rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50 uppercase"
                       disabled={isSubmittingManual}
                       required
                     />
@@ -1756,7 +1759,7 @@ export default function RsuAttendanceApp() {
                       placeholder="e.g. College of Education / Visitor / Guest"
                       value={manualAffiliation}
                       onChange={(e) => setManualAffiliation(e.target.value)}
-                      className="bg-slate-950 border-slate-800 text-xs font-bold h-10 text-white rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
+                      className="bg-slate-950 border-slate-800 text-xs font-bold h-10 text-white rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50 uppercase"
                       disabled={isSubmittingManual}
                     />
                   </div>
