@@ -484,10 +484,15 @@ export type CorrectiveActionPlan = {
 export type ProcedureManual = {
   id: string; // Same as unitId
   unitName: string;
-  googleDriveLink: string;
+  procedureNumber?: string;
+  manualTitle?: string;
+  numberOfProcesses?: number;
   revisionNumber?: string;
+  revisionDate?: string;
   dateImplemented?: string;
-  updatedAt: any; // serverTimestamp()
+  pageCount?: number;
+  googleDriveLink?: string;
+  updatedAt?: any; // serverTimestamp()
 };
 
 export type EomsPolicyManual = {

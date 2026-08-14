@@ -40,6 +40,12 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ProcedureRevisionDialog } from '@/components/manuals/procedure-revision-dialog';
 import { ProcedureRevisionReviewDialog } from '@/components/manuals/procedure-revision-review-dialog';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { Printer } from 'lucide-react';
+import {
+  ProcedureManualsPrintTemplate,
+  type ProcedureManualReportRow,
+} from '@/components/manuals/procedure-manuals-print-template';
 
 const SHARED_ACADEMIC_ID = 'academic-shared';
 
@@ -87,6 +93,84 @@ export default function ProcedureManualsPage() {
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
   const campusMap = useMemo(() => new Map(campuses?.map((c) => [c.id, c.name])), [campuses]);
+
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const { data: signatories } = useDoc<{ qaoDirector?: string; qmsHead?: string }>(signatoryRef);
+
+  const handlePrintManualsInventory = () => {
+    if (!allUnits) return;
+
+    const manualMap = new Map((manuals || []).map((m) => [m.id, m]));
+
+    const rows: ProcedureManualReportRow[] = allUnits
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((unit) => {
+        const manual = manualMap.get(unit.id);
+        const hasData = Boolean(manual && (manual.procedureNumber || manual.manualTitle || manual.googleDriveLink));
+
+        return {
+          unitId: unit.id,
+          unitName: unit.name,
+          procedureNumber: manual?.procedureNumber || '',
+          manualTitle: manual?.manualTitle || '',
+          numberOfProcesses:
+            manual?.numberOfProcesses !== undefined && manual?.numberOfProcesses !== 0 ? manual.numberOfProcesses : '',
+          revisionNumber: manual?.revisionNumber ? `Rev ${manual.revisionNumber}` : '',
+          revisionDate: manual?.revisionDate || manual?.dateImplemented || '',
+          pageCount: manual?.pageCount !== undefined && manual?.pageCount !== 0 ? manual.pageCount : '',
+          hasData,
+        };
+      });
+
+    const reportHtml = renderToStaticMarkup(
+      <ProcedureManualsPrintTemplate
+        rows={rows}
+        qaoDirector={signatories?.qaoDirector || 'Director, Quality Assurance Office'}
+        qmsHead={signatories?.qmsHead || 'Head, Quality Management System Unit'}
+      />,
+    );
+
+    try {
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Unit Procedure Manuals Inventory - RSU Quality Assurance</title>
+              <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+              <style>
+                @page { 
+                  size: 13in 8.5in landscape !important; 
+                  margin: 0.4in !important; 
+                }
+                @media print { 
+                  body { background: white; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; } 
+                  .no-print { display: none !important; } 
+                } 
+                body { font-family: serif; background: #f9fafb; padding: 24px; color: black; font-size: 9.5pt; }
+              </style>
+            </head>
+            <body>
+              <div class="no-print mb-6 flex justify-center">
+                <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-xl font-black uppercase text-xs tracking-widest transition-all cursor-pointer">
+                  Click to Print Procedure Manuals Inventory
+                </button>
+              </div>
+              <div id="print-content">
+                ${reportHtml}
+              </div>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+      }
+    } catch (err) {
+      console.error('Print error:', err);
+    }
+  };
 
   // Query revision requests for active unit
   const revisionRequestsQuery = useMemoFirebase(
@@ -224,6 +308,16 @@ export default function ProcedureManualsPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white dark:bg-slate-900 border-primary/30 text-primary hover:bg-primary/5 shadow-sm"
+              onClick={handlePrintManualsInventory}
+              disabled={isLoadingUnits || isLoadingManuals || !allUnits}
+            >
+              <Printer className="mr-2 h-4 w-4 text-primary" />
+              Print Procedure Manuals
+            </Button>
             <Button
               variant="outline"
               size="sm"
