@@ -760,24 +760,25 @@ export function ProcedureManualManagement() {
 
       {/* EDIT / ADD PROCEDURE MANUAL DIALOG */}
       <Dialog open={!!selectedUnit} onOpenChange={(open) => !open && handleCloseDialog()}>
-        <DialogContent className="sm:max-w-xl p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800">
-          <DialogHeader className="space-y-1 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <DialogContent className="sm:max-w-2xl lg:max-w-3xl max-h-[92vh] flex flex-col p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <DialogHeader className="space-y-1 pb-3 border-b border-slate-100 dark:border-slate-800 shrink-0">
             <div className="flex items-center gap-2 text-primary">
               <BookOpen className="h-5 w-5" />
               <span className="text-xs font-black uppercase tracking-widest">Procedure Manual Configuration</span>
             </div>
-            <DialogTitle className="text-base font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
+            <DialogTitle className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
               {selectedUnit?.name}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Configure the official procedure manual metadata and process inventory for this unit.
+              Configure the official procedure manual specifications, process inventory, and document links for this
+              unit.
             </DialogDescription>
           </DialogHeader>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-3">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto pr-1.5 space-y-4 py-3">
               {/* USE OTHER UNIT MANUAL OPTION */}
-              <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 rounded-xl space-y-3">
+              <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-850 rounded-xl space-y-3">
                 <div className="flex items-center space-x-2.5">
                   <Checkbox
                     id="useOtherUnit"
@@ -883,7 +884,11 @@ export function ProcedureManualManagement() {
                         Procedure Number
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., RSU-PM-01" className="h-9 text-xs font-bold font-mono" {...field} />
+                        <Input
+                          placeholder="e.g., RSU-PM-01"
+                          className="h-9 text-xs font-bold font-mono bg-white dark:bg-slate-900"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -901,7 +906,7 @@ export function ProcedureManualManagement() {
                       <FormControl>
                         <Input
                           placeholder="e.g., Instruction & Curriculum Manual"
-                          className="h-9 text-xs font-bold"
+                          className="h-9 text-xs font-bold bg-white dark:bg-slate-900"
                           {...field}
                         />
                       </FormControl>
@@ -912,13 +917,13 @@ export function ProcedureManualManagement() {
               </div>
 
               {/* PROCESS INVENTORY SECTION */}
-              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3">
+              <div className="p-3.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 rounded-xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-primary font-black uppercase text-xs tracking-wider">
                     <ListChecks className="h-4 w-4" />
                     <span>Process List & Titles ({processesList.length} Processes)</span>
                   </div>
-                  <Badge variant="outline" className="font-mono text-[10px] font-bold">
+                  <Badge variant="outline" className="font-mono text-[10px] font-bold bg-white dark:bg-slate-900">
                     Total: {processesList.length}
                   </Badge>
                 </div>
@@ -1026,7 +1031,7 @@ export function ProcedureManualManagement() {
                           type="number"
                           min="0"
                           placeholder="e.g., 4"
-                          className="h-9 text-xs font-bold"
+                          className="h-9 text-xs font-bold bg-white dark:bg-slate-900"
                           {...field}
                           value={processesList.length > 0 ? processesList.length : field.value}
                           onChange={(e) => field.onChange(e.target.value)}
@@ -1046,7 +1051,11 @@ export function ProcedureManualManagement() {
                         Revision No.
                       </FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., 00 or 01" className="h-9 text-xs font-bold font-mono" {...field} />
+                        <Input
+                          placeholder="e.g., 00 or 01"
+                          className="h-9 text-xs font-bold font-mono bg-white dark:bg-slate-900"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1066,7 +1075,7 @@ export function ProcedureManualManagement() {
                           type="number"
                           min="0"
                           placeholder="e.g., 36"
-                          className="h-9 text-xs font-bold"
+                          className="h-9 text-xs font-bold bg-white dark:bg-slate-900"
                           {...field}
                         />
                       </FormControl>
@@ -1076,7 +1085,7 @@ export function ProcedureManualManagement() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="revisionDate"
@@ -1088,7 +1097,7 @@ export function ProcedureManualManagement() {
                       <FormControl>
                         <Input
                           placeholder="e.g., 2026-01-15 or Oct 2024"
-                          className="h-9 text-xs font-bold"
+                          className="h-9 text-xs font-bold bg-white dark:bg-slate-900"
                           {...field}
                         />
                       </FormControl>
@@ -1107,7 +1116,7 @@ export function ProcedureManualManagement() {
                       </FormLabel>
                       <Select value={field.value} onValueChange={field.onChange}>
                         <FormControl>
-                          <SelectTrigger className="h-9 text-xs font-bold">
+                          <SelectTrigger className="h-9 text-xs font-bold bg-white dark:bg-slate-900">
                             <SelectValue placeholder="Select Status" />
                           </SelectTrigger>
                         </FormControl>
@@ -1127,25 +1136,29 @@ export function ProcedureManualManagement() {
                     </FormItem>
                   )}
                 />
-
-                <FormField
-                  control={form.control}
-                  name="googleDriveLink"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                        Google Drive Link (PDF / Preview)
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://drive.google.com/..." className="h-9 text-xs" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
-              <DialogFooter className="pt-4 border-t border-slate-100 dark:border-slate-800 gap-2 sm:justify-end">
+              <FormField
+                control={form.control}
+                name="googleDriveLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Google Drive Link (PDF / Preview)
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://drive.google.com/..."
+                        className="h-9 text-xs bg-white dark:bg-slate-900"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter className="pt-4 border-t border-slate-100 dark:border-slate-800 gap-2 sm:justify-end shrink-0 sticky bottom-0 bg-white dark:bg-slate-900">
                 <Button
                   type="button"
                   variant="outline"
