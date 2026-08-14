@@ -34,12 +34,14 @@ import {
   BookOpen,
   Eye,
   ExternalLink,
+  Copy,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const manualSchema = z.object({
   procedureNumber: z.string().optional().default(''),
@@ -61,6 +63,8 @@ export function ProcedureManualManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<VirtualUnit | null>(null);
   const [viewingUnit, setViewingUnit] = useState<VirtualUnit | null>(null);
+  const [useOtherUnitManual, setUseOtherUnitManual] = useState(false);
+  const [sourceUnitId, setSourceUnitId] = useState('');
 
   const [newPart, setNewPart] = useState('');
   const [isSavingConfig, setIsSavingConfig] = useState(false);
@@ -151,6 +155,10 @@ export function ProcedureManualManagement() {
   const handleOpenDialog = (unit: VirtualUnit) => {
     setSelectedUnit(unit);
     const existingManual = manualMap.get(unit.id);
+    const isCopied = Boolean(existingManual?.copiedFromUnitId);
+    setUseOtherUnitManual(isCopied);
+    setSourceUnitId(existingManual?.copiedFromUnitId || '');
+
     const defaultStatus =
       (existingManual?.status as 'Updated' | 'Needs Revision' | 'Not Submitted') ||
       (existingManual && (existingManual.procedureNumber || existingManual.googleDriveLink)
@@ -173,6 +181,8 @@ export function ProcedureManualManagement() {
 
   const handleCloseDialog = () => {
     setSelectedUnit(null);
+    setUseOtherUnitManual(false);
+    setSourceUnitId('');
     form.reset();
   };
 
@@ -221,6 +231,10 @@ export function ProcedureManualManagement() {
       pageCount: values.pageCount ? Number(values.pageCount) : 0,
       googleDriveLink: values.googleDriveLink?.trim() || '',
       status: values.status || 'Not Submitted',
+      copiedFromUnitId: useOtherUnitManual ? sourceUnitId || undefined : undefined,
+      copiedFromUnitName: useOtherUnitManual
+        ? manageableUnits.find((u) => u.id === sourceUnitId)?.name || undefined
+        : undefined,
       updatedAt: serverTimestamp(),
     };
 
@@ -345,7 +359,14 @@ export function ProcedureManualManagement() {
                             ) : (
                               <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
                             )}
-                            <span className="text-slate-900 dark:text-slate-100">{unit.name}</span>
+                            <div>
+                              <span className="text-slate-900 dark:text-slate-100">{unit.name}</span>
+                              {manual?.copiedFromUnitName && (
+                                <span className="block text-[10px] font-normal text-blue-600 dark:text-blue-400">
+                                  ↳ Inherits: {manual.copiedFromUnitName}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
@@ -682,6 +703,101 @@ export function ProcedureManualManagement() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-3">
+              {/* USE OTHER UNIT MANUAL OPTION */}
+              <div className="p-3.5 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/60 rounded-xl space-y-3">
+                <div className="flex items-center space-x-2.5">
+                  <Checkbox
+                    id="useOtherUnit"
+                    checked={useOtherUnitManual}
+                    onCheckedChange={(checked) => {
+                      const isChecked = Boolean(checked);
+                      setUseOtherUnitManual(isChecked);
+                      if (!isChecked) {
+                        setSourceUnitId('');
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor="useOtherUnit"
+                    className="text-xs font-bold text-slate-800 dark:text-slate-200 cursor-pointer select-none flex items-center gap-1.5"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                    Use / copy procedure manual from another unit
+                  </label>
+                </div>
+
+                {useOtherUnitManual && (
+                  <div className="space-y-2 pt-1 pl-6">
+                    <label className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Select Source Procedure Manual
+                    </label>
+                    <Select
+                      value={sourceUnitId}
+                      onValueChange={(val) => {
+                        setSourceUnitId(val);
+                        const sourceManual = manualMap.get(val);
+                        const sourceUnit = manageableUnits.find((u) => u.id === val);
+                        if (sourceManual) {
+                          form.setValue('procedureNumber', sourceManual.procedureNumber || '');
+                          form.setValue('manualTitle', sourceManual.manualTitle || '');
+                          form.setValue(
+                            'numberOfProcesses',
+                            sourceManual.numberOfProcesses !== undefined ? String(sourceManual.numberOfProcesses) : '',
+                          );
+                          form.setValue('revisionNumber', sourceManual.revisionNumber || '00');
+                          form.setValue(
+                            'revisionDate',
+                            sourceManual.revisionDate || sourceManual.dateImplemented || '',
+                          );
+                          form.setValue(
+                            'dateImplemented',
+                            sourceManual.dateImplemented || sourceManual.revisionDate || '',
+                          );
+                          form.setValue(
+                            'pageCount',
+                            sourceManual.pageCount !== undefined ? String(sourceManual.pageCount) : '',
+                          );
+                          form.setValue('googleDriveLink', sourceManual.googleDriveLink || '');
+                          form.setValue(
+                            'status',
+                            (sourceManual.status as 'Updated' | 'Needs Revision' | 'Not Submitted') || 'Updated',
+                          );
+                          toast({
+                            title: 'Manual Data Copied',
+                            description: `Copied procedure manual specifications from ${sourceUnit?.name || 'source unit'}.`,
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-9 text-xs font-bold bg-white dark:bg-slate-900 border-blue-300 dark:border-blue-700">
+                        <SelectValue placeholder="-- Choose unit manual to copy from --" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-60">
+                        {manageableUnits
+                          .filter((u) => u.id !== selectedUnit?.id)
+                          .map((u) => {
+                            const m = manualMap.get(u.id);
+                            const hasSourceData = Boolean(
+                              m && (m.procedureNumber || m.manualTitle || m.googleDriveLink),
+                            );
+                            return (
+                              <SelectItem key={u.id} value={u.id} className="text-xs">
+                                <span className="font-bold">{u.name}</span>
+                                {m?.procedureNumber ? ` (${m.procedureNumber})` : ''}
+                                {!hasSourceData ? ' [No Data]' : ''}
+                              </SelectItem>
+                            );
+                          })}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10.5px] text-muted-foreground italic">
+                      Selecting a manual will automatically copy its Procedure Number, Title, Processes, Revision,
+                      Pages, Drive Link, and Status.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}

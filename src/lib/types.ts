@@ -493,6 +493,8 @@ export type ProcedureManual = {
   pageCount?: number;
   googleDriveLink?: string;
   status?: 'Updated' | 'Needs Revision' | 'Not Submitted' | string;
+  copiedFromUnitId?: string;
+  copiedFromUnitName?: string;
   updatedAt?: any; // serverTimestamp()
 };
 

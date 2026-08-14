@@ -15,6 +15,7 @@ export type ProcedureManualReportRow = {
   revisionDate: string;
   pageCount: string | number;
   status: 'Updated' | 'Needs Revision' | 'Not Submitted' | string;
+  copiedFromUnitName?: string;
   hasData: boolean;
 };
 
@@ -139,8 +140,13 @@ export function ProcedureManualsPrintTemplate({
                     {row.procedureNumber || <span className="text-slate-400 italic font-normal">—</span>}
                   </td>
                   <td className="border border-black p-1.5 font-bold">
-                    {row.unitName}
-                    {row.isShared && <span className="ml-1 text-[7.5pt] italic text-blue-700">(Academic Shared)</span>}
+                    <div>{row.unitName}</div>
+                    {row.copiedFromUnitName && (
+                      <div className="text-[7.5pt] font-normal italic text-blue-800">
+                        (Inherits: {row.copiedFromUnitName})
+                      </div>
+                    )}
+                    {row.isShared && <span className="text-[7.5pt] italic text-blue-700">(Academic Shared)</span>}
                   </td>
                   <td className="border border-black p-1.5">
                     {row.manualTitle || <span className="text-slate-400 italic">—</span>}

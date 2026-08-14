@@ -121,6 +121,7 @@ export default function ProcedureManualsPage() {
           revisionDate: manual?.revisionDate || manual?.dateImplemented || '',
           pageCount: manual?.pageCount !== undefined && manual?.pageCount !== 0 ? manual.pageCount : '',
           status: manual?.status || (hasData ? 'Updated' : 'Not Submitted'),
+          copiedFromUnitName: manual?.copiedFromUnitName,
           hasData,
         };
       });
