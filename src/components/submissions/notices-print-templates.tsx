@@ -506,11 +506,13 @@ export type MissingSubmissionRow = {
 
 export function MissingSubmissionsReport({
   year,
+  cycleLabel,
   qaoDirector,
   qmsHead,
   rows,
 }: {
   year: number;
+  cycleLabel?: string;
   qaoDirector: string;
   qmsHead: string;
   rows: MissingSubmissionRow[];
@@ -554,7 +556,8 @@ export function MissingSubmissionsReport({
         <div className="grid grid-cols-12 gap-2 pt-2">
           <span className="col-span-2 font-bold uppercase">SUBJECT:</span>
           <span className="col-span-10 font-black uppercase underline decoration-2 underline-offset-4">
-            MISSING SUBMISSIONS REPORT — EOMS DOCUMENTATION (AY {year})
+            MISSING SUBMISSIONS REPORT — EOMS DOCUMENTATION (AY {year}
+            {cycleLabel ? ` — ${cycleLabel.toUpperCase()}` : ''})
           </span>
         </div>
       </div>
@@ -562,14 +565,18 @@ export function MissingSubmissionsReport({
       <div className="space-y-6">
         <p className="text-justify">
           The following matrix lists the units with outstanding Educational Organizations Management System (EOMS)
-          documentation for the Academic Year <strong>{year}</strong>, as verified through the RSU EOMS Digital
-          Submission and Monitoring Portal.
+          documentation for the Academic Year <strong>{year}</strong>
+          {cycleLabel ? ` (${cycleLabel})` : ''}, as verified through the RSU EOMS Digital Submission and Monitoring
+          Portal.
         </p>
 
         {campusNames.length === 0 ? (
           <div className="border border-black p-8 text-center rounded-lg bg-slate-50/30">
             <p className="font-black uppercase">No Outstanding Submissions</p>
-            <p className="text-[10pt] italic">All units are fully compliant for AY {year}.</p>
+            <p className="text-[10pt] italic">
+              All units are fully compliant for AY {year}
+              {cycleLabel ? ` (${cycleLabel})` : ''}.
+            </p>
           </div>
         ) : (
           campusNames.map((campusName) => (

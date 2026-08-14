@@ -78,6 +78,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
@@ -153,6 +162,25 @@ export function CampusSubmissionsView({
   // ADMIN FILTER STATES
   const [sidebarSearch, setSidebarSearch] = useState('');
   const [sidebarCampusFilter, setSidebarCampusFilter] = useState('all');
+
+  // PRINT MISSING SUBMISSION FILTER STATES
+  const [isPrintMissingDialogOpen, setIsPrintMissingDialogOpen] = useState(false);
+  const [printMissingYear, setPrintMissingYear] = useState<string>(selectedYear);
+  const [printMissingCycle, setPrintMissingCycle] = useState<'all' | 'first' | 'final'>('all');
+
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set<string>();
+    if (selectedYear) yearsSet.add(selectedYear);
+    yearsSet.add(new Date().getFullYear().toString());
+    allSubmissions?.forEach((s) => {
+      if (s.year) yearsSet.add(s.year.toString());
+    });
+    allCycles?.forEach((c) => {
+      if (c.year) yearsSet.add(c.year.toString());
+    });
+    [2024, 2025, 2026, 2027, 2028].forEach((y) => yearsSet.add(y.toString()));
+    return Array.from(yearsSet).sort((a, b) => b.localeCompare(a));
+  }, [allSubmissions, allCycles, selectedYear]);
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
@@ -517,7 +545,10 @@ export function CampusSubmissionsView({
     }
   };
 
-  const handlePrintMissingSubmissions = () => {
+  const handlePrintMissingSubmissions = (
+    yearToPrint = printMissingYear || selectedYear,
+    cycleToPrint: 'all' | 'first' | 'final' = printMissingCycle,
+  ) => {
     if (!allCampuses || !allUnits || !allSubmissions) return;
 
     const rows: { campusName: string; unitName: string; documents: string[]; cycle: string }[] = [];
@@ -529,11 +560,11 @@ export function CampusSubmissionsView({
 
       campusUnits.forEach((unit) => {
         const unitSubs = allSubmissions.filter(
-          (s) => s.unitId === unit.id && s.campusId === campus.id && s.year.toString() === selectedYear,
+          (s) => s.unitId === unit.id && s.campusId === campus.id && s.year.toString() === yearToPrint,
         );
 
         const getMissingForCycle = (cycleId: 'first' | 'final', cycleLabel: string) => {
-          if (!isCycleActive(cycleId, selectedYear, allCycles)) return;
+          if (!isCycleActive(cycleId, yearToPrint, allCycles)) return;
 
           const cycleSubs = unitSubs.filter((s) => s.cycleId === cycleId);
           const registry = cycleSubs.find((s) => s.reportType === 'Risk and Opportunity Registry');
@@ -556,16 +587,26 @@ export function CampusSubmissionsView({
           }
         };
 
-        getMissingForCycle('first', 'First Submission Cycle');
-        getMissingForCycle('final', 'Final Submission Cycle');
+        if (cycleToPrint === 'all' || cycleToPrint === 'first') {
+          getMissingForCycle('first', 'First Submission Cycle');
+        }
+        if (cycleToPrint === 'all' || cycleToPrint === 'final') {
+          getMissingForCycle('final', 'Final Submission Cycle');
+        }
       });
     });
 
-    if (rows.length === 0) return;
+    const cycleDisplayLabel =
+      cycleToPrint === 'first'
+        ? 'First Submission Cycle'
+        : cycleToPrint === 'final'
+          ? 'Final Submission Cycle'
+          : 'All Submission Cycles';
 
     const reportHtml = renderToStaticMarkup(
       <MissingSubmissionsReport
-        year={Number(selectedYear)}
+        year={Number(yearToPrint)}
+        cycleLabel={cycleDisplayLabel}
         qaoDirector={signatories?.qaoDirector || '____________________'}
         qmsHead={signatories?.qmsHead || 'QMS Head'}
         rows={rows}
@@ -579,7 +620,7 @@ export function CampusSubmissionsView({
         printWindow.document.write(`
                 <html>
                     <head>
-                        <title>Missing Submissions Report - RSU AY ${selectedYear}</title>
+                        <title>Missing Submissions Report - RSU AY ${yearToPrint} (${cycleDisplayLabel})</title>
                         <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
                         <style>
                             @page { 
@@ -623,8 +664,11 @@ export function CampusSubmissionsView({
           <Button
             variant="outline"
             size="sm"
-            className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-destructive/40 text-destructive hover:bg-destructive/5"
-            onClick={handlePrintMissingSubmissions}
+            className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-destructive/40 text-destructive hover:bg-destructive/5 shadow-sm"
+            onClick={() => {
+              setPrintMissingYear(selectedYear);
+              setIsPrintMissingDialogOpen(true);
+            }}
             disabled={!allSubmissions || !allCampuses || !allUnits}
           >
             <Printer className="mr-2 h-4 w-4" />
@@ -1136,6 +1180,90 @@ export function CampusSubmissionsView({
           )}
         </div>
       </div>
+
+      {/* ================================================================== */}
+      {/* PRINT MISSING SUBMISSION FILTER DIALOG                              */}
+      {/* ================================================================== */}
+      <Dialog open={isPrintMissingDialogOpen} onOpenChange={setIsPrintMissingDialogOpen}>
+        <DialogContent className="max-w-md p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800">
+          <DialogHeader className="space-y-1 pb-2 border-b border-slate-100 dark:border-slate-800">
+            <DialogTitle className="text-base font-black uppercase tracking-tight flex items-center gap-2 text-slate-900 dark:text-slate-100">
+              <Printer className="h-5 w-5 text-destructive" />
+              Print Missing Submissions Report
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground font-medium">
+              Select the academic year and submission cycle to generate the institutional missing documentation report.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                Academic Year
+              </Label>
+              <Select value={printMissingYear} onValueChange={setPrintMissingYear}>
+                <SelectTrigger className="h-10 text-xs font-bold bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                  <SelectValue placeholder="Select Academic Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map((yr) => (
+                    <SelectItem key={yr} value={yr} className="text-xs font-bold">
+                      Academic Year {yr}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                Submission Cycle
+              </Label>
+              <Select
+                value={printMissingCycle}
+                onValueChange={(val: 'all' | 'first' | 'final') => setPrintMissingCycle(val)}
+              >
+                <SelectTrigger className="h-10 text-xs font-bold bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
+                  <SelectValue placeholder="Select Cycle" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs font-bold">
+                    All Cycles (First &amp; Final)
+                  </SelectItem>
+                  <SelectItem value="first" className="text-xs font-bold">
+                    First Submission Cycle Only
+                  </SelectItem>
+                  <SelectItem value="final" className="text-xs font-bold">
+                    Final Submission Cycle Only
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsPrintMissingDialogOpen(false)}
+              className="h-9 text-xs font-bold uppercase tracking-wider"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setIsPrintMissingDialogOpen(false);
+                handlePrintMissingSubmissions(printMissingYear, printMissingCycle);
+              }}
+              className="h-9 text-xs font-black uppercase tracking-wider bg-destructive hover:bg-destructive/90 text-white shadow-md border-none"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Generate &amp; Print Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
