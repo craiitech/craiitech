@@ -32,6 +32,8 @@ import {
   CheckCircle2,
   Hash,
   BookOpen,
+  Eye,
+  ExternalLink,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -56,6 +58,7 @@ export function ProcedureManualManagement() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<VirtualUnit | null>(null);
+  const [viewingUnit, setViewingUnit] = useState<VirtualUnit | null>(null);
 
   const [newPart, setNewPart] = useState('');
   const [isSavingConfig, setIsSavingConfig] = useState(false);
@@ -117,6 +120,11 @@ export function ProcedureManualManagement() {
     if (!manuals) return new Map<string, ProcedureManual>();
     return new Map(manuals.map((m) => [m.id, m]));
   }, [manuals]);
+
+  const viewingManual = useMemo(() => {
+    if (!viewingUnit) return null;
+    return manualMap.get(viewingUnit.id) || null;
+  }, [viewingUnit, manualMap]);
 
   const manageableUnits = useMemo(() => {
     if (!units) return [];
@@ -335,7 +343,16 @@ export function ProcedureManualManagement() {
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="text-right pr-6 space-x-1 whitespace-nowrap">
+                        <TableCell className="text-right pr-6 space-x-1.5 whitespace-nowrap">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setViewingUnit(unit)}
+                            className="h-8 text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-slate-900 border-primary/30 text-primary hover:bg-primary/5 shadow-sm"
+                            title="View Procedure Manual Details & Preview"
+                          >
+                            <Eye className="mr-1.5 h-3.5 w-3.5 text-primary" /> View Procedure
+                          </Button>
                           <Button
                             variant={hasData ? 'outline' : 'default'}
                             size="sm"
@@ -453,6 +470,120 @@ export function ProcedureManualManagement() {
           )}
         </CardContent>
       </Card>
+
+      {/* VIEW PROCEDURE MANUAL PREVIEW DIALOG */}
+      <Dialog open={!!viewingUnit} onOpenChange={(open) => !open && setViewingUnit(null)}>
+        <DialogContent className="max-w-4xl p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800">
+          <DialogHeader className="space-y-1 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-primary">
+                <BookOpen className="h-5 w-5" />
+                <span className="text-xs font-black uppercase tracking-widest">
+                  {viewingManual?.procedureNumber ? `${viewingManual.procedureNumber} • ` : ''}Procedure Manual
+                </span>
+              </div>
+              {viewingManual?.revisionNumber && (
+                <Badge variant="secondary" className="font-mono text-xs font-bold">
+                  Rev {viewingManual.revisionNumber}
+                </Badge>
+              )}
+            </div>
+            <DialogTitle className="text-base sm:text-lg font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
+              {viewingManual?.manualTitle || viewingUnit?.name}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Official operating procedure manual specifications for {viewingUnit?.name}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* METADATA GRID */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Procedure No.</p>
+                <p className="font-mono font-bold text-slate-900 dark:text-slate-100">
+                  {viewingManual?.procedureNumber || '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">No. of Processes</p>
+                <p className="font-bold text-slate-900 dark:text-slate-100">
+                  {viewingManual?.numberOfProcesses !== undefined && viewingManual?.numberOfProcesses !== 0
+                    ? viewingManual.numberOfProcesses
+                    : '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Revision Date</p>
+                <p className="font-bold text-slate-900 dark:text-slate-100">
+                  {viewingManual?.revisionDate || viewingManual?.dateImplemented || '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total Pages</p>
+                <p className="font-bold text-slate-900 dark:text-slate-100">
+                  {viewingManual?.pageCount !== undefined && viewingManual?.pageCount !== 0
+                    ? viewingManual.pageCount
+                    : '—'}
+                </p>
+              </div>
+            </div>
+
+            {/* PREVIEW CONTAINER */}
+            <div className="h-[48vh] rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 relative">
+              {viewingManual?.googleDriveLink ? (
+                <iframe
+                  src={viewingManual.googleDriveLink.replace('/view', '/preview').replace('?usp=sharing', '')}
+                  className="w-full h-full border-none bg-white"
+                  allow="autoplay"
+                  title={`${viewingUnit?.name} Procedure Manual Preview`}
+                />
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
+                  <BookOpen className="h-12 w-12 opacity-20 mb-3" />
+                  <p className="text-sm font-bold uppercase tracking-wider">No Digital Document Attached</p>
+                  <p className="text-xs max-w-xs mt-1">
+                    This unit has not configured a Google Drive document link yet. Click "Edit" to configure the link.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="pt-3 border-t border-slate-100 dark:border-slate-800 gap-2 sm:justify-between flex-row">
+            <div>
+              {viewingManual?.googleDriveLink && (
+                <Button variant="outline" size="sm" asChild className="h-9 text-xs font-bold uppercase tracking-wider">
+                  <a href={viewingManual.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" /> Open in Google Drive
+                  </a>
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setViewingUnit(null)}
+                className="h-9 text-xs font-bold uppercase tracking-wider"
+              >
+                Close
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  const targetUnit = viewingUnit;
+                  setViewingUnit(null);
+                  if (targetUnit) handleOpenDialog(targetUnit);
+                }}
+                className="h-9 text-xs font-black uppercase tracking-wider bg-primary"
+              >
+                <Edit className="mr-1.5 h-3.5 w-3.5" /> Edit Details
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* EDIT / ADD PROCEDURE MANUAL DIALOG */}
       <Dialog open={!!selectedUnit} onOpenChange={(open) => !open && handleCloseDialog()}>
