@@ -1,0 +1,776 @@
+'use client';
+
+import React from 'react';
+import type { Risk, Signatories, Unit, Campus } from '@/lib/types';
+import { format } from 'date-fns';
+import { Timestamp } from '@/firebase/firestore-wrapper';
+
+const safeFormatDate = (d: any) => {
+  if (!d) return '—';
+  try {
+    const date = d instanceof Timestamp ? d.toDate() : d?.toDate ? d.toDate() : new Date(d);
+    return isNaN(date.getTime()) ? '—' : format(date, 'MM/dd/yyyy');
+  } catch {
+    return '—';
+  }
+};
+
+const getRatingColor = (rating: string) => {
+  switch (rating?.toLowerCase()) {
+    case 'critical':
+    case 'high':
+      return '#be123c'; // rose-700
+    case 'medium':
+      return '#b45309'; // amber-700
+    case 'low':
+      return '#047857'; // emerald-700
+    default:
+      return '#334155'; // slate-700
+  }
+};
+
+/* =========================================================================
+   1. EXECUTIVE RISK PROFILE & STRATEGIC DECISION BRIEFING
+   ========================================================================= */
+interface ExecutiveBriefingProps {
+  risks: Risk[];
+  unitName: string;
+  campusName: string;
+  year: number;
+  signatories?: Signatories;
+  cycle?: 'first' | 'final';
+}
+
+export function ExecutiveRiskBriefingTemplate({
+  risks,
+  unitName,
+  campusName,
+  year,
+  signatories,
+  cycle = 'final',
+}: ExecutiveBriefingProps) {
+  const totalRisks = risks.filter((r) => r.type === 'Risk');
+  const totalOpportunities = risks.filter((r) => r.type === 'Opportunity');
+  const criticalCount = totalRisks.filter(
+    (r) => r.preTreatment?.rating === 'Critical' || r.preTreatment?.rating === 'High',
+  ).length;
+  const mediumCount = totalRisks.filter((r) => r.preTreatment?.rating === 'Medium').length;
+  const lowCount = totalRisks.filter((r) => r.preTreatment?.rating === 'Low').length;
+
+  const closedCount = totalRisks.filter((r) => r.status === 'Closed').length;
+  const inProgressCount = totalRisks.filter((r) => r.status === 'In Progress').length;
+  const openCount = totalRisks.filter((r) => r.status === 'Open').length;
+
+  // Calculate pre vs post magnitude reduction
+  const treatedRisks = totalRisks.filter((r) => r.postTreatment && r.postTreatment.magnitude);
+  const totalPreMagnitude = treatedRisks.reduce((acc, r) => acc + (r.preTreatment?.magnitude || 0), 0);
+  const totalPostMagnitude = treatedRisks.reduce((acc, r) => acc + (r.postTreatment?.magnitude || 0), 0);
+  const reductionPercentage =
+    totalPreMagnitude > 0 ? Math.round(((totalPreMagnitude - totalPostMagnitude) / totalPreMagnitude) * 100) : 0;
+
+  // Top 5 critical risks
+  const topVulnerabilities = [...totalRisks]
+    .sort((a, b) => (b.preTreatment?.magnitude || 0) - (a.preTreatment?.magnitude || 0))
+    .slice(0, 6);
+
+  return (
+    <div
+      className="p-8 text-black bg-white max-w-[11in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
+      style={{ fontSize: '9pt' }}
+    >
+      {/* HEADER */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
+        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700">Quality Assurance Office & Risk Management Council</p>
+        <div className="mt-2 py-1 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider">
+          Executive Risk Profile & Decision-Support Briefing (FY {year})
+        </div>
+      </div>
+
+      {/* METADATA BAR */}
+      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-slate-300">
+        <div>
+          Scope:{' '}
+          <span className="underline">
+            {unitName} ({campusName})
+          </span>
+        </div>
+        <div>
+          Cycle:{' '}
+          <span className="underline">{cycle === 'first' ? '1st Monitoring Cycle' : 'Final / Annual Cycle'}</span>
+        </div>
+        <div>
+          Date Generated: <span className="underline">{format(new Date(), 'MMMM dd, yyyy')}</span>
+        </div>
+      </div>
+
+      {/* KEY DECISION METRICS GRID */}
+      <div className="grid grid-cols-4 gap-3 mb-4 text-center">
+        <div className="border border-slate-300 p-2 rounded bg-slate-50">
+          <p className="text-[7pt] font-black uppercase text-slate-500">Total Portfolio</p>
+          <p className="text-xl font-black text-slate-900">{risks.length}</p>
+          <p className="text-[7pt] text-slate-600 font-bold">
+            {totalRisks.length} Risks | {totalOpportunities.length} Opps
+          </p>
+        </div>
+        <div className="border border-rose-200 p-2 rounded bg-rose-50/50">
+          <p className="text-[7pt] font-black uppercase text-rose-700">High / Critical Vulnerabilities</p>
+          <p className="text-xl font-black text-rose-700">{criticalCount}</p>
+          <p className="text-[7pt] text-rose-600 font-bold">
+            {mediumCount} Medium | {lowCount} Low
+          </p>
+        </div>
+        <div className="border border-emerald-200 p-2 rounded bg-emerald-50/50">
+          <p className="text-[7pt] font-black uppercase text-emerald-700">Risk Reduction Achieved</p>
+          <p className="text-xl font-black text-emerald-700">{reductionPercentage}%</p>
+          <p className="text-[7pt] text-emerald-600 font-bold">{treatedRisks.length} Verified Treatments</p>
+        </div>
+        <div className="border border-indigo-200 p-2 rounded bg-indigo-50/50">
+          <p className="text-[7pt] font-black uppercase text-indigo-700">Closure / Execution Velocity</p>
+          <p className="text-xl font-black text-indigo-700">
+            {closedCount} / {totalRisks.length}
+          </p>
+          <p className="text-[7pt] text-indigo-600 font-bold">
+            {inProgressCount} In Progress | {openCount} Open
+          </p>
+        </div>
+      </div>
+
+      {/* TOP CRITICAL RISKS TABLE */}
+      <div className="mb-4">
+        <h3 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 flex items-center gap-1.5 border-b border-slate-300 pb-1">
+          Top Critical Vulnerabilities & Strategic Action Status
+        </h3>
+        <table className="w-full border-collapse border border-slate-400 text-[8pt]">
+          <thead>
+            <tr className="bg-slate-200 font-black text-slate-800 uppercase">
+              <th className="border border-slate-400 p-1.5 text-left w-[20%]">Objective</th>
+              <th className="border border-slate-400 p-1.5 text-left w-[28%]">Risk Description & Causes</th>
+              <th className="border border-slate-400 p-1.5 text-center w-[10%]">Pre-Rating</th>
+              <th className="border border-slate-400 p-1.5 text-left w-[24%]">Mitigation Strategy</th>
+              <th className="border border-slate-400 p-1.5 text-center w-[8%]">Post-Rating</th>
+              <th className="border border-slate-400 p-1.5 text-center w-[10%]">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {topVulnerabilities.map((r, i) => (
+              <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                <td className="border border-slate-300 p-1.5 font-bold align-top">{r.objective}</td>
+                <td className="border border-slate-300 p-1.5 align-top">{r.description}</td>
+                <td
+                  className="border border-slate-300 p-1.5 text-center align-top font-bold"
+                  style={{ color: getRatingColor(r.preTreatment?.rating) }}
+                >
+                  {r.preTreatment?.rating || '—'} ({r.preTreatment?.magnitude || 0})
+                </td>
+                <td className="border border-slate-300 p-1.5 align-top">{r.treatmentAction || '—'}</td>
+                <td
+                  className="border border-slate-300 p-1.5 text-center align-top font-bold"
+                  style={{ color: getRatingColor(r.postTreatment?.rating || '') }}
+                >
+                  {r.postTreatment?.rating || 'Pending'}{' '}
+                  {r.postTreatment?.magnitude ? `(${r.postTreatment.magnitude})` : ''}
+                </td>
+                <td className="border border-slate-300 p-1.5 text-center align-top font-bold">
+                  <span
+                    className={`inline-block px-1.5 py-0.5 rounded text-[7pt] font-black ${
+                      r.status === 'Closed'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : r.status === 'In Progress'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-rose-100 text-rose-800'
+                    }`}
+                  >
+                    {r.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* STRATEGIC MANAGEMENT RECOMMENDATIONS */}
+      <div className="border border-slate-300 p-3 rounded bg-slate-50 mb-6 text-[8pt]">
+        <h4 className="font-black uppercase text-slate-800 mb-1">Executive Risk Governance Directives:</h4>
+        <ul className="list-disc list-inside space-y-0.5 text-slate-700">
+          <li>
+            <strong>Resource Prioritization:</strong> Focus procurement and institutional funding on High/Critical items
+            with pending treatments.
+          </li>
+          <li>
+            <strong>Monitoring Cadence:</strong> Mandatory monthly review for open risks carrying consequence score
+            &gt;= 4.
+          </li>
+          <li>
+            <strong>ISO 21001 / Clause 6.1 Audit Readiness:</strong> Ensure documentary evidence is uploaded to Google
+            Drive for all closed entries.
+          </li>
+        </ul>
+      </div>
+
+      {/* SIGNATORIES */}
+      <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
+        <div>
+          <p className="font-bold text-slate-600 mb-6">Prepared by / Risk Focal Person:</p>
+          <div className="border-b border-black w-48 mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qmsHead || 'Unit Head / QMS Coordinator'}</p>
+          <p className="text-[7.5pt] text-slate-500">Quality Management System Officer</p>
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-slate-600 mb-6">Approved for Institutional Action:</p>
+          <div className="border-b border-black w-48 ml-auto mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qaoDirector || 'QAO Director / Executive Officer'}</p>
+          <p className="text-[7.5pt] text-slate-500">Director, Quality Assurance Office</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   2. RISK TREATMENT ACTION PLAN & RESOURCE ALLOCATION BLUEPRINT
+   ========================================================================= */
+interface RAPBlueprintProps {
+  risks: Risk[];
+  unitName: string;
+  campusName: string;
+  year: number;
+  signatories?: Signatories;
+}
+
+export function RiskResourceAllocationTemplate({ risks, unitName, campusName, year, signatories }: RAPBlueprintProps) {
+  const treatmentPlans = risks.filter(
+    (r) => r.treatmentAction || r.resourcesNeeded || r.preTreatment?.rating !== 'Low',
+  );
+
+  return (
+    <div
+      className="p-8 text-black bg-white max-w-[12.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
+      style={{ fontSize: '8.5pt' }}
+    >
+      {/* HEADER */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
+        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700">Financial Planning & Institutional Quality Assurance</p>
+        <div className="mt-2 py-1 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider">
+          Risk Treatment Action Plan & Resource Allocation Blueprint (RAP) — FY {year}
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-3 border border-slate-300">
+        <div>
+          Department / Unit:{' '}
+          <span className="underline">
+            {unitName} ({campusName})
+          </span>
+        </div>
+        <div>
+          Actionable Plans:{' '}
+          <span className="underline">{treatmentPlans.length} Entries Requiring Action/Resources</span>
+        </div>
+        <div>
+          Date: <span className="underline">{format(new Date(), 'MM/dd/yyyy')}</span>
+        </div>
+      </div>
+
+      <table className="w-full border-collapse border border-slate-400 text-[8pt] mb-6">
+        <thead>
+          <tr className="bg-slate-200 font-black text-slate-800 uppercase">
+            <th className="border border-slate-400 p-1.5 text-center w-[5%]">#</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[18%]">Objective & Risk Context</th>
+            <th className="border border-slate-400 p-1.5 text-center w-[8%]">Severity</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[26%]">Treatment Action Required</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[23%]">
+              Resources Needed (Budget / Tech / Staff)
+            </th>
+            <th className="border border-slate-400 p-1.5 text-left w-[12%]">Responsible Lead</th>
+            <th className="border border-slate-400 p-1.5 text-center w-[8%]">Target Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {treatmentPlans.map((r, i) => (
+            <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+              <td className="border border-slate-300 p-1.5 text-center font-bold">{i + 1}</td>
+              <td className="border border-slate-300 p-1.5 align-top">
+                <p className="font-bold text-slate-900">{r.objective}</p>
+                <p className="text-[7.5pt] text-slate-600 mt-0.5 line-clamp-2">{r.description}</p>
+              </td>
+              <td
+                className="border border-slate-300 p-1.5 text-center font-bold align-top"
+                style={{ color: getRatingColor(r.preTreatment?.rating) }}
+              >
+                {r.preTreatment?.rating || '—'}
+              </td>
+              <td className="border border-slate-300 p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
+              <td className="border border-slate-300 p-1.5 align-top font-bold text-slate-800 bg-amber-50/40">
+                {r.resourcesNeeded || 'Internal Staff Time / Existing Operational Budget'}
+              </td>
+              <td className="border border-slate-300 p-1.5 align-top font-medium">
+                {r.responsiblePersonName || 'Unit Focal Person'}
+              </td>
+              <td className="border border-slate-300 p-1.5 text-center align-top font-mono font-bold">
+                {safeFormatDate(r.targetDate)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* SIGNATORIES */}
+      <div className="grid grid-cols-3 gap-6 text-[8pt] pt-4 border-t border-slate-300">
+        <div>
+          <p className="font-bold text-slate-600 mb-5">Prepared by Unit Focal Lead:</p>
+          <div className="border-b border-black w-40 mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qmsHead || 'Unit Head'}</p>
+        </div>
+        <div>
+          <p className="font-bold text-slate-600 mb-5">Budget & Resource Endorsement:</p>
+          <div className="border-b border-black w-40 mb-1"></div>
+          <p className="font-black uppercase">Planning & Budget Officer</p>
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-slate-600 mb-5">Approved for Implementation:</p>
+          <div className="border-b border-black w-40 ml-auto mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qaoDirector || 'Vice President / Director'}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   3. TREATMENT ACCOUNTABILITY & OVERDUE MILESTONE TRACKER
+   ========================================================================= */
+interface AccountabilityTrackerProps {
+  risks: Risk[];
+  unitName: string;
+  campusName: string;
+  year: number;
+  signatories?: Signatories;
+}
+
+export function RiskAccountabilityTrackerTemplate({
+  risks,
+  unitName,
+  campusName,
+  year,
+  signatories,
+}: AccountabilityTrackerProps) {
+  const today = new Date();
+
+  // Categorize by overdue, pending, completed
+  const activeRisks = risks.filter((r) => r.type === 'Risk');
+
+  const overdueRisks = activeRisks.filter((r) => {
+    if (r.status === 'Closed') return false;
+    if (!r.targetDate) return false;
+    const target = r.targetDate instanceof Timestamp ? r.targetDate.toDate() : new Date(r.targetDate);
+    return target < today;
+  });
+
+  const inProgressRisks = activeRisks.filter((r) => r.status === 'In Progress' && !overdueRisks.includes(r));
+  const completedRisks = activeRisks.filter((r) => r.status === 'Closed');
+
+  return (
+    <div
+      className="p-8 text-black bg-white max-w-[12in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
+      style={{ fontSize: '8.5pt' }}
+    >
+      {/* HEADER */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
+        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700">
+          Monitoring & Evaluation Division • Quality Assurance Office
+        </p>
+        <div className="mt-2 py-1 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider">
+          Risk Treatment Accountability & Overdue Milestone Tracker (FY {year})
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-slate-300">
+        <div>
+          Unit Context:{' '}
+          <span className="underline">
+            {unitName} ({campusName})
+          </span>
+        </div>
+        <div>
+          Status: <span className="text-rose-700">{overdueRisks.length} Overdue</span> |{' '}
+          <span className="text-amber-700">{inProgressRisks.length} Active</span> |{' '}
+          <span className="text-emerald-700">{completedRisks.length} Closed</span>
+        </div>
+        <div>
+          As of: <span className="underline">{format(new Date(), 'MMMM dd, yyyy')}</span>
+        </div>
+      </div>
+
+      {/* OVERDUE RISKS SECTION */}
+      {overdueRisks.length > 0 && (
+        <div className="mb-5">
+          <div className="flex items-center gap-2 mb-1.5 text-rose-700 font-black uppercase text-[9pt] border-b-2 border-rose-300 pb-1">
+            <span>⚠️ Critical Attention: Overdue Action Plans ({overdueRisks.length})</span>
+          </div>
+          <table className="w-full border-collapse border border-rose-300 text-[8pt]">
+            <thead>
+              <tr className="bg-rose-100 font-black text-rose-900 uppercase">
+                <th className="border border-rose-300 p-1.5 text-left w-[22%]">Objective & Risk</th>
+                <th className="border border-rose-300 p-1.5 text-left w-[30%]">Committed Mitigation</th>
+                <th className="border border-rose-300 p-1.5 text-left w-[18%]">Accountable Lead</th>
+                <th className="border border-rose-300 p-1.5 text-center w-[12%]">Target Due Date</th>
+                <th className="border border-rose-300 p-1.5 text-center w-[18%]">Reminders / Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {overdueRisks.map((r, i) => (
+                <tr key={r.id || i} className="bg-rose-50/40">
+                  <td className="border border-rose-200 p-1.5 align-top">
+                    <p className="font-bold text-slate-900">{r.objective}</p>
+                    <p className="text-[7.5pt] text-slate-600">{r.description}</p>
+                  </td>
+                  <td className="border border-rose-200 p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
+                  <td className="border border-rose-200 p-1.5 align-top font-bold text-slate-900">
+                    {r.responsiblePersonName || 'Not Assigned'}
+                  </td>
+                  <td className="border border-rose-200 p-1.5 text-center align-top font-mono font-black text-rose-700">
+                    {safeFormatDate(r.targetDate)}
+                  </td>
+                  <td className="border border-rose-200 p-1.5 text-center align-top font-bold">
+                    <span className="bg-rose-200 text-rose-800 px-2 py-0.5 rounded text-[7.5pt] font-black">
+                      OVERDUE
+                    </span>
+                    {r.remindersSent ? (
+                      <p className="text-[7pt] text-slate-500 mt-1">{r.remindersSent} Reminders Sent</p>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* ACTIVE & COMPLETED TABLE */}
+      <div>
+        <h4 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 border-b border-slate-300 pb-1">
+          Active On-Schedule & Closed Treatment Plans ({inProgressRisks.length + completedRisks.length})
+        </h4>
+        <table className="w-full border-collapse border border-slate-400 text-[8pt] mb-6">
+          <thead>
+            <tr className="bg-slate-200 font-black text-slate-800 uppercase">
+              <th className="border border-slate-400 p-1.5 text-left w-[24%]">Objective</th>
+              <th className="border border-slate-400 p-1.5 text-left w-[32%]">Mitigation Action</th>
+              <th className="border border-slate-400 p-1.5 text-left w-[18%]">Responsible Person</th>
+              <th className="border border-slate-400 p-1.5 text-center w-[12%]">Target / Closed Date</th>
+              <th className="border border-slate-400 p-1.5 text-center w-[14%]">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[...inProgressRisks, ...completedRisks].map((r, i) => (
+              <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                <td className="border border-slate-300 p-1.5 font-bold align-top">{r.objective}</td>
+                <td className="border border-slate-300 p-1.5 align-top">{r.treatmentAction || '—'}</td>
+                <td className="border border-slate-300 p-1.5 align-top font-medium">
+                  {r.responsiblePersonName || 'Unit Lead'}
+                </td>
+                <td className="border border-slate-300 p-1.5 text-center align-top font-mono">
+                  {r.status === 'Closed'
+                    ? safeFormatDate(r.postTreatment?.dateImplemented || r.updatedAt)
+                    : safeFormatDate(r.targetDate)}
+                </td>
+                <td className="border border-slate-300 p-1.5 text-center align-top">
+                  <span
+                    className={`inline-block px-2 py-0.5 rounded text-[7.5pt] font-black ${
+                      r.status === 'Closed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {r.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* SIGNATORIES */}
+      <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
+        <div>
+          <p className="font-bold text-slate-600 mb-5">Reviewed by Unit QMS Focal:</p>
+          <div className="border-b border-black w-44 mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qmsHead || 'Unit Head'}</p>
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-slate-600 mb-5">Noted by QAO Director:</p>
+          <div className="border-b border-black w-44 ml-auto mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qaoDirector || 'QAO Director'}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   4. RESIDUAL RISK & TREATMENT EFFECTIVENESS VERIFICATION DOSSIER
+   ========================================================================= */
+interface EffectivenessAuditProps {
+  risks: Risk[];
+  unitName: string;
+  campusName: string;
+  year: number;
+  signatories?: Signatories;
+}
+
+export function RiskEffectivenessAuditTemplate({
+  risks,
+  unitName,
+  campusName,
+  year,
+  signatories,
+}: EffectivenessAuditProps) {
+  const verifiedRisks = risks.filter((r) => r.postTreatment || r.verification);
+
+  return (
+    <div
+      className="p-8 text-black bg-white max-w-[12.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
+      style={{ fontSize: '8.5pt' }}
+    >
+      {/* HEADER */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
+        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700">
+          Internal Quality Audit Committee • ISO 21001:2018 Clause 6.1 Audit Dossier
+        </p>
+        <div className="mt-2 py-1 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider">
+          Residual Risk & Treatment Effectiveness Verification Audit Dossier (FY {year})
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-3 border border-slate-300">
+        <div>
+          Auditee Unit:{' '}
+          <span className="underline">
+            {unitName} ({campusName})
+          </span>
+        </div>
+        <div>
+          Standard:{' '}
+          <span className="font-mono">ISO 21001:2018 / ISO 9001:2015 Clause 6.1 (Actions to Address Risks & Opps)</span>
+        </div>
+        <div>
+          Date Audited: <span className="underline">{format(new Date(), 'MMMM dd, yyyy')}</span>
+        </div>
+      </div>
+
+      <table className="w-full border-collapse border border-slate-400 text-[8pt] mb-6">
+        <thead>
+          <tr className="bg-slate-200 font-black text-slate-800 uppercase">
+            <th className="border border-slate-400 p-1.5 text-left w-[20%]">Objective & Risk</th>
+            <th className="border border-slate-400 p-1.5 text-center w-[7%]">Pre-Mag</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[23%]">Implemented Treatment Action</th>
+            <th className="border border-slate-400 p-1.5 text-center w-[7%]">Post-Mag</th>
+            <th className="border border-slate-400 p-1.5 text-center w-[8%]">Delta Drop</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[23%]">Documentary Evidence / Verification</th>
+            <th className="border border-slate-400 p-1.5 text-center w-[12%]">QA Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          {verifiedRisks.map((r, i) => {
+            const preMag = r.preTreatment?.magnitude || 0;
+            const postMag = r.postTreatment?.magnitude || 0;
+            const drop = preMag - postMag;
+            const isEffective = drop > 0 || r.preTreatment?.rating === 'Low';
+
+            return (
+              <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                <td className="border border-slate-300 p-1.5 align-top">
+                  <p className="font-bold text-slate-900">{r.objective}</p>
+                  <p className="text-[7.5pt] text-slate-600 line-clamp-2">{r.description}</p>
+                </td>
+                <td
+                  className="border border-slate-300 p-1.5 text-center align-top font-bold"
+                  style={{ color: getRatingColor(r.preTreatment?.rating) }}
+                >
+                  {preMag} ({r.preTreatment?.rating?.charAt(0)})
+                </td>
+                <td className="border border-slate-300 p-1.5 align-top">{r.treatmentAction || '—'}</td>
+                <td
+                  className="border border-slate-300 p-1.5 text-center align-top font-bold"
+                  style={{ color: getRatingColor(r.postTreatment?.rating || '') }}
+                >
+                  {postMag || '—'}
+                </td>
+                <td className="border border-slate-300 p-1.5 text-center align-top font-black">
+                  {drop > 0 ? (
+                    <span className="text-emerald-700">▼ -{drop}</span>
+                  ) : drop === 0 ? (
+                    <span className="text-slate-500">0 (Par)</span>
+                  ) : (
+                    <span className="text-rose-700">▲ +{Math.abs(drop)}</span>
+                  )}
+                </td>
+                <td className="border border-slate-300 p-1.5 align-top text-[7.5pt]">
+                  <p className="font-medium text-slate-800">
+                    {r.postTreatment?.evidence || r.verification?.evidence || 'Attached in QAO-00-027'}
+                  </p>
+                  {r.auditorRemarks && <p className="text-indigo-700 font-bold mt-0.5">Auditor: {r.auditorRemarks}</p>}
+                </td>
+                <td className="border border-slate-300 p-1.5 text-center align-top">
+                  <span
+                    className={`inline-block px-1.5 py-0.5 rounded text-[7pt] font-black ${
+                      r.verification?.status === 'Correct' || r.verification?.status === 'Implemented' || isEffective
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {r.verification?.status || (isEffective ? 'EFFECTIVE' : 'FOR REVIEW')}
+                  </span>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* AUDIT SIGN-OFF */}
+      <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
+        <div>
+          <p className="font-bold text-slate-600 mb-5">Lead Internal Quality Auditor:</p>
+          <div className="border-b border-black w-48 mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qmsHead || 'Certified ISO Auditor'}</p>
+          <p className="text-[7.5pt] text-slate-500">IQA Verification Team Lead</p>
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-slate-600 mb-5">Confirmed & Registered:</p>
+          <div className="border-b border-black w-48 ml-auto mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qaoDirector || 'QAO Director'}</p>
+          <p className="text-[7.5pt] text-slate-500">Director, Quality Assurance Office</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   5. OPPORTUNITY CAPITALIZATION & STRATEGIC INNOVATION SCORECARD
+   ========================================================================= */
+interface OpportunityScorecardProps {
+  risks: Risk[];
+  unitName: string;
+  campusName: string;
+  year: number;
+  signatories?: Signatories;
+}
+
+export function OpportunityInnovationTemplate({
+  risks,
+  unitName,
+  campusName,
+  year,
+  signatories,
+}: OpportunityScorecardProps) {
+  const opportunities = risks.filter((r) => r.type === 'Opportunity');
+  const capturedCount = opportunities.filter(
+    (r) => r.status === 'Closed' || (r.postTreatment && r.postTreatment.evidence),
+  ).length;
+
+  return (
+    <div
+      className="p-8 text-black bg-white max-w-[11.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
+      style={{ fontSize: '8.5pt' }}
+    >
+      {/* HEADER */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
+        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700">Office of Strategic Planning, Innovation & Linkages</p>
+        <div className="mt-2 py-1 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider">
+          Opportunity Capitalization & Strategic Innovation Scorecard (FY {year})
+        </div>
+      </div>
+
+      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-slate-300">
+        <div>
+          Unit:{' '}
+          <span className="underline">
+            {unitName} ({campusName})
+          </span>
+        </div>
+        <div>
+          Opportunities Identified: <span className="font-black text-indigo-700">{opportunities.length}</span>
+        </div>
+        <div>
+          Capitalization Rate:{' '}
+          <span className="font-black text-emerald-700">
+            {opportunities.length > 0 ? Math.round((capturedCount / opportunities.length) * 100) : 0}% ({capturedCount}{' '}
+            Realized)
+          </span>
+        </div>
+      </div>
+
+      <table className="w-full border-collapse border border-slate-400 text-[8pt] mb-6">
+        <thead>
+          <tr className="bg-slate-200 font-black text-slate-800 uppercase">
+            <th className="border border-slate-400 p-1.5 text-center w-[5%]">#</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[22%]">Strategic Objective</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[28%]">Opportunity Description & Potential</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[25%]">
+              Capitalization Plan / Enhancement Action
+            </th>
+            <th className="border border-slate-400 p-1.5 text-center w-[10%]">Target Date</th>
+            <th className="border border-slate-400 p-1.5 text-center w-[10%]">Realization Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {opportunities.map((o, i) => (
+            <tr key={o.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+              <td className="border border-slate-300 p-1.5 text-center font-bold">{i + 1}</td>
+              <td className="border border-slate-300 p-1.5 font-bold align-top">{o.objective}</td>
+              <td className="border border-slate-300 p-1.5 align-top">{o.description}</td>
+              <td className="border border-slate-300 p-1.5 align-top font-medium">{o.treatmentAction || '—'}</td>
+              <td className="border border-slate-300 p-1.5 text-center align-top font-mono">
+                {safeFormatDate(o.targetDate)}
+              </td>
+              <td className="border border-slate-300 p-1.5 text-center align-top font-bold">
+                <span
+                  className={`inline-block px-2 py-0.5 rounded text-[7.5pt] font-black ${
+                    o.status === 'Closed' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
+                  }`}
+                >
+                  {o.status === 'Closed' ? 'REALIZED' : o.status}
+                </span>
+              </td>
+            </tr>
+          ))}
+          {opportunities.length === 0 && (
+            <tr>
+              <td colSpan={6} className="text-center p-6 text-slate-500 font-bold">
+                No opportunities logged for this fiscal year.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+
+      {/* SIGNATORIES */}
+      <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
+        <div>
+          <p className="font-bold text-slate-600 mb-5">Submitted by Unit Head:</p>
+          <div className="border-b border-black w-44 mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qmsHead || 'Unit Head'}</p>
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-slate-600 mb-5">Noted for Strategic Planning:</p>
+          <div className="border-b border-black w-44 ml-auto mb-1"></div>
+          <p className="font-black uppercase">
+            {signatories?.qaoDirector || 'Vice President for Academic / Research Affairs'}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
