@@ -30,6 +30,10 @@ import {
   School,
   CheckCircle,
   Settings,
+  ShieldCheck,
+  Bookmark,
+  FileText,
+  CalendarCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -41,6 +45,7 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ProcedureRevisionDialog } from '@/components/manuals/procedure-revision-dialog';
 import { ProcedureRevisionReviewDialog } from '@/components/manuals/procedure-revision-review-dialog';
+import { ProcedureManualProcessSlider } from '@/components/manuals/procedure-manual-process-slider';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Printer } from 'lucide-react';
 import {
@@ -463,27 +468,90 @@ export default function ProcedureManualsPage() {
                 <div className="h-full m-0">
                   {/* TAB 1: VIEW MANUAL */}
                   <TabsContent value="view" className="h-full m-0 animate-in fade-in duration-300">
-                    <Card className="h-full flex flex-col shadow-md border-primary/10 overflow-hidden">
-                      <CardHeader className="border-b bg-muted/5 py-4">
-                        <div className="flex items-center justify-between">
-                          <div className="space-y-1">
-                            <CardTitle className="text-sm font-black uppercase tracking-tight truncate max-w-[500px]">
-                              {selectedManual?.unitName ||
-                                (selectedUnitId === SHARED_ACADEMIC_ID
-                                  ? 'Academic Procedure Manual'
-                                  : 'Procedure Manual')}
-                            </CardTitle>
-                            <CardDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                              Official Operational Reference Log
+                    <Card className="h-full flex flex-col shadow-md border-primary/10 overflow-hidden bg-white dark:bg-slate-900">
+                      <CardHeader className="border-b bg-muted/10 py-3.5 px-6 space-y-3 shrink-0">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <CardTitle className="text-sm md:text-base font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 truncate max-w-[500px]">
+                                {selectedManual?.manualTitle ||
+                                  selectedManual?.unitName ||
+                                  (selectedUnitId === SHARED_ACADEMIC_ID
+                                    ? 'Academic Procedure Manual'
+                                    : 'Procedure Manual')}
+                              </CardTitle>
+                              {selectedManual?.procedureNumber && (
+                                <Badge
+                                  variant="outline"
+                                  className="font-mono font-black text-[10px] uppercase bg-primary/5 text-primary border-primary/30"
+                                >
+                                  {selectedManual.procedureNumber}
+                                </Badge>
+                              )}
+                              {selectedManual?.status && (
+                                <Badge
+                                  className={cn(
+                                    'text-[9px] font-black uppercase px-2 py-0.5 border-none shadow-xs',
+                                    selectedManual.status === 'Updated'
+                                      ? 'bg-emerald-600 text-white'
+                                      : selectedManual.status === 'Needs Revision'
+                                        ? 'bg-amber-500 text-white'
+                                        : 'bg-rose-600 text-white',
+                                  )}
+                                >
+                                  {selectedManual.status}
+                                </Badge>
+                              )}
+                            </div>
+                            <CardDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                              <span>Official Operational Reference Log</span>
+                              {selectedManual?.unitName && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-slate-700 dark:text-slate-300 font-black">
+                                    {selectedManual.unitName}
+                                  </span>
+                                </>
+                              )}
                             </CardDescription>
                           </div>
-                          {selectedManual && (
-                            <Badge variant="secondary" className="h-6 font-mono font-bold">
-                              Rev {selectedManual.revisionNumber || '00'}
-                            </Badge>
-                          )}
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            {selectedManual && (
+                              <Badge
+                                variant="secondary"
+                                className="h-6 font-mono font-black text-xs px-2.5 bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border"
+                              >
+                                Rev {selectedManual.revisionNumber || '00'}
+                              </Badge>
+                            )}
+                            {selectedManual?.googleDriveLink && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-[10px] font-bold uppercase tracking-wider gap-1.5 bg-white dark:bg-slate-900 border-primary/20 hover:bg-primary/5 text-primary"
+                                onClick={() => window.open(selectedManual.googleDriveLink, '_blank')}
+                                title="Open manual in Google Drive"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                                <span className="hidden md:inline">Open Drive</span>
+                              </Button>
+                            )}
+                          </div>
                         </div>
+
+                        {/* PROCESS SLIDER IN HEADER */}
+                        {selectedManual && (
+                          <ProcedureManualProcessSlider
+                            processes={selectedManual.processes}
+                            numberOfProcesses={selectedManual.numberOfProcesses}
+                            procedureNumber={selectedManual.procedureNumber}
+                            unitName={selectedManual.unitName || selectedUnit.name}
+                            className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60"
+                          />
+                        )}
                       </CardHeader>
+
                       <CardContent className="flex-1 p-0 bg-slate-100 dark:bg-slate-700 relative shadow-inner">
                         {previewUrl ? (
                           <iframe
@@ -504,19 +572,93 @@ export default function ProcedureManualsPage() {
                           </div>
                         )}
                       </CardContent>
+
+                      {/* COMPLETE METADATA FOOTER */}
                       {selectedManual && (
-                        <CardFooter className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] border-t bg-card py-3 px-6 uppercase tracking-widest font-bold text-muted-foreground">
-                          <div className="flex items-center gap-2">
-                            <Hash className="h-3.5 w-3.5 text-primary" />
-                            <span>Revision: {selectedManual.revisionNumber}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar className="h-3.5 w-3.5 text-primary" />
-                            <span className="truncate">Implemented: {selectedManual.dateImplemented}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Info className="h-3.5 w-3.5 text-primary" />
-                            <span>Controlled RSU Document</span>
+                        <CardFooter className="border-t bg-slate-50/90 dark:bg-slate-900/90 py-3 px-6 text-[10px] font-bold uppercase tracking-wider text-muted-foreground shrink-0">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 w-full items-center">
+                            {/* 1. Revision Number */}
+                            <div className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-800 shadow-2xs">
+                              <Hash className="h-4 w-4 text-primary shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">
+                                  Revision
+                                </p>
+                                <p className="font-black text-slate-900 dark:text-slate-100 truncate">
+                                  Rev {selectedManual.revisionNumber || '00'}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* 2. Number of Pages */}
+                            <div className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-800 shadow-2xs">
+                              <FileText className="h-4 w-4 text-primary shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">
+                                  Total Pages
+                                </p>
+                                <p className="font-black text-slate-900 dark:text-slate-100 truncate">
+                                  {selectedManual.pageCount !== undefined &&
+                                  selectedManual.pageCount !== null &&
+                                  selectedManual.pageCount !== 0
+                                    ? `${selectedManual.pageCount} ${Number(selectedManual.pageCount) === 1 ? 'Page' : 'Pages'}`
+                                    : '—'}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* 3. Date of Revision */}
+                            <div className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-800 shadow-2xs">
+                              <History className="h-4 w-4 text-primary shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">
+                                  Revision Date
+                                </p>
+                                <p className="font-black text-slate-900 dark:text-slate-100 truncate">
+                                  {selectedManual.revisionDate || selectedManual.dateImplemented || '—'}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* 4. Date Implemented */}
+                            <div className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-800 shadow-2xs">
+                              <CalendarCheck className="h-4 w-4 text-primary shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">
+                                  Implemented
+                                </p>
+                                <p className="font-black text-slate-900 dark:text-slate-100 truncate">
+                                  {selectedManual.dateImplemented || '—'}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* 5. Procedure Code */}
+                            <div className="flex items-center gap-2 p-1.5 rounded-lg bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-800 shadow-2xs">
+                              <Bookmark className="h-4 w-4 text-primary shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">
+                                  Procedure Code
+                                </p>
+                                <p className="font-mono font-black text-slate-900 dark:text-slate-100 truncate">
+                                  {selectedManual.procedureNumber || 'PM-RSU'}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* 6. Controlled Document Compliance */}
+                            <div className="flex items-center gap-2 p-1.5 rounded-lg bg-primary/5 border border-primary/20 shadow-2xs">
+                              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">
+                                  Controlled QMS
+                                </p>
+                                <p className="font-black text-slate-900 dark:text-slate-100 truncate flex items-center gap-1">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                                  ISO 21001:2018
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </CardFooter>
                       )}

@@ -44,6 +44,7 @@ import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ProcedureManualProcessSlider } from '@/components/manuals/procedure-manual-process-slider';
 
 const manualSchema = z.object({
   procedureNumber: z.string().optional().default(''),
@@ -688,31 +689,15 @@ export function ProcedureManualManagement() {
               </div>
             </div>
 
-            {/* REGISTERED PROCESSES LIST */}
-            {viewingManual?.processes && viewingManual.processes.length > 0 && (
-              <div className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
-                <p className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-1.5">
-                  <ListChecks className="h-3.5 w-3.5 text-primary" />
-                  Processes Included in this Manual ({viewingManual.processes.length})
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-1">
-                  {viewingManual.processes.map((proc, pIdx) => (
-                    <div
-                      key={pIdx}
-                      className="flex items-center gap-2 p-2 bg-white dark:bg-slate-900 rounded-lg border text-xs"
-                    >
-                      <Badge
-                        variant="outline"
-                        className="font-mono text-[10px] font-bold shrink-0 bg-primary/5 text-primary"
-                      >
-                        {proc.processNumber || `#${pIdx + 1}`}
-                      </Badge>
-                      <span className="font-medium text-slate-800 dark:text-slate-200 truncate">
-                        {proc.processTitle}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+            {/* PROCESS SLIDER */}
+            {viewingManual && (
+              <div className="bg-slate-50/80 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800">
+                <ProcedureManualProcessSlider
+                  processes={viewingManual.processes}
+                  numberOfProcesses={viewingManual.numberOfProcesses}
+                  procedureNumber={viewingManual.procedureNumber}
+                  unitName={viewingUnit?.name}
+                />
               </div>
             )}
 
