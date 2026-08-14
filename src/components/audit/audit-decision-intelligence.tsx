@@ -1,21 +1,55 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Unit, Campus, CorrectiveActionRequest } from '@/lib/types';
+import type {
+  AuditPlan,
+  AuditSchedule,
+  AuditFinding,
+  ISOClause,
+  Unit,
+  Campus,
+  CorrectiveActionRequest,
+} from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, Cell, LabelList,
-  PieChart, Pie,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip as RechartsTooltip,
+  Legend,
+  Cell,
+  LabelList,
+  PieChart,
+  Pie,
 } from 'recharts';
 import {
-  AlertTriangle, CheckCircle2, ClipboardCheck, Target, Clock, Building2, ListChecks,
-  AlertOctagon, Lightbulb, FileSearch, ArrowRight, ShieldCheck, Info, TrendingUp, Siren, Flag, Search,
-  GanttChartSquare
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardCheck,
+  Target,
+  Clock,
+  Building2,
+  ListChecks,
+  AlertOctagon,
+  Lightbulb,
+  FileSearch,
+  ArrowRight,
+  ShieldCheck,
+  Info,
+  TrendingUp,
+  Siren,
+  Flag,
+  Search,
+  GanttChartSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 
 interface IqaDecisionIntelligenceProps {
   plans: AuditPlan[];
@@ -29,32 +63,39 @@ interface IqaDecisionIntelligenceProps {
 }
 
 const FINDING_TYPE_COLORS: Record<string, string> = {
-  'Compliance': '#10b981',
+  Compliance: '#10b981',
   'Observation for Improvement': '#f59e0b',
   'Non-Conformance': '#ef4444',
   'Not Applicable': '#94a3b8',
 };
 
 const FINDING_TYPE_SHORT: Record<string, string> = {
-  'Compliance': 'C',
+  Compliance: 'C',
   'Observation for Improvement': 'OFI',
   'Non-Conformance': 'NC',
   'Not Applicable': 'N/A',
 };
 
 export function IqaDecisionIntelligence({
-  plans, schedules, findings, cars, isoClauses, units, campuses, selectedYear
+  plans,
+  schedules,
+  findings,
+  cars,
+  isoClauses,
+  units,
+  campuses,
+  selectedYear,
 }: IqaDecisionIntelligenceProps) {
-  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
-  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
+  const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
+  const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
 
   // Scope data to selected year
   const yearData = useMemo(() => {
-    const yearPlans = plans.filter(p => p.year === selectedYear);
-    const planIds = new Set(yearPlans.map(p => p.id));
-    const yearSchedules = schedules.filter(s => planIds.has(s.auditPlanId));
-    const scheduleIds = new Set(yearSchedules.map(s => s.id));
-    const yearFindings = findings.filter(f => scheduleIds.has(f.auditScheduleId));
+    const yearPlans = plans.filter((p) => p.year === selectedYear);
+    const planIds = new Set(yearPlans.map((p) => p.id));
+    const yearSchedules = schedules.filter((s) => planIds.has(s.auditPlanId));
+    const scheduleIds = new Set(yearSchedules.map((s) => s.id));
+    const yearFindings = findings.filter((f) => scheduleIds.has(f.auditScheduleId));
 
     return { yearPlans, yearSchedules, scheduleIds, yearFindings };
   }, [plans, schedules, findings, selectedYear]);
@@ -64,19 +105,19 @@ export function IqaDecisionIntelligence({
   // Cross-year progression: OFIs in previous year → NCs in current year (same unit, same clause)
   const crossYearProgression = useMemo(() => {
     const prevYear = selectedYear - 1;
-    const prevYearPlans = plans.filter(p => p.year === prevYear);
-    const prevPlanIds = new Set(prevYearPlans.map(p => p.id));
-    const prevYearSchedules = schedules.filter(s => prevPlanIds.has(s.auditPlanId));
-    const prevScheduleIds = new Set(prevYearSchedules.map(s => s.id));
-    const prevFindings = findings.filter(f => prevScheduleIds.has(f.auditScheduleId));
+    const prevYearPlans = plans.filter((p) => p.year === prevYear);
+    const prevPlanIds = new Set(prevYearPlans.map((p) => p.id));
+    const prevYearSchedules = schedules.filter((s) => prevPlanIds.has(s.auditPlanId));
+    const prevScheduleIds = new Set(prevYearSchedules.map((s) => s.id));
+    const prevFindings = findings.filter((f) => prevScheduleIds.has(f.auditScheduleId));
 
     if (prevFindings.length === 0) return [];
 
     // Map previous year OFIs by unit+clause
     const prevOfiByUnitClause: Record<string, string[]> = {};
-    prevFindings.forEach(f => {
+    prevFindings.forEach((f) => {
       if (f.type !== 'Observation for Improvement') return;
-      const schedule = prevYearSchedules.find(s => s.id === f.auditScheduleId);
+      const schedule = prevYearSchedules.find((s) => s.id === f.auditScheduleId);
       if (!schedule) return;
       const key = `${schedule.targetId}-${f.isoClause}`;
       if (!prevOfiByUnitClause[key]) prevOfiByUnitClause[key] = [];
@@ -93,20 +134,20 @@ export function IqaDecisionIntelligence({
       currentNcCount: number;
     }[] = [];
 
-    yearFindings.forEach(f => {
+    yearFindings.forEach((f) => {
       if (f.type !== 'Non-Conformance') return;
-      const schedule = yearSchedules.find(s => s.id === f.auditScheduleId);
+      const schedule = yearSchedules.find((s) => s.id === f.auditScheduleId);
       if (!schedule) return;
       const key = `${schedule.targetId}-${f.isoClause}`;
       const prevOfis = prevOfiByUnitClause[key];
       if (!prevOfis || prevOfis.length === 0) return;
 
       // Check if this unit+clause already in result
-      const existing = result.find(r => r.unitId === schedule.targetId && r.clauseId === f.isoClause);
+      const existing = result.find((r) => r.unitId === schedule.targetId && r.clauseId === f.isoClause);
       if (existing) {
         existing.currentNcCount++;
       } else {
-        const match = isoClauses.find(c => c.id === f.isoClause || c.title === f.isoClause);
+        const match = isoClauses.find((c) => c.id === f.isoClause || c.title === f.isoClause);
         result.push({
           unitId: schedule.targetId,
           unitName: unitMap.get(schedule.targetId) || 'Unknown',
@@ -123,8 +164,15 @@ export function IqaDecisionIntelligence({
 
   // Finding counts by type
   const findingCounts = useMemo(() => {
-    const counts: Record<string, number> = { 'Compliance': 0, 'Observation for Improvement': 0, 'Non-Conformance': 0, 'Not Applicable': 0 };
-    yearFindings.forEach(f => { if (counts[f.type] !== undefined) counts[f.type]++; });
+    const counts: Record<string, number> = {
+      Compliance: 0,
+      'Observation for Improvement': 0,
+      'Non-Conformance': 0,
+      'Not Applicable': 0,
+    };
+    yearFindings.forEach((f) => {
+      if (counts[f.type] !== undefined) counts[f.type]++;
+    });
     return counts;
   }, [yearFindings]);
 
@@ -136,48 +184,62 @@ export function IqaDecisionIntelligence({
     const totalCompliance = findingCounts['Compliance'];
 
     // Map CARs to NC findings
-    const ncFindingIds = new Set(yearFindings.filter(f => f.type === 'Non-Conformance').map(f => f.id));
-    const carsLinked = cars.filter(c =>
-      c.source === 'Audit Finding' && c.findingId && ncFindingIds.has(c.findingId)
-    );
-    const closedCarsList = carsLinked.filter(c => c.status === 'Closed');
+    const ncFindingIds = new Set(yearFindings.filter((f) => f.type === 'Non-Conformance').map((f) => f.id));
+    const carsLinked = cars.filter((c) => c.source === 'Audit Finding' && c.findingId && ncFindingIds.has(c.findingId));
+    const closedCarsList = carsLinked.filter((c) => c.status === 'Closed');
     const carsForNc = carsLinked.length;
     const closedCars = closedCarsList.length;
 
     // Nc findings without CARs
-    const ncWithCarIds = new Set(carsLinked.filter(c => c.findingId).map(c => c.findingId!));
+    const ncWithCarIds = new Set(carsLinked.filter((c) => c.findingId).map((c) => c.findingId!));
     const ncWithoutCar = totalNc - ncWithCarIds.size;
 
     // Ofis linked to CARs
-    const ofiFindingIds = new Set(yearFindings.filter(f => f.type === 'Observation for Improvement').map(f => f.id));
-    const carsFromOfi = cars.filter(c =>
-      c.source === 'Audit Finding' && c.findingId && ofiFindingIds.has(c.findingId)
+    const ofiFindingIds = new Set(
+      yearFindings.filter((f) => f.type === 'Observation for Improvement').map((f) => f.id),
+    );
+    const carsFromOfi = cars.filter(
+      (c) => c.source === 'Audit Finding' && c.findingId && ofiFindingIds.has(c.findingId),
     );
 
     const result: {
-      totalFindings: number; totalNc: number; totalOfi: number; totalCompliance: number;
-      ncWithoutCar: number; carsForNc: number; closedCars: number; carsFromOfi: number;
+      totalFindings: number;
+      totalNc: number;
+      totalOfi: number;
+      totalCompliance: number;
+      ncWithoutCar: number;
+      carsForNc: number;
+      closedCars: number;
+      carsFromOfi: number;
     } = {
-      totalFindings, totalNc, totalOfi, totalCompliance,
-      ncWithoutCar, carsForNc, closedCars, carsFromOfi: carsFromOfi.length,
+      totalFindings,
+      totalNc,
+      totalOfi,
+      totalCompliance,
+      ncWithoutCar,
+      carsForNc,
+      closedCars,
+      carsFromOfi: carsFromOfi.length,
     };
     return result;
   }, [yearFindings, findingCounts, cars]);
 
   // ---- 2. CRITICAL NC WATCHLIST ----
   const ncWatchlist = useMemo(() => {
-    const ncFindings = yearFindings.filter(f => f.type === 'Non-Conformance');
-    const carFindingIds = new Set(cars.filter(c => c.findingId).map(c => c.findingId!));
+    const ncFindings = yearFindings.filter((f) => f.type === 'Non-Conformance');
+    const carFindingIds = new Set(cars.filter((c) => c.findingId).map((c) => c.findingId!));
 
     return ncFindings
-      .filter(f => !carFindingIds.has(f.id))
-      .map(f => {
-        const schedule = yearSchedules.find(s => s.id === f.auditScheduleId);
+      .filter((f) => !carFindingIds.has(f.id))
+      .map((f) => {
+        const schedule = yearSchedules.find((s) => s.id === f.auditScheduleId);
         return {
           id: f.id,
           description: f.description || f.ncStatement || 'No description',
-          unitName: schedule ? (unitMap.get(schedule.targetId) || schedule.targetName) : 'Unknown',
-          campusName: schedule ? (campusMap.get(schedule.campusId) || 'Unknown').replace('Campus', '').trim() : 'Unknown',
+          unitName: schedule ? unitMap.get(schedule.targetId) || schedule.targetName : 'Unknown',
+          campusName: schedule
+            ? (campusMap.get(schedule.campusId) || 'Unknown').replace('Campus', '').trim()
+            : 'Unknown',
           isoClause: f.isoClause,
           evidence: f.evidence,
           schedule,
@@ -187,17 +249,20 @@ export function IqaDecisionIntelligence({
 
   // ---- 3. UNIT COMPLIANCE SCORE MATRIX ----
   const unitScores = useMemo(() => {
-    const map: Record<string, { total: number; nc: number; ofi: number; compliance: number; score: number; campusId: string }> = {};
+    const map: Record<
+      string,
+      { total: number; nc: number; ofi: number; compliance: number; score: number; campusId: string }
+    > = {};
 
-    yearSchedules.forEach(s => {
-      const unitFindings = yearFindings.filter(f => f.auditScheduleId === s.id && f.type !== 'Not Applicable');
+    yearSchedules.forEach((s) => {
+      const unitFindings = yearFindings.filter((f) => f.auditScheduleId === s.id && f.type !== 'Not Applicable');
       if (unitFindings.length === 0) return;
 
       if (!map[s.targetId]) {
         map[s.targetId] = { total: 0, nc: 0, ofi: 0, compliance: 0, score: 0, campusId: s.campusId };
       }
 
-      unitFindings.forEach(f => {
+      unitFindings.forEach((f) => {
         map[s.targetId].total++;
         if (f.type === 'Non-Conformance') map[s.targetId].nc++;
         else if (f.type === 'Observation for Improvement') map[s.targetId].ofi++;
@@ -205,27 +270,28 @@ export function IqaDecisionIntelligence({
       });
     });
 
-    return Object.entries(map).map(([unitId, d]) => {
-      const weightedScore = d.total > 0
-        ? Math.round(((d.compliance * 1 + d.ofi * 0.5 + d.nc * 0) / d.total) * 100)
-        : 0;
-      return {
-        unitId,
-        unitName: unitMap.get(unitId) || 'Unknown',
-        campusName: (campusMap.get(d.campusId) || 'Unknown').replace('Campus', '').trim(),
-        ...d,
-        weightedScore,
-        grade: weightedScore >= 90 ? 'A' : weightedScore >= 75 ? 'B' : weightedScore >= 50 ? 'C' : 'D',
-        hasNc: d.nc > 0,
-      };
-    }).sort((a, b) => a.weightedScore - b.weightedScore);
+    return Object.entries(map)
+      .map(([unitId, d]) => {
+        const weightedScore =
+          d.total > 0 ? Math.round(((d.compliance * 1 + d.ofi * 0.5 + d.nc * 0) / d.total) * 100) : 0;
+        return {
+          unitId,
+          unitName: unitMap.get(unitId) || 'Unknown',
+          campusName: (campusMap.get(d.campusId) || 'Unknown').replace('Campus', '').trim(),
+          ...d,
+          weightedScore,
+          grade: weightedScore >= 90 ? 'A' : weightedScore >= 75 ? 'B' : weightedScore >= 50 ? 'C' : 'D',
+          hasNc: d.nc > 0,
+        };
+      })
+      .sort((a, b) => a.weightedScore - b.weightedScore);
   }, [yearSchedules, yearFindings, unitMap, campusMap]);
 
   // ---- 4. ISO CLAUSE RISK MAP ----
   const clauseRiskData = useMemo(() => {
     const clauseStats: Record<string, { nc: number; ofi: number; compliance: number; total: number }> = {};
 
-    yearFindings.forEach(f => {
+    yearFindings.forEach((f) => {
       if (f.type === 'Not Applicable') return;
       if (!clauseStats[f.isoClause]) clauseStats[f.isoClause] = { nc: 0, ofi: 0, compliance: 0, total: 0 };
       clauseStats[f.isoClause].total++;
@@ -236,7 +302,7 @@ export function IqaDecisionIntelligence({
 
     return Object.entries(clauseStats)
       .map(([clauseId, d]) => {
-        const match = isoClauses.find(c => c.id === clauseId || c.title === clauseId);
+        const match = isoClauses.find((c) => c.id === clauseId || c.title === clauseId);
         return {
           clauseId,
           title: match ? match.title : `Clause ${clauseId}`,
@@ -252,9 +318,9 @@ export function IqaDecisionIntelligence({
   const recurringIssues = useMemo(() => {
     const unitClauseMap: Record<string, { nc: number; ofi: number }> = {};
 
-    yearFindings.forEach(f => {
+    yearFindings.forEach((f) => {
       if (f.type === 'Not Applicable') return;
-      const schedule = yearSchedules.find(s => s.id === f.auditScheduleId);
+      const schedule = yearSchedules.find((s) => s.id === f.auditScheduleId);
       if (!schedule) return;
       const key = `${schedule.targetId}-${f.isoClause}`;
       if (!unitClauseMap[key]) unitClauseMap[key] = { nc: 0, ofi: 0 };
@@ -266,7 +332,7 @@ export function IqaDecisionIntelligence({
       .filter(([_, data]) => data.nc >= 1 || data.ofi >= 2)
       .map(([key, data]) => {
         const [unitId, clauseId] = key.split('-');
-        const match = isoClauses.find(c => c.id === clauseId || c.title === clauseId);
+        const match = isoClauses.find((c) => c.id === clauseId || c.title === clauseId);
         return {
           unitId,
           unitName: unitMap.get(unitId) || 'Unknown',
@@ -277,16 +343,16 @@ export function IqaDecisionIntelligence({
           severity: data.nc >= 1 ? 'critical' : 'warning',
         };
       })
-      .sort((a, b) => (b.nc + b.ofi) - (a.nc + a.ofi));
+      .sort((a, b) => b.nc + b.ofi - (a.nc + a.ofi));
   }, [yearFindings, yearSchedules, isoClauses, unitMap]);
 
   // ---- 6. PROCESS CATEGORY HEALTH ----
   const processHealth = useMemo(() => {
     const cats: Record<string, { nc: number; ofi: number; compliance: number; total: number }> = {};
 
-    yearFindings.forEach(f => {
+    yearFindings.forEach((f) => {
       if (f.type === 'Not Applicable') return;
-      const schedule = yearSchedules.find(s => s.id === f.auditScheduleId);
+      const schedule = yearSchedules.find((s) => s.id === f.auditScheduleId);
       const cat = schedule?.processCategory || 'Operation Processes';
       if (!cats[cat]) cats[cat] = { nc: 0, ofi: 0, compliance: 0, total: 0 };
       cats[cat].total++;
@@ -327,12 +393,15 @@ export function IqaDecisionIntelligence({
     }
 
     // Low-scoring units
-    const failingUnits = unitScores.filter(u => u.weightedScore < 60);
+    const failingUnits = unitScores.filter((u) => u.weightedScore < 60);
     if (failingUnits.length > 0) {
       items.push({
         priority: 'high',
         title: `${failingUnits.length} Units Scoring Below 60% Compliance`,
-        rationale: `Units with weighted scores below 60% have more non-conformances than compliant findings, indicating systemic process failures. ${failingUnits.slice(0, 3).map(u => u.unitName).join(', ')} require immediate intervention.`,
+        rationale: `Units with weighted scores below 60% have more non-conformances than compliant findings, indicating systemic process failures. ${failingUnits
+          .slice(0, 3)
+          .map((u) => u.unitName)
+          .join(', ')} require immediate intervention.`,
         action: `Schedule follow-up audits for these units within 60 days. Assign mentor auditors to guide corrective actions. Report progress to VPAA.`,
         count: failingUnits.length,
         icon: <AlertTriangle className="h-4 w-4" />,
@@ -340,7 +409,7 @@ export function IqaDecisionIntelligence({
     }
 
     // High-risk ISO clauses
-    const highRiskClauses = clauseRiskData.filter(c => c.riskIndex >= 50);
+    const highRiskClauses = clauseRiskData.filter((c) => c.riskIndex >= 50);
     if (highRiskClauses.length > 0) {
       items.push({
         priority: 'high',
@@ -357,7 +426,10 @@ export function IqaDecisionIntelligence({
       items.push({
         priority: 'critical',
         title: `${crossYearProgression.length} Units With OFI→NC Progression`,
-        rationale: `${crossYearProgression.length} unit(s) had Observations for Improvement (OFI) on specific ISO clauses last year that escalated to Non-Conformances (NC) this year. This pattern indicates that previous corrective actions were ineffective or incomplete. ${crossYearProgression.slice(0, 2).map(u => `${u.unitName} (${u.clauseTitle})`).join(', ')} show this progression.`,
+        rationale: `${crossYearProgression.length} unit(s) had Observations for Improvement (OFI) on specific ISO clauses last year that escalated to Non-Conformances (NC) this year. This pattern indicates that previous corrective actions were ineffective or incomplete. ${crossYearProgression
+          .slice(0, 2)
+          .map((u) => `${u.unitName} (${u.clauseTitle})`)
+          .join(', ')} show this progression.`,
         action: `Mandate root-cause re-analysis for these specific unit-clause combinations. Previous CARs must be reopened and effectiveness audits scheduled within 30 days. Escalate to Campus Director level.`,
         count: crossYearProgression.length,
         icon: <TrendingUp className="h-4 w-4" />,
@@ -365,12 +437,15 @@ export function IqaDecisionIntelligence({
     }
 
     // Recurring issues (same unit, same clause)
-    const persistentIssues = recurringIssues.filter(r => r.severity === 'critical');
+    const persistentIssues = recurringIssues.filter((r) => r.severity === 'critical');
     if (persistentIssues.length > 0) {
       items.push({
         priority: 'critical',
         title: `${persistentIssues.length} Units With Recurring NCs on the Same ISO Clause`,
-        rationale: `These units have been cited for non-conformance on the same ISO clause repeatedly, indicating root-cause analysis was incomplete or corrective actions were ineffective. ${persistentIssues.slice(0, 2).map(u => u.unitName).join(', ')} show the most persistent patterns.`,
+        rationale: `These units have been cited for non-conformance on the same ISO clause repeatedly, indicating root-cause analysis was incomplete or corrective actions were ineffective. ${persistentIssues
+          .slice(0, 2)
+          .map((u) => u.unitName)
+          .join(', ')} show the most persistent patterns.`,
         action: `Escalate to QAO Director for mandatory root-cause re-analysis. Previous CARs for these clauses must be reviewed for effectiveness before closure.`,
         count: persistentIssues.length,
         icon: <Search className="h-4 w-4" />,
@@ -378,7 +453,7 @@ export function IqaDecisionIntelligence({
     }
 
     // CAR closure bottleneck
-    const openCars = cars.filter(c => c.status !== 'Closed' && c.source === 'Audit Finding');
+    const openCars = cars.filter((c) => c.status !== 'Closed' && c.source === 'Audit Finding');
     if (openCars.length > 5) {
       items.push({
         priority: 'medium',
@@ -391,12 +466,15 @@ export function IqaDecisionIntelligence({
     }
 
     // Exemplar units (high compliance)
-    const exemplarUnits = unitScores.filter(u => u.weightedScore >= 90);
+    const exemplarUnits = unitScores.filter((u) => u.weightedScore >= 90);
     if (exemplarUnits.length > 0) {
       items.push({
         priority: 'low',
         title: `${exemplarUnits.length} Units Achieved 90%+ Compliance Score`,
-        rationale: `${exemplarUnits.slice(0, 3).map(u => u.unitName).join(', ')} demonstrated strong IQA performance. Their practices can serve as institutional benchmarks.`,
+        rationale: `${exemplarUnits
+          .slice(0, 3)
+          .map((u) => u.unitName)
+          .join(', ')} demonstrated strong IQA performance. Their practices can serve as institutional benchmarks.`,
         action: `Document best practices from these units. Invite unit heads to share methodologies in the next QMS review. Consider recognition in the annual quality awards.`,
         count: exemplarUnits.length,
         icon: <CheckCircle2 className="h-4 w-4" />,
@@ -407,28 +485,40 @@ export function IqaDecisionIntelligence({
   }, [funnelData, unitScores, clauseRiskData, recurringIssues, cars, crossYearProgression]);
 
   // ---- DERIVED METRICS ----
-  const iqaCompletionRate = yearSchedules.length > 0
-    ? Math.round((yearSchedules.filter(s => s.status === 'Completed').length / yearSchedules.length) * 100)
-    : 0;
+  const iqaCompletionRate =
+    yearSchedules.length > 0
+      ? Math.round((yearSchedules.filter((s) => s.status === 'Completed').length / yearSchedules.length) * 100)
+      : 0;
 
   const findingPieData = [
     { name: 'Compliance', value: findingCounts['Compliance'], fill: FINDING_TYPE_COLORS['Compliance'] },
-    { name: 'OFI', value: findingCounts['Observation for Improvement'], fill: FINDING_TYPE_COLORS['Observation for Improvement'] },
+    {
+      name: 'OFI',
+      value: findingCounts['Observation for Improvement'],
+      fill: FINDING_TYPE_COLORS['Observation for Improvement'],
+    },
     { name: 'Non-Conformance', value: findingCounts['Non-Conformance'], fill: FINDING_TYPE_COLORS['Non-Conformance'] },
     { name: 'N/A', value: findingCounts['Not Applicable'], fill: FINDING_TYPE_COLORS['Not Applicable'] },
-  ].filter(d => d.value > 0);
+  ].filter((d) => d.value > 0);
 
   const overallHealthScore = useMemo(() => {
-    const totalFindings = findingCounts['Compliance'] + findingCounts['Observation for Improvement'] + findingCounts['Non-Conformance'];
+    const totalFindings =
+      findingCounts['Compliance'] + findingCounts['Observation for Improvement'] + findingCounts['Non-Conformance'];
     if (totalFindings === 0) return 0;
-    return Math.round(((findingCounts['Compliance'] * 1 + findingCounts['Observation for Improvement'] * 0.5 + findingCounts['Non-Conformance'] * 0) / totalFindings) * 100);
+    return Math.round(
+      ((findingCounts['Compliance'] * 1 +
+        findingCounts['Observation for Improvement'] * 0.5 +
+        findingCounts['Non-Conformance'] * 0) /
+        totalFindings) *
+        100,
+    );
   }, [findingCounts]);
 
   const kpiCards = [
     {
       label: 'IQA Completion',
       value: `${iqaCompletionRate}%`,
-      detail: `${yearSchedules.filter(s => s.status === 'Completed').length} of ${yearSchedules.length} audits done`,
+      detail: `${yearSchedules.filter((s) => s.status === 'Completed').length} of ${yearSchedules.length} audits done`,
       icon: <ClipboardCheck className="h-4 w-4" />,
       color: iqaCompletionRate >= 80 ? 'text-emerald-600' : iqaCompletionRate >= 50 ? 'text-amber-600' : 'text-red-600',
       bg: iqaCompletionRate >= 80 ? 'bg-emerald-50' : iqaCompletionRate >= 50 ? 'bg-amber-50' : 'bg-red-50',
@@ -438,7 +528,8 @@ export function IqaDecisionIntelligence({
       value: `${overallHealthScore}%`,
       detail: `${findingCounts['Compliance']} C · ${findingCounts['Observation for Improvement']} OFI · ${findingCounts['Non-Conformance']} NC`,
       icon: <ShieldCheck className="h-4 w-4" />,
-      color: overallHealthScore >= 75 ? 'text-emerald-600' : overallHealthScore >= 50 ? 'text-amber-600' : 'text-red-600',
+      color:
+        overallHealthScore >= 75 ? 'text-emerald-600' : overallHealthScore >= 50 ? 'text-amber-600' : 'text-red-600',
       bg: overallHealthScore >= 75 ? 'bg-emerald-50' : overallHealthScore >= 50 ? 'bg-amber-50' : 'bg-red-50',
     },
     {
@@ -452,7 +543,7 @@ export function IqaDecisionIntelligence({
     {
       label: 'Audited Units',
       value: unitScores.length,
-      detail: `${unitScores.filter(u => !u.hasNc).length} NC-free · ${unitScores.filter(u => u.hasNc).length} with NCs`,
+      detail: `${unitScores.filter((u) => !u.hasNc).length} NC-free · ${unitScores.filter((u) => u.hasNc).length} with NCs`,
       icon: <Building2 className="h-4 w-4" />,
       color: 'text-indigo-600',
       bg: 'bg-indigo-50',
@@ -462,6 +553,8 @@ export function IqaDecisionIntelligence({
   return (
     <TooltipProvider delayDuration={100}>
       <div className="space-y-6">
+        {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+        <Chart3DDefs idPrefix="auditdec3d" />
 
         {/* Header Banner */}
         <div className="rounded-2xl bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-700 p-6 text-white shadow-xl">
@@ -469,23 +562,45 @@ export function IqaDecisionIntelligence({
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Target className="h-5 w-5 text-indigo-300" />
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">IQA Executive Intelligence</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-300">
+                  IQA Executive Intelligence
+                </p>
               </div>
               <h3 className="text-2xl font-black uppercase tracking-tight">Audit Decision Support</h3>
               <p className="text-sm text-indigo-300 font-medium mt-1">
-                {yearFindings.length} findings · {unitScores.length} audited units · {yearSchedules.length} sessions · AY {selectedYear}
+                {yearFindings.length} findings · {unitScores.length} audited units · {yearSchedules.length} sessions ·
+                AY {selectedYear}
               </p>
             </div>
             <div className="text-center">
-              <div className={cn(
-                'text-5xl font-black tabular-nums',
-                overallHealthScore >= 75 ? 'text-emerald-400' : overallHealthScore >= 50 ? 'text-amber-400' : 'text-red-400'
-              )}>
-                {overallHealthScore}<span className="text-2xl">%</span>
+              <div
+                className={cn(
+                  'text-5xl font-black tabular-nums',
+                  overallHealthScore >= 75
+                    ? 'text-emerald-400'
+                    : overallHealthScore >= 50
+                      ? 'text-amber-400'
+                      : 'text-red-400',
+                )}
+              >
+                {overallHealthScore}
+                <span className="text-2xl">%</span>
               </div>
               <p className="text-[9px] font-bold mt-1 uppercase tracking-wider text-indigo-300">
-                <span className={overallHealthScore >= 75 ? 'text-emerald-400' : overallHealthScore >= 50 ? 'text-amber-400' : 'text-red-400'}>
-                  {overallHealthScore >= 75 ? 'Strong QMS Compliance' : overallHealthScore >= 50 ? 'Needs Improvement' : 'Critical Condition'}
+                <span
+                  className={
+                    overallHealthScore >= 75
+                      ? 'text-emerald-400'
+                      : overallHealthScore >= 50
+                        ? 'text-amber-400'
+                        : 'text-red-400'
+                  }
+                >
+                  {overallHealthScore >= 75
+                    ? 'Strong QMS Compliance'
+                    : overallHealthScore >= 50
+                      ? 'Needs Improvement'
+                      : 'Critical Condition'}
                 </span>
               </p>
             </div>
@@ -509,75 +624,106 @@ export function IqaDecisionIntelligence({
         </div>
 
         {/* === EXECUTIVE RECOMMENDATIONS (shown first as highest value) === */}
-        {recommendations.filter(r => r.priority === 'critical' || r.priority === 'high').length > 0 && (
+        {recommendations.filter((r) => r.priority === 'critical' || r.priority === 'high').length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Siren className="h-4 w-4 text-red-500" />
-              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Priority Action Items</h4>
+              <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Priority Action Items
+              </h4>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {recommendations.filter(r => r.priority === 'critical' || r.priority === 'high').map((rec, i) => (
-                <Card key={i} className={cn(
-                  'border-2 shadow-sm',
-                  rec.priority === 'critical' ? 'border-red-200 bg-red-50/40' : 'border-amber-200 bg-amber-50/30'
-                )}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          'p-1.5 rounded-lg',
-                          rec.priority === 'critical' ? 'text-red-600 bg-red-100' : 'text-amber-600 bg-amber-100'
-                        )}>{rec.icon}</span>
-                        <div>
-                          <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{rec.title}</p>
-                          <Badge className={cn(
-                            'text-[7px] font-black uppercase tracking-widest mt-0.5',
-                            rec.priority === 'critical' ? 'bg-red-600' : 'bg-amber-500'
-                          )}>{rec.priority}</Badge>
+              {recommendations
+                .filter((r) => r.priority === 'critical' || r.priority === 'high')
+                .map((rec, i) => (
+                  <Card
+                    key={i}
+                    className={cn(
+                      'border-2 shadow-sm',
+                      rec.priority === 'critical' ? 'border-red-200 bg-red-50/40' : 'border-amber-200 bg-amber-50/30',
+                    )}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              'p-1.5 rounded-lg',
+                              rec.priority === 'critical' ? 'text-red-600 bg-red-100' : 'text-amber-600 bg-amber-100',
+                            )}
+                          >
+                            {rec.icon}
+                          </span>
+                          <div>
+                            <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{rec.title}</p>
+                            <Badge
+                              className={cn(
+                                'text-[7px] font-black uppercase tracking-widest mt-0.5',
+                                rec.priority === 'critical' ? 'bg-red-600' : 'bg-amber-500',
+                              )}
+                            >
+                              {rec.priority}
+                            </Badge>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <p className="text-[9px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed mb-2">{rec.rationale}</p>
-                    <div className="bg-white/70 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
-                      <p className="text-[7px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Recommended Action</p>
-                      <p className="text-[9px] text-slate-700 dark:text-slate-300 font-bold leading-relaxed">{rec.action}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <p className="text-[9px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed mb-2">
+                        {rec.rationale}
+                      </p>
+                      <div className="bg-white/70 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                        <p className="text-[7px] font-black uppercase tracking-wider text-slate-400 mb-0.5">
+                          Recommended Action
+                        </p>
+                        <p className="text-[9px] text-slate-700 dark:text-slate-300 font-bold leading-relaxed">
+                          {rec.action}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
             </div>
           </div>
         )}
 
         {/* Row 1: Finding Distribution + Unit Grading */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
           {/* Finding Distribution */}
-          <Card className="shadow-md bg-white border-primary/10">
+          <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl bg-white dark:bg-slate-900 border-primary/10">
             <CardHeader className="border-b bg-muted/20 pb-3">
               <CardTitle className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
                 <PieChartIcon className="h-4 w-4 text-primary" />
-                Finding Distribution
+                Finding Distribution (3D)
               </CardTitle>
               <CardDescription className="text-[10px] font-bold text-slate-400">
                 Compliance vs Opportunities for Improvement vs Non-Conformance
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6 flex items-center justify-center">
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={230}>
                 <PieChart>
                   <Pie
                     data={findingPieData}
-                    cx="50%" cy="50%"
-                    innerRadius={55}
-                    outerRadius={85}
-                    paddingAngle={3}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={4}
                     dataKey="value"
-                    label={({ name, value, percent }) => `${FINDING_TYPE_SHORT[name] || name}: ${value} (${(percent * 100).toFixed(0)}%)`}
-                    labelLine={true}
+                    label={RenderPie3DLabel}
+                    labelLine={false}
                   >
-                    {findingPieData.map(entry => (
-                      <Cell key={entry.name} fill={entry.fill} />
+                    {findingPieData.map((entry) => (
+                      <Cell
+                        key={entry.name}
+                        fill={
+                          entry.name.includes('NC') || entry.name.includes('Non')
+                            ? 'url(#auditdec3d-grad-rose)'
+                            : entry.name.includes('OFI') || entry.name.includes('Opportunity')
+                              ? 'url(#auditdec3d-grad-amber)'
+                              : 'url(#auditdec3d-grad-emerald)'
+                        }
+                        filter="url(#auditdec3d-soft-depth)"
+                      />
                     ))}
                   </Pie>
                   <RechartsTooltip />
@@ -606,13 +752,17 @@ export function IqaDecisionIntelligence({
                   { label: 'CARs Closed', value: funnelData.closedCars, color: 'bg-emerald-500' },
                 ].map((stage, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center">
-                    <div className={cn(
-                      'w-12 h-12 rounded-full flex items-center justify-center text-white font-black text-sm shadow-sm',
-                      stage.color
-                    )}>
+                    <div
+                      className={cn(
+                        'w-12 h-12 rounded-full flex items-center justify-center text-white font-black text-sm shadow-sm',
+                        stage.color,
+                      )}
+                    >
                       {stage.value}
                     </div>
-                    <p className="text-[8px] font-bold text-slate-500 mt-1.5 text-center leading-tight">{stage.label}</p>
+                    <p className="text-[8px] font-bold text-slate-500 mt-1.5 text-center leading-tight">
+                      {stage.label}
+                    </p>
                     {i < 3 && <ChevronRight className="h-4 w-4 text-slate-300 -mr-2 -ml-2" />}
                   </div>
                 ))}
@@ -630,7 +780,6 @@ export function IqaDecisionIntelligence({
 
         {/* Row 2: Unit Scores + ISO Clause Risk */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
           {/* Unit Compliance Score Matrix */}
           <Card className="shadow-md bg-white border-primary/10">
             <CardHeader className="border-b bg-muted/20 pb-3">
@@ -650,9 +799,14 @@ export function IqaDecisionIntelligence({
                       <Info className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="left" className="max-w-[200px] text-[10px] bg-slate-900 text-white border-none p-2 shadow-lg rounded-md">
+                  <TooltipContent
+                    side="left"
+                    className="max-w-[200px] text-[10px] bg-slate-900 text-white border-none p-2 shadow-lg rounded-md"
+                  >
                     <p className="font-bold mb-1">Weighted Score Formula</p>
-                    <p className="text-slate-200">Compliance×1 + OFI×0.5 + NC×0, normalized per unit. Grade A ≥90%, B ≥75%, C ≥50%, D &lt;50%.</p>
+                    <p className="text-slate-200">
+                      Compliance×1 + OFI×0.5 + NC×0, normalized per unit. Grade A ≥90%, B ≥75%, C ≥50%, D &lt;50%.
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -660,21 +814,33 @@ export function IqaDecisionIntelligence({
             <CardContent className="pt-4 p-0">
               <div className="divide-y divide-slate-100">
                 {unitScores.slice(0, 10).map((unit, i) => (
-                  <div key={unit.unitId} className={cn(
-                    'flex items-center gap-3 p-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors',
-                    unit.grade === 'D' && 'bg-red-50/30',
-                    unit.grade === 'C' && 'bg-amber-50/20',
-                  )}>
-                    <div className={cn(
-                      'shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black',
-                      unit.grade === 'A' ? 'bg-emerald-100 text-emerald-700' :
-                      unit.grade === 'B' ? 'bg-blue-100 text-blue-700' :
-                      unit.grade === 'C' ? 'bg-amber-100 text-amber-700' :
-                      'bg-red-100 text-red-700'
-                    )}>{unit.grade}</div>
+                  <div
+                    key={unit.unitId}
+                    className={cn(
+                      'flex items-center gap-3 p-3 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors',
+                      unit.grade === 'D' && 'bg-red-50/30',
+                      unit.grade === 'C' && 'bg-amber-50/20',
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black',
+                        unit.grade === 'A'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : unit.grade === 'B'
+                            ? 'bg-blue-100 text-blue-700'
+                            : unit.grade === 'C'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-red-100 text-red-700',
+                      )}
+                    >
+                      {unit.grade}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 truncate">{unit.unitName}</p>
+                        <p className="text-[10px] font-black text-slate-800 dark:text-slate-200 truncate">
+                          {unit.unitName}
+                        </p>
                         <span className="text-[7px] text-slate-400 font-bold">{unit.campusName}</span>
                       </div>
                       <div className="flex items-center gap-2 text-[8px] font-bold text-slate-500 mt-0.5">
@@ -684,15 +850,19 @@ export function IqaDecisionIntelligence({
                       </div>
                     </div>
                     <div className="shrink-0 w-16 text-right">
-                      <span className={cn(
-                        'text-sm font-black tabular-nums',
-                        unit.weightedScore >= 75 ? 'text-emerald-600' :
-                        unit.weightedScore >= 50 ? 'text-amber-600' : 'text-red-600'
-                      )}>{unit.weightedScore}%</span>
-                      <Progress
-                        value={unit.weightedScore}
-                        className="h-1 mt-1"
-                      />
+                      <span
+                        className={cn(
+                          'text-sm font-black tabular-nums',
+                          unit.weightedScore >= 75
+                            ? 'text-emerald-600'
+                            : unit.weightedScore >= 50
+                              ? 'text-amber-600'
+                              : 'text-red-600',
+                        )}
+                      >
+                        {unit.weightedScore}%
+                      </span>
+                      <Progress value={unit.weightedScore} className="h-1 mt-1" />
                     </div>
                   </div>
                 ))}
@@ -706,44 +876,61 @@ export function IqaDecisionIntelligence({
           </Card>
 
           {/* ISO Clause Risk Map */}
-          <Card className="shadow-md bg-white border-primary/10">
+          <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl bg-white dark:bg-slate-900 border-primary/10">
             <CardHeader className="border-b bg-muted/20 pb-3">
               <CardTitle className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
                 <FileSearch className="h-4 w-4 text-primary" />
-                ISO Clause Risk Map
+                ISO Clause Risk Map (3D)
               </CardTitle>
               <CardDescription className="text-[10px] font-bold text-slate-400">
                 Clauses with highest NC density — risk index = (NC×3 + OFI×1) / total
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-6">
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={clauseRiskData.slice(0, 8)} layout="vertical" margin={{ top: 0, right: 40, left: 10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+              <ResponsiveContainer width="100%" height={230}>
+                <BarChart
+                  data={clauseRiskData.slice(0, 8)}
+                  layout="vertical"
+                  margin={{ top: 0, right: 40, left: 10, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" opacity={0.15} horizontal={false} />
                   <XAxis type="number" tick={{ fontSize: 8 }} domain={[0, 100]} />
-                  <YAxis dataKey="title" type="category" tick={{ fontSize: 8, fontWeight: 700 }} width={100} tickFormatter={(v: string) => v.length > 20 ? v.slice(0, 20) + '...' : v} />
-                  <RechartsTooltip content={({ active, payload }: any) => {
-                    if (!active || !payload?.length) return null;
-                    const d = payload[0].payload;
-                    return (
-                      <div className="bg-white border border-border rounded-xl shadow-xl p-2.5 text-[10px] max-w-[220px]">
-                        <p className="font-black mb-1">{d.title}</p>
-                        <p className="font-bold text-emerald-600">Compliance: {d.compliance}</p>
-                        <p className="font-bold text-amber-600">OFI: {d.ofi}</p>
-                        <p className="font-bold text-red-600">NC: {d.nc}</p>
-                        <p className="font-bold text-slate-500">Risk Index: {d.riskIndex}%</p>
-                      </div>
-                    );
-                  }} />
-                  <Bar dataKey="riskIndex" name="Risk Index" radius={[0, 4, 4, 0]}>
+                  <YAxis
+                    dataKey="title"
+                    type="category"
+                    tick={{ fontSize: 8, fontWeight: 700 }}
+                    width={100}
+                    tickFormatter={(v: string) => (v.length > 20 ? v.slice(0, 20) + '...' : v)}
+                  />
+                  <RechartsTooltip
+                    content={({ active, payload }: any) => {
+                      if (!active || !payload?.length) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div className="bg-white border border-border rounded-xl shadow-xl p-2.5 text-[10px] max-w-[220px]">
+                          <p className="font-black mb-1">{d.title}</p>
+                          <p className="font-bold text-emerald-600">Compliance: {d.compliance}</p>
+                          <p className="font-bold text-amber-600">OFI: {d.ofi}</p>
+                          <p className="font-bold text-red-600">NC: {d.nc}</p>
+                          <p className="font-bold text-slate-500">Risk Index: {d.riskIndex}%</p>
+                        </div>
+                      );
+                    }}
+                  />
+                  <Bar dataKey="riskIndex" name="Risk Index" radius={[0, 6, 6, 0]} filter="url(#auditdec3d-soft-depth)">
                     {clauseRiskData.slice(0, 8).map((entry, i) => (
-                      <Cell key={i} fill={
-                        entry.riskIndex >= 60 ? '#dc2626' :
-                        entry.riskIndex >= 30 ? '#f97316' :
-                        '#f59e0b'
-                      } />
+                      <Cell
+                        key={i}
+                        fill={
+                          entry.riskIndex >= 60
+                            ? 'url(#auditdec3d-grad-rose)'
+                            : entry.riskIndex >= 30
+                              ? 'url(#auditdec3d-grad-amber)'
+                              : 'url(#auditdec3d-grad-emerald)'
+                        }
+                      />
                     ))}
-                    <LabelList dataKey="riskIndex" position="right" formatter={(v: number) => `${v}%`} style={{ fontSize: 8, fontWeight: 800 }} />
+                    <LabelList content={<RenderBar3DLabel />} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -753,7 +940,6 @@ export function IqaDecisionIntelligence({
 
         {/* Row 3: Cross-Year Progression + Process Health */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
           {/* Cross-Year OFI→NC Progression */}
           {crossYearProgression.length > 0 && (
             <Card className="shadow-md bg-white border-orange-200 lg:col-span-2">
@@ -763,7 +949,8 @@ export function IqaDecisionIntelligence({
                   OFI → NC Progression Detected
                 </CardTitle>
                 <CardDescription className="text-[10px] font-bold text-orange-500">
-                  Observations for Improvement from AY {selectedYear - 1} escalated to Non-Conformances in AY {selectedYear}
+                  Observations for Improvement from AY {selectedYear - 1} escalated to Non-Conformances in AY{' '}
+                  {selectedYear}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-4 p-0">
@@ -774,7 +961,9 @@ export function IqaDecisionIntelligence({
                         <TrendingUp className="h-3 w-3" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-black text-slate-800 dark:text-slate-200 truncate">{item.unitName}</p>
+                        <p className="text-[9px] font-black text-slate-800 dark:text-slate-200 truncate">
+                          {item.unitName}
+                        </p>
                         <p className="text-[8px] text-slate-500 font-bold">{item.clauseTitle}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 text-[8px] font-bold">
@@ -804,18 +993,26 @@ export function IqaDecisionIntelligence({
               {recurringIssues.length > 0 ? (
                 <div className="divide-y divide-slate-100">
                   {recurringIssues.slice(0, 8).map((issue, i) => (
-                    <div key={i} className={cn(
-                      'flex items-center gap-3 p-3',
-                      issue.severity === 'critical' && 'bg-red-50/30'
-                    )}>
-                      <div className={cn(
-                        'shrink-0 p-1.5 rounded',
-                        issue.severity === 'critical' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600'
-                      )}>
-                        {issue.severity === 'critical' ? <AlertTriangle className="h-3 w-3" /> : <Flag className="h-3 w-3" />}
+                    <div
+                      key={i}
+                      className={cn('flex items-center gap-3 p-3', issue.severity === 'critical' && 'bg-red-50/30')}
+                    >
+                      <div
+                        className={cn(
+                          'shrink-0 p-1.5 rounded',
+                          issue.severity === 'critical' ? 'bg-red-100 text-red-600' : 'bg-amber-100 text-amber-600',
+                        )}
+                      >
+                        {issue.severity === 'critical' ? (
+                          <AlertTriangle className="h-3 w-3" />
+                        ) : (
+                          <Flag className="h-3 w-3" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-black text-slate-800 dark:text-slate-200 truncate">{issue.unitName}</p>
+                        <p className="text-[9px] font-black text-slate-800 dark:text-slate-200 truncate">
+                          {issue.unitName}
+                        </p>
                         <p className="text-[8px] text-slate-500 font-bold">{issue.clauseTitle}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 text-[8px] font-bold">
@@ -827,7 +1024,9 @@ export function IqaDecisionIntelligence({
                 </div>
               ) : (
                 <div className="h-24 flex items-center justify-center">
-                  <p className="text-[10px] text-slate-400 font-bold">No recurring issues detected for AY {selectedYear}</p>
+                  <p className="text-[10px] text-slate-400 font-bold">
+                    No recurring issues detected for AY {selectedYear}
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -853,18 +1052,22 @@ export function IqaDecisionIntelligence({
                         <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{cat.name}</p>
                         <span className="text-[8px] text-slate-400 font-bold">({cat.total} findings)</span>
                       </div>
-                      <span className={cn(
-                        'text-[11px] font-black tabular-nums',
-                        cat.healthScore >= 75 ? 'text-emerald-600' :
-                        cat.healthScore >= 50 ? 'text-amber-600' : 'text-red-600'
-                      )}>{cat.healthScore}%</span>
+                      <span
+                        className={cn(
+                          'text-[11px] font-black tabular-nums',
+                          cat.healthScore >= 75
+                            ? 'text-emerald-600'
+                            : cat.healthScore >= 50
+                              ? 'text-amber-600'
+                              : 'text-red-600',
+                        )}
+                      >
+                        {cat.healthScore}%
+                      </span>
                     </div>
                     <Progress
                       value={cat.healthScore}
-                      className={cn(
-                        'h-2',
-                        cat.healthScore >= 75 ? '' : cat.healthScore >= 50 ? '' : ''
-                      )}
+                      className={cn('h-2', cat.healthScore >= 75 ? '' : cat.healthScore >= 50 ? '' : '')}
                     />
                     <div className="flex items-center gap-3 text-[7px] font-bold text-slate-500">
                       <span className="text-emerald-600">{cat.compliance} C</span>
@@ -874,7 +1077,9 @@ export function IqaDecisionIntelligence({
                   </div>
                 ))}
                 {processHealth.length === 0 && (
-                  <p className="text-center text-[10px] text-slate-400 font-bold py-4">No process category data for AY {selectedYear}</p>
+                  <p className="text-center text-[10px] text-slate-400 font-bold py-4">
+                    No process category data for AY {selectedYear}
+                  </p>
                 )}
               </div>
             </CardContent>
@@ -908,7 +1113,10 @@ export function IqaDecisionIntelligence({
                         {nc.description.length > 120 ? nc.description.slice(0, 120) + '...' : nc.description}
                       </p>
                       <div className="flex items-center gap-3 text-[7px] font-bold text-slate-500">
-                        <span className="flex items-center gap-1"><Building2 className="h-2.5 w-2.5" />{nc.unitName}</span>
+                        <span className="flex items-center gap-1">
+                          <Building2 className="h-2.5 w-2.5" />
+                          {nc.unitName}
+                        </span>
                         <span className="flex items-center gap-1">{nc.campusName}</span>
                         <span className="text-indigo-600">Clause {nc.isoClause}</span>
                       </div>
@@ -938,43 +1146,71 @@ export function IqaDecisionIntelligence({
           </CardHeader>
           <CardContent className="pt-6">
             <div className="space-y-3">
-              {recommendations.length > 0 ? recommendations.map((rec, i) => (
-                <div key={i} className={cn(
-                  'rounded-xl border-2 p-4',
-                  rec.priority === 'critical' ? 'border-red-200 bg-red-50/40' :
-                  rec.priority === 'high' ? 'border-amber-200 bg-amber-50/30' :
-                  rec.priority === 'medium' ? 'border-blue-200 bg-blue-50/30' :
-                  'border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30'
-                )}>
-                  <div className="flex items-start gap-3">
-                    <div className={cn(
-                      'p-2 rounded-lg shrink-0',
-                      rec.priority === 'critical' ? 'bg-red-100 text-red-600' :
-                      rec.priority === 'high' ? 'bg-amber-100 text-amber-600' :
-                      rec.priority === 'medium' ? 'bg-blue-100 text-blue-600' :
-                      'bg-emerald-100 text-emerald-600'
-                    )}>{rec.icon}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{rec.title}</p>
-                        <Badge className={cn(
-                          'text-[7px] font-black uppercase tracking-widest',
-                          rec.priority === 'critical' ? 'bg-red-600' :
-                          rec.priority === 'high' ? 'bg-amber-500' :
-                          rec.priority === 'medium' ? 'bg-blue-500' :
-                          'bg-emerald-600'
-                        )}>{rec.priority}</Badge>
+              {recommendations.length > 0 ? (
+                recommendations.map((rec, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      'rounded-xl border-2 p-4',
+                      rec.priority === 'critical'
+                        ? 'border-red-200 bg-red-50/40'
+                        : rec.priority === 'high'
+                          ? 'border-amber-200 bg-amber-50/30'
+                          : rec.priority === 'medium'
+                            ? 'border-blue-200 bg-blue-50/30'
+                            : 'border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/30',
+                    )}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={cn(
+                          'p-2 rounded-lg shrink-0',
+                          rec.priority === 'critical'
+                            ? 'bg-red-100 text-red-600'
+                            : rec.priority === 'high'
+                              ? 'bg-amber-100 text-amber-600'
+                              : rec.priority === 'medium'
+                                ? 'bg-blue-100 text-blue-600'
+                                : 'bg-emerald-100 text-emerald-600',
+                        )}
+                      >
+                        {rec.icon}
                       </div>
-                      <p className="text-[9px] text-slate-500 font-medium mb-2">{rec.rationale}</p>
-                      <div className="bg-white/70 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
-                        <p className="text-[7px] font-black uppercase tracking-wider text-slate-400 mb-0.5">Recommended Action</p>
-                        <p className="text-[9px] text-slate-700 dark:text-slate-300 font-bold leading-relaxed">{rec.action}</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="text-[10px] font-black text-slate-800 dark:text-slate-200">{rec.title}</p>
+                          <Badge
+                            className={cn(
+                              'text-[7px] font-black uppercase tracking-widest',
+                              rec.priority === 'critical'
+                                ? 'bg-red-600'
+                                : rec.priority === 'high'
+                                  ? 'bg-amber-500'
+                                  : rec.priority === 'medium'
+                                    ? 'bg-blue-500'
+                                    : 'bg-emerald-600',
+                            )}
+                          >
+                            {rec.priority}
+                          </Badge>
+                        </div>
+                        <p className="text-[9px] text-slate-500 font-medium mb-2">{rec.rationale}</p>
+                        <div className="bg-white/70 p-2.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                          <p className="text-[7px] font-black uppercase tracking-wider text-slate-400 mb-0.5">
+                            Recommended Action
+                          </p>
+                          <p className="text-[9px] text-slate-700 dark:text-slate-300 font-bold leading-relaxed">
+                            {rec.action}
+                          </p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )) : (
-                <p className="text-center text-xs text-muted-foreground py-4 font-bold">No findings data for {selectedYear} — recommendations will populate after audits are completed</p>
+                ))
+              ) : (
+                <p className="text-center text-xs text-muted-foreground py-4 font-bold">
+                  No findings data for {selectedYear} — recommendations will populate after audits are completed
+                </p>
               )}
             </div>
           </CardContent>
@@ -990,7 +1226,15 @@ function ChevronRight({ className }: { className?: string }) {
 
 function PieChartIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M21.21 15.89A10 10 0 1 1 8 2.83" />
       <path d="M22 12A10 10 0 0 0 12 2v10z" />
     </svg>

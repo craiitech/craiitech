@@ -19,8 +19,10 @@ import {
   Cell,
   PieChart,
   Pie,
+  LabelList,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 import { iso25010Categories } from '@/lib/iso-25010-data';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -427,9 +429,12 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
           </div>
         </Card>
 
-        <Card className="md:col-span-2">
+        {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+        <Chart3DDefs idPrefix="evalres3d" />
+
+        <Card className="md:col-span-2 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
           <CardHeader>
-            <CardTitle className="text-lg">Quality Characteristics Profile</CardTitle>
+            <CardTitle className="text-lg">Quality Characteristics Profile (3D)</CardTitle>
             <CardDescription>Radar visualization of the system maturity across ISO 25010 categories.</CardDescription>
           </CardHeader>
           <CardContent>
@@ -443,10 +448,19 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                   <Radar
                     name="Portal Quality"
                     dataKey="A"
-                    stroke="hsl(var(--primary))"
-                    fill="hsl(var(--primary))"
-                    fillOpacity={0.4}
-                  />
+                    stroke="#10b981"
+                    strokeWidth={2}
+                    fill="url(#evalres3d-grad-emerald)"
+                    fillOpacity={0.6}
+                    filter="url(#evalres3d-soft-depth)"
+                  >
+                    <LabelList
+                      dataKey="A"
+                      position="top"
+                      style={{ fontSize: '10px', fontWeight: 'bold', fill: '#047857' }}
+                      formatter={(v: any) => `${v}`}
+                    />
+                  </Radar>
                 </RadarChart>
               </ResponsiveContainer>
             </ChartContainer>
@@ -469,19 +483,19 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
 
       {/* Row 2: Category Bars + Likert Pie */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" />
-              Category Score Comparison
+              Category Score Comparison (3D)
             </CardTitle>
             <CardDescription>Bar chart of mean scores per quality characteristic with SD.</CardDescription>
           </CardHeader>
           <CardContent>
             <ChartContainer config={{}} className="h-[300px] w-full">
               <ResponsiveContainer>
-                <BarChart data={aggregatedData.categoryAverages} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
+                <BarChart data={aggregatedData.categoryAverages} layout="vertical" margin={{ left: 20, right: 30 }}>
+                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} />
                   <XAxis type="number" domain={[0, 5]} tick={{ fontSize: 10 }} />
                   <YAxis dataKey="subject" type="category" tick={{ fontSize: 9, fontWeight: 600 }} width={130} />
                   <Tooltip
@@ -503,9 +517,21 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                       );
                     }}
                   />
-                  <Bar dataKey="A" radius={[0, 6, 6, 0]} barSize={20}>
+                  <Bar dataKey="A" radius={[0, 6, 6, 0]} barSize={20} filter="url(#evalres3d-soft-depth)">
+                    <LabelList content={<RenderBar3DLabel />} />
                     {aggregatedData.categoryAverages.map((entry, index) => (
-                      <Cell key={entry.id} fill={CATEGORY_COLORS[index]} fillOpacity={0.85} />
+                      <Cell
+                        key={entry.id}
+                        fill={
+                          index % 4 === 0
+                            ? 'url(#evalres3d-grad-indigo)'
+                            : index % 4 === 1
+                              ? 'url(#evalres3d-grad-emerald)'
+                              : index % 4 === 2
+                                ? 'url(#evalres3d-grad-amber)'
+                                : 'url(#evalres3d-grad-rose)'
+                        }
+                      />
                     ))}
                   </Bar>
                 </BarChart>
@@ -527,11 +553,11 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <PieChartIcon className="h-5 w-5 text-primary" />
-              Rating Distribution
+              Rating Distribution (3D)
             </CardTitle>
             <CardDescription>{aggregatedData.likertTotal.toLocaleString()} total ratings</CardDescription>
           </CardHeader>
@@ -543,16 +569,32 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
                     data={aggregatedData.likertData.filter((d) => d.count > 0)}
                     cx="50%"
                     cy="50%"
-                    innerRadius={40}
+                    innerRadius={45}
                     outerRadius={80}
                     paddingAngle={3}
                     dataKey="count"
                     nameKey="label"
+                    label={RenderPie3DLabel}
+                    labelLine={false}
                   >
                     {aggregatedData.likertData
                       .filter((d) => d.count > 0)
-                      .map((entry) => (
-                        <Cell key={entry.rating} fill={entry.color} />
+                      .map((entry, idx) => (
+                        <Cell
+                          key={entry.rating}
+                          fill={
+                            idx === 4
+                              ? 'url(#evalres3d-grad-emerald)'
+                              : idx === 3
+                                ? 'url(#evalres3d-grad-teal)'
+                                : idx === 2
+                                  ? 'url(#evalres3d-grad-amber)'
+                                  : idx === 1
+                                    ? 'url(#evalres3d-grad-orange)'
+                                    : 'url(#evalres3d-grad-rose)'
+                          }
+                          filter="url(#evalres3d-soft-depth)"
+                        />
                       ))}
                   </Pie>
                   <Tooltip

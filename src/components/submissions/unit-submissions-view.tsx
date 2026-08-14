@@ -61,6 +61,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Chart3DDefs, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templates';
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
@@ -462,12 +463,15 @@ export function UnitSubmissionsView({
           />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <Card className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg p-8 relative overflow-hidden">
+            {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+            <Chart3DDefs idPrefix="unitsub3d" />
+
+            <Card className="lg:col-span-1 flex flex-col items-center justify-center bg-background rounded-2xl border-primary/10 shadow-lg hover:shadow-xl transition-all p-8 relative overflow-hidden">
               <div className="absolute top-0 right-0 p-4 opacity-5">
                 <PieIcon className="h-20 w-20" />
               </div>
               <span className="text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-6">
-                Unit Verified Maturity
+                Unit Verified Maturity (3D)
               </span>
               <ChartContainer config={{}} className="h-[180px] w-[180px]">
                 <ResponsiveContainer>
@@ -479,19 +483,24 @@ export function UnitSubmissionsView({
                       cy="50%"
                       innerRadius={45}
                       outerRadius={65}
-                      paddingAngle={5}
+                      paddingAngle={4}
                       dataKey="value"
-                      label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                      label={RenderPie3DLabel}
+                      labelLine={false}
                     >
                       {unitData.chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill || '#cbd5e1'} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={index === 0 ? 'url(#unitsub3d-grad-emerald)' : 'url(#unitsub3d-grad-amber)'}
+                          filter="url(#unitsub3d-soft-depth)"
+                        />
                       ))}
                     </Pie>
                   </PieChart>
                 </ResponsiveContainer>
               </ChartContainer>
               <div className="mt-6 text-center space-y-1">
-                <span className="text-5xl font-black tabular-nums tracking-tighter text-primary">
+                <span className="text-5xl font-black tabular-nums tracking-tighter text-primary drop-shadow-sm">
                   {unitData.score}%
                 </span>
                 <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.1em]">

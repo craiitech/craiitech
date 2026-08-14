@@ -31,6 +31,7 @@ import {
   ComposedChart,
   Line,
 } from 'recharts';
+import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 import {
   Users,
   CheckCircle2,
@@ -2162,6 +2163,9 @@ export function CsmReportDashboard({
 
   return (
     <div className="space-y-6">
+      {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+      <Chart3DDefs idPrefix="csm3d" />
+
       {/* HEADER CONTROLS (Live vs Baseline Data Toggle & Campus / Unit Filters) */}
       <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center p-5 bg-gradient-to-r from-emerald-800 to-[#1B6535] rounded-2xl shadow-lg border border-emerald-700 gap-4">
         <div>
@@ -2280,11 +2284,11 @@ export function CsmReportDashboard({
           {/* Executive Scorecard Gauge charts */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Satisfaction Gauge */}
-            <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500" />
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
-                  Overall Score
+                  Overall Score (3D)
                 </span>
                 <ThumbsUp className="h-3.5 w-3.5 text-emerald-600" />
               </CardHeader>
@@ -2301,12 +2305,12 @@ export function CsmReportDashboard({
                         cy="100%"
                         startAngle={180}
                         endAngle={0}
-                        innerRadius={30}
-                        outerRadius={42}
+                        innerRadius={28}
+                        outerRadius={44}
                         dataKey="value"
                         stroke="none"
                       >
-                        <Cell fill="#1b6535" />
+                        <Cell fill="url(#csm3d-grad-emerald)" filter="url(#csm3d-soft-depth)" />
                         <Cell fill="#e2e8f0" />
                       </Pie>
                     </PieChart>
@@ -2320,13 +2324,13 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Participation Gauge */}
-            <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-1 bg-[#D4AF37]" />
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
-                  Response Rate
+                  Response Rate (3D)
                 </span>
-                <Percent className="h-3.5 w-3.5 text-[#D4AF37]" />
+                <Percent className="h-3.5 w-3.5 text-amber-500" />
               </CardHeader>
               <CardContent className="flex flex-col items-center pb-3 pt-1">
                 <div className="h-[75px] w-full flex items-center justify-center relative">
@@ -2341,12 +2345,12 @@ export function CsmReportDashboard({
                         cy="100%"
                         startAngle={180}
                         endAngle={0}
-                        innerRadius={30}
-                        outerRadius={42}
+                        innerRadius={28}
+                        outerRadius={44}
                         dataKey="value"
                         stroke="none"
                       >
-                        <Cell fill="#D4AF37" />
+                        <Cell fill="url(#csm3d-grad-amber)" filter="url(#csm3d-soft-depth)" />
                         <Cell fill="#e2e8f0" />
                       </Pie>
                     </PieChart>
@@ -2360,11 +2364,11 @@ export function CsmReportDashboard({
             </Card>
 
             {/* CC1 Gauge */}
-            <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-1 bg-blue-500" />
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
-                  CC Awareness
+                  CC Awareness (3D)
                 </span>
                 <HelpCircle className="h-3.5 w-3.5 text-blue-600" />
               </CardHeader>
@@ -2378,12 +2382,12 @@ export function CsmReportDashboard({
                         cy="100%"
                         startAngle={180}
                         endAngle={0}
-                        innerRadius={30}
-                        outerRadius={42}
+                        innerRadius={28}
+                        outerRadius={44}
                         dataKey="value"
                         stroke="none"
                       >
-                        <Cell fill="#3b82f6" />
+                        <Cell fill="url(#csm3d-grad-sky)" filter="url(#csm3d-soft-depth)" />
                         <Cell fill="#e2e8f0" />
                       </Pie>
                     </PieChart>
@@ -2397,11 +2401,11 @@ export function CsmReportDashboard({
             </Card>
 
             {/* CC2 Gauge */}
-            <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-1 bg-purple-500" />
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-purple-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
-                  CC Visibility
+                  CC Visibility (3D)
                 </span>
                 <Info className="h-3.5 w-3.5 text-purple-600" />
               </CardHeader>
@@ -2418,12 +2422,12 @@ export function CsmReportDashboard({
                         cy="100%"
                         startAngle={180}
                         endAngle={0}
-                        innerRadius={30}
-                        outerRadius={42}
+                        innerRadius={28}
+                        outerRadius={44}
                         dataKey="value"
                         stroke="none"
                       >
-                        <Cell fill="#a855f7" />
+                        <Cell fill="url(#csm3d-grad-indigo)" filter="url(#csm3d-soft-depth)" />
                         <Cell fill="#e2e8f0" />
                       </Pie>
                     </PieChart>
@@ -2437,11 +2441,11 @@ export function CsmReportDashboard({
             </Card>
 
             {/* CC3 Gauge */}
-            <Card className="shadow-sm border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-1 bg-rose-500" />
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-rose-500" />
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
-                  CC Helpfulness
+                  CC Helpfulness (3D)
                 </span>
                 <CheckCircle2 className="h-3.5 w-3.5 text-rose-600" />
               </CardHeader>
@@ -2458,12 +2462,12 @@ export function CsmReportDashboard({
                         cy="100%"
                         startAngle={180}
                         endAngle={0}
-                        innerRadius={30}
-                        outerRadius={42}
+                        innerRadius={28}
+                        outerRadius={44}
                         dataKey="value"
                         stroke="none"
                       >
-                        <Cell fill="#ec4899" />
+                        <Cell fill="url(#csm3d-grad-rose)" filter="url(#csm3d-soft-depth)" />
                         <Cell fill="#e2e8f0" />
                       </Pie>
                     </PieChart>
@@ -2472,7 +2476,7 @@ export function CsmReportDashboard({
                     {displayStats.cc3HelpfulnessPercent}%
                   </span>
                 </div>
-                <p className="text-[8.5px] text-rose-600 font-bold uppercase mt-1">Helped Transaction</p>
+                <p className="text-[8.5px] text-rose-600 font-bold uppercase mt-1">Helpful / Very Helpful</p>
               </CardContent>
             </Card>
           </div>
@@ -2507,14 +2511,14 @@ export function CsmReportDashboard({
           {/* Demographics Donuts & Stacked Charts grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Sex Donut */}
-            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                 <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                  Sex Distribution
+                  Sex Distribution (3D)
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="h-[180px] w-full flex items-center justify-center">
+                <div className="h-[185px] w-full flex items-center justify-center">
                   {displayStats.demographics.sexData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -2522,13 +2526,19 @@ export function CsmReportDashboard({
                           data={displayStats.demographics.sexData}
                           cx="50%"
                           cy="50%"
-                          innerRadius={50}
-                          outerRadius={70}
-                          paddingAngle={3}
+                          innerRadius={45}
+                          outerRadius={68}
+                          paddingAngle={4}
                           dataKey="value"
+                          label={RenderPie3DLabel}
+                          labelLine={false}
                         >
                           {displayStats.demographics.sexData.map((e, i) => (
-                            <Cell key={i} fill={e.fill} />
+                            <Cell
+                              key={i}
+                              fill={i === 0 ? 'url(#csm3d-grad-indigo)' : 'url(#csm3d-grad-rose)'}
+                              filter="url(#csm3d-soft-depth)"
+                            />
                           ))}
                         </Pie>
                         <RechartsTooltip />
@@ -2553,14 +2563,14 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Customer Type Donut */}
-            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                 <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                  Customer Types
+                  Customer Types (3D)
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="h-[180px] w-full flex items-center justify-center">
+                <div className="h-[185px] w-full flex items-center justify-center">
                   {displayStats.demographics.clientTypeData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -2568,13 +2578,27 @@ export function CsmReportDashboard({
                           data={displayStats.demographics.clientTypeData}
                           cx="50%"
                           cy="50%"
-                          innerRadius={50}
-                          outerRadius={70}
-                          paddingAngle={3}
+                          innerRadius={45}
+                          outerRadius={68}
+                          paddingAngle={4}
                           dataKey="value"
+                          label={RenderPie3DLabel}
+                          labelLine={false}
                         >
                           {displayStats.demographics.clientTypeData.map((e, i) => (
-                            <Cell key={i} fill={e.fill} />
+                            <Cell
+                              key={i}
+                              fill={
+                                i === 0
+                                  ? 'url(#csm3d-grad-emerald)'
+                                  : i === 1
+                                    ? 'url(#csm3d-grad-indigo)'
+                                    : i === 2
+                                      ? 'url(#csm3d-grad-amber)'
+                                      : 'url(#csm3d-grad-slate)'
+                              }
+                              filter="url(#csm3d-soft-depth)"
+                            />
                           ))}
                         </Pie>
                         <RechartsTooltip />
@@ -2599,14 +2623,14 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Internal vs External Stakeholders */}
-            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                 <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                  Stakeholder Classification
+                  Stakeholder Classification (3D)
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
-                <div className="h-[180px] w-full flex items-center justify-center">
+                <div className="h-[185px] w-full flex items-center justify-center">
                   {displayStats.demographics.stakeholderData.length > 0 ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
@@ -2614,13 +2638,19 @@ export function CsmReportDashboard({
                           data={displayStats.demographics.stakeholderData}
                           cx="50%"
                           cy="50%"
-                          innerRadius={50}
-                          outerRadius={70}
-                          paddingAngle={3}
+                          innerRadius={45}
+                          outerRadius={68}
+                          paddingAngle={4}
                           dataKey="value"
+                          label={RenderPie3DLabel}
+                          labelLine={false}
                         >
                           {displayStats.demographics.stakeholderData.map((e, i) => (
-                            <Cell key={i} fill={e.fill} />
+                            <Cell
+                              key={i}
+                              fill={i === 0 ? 'url(#csm3d-grad-emerald)' : 'url(#csm3d-grad-sky)'}
+                              filter="url(#csm3d-soft-depth)"
+                            />
                           ))}
                         </Pie>
                         <RechartsTooltip />
@@ -2648,10 +2678,10 @@ export function CsmReportDashboard({
           {/* Age & Campus Distributions horizontal bars */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Age Distribution */}
-            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                 <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                  Age Bracket Distribution
+                  Age Bracket Distribution (3D)
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -2659,13 +2689,18 @@ export function CsmReportDashboard({
                   <BarChart
                     data={displayStats.demographics.ageData}
                     layout="vertical"
-                    margin={{ left: 20, right: 20, top: 10, bottom: 10 }}
+                    margin={{ left: 20, right: 30, top: 10, bottom: 10 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.15} />
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                    <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={[0, 4, 4, 0]}>
-                      <LabelList dataKey="value" position="right" style={{ fontSize: '9px', fontWeight: 'bold' }} />
+                    <Bar
+                      dataKey="value"
+                      fill="url(#csm3d-grad-indigo)"
+                      radius={[0, 6, 6, 0]}
+                      filter="url(#csm3d-soft-depth)"
+                    >
+                      <LabelList content={<RenderBar3DLabel />} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -2673,10 +2708,10 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Campus distribution */}
-            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                 <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                  Campus distribution
+                  Campus Distribution (3D)
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -2684,13 +2719,18 @@ export function CsmReportDashboard({
                   <BarChart
                     data={displayStats.demographics.campusData}
                     layout="vertical"
-                    margin={{ left: 40, right: 20, top: 10, bottom: 10 }}
+                    margin={{ left: 40, right: 30, top: 10, bottom: 10 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.15} />
                     <XAxis type="number" />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fontWeight: 'bold' }} width={80} />
-                    <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]}>
-                      <LabelList dataKey="value" position="right" style={{ fontSize: '8px', fontWeight: 'bold' }} />
+                    <Bar
+                      dataKey="value"
+                      fill="url(#csm3d-grad-emerald)"
+                      radius={[0, 6, 6, 0]}
+                      filter="url(#csm3d-soft-depth)"
+                    >
+                      <LabelList content={<RenderBar3DLabel />} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -2699,10 +2739,10 @@ export function CsmReportDashboard({
           </div>
 
           {/* Citizen's Charter 100% Stacked Bar chart */}
-          <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+          <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900">
             <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
               <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                Citizen's Charter (CC) Option Stack Distribution (100% Stacked)
+                Citizen's Charter (CC) Option Stack Distribution (100% Stacked - 3D)
               </CardTitle>
               <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
                 Compliance ratios mapped by positive, compliant, neutral, and unaware options.
@@ -2715,14 +2755,44 @@ export function CsmReportDashboard({
                   layout="vertical"
                   margin={{ left: 60, right: 20, top: 10, bottom: 10 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.15} />
                   <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                   <YAxis dataKey="dimension" type="category" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                  <Bar dataKey="Option 1" stackId="a" fill="#1b6535" name="Excellent compliance (5/4)" />
-                  <Bar dataKey="Option 2" stackId="a" fill="#4ade80" name="Good compliance (3)" />
-                  <Bar dataKey="Option 3" stackId="a" fill="#e2e8f0" name="Neutral (2)" />
-                  <Bar dataKey="Option 4" stackId="a" fill="#fb923c" name="Under-performing / Unaware (1)" />
-                  <Bar dataKey="Option 5" stackId="a" fill="#e11d48" name="N/A" />
+                  <Bar
+                    dataKey="Option 1"
+                    stackId="a"
+                    fill="url(#csm3d-grad-emerald)"
+                    name="Excellent compliance (5/4)"
+                    filter="url(#csm3d-soft-depth)"
+                  />
+                  <Bar
+                    dataKey="Option 2"
+                    stackId="a"
+                    fill="url(#csm3d-grad-teal)"
+                    name="Good compliance (3)"
+                    filter="url(#csm3d-soft-depth)"
+                  />
+                  <Bar
+                    dataKey="Option 3"
+                    stackId="a"
+                    fill="url(#csm3d-grad-slate)"
+                    name="Neutral (2)"
+                    filter="url(#csm3d-soft-depth)"
+                  />
+                  <Bar
+                    dataKey="Option 4"
+                    stackId="a"
+                    fill="url(#csm3d-grad-amber)"
+                    name="Under-performing / Unaware (1)"
+                    filter="url(#csm3d-soft-depth)"
+                  />
+                  <Bar
+                    dataKey="Option 5"
+                    stackId="a"
+                    fill="url(#csm3d-grad-rose)"
+                    name="N/A"
+                    filter="url(#csm3d-soft-depth)"
+                  />
                   <Legend
                     wrapperStyle={{
                       fontSize: '9px',
@@ -2759,10 +2829,10 @@ export function CsmReportDashboard({
           {/* Charts grid: Diverging Stacked Bar & Radar Chart */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Diverging Stacked Bar Chart */}
-            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                 <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                  Diverging Stacked Likert Sentiment Distribution
+                  Diverging Stacked Likert Sentiment Distribution (3D)
                 </CardTitle>
                 <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
                   Centers around Neutral sentiment (X = 0) with negative ratings left and positive ratings right.
@@ -2776,7 +2846,7 @@ export function CsmReportDashboard({
                     stackOffset="sign"
                     margin={{ left: 30, right: 20, top: 10, bottom: 10 }}
                   >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} strokeOpacity={0.2} />
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} opacity={0.15} />
                     <XAxis type="number" tickFormatter={(v) => `${Math.abs(v)}%`} />
                     <YAxis dataKey="name" type="category" tick={{ fontSize: 9, fontWeight: 'bold' }} width={45} />
                     <RechartsTooltip formatter={(v: any) => `${Math.abs(Math.round(v))}%`} />
@@ -2789,22 +2859,58 @@ export function CsmReportDashboard({
                       }}
                       formatter={(value) => value.replace(' (Neg)', '').replace(' (Pos)', '')}
                     />
-                    <Bar dataKey="Strongly Disagree" stackId="a" fill="#e11d48" name="Strongly Disagree" />
-                    <Bar dataKey="Disagree" stackId="a" fill="#fb923c" name="Disagree" />
-                    <Bar dataKey="Neutral (Neg)" stackId="a" fill="#94a3b8" name="Neutral" />
-                    <Bar dataKey="Neutral (Pos)" stackId="a" fill="#64748b" name="Neutral" />
-                    <Bar dataKey="Agree" stackId="a" fill="#4ade80" name="Agree" />
-                    <Bar dataKey="Strongly Agree" stackId="a" fill="#1b6535" name="Strongly Agree" />
+                    <Bar
+                      dataKey="Strongly Disagree"
+                      stackId="a"
+                      fill="url(#csm3d-grad-rose)"
+                      name="Strongly Disagree"
+                      filter="url(#csm3d-soft-depth)"
+                    />
+                    <Bar
+                      dataKey="Disagree"
+                      stackId="a"
+                      fill="url(#csm3d-grad-amber)"
+                      name="Disagree"
+                      filter="url(#csm3d-soft-depth)"
+                    />
+                    <Bar
+                      dataKey="Neutral (Neg)"
+                      stackId="a"
+                      fill="url(#csm3d-grad-slate)"
+                      name="Neutral"
+                      filter="url(#csm3d-soft-depth)"
+                    />
+                    <Bar
+                      dataKey="Neutral (Pos)"
+                      stackId="a"
+                      fill="url(#csm3d-grad-slate)"
+                      name="Neutral"
+                      filter="url(#csm3d-soft-depth)"
+                    />
+                    <Bar
+                      dataKey="Agree"
+                      stackId="a"
+                      fill="url(#csm3d-grad-teal)"
+                      name="Agree"
+                      filter="url(#csm3d-soft-depth)"
+                    />
+                    <Bar
+                      dataKey="Strongly Agree"
+                      stackId="a"
+                      fill="url(#csm3d-grad-emerald)"
+                      name="Strongly Agree"
+                      filter="url(#csm3d-soft-depth)"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
 
             {/* Radar Spider Chart */}
-            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80">
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 bg-white dark:bg-slate-900">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                 <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                  SQD dimension satisfaction profile
+                  SQD Dimension Satisfaction Profile (3D)
                 </CardTitle>
                 <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
                   Spider chart mapping final calculated satisfaction rates per dimension.
@@ -2813,19 +2919,21 @@ export function CsmReportDashboard({
               <CardContent className="pt-4 flex justify-center items-center">
                 <ResponsiveContainer width="100%" height={320}>
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
-                    <PolarGrid strokeOpacity={0.2} />
+                    <PolarGrid strokeOpacity={0.15} />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 'bold' }} />
                     <Radar
                       name="Satisfaction Index %"
                       dataKey="Score"
-                      stroke="#1b6535"
-                      fill="#1b6535"
-                      fillOpacity={0.3}
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      fill="url(#csm3d-grad-emerald)"
+                      fillOpacity={0.5}
+                      filter="url(#csm3d-soft-depth)"
                     >
                       <LabelList
                         dataKey="Score"
                         position="top"
-                        style={{ fontSize: '8px', fontWeight: 'bold', fill: '#1b6535' }}
+                        style={{ fontSize: '9px', fontWeight: '900', fill: '#047857' }}
                         formatter={(v: any) => `${v}%`}
                       />
                     </Radar>
@@ -3019,10 +3127,10 @@ export function CsmReportDashboard({
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Pareto Chart for comments count */}
-            <Card className="shadow-md border-slate-200/80 dark:border-slate-700/80 lg:col-span-2">
+            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 lg:col-span-2 bg-white dark:bg-slate-900">
               <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                 <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                  Pareto Analysis of Qualitative Friction Themes
+                  Pareto Analysis of Qualitative Friction Themes (3D)
                 </CardTitle>
                 <CardDescription className="text-[9.5px] font-bold uppercase text-slate-500">
                   Shows frequency of complaints per theme (bars, left axis) and cumulative percentage (line, right
@@ -3032,7 +3140,7 @@ export function CsmReportDashboard({
               <CardContent className="pt-6">
                 <ResponsiveContainer width="100%" height={320}>
                   <ComposedChart data={displayStats.paretoData} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.2} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                     <XAxis dataKey="theme" tick={{ fontSize: 9, fontWeight: 'bold' }} />
                     <YAxis
                       yAxisId="left"
@@ -3061,19 +3169,22 @@ export function CsmReportDashboard({
                     <RechartsTooltip />
                     <Bar
                       dataKey="count"
-                      fill="hsl(var(--primary))"
+                      fill="url(#csm3d-grad-emerald)"
                       yAxisId="left"
                       name="Count of Complaints"
-                      radius={[3, 3, 0, 0]}
+                      radius={[6, 6, 0, 0]}
                       barSize={40}
-                    />
+                      filter="url(#csm3d-soft-depth)"
+                    >
+                      <LabelList content={<RenderBar3DLabel />} />
+                    </Bar>
                     <Line
                       dataKey="cumulativePercent"
-                      stroke="hsl(var(--destructive))"
-                      strokeWidth={2.5}
+                      stroke="#f43f5e"
+                      strokeWidth={3}
                       yAxisId="right"
                       name="Cumulative Percentage"
-                      dot={{ fill: 'hsl(var(--destructive))' }}
+                      dot={{ fill: '#f43f5e', r: 4 }}
                     />
                     <Legend
                       wrapperStyle={{

@@ -106,7 +106,9 @@ import {
   Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
+  LabelList,
 } from 'recharts';
+import { Chart3DDefs, RenderBar3DLabel } from '@/components/ui/chart-3d-defs';
 
 interface CorrectiveActionRequestTabProps {
   campuses: Campus[];
@@ -1340,10 +1342,15 @@ export function CorrectiveActionRequestTab({
               </Table>
             </div>
             <div>
+              <Chart3DDefs idPrefix="carperf3d" />
               <ChartContainer config={chartConfig} className="h-[250px] w-full">
                 <ResponsiveContainer>
                   <BarChart data={yearlyPerformance} barCategoryGap="20%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted-foreground) / 0.2)" vertical={false} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="hsl(var(--muted-foreground) / 0.15)"
+                      vertical={false}
+                    />
                     <XAxis dataKey="year" tick={{ fontSize: 12, fontWeight: 700 }} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <RechartsTooltip content={<ChartTooltipContent />} />
@@ -1355,9 +1362,46 @@ export function CorrectiveActionRequestTab({
                         letterSpacing: '0.1em',
                       }}
                     />
-                    <Bar dataKey="Open" stackId="a" fill="hsl(var(--destructive))" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="On-Going" stackId="a" fill="hsl(48 96% 53%)" radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="Closed" stackId="a" fill="hsl(142 71% 45%)" radius={[4, 4, 0, 0]} />
+                    <Bar
+                      dataKey="Open"
+                      stackId="a"
+                      fill="url(#carperf3d-grad-rose)"
+                      filter="url(#carperf3d-soft-depth)"
+                    >
+                      <LabelList
+                        dataKey="Open"
+                        position="center"
+                        style={{ fontSize: '10px', fontWeight: '900', fill: 'white' }}
+                        formatter={(v: number) => (v > 0 ? v : '')}
+                      />
+                    </Bar>
+                    <Bar
+                      dataKey="On-Going"
+                      stackId="a"
+                      fill="url(#carperf3d-grad-amber)"
+                      filter="url(#carperf3d-soft-depth)"
+                    >
+                      <LabelList
+                        dataKey="On-Going"
+                        position="center"
+                        style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--amber-950))' }}
+                        formatter={(v: number) => (v > 0 ? v : '')}
+                      />
+                    </Bar>
+                    <Bar
+                      dataKey="Closed"
+                      stackId="a"
+                      fill="url(#carperf3d-grad-emerald)"
+                      radius={[6, 6, 0, 0]}
+                      filter="url(#carperf3d-soft-depth)"
+                    >
+                      <LabelList
+                        dataKey="Closed"
+                        position="center"
+                        style={{ fontSize: '10px', fontWeight: '900', fill: 'white' }}
+                        formatter={(v: number) => (v > 0 ? v : '')}
+                      />
+                    </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>

@@ -82,9 +82,8 @@ import {
   Phone,
   ClipboardCheck,
 } from 'lucide-react';
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
-
-const pieLabel = ({ name, percent }: { name: string; percent: number }) => `${name} ${(percent * 100).toFixed(0)}%`;
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, LabelList } from 'recharts';
+import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 
 export default function UnitActivityPage() {
   const { userProfile, isAdmin, isSupervisor } = useUser();
@@ -2578,12 +2577,15 @@ export default function UnitActivityPage() {
                   ))}
               </div>
 
+              {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+              <Chart3DDefs idPrefix="unitact3d" />
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Chart 1: Punctuality */}
-                <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
+                <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                   <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                     <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                      Attendee Punctuality Distribution
+                      Attendee Punctuality Distribution (3D)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 h-[250px] flex items-center justify-center">
@@ -2598,11 +2600,24 @@ export default function UnitActivityPage() {
                             nameKey="name"
                             cx="50%"
                             cy="50%"
-                            outerRadius={80}
-                            label={pieLabel}
+                            innerRadius={45}
+                            outerRadius={75}
+                            paddingAngle={4}
+                            label={RenderPie3DLabel}
+                            labelLine={false}
                           >
                             {punctualityData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={
+                                  index === 0
+                                    ? 'url(#unitact3d-grad-emerald)'
+                                    : index === 1
+                                      ? 'url(#unitact3d-grad-amber)'
+                                      : 'url(#unitact3d-grad-rose)'
+                                }
+                                filter="url(#unitact3d-soft-depth)"
+                              />
                             ))}
                           </Pie>
                           <Tooltip />
@@ -2613,10 +2628,10 @@ export default function UnitActivityPage() {
                 </Card>
 
                 {/* Chart 2: Demographics */}
-                <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white">
+                <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
                   <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                     <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                      Gender/Sex Demographics
+                      Gender/Sex Demographics (3D)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 h-[250px] flex items-center justify-center">
@@ -2631,11 +2646,18 @@ export default function UnitActivityPage() {
                             nameKey="name"
                             cx="50%"
                             cy="50%"
-                            outerRadius={80}
-                            label={pieLabel}
+                            innerRadius={45}
+                            outerRadius={75}
+                            paddingAngle={4}
+                            label={RenderPie3DLabel}
+                            labelLine={false}
                           >
                             {genderData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={index === 0 ? 'url(#unitact3d-grad-indigo)' : 'url(#unitact3d-grad-rose)'}
+                                filter="url(#unitact3d-soft-depth)"
+                              />
                             ))}
                           </Pie>
                           <Tooltip />
@@ -2646,10 +2668,10 @@ export default function UnitActivityPage() {
                 </Card>
 
                 {/* Chart 3: Evaluation Ratings */}
-                <Card className="shadow-sm border-slate-200 dark:border-slate-700 bg-white md:col-span-2">
+                <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 md:col-span-2">
                   <CardHeader className="bg-slate-50/50 dark:bg-slate-800/50 border-b py-3">
                     <CardTitle className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                      Evaluation Categories Ratings
+                      Evaluation Categories Ratings (3D)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6 h-[250px]">
@@ -2661,7 +2683,7 @@ export default function UnitActivityPage() {
                       </div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={averageRatings} layout="vertical">
+                        <BarChart data={averageRatings} layout="vertical" margin={{ right: 30 }}>
                           <XAxis type="number" domain={[0, 5]} />
                           <YAxis
                             dataKey="category"
@@ -2670,11 +2692,16 @@ export default function UnitActivityPage() {
                             tick={{ fontSize: 10, fontWeight: 'bold' }}
                           />
                           <Tooltip />
-                          <Bar dataKey="rating" fill="#3b82f6" radius={[0, 4, 4, 0]}>
+                          <Bar dataKey="rating" radius={[0, 6, 6, 0]} filter="url(#unitact3d-soft-depth)">
+                            <LabelList content={<RenderBar3DLabel />} />
                             {averageRatings.map((entry, index) => (
                               <Cell
                                 key={`cell-${index}`}
-                                fill={index === averageRatings.length - 1 ? '#10b981' : '#3b82f6'}
+                                fill={
+                                  index === averageRatings.length - 1
+                                    ? 'url(#unitact3d-grad-emerald)'
+                                    : 'url(#unitact3d-grad-indigo)'
+                                }
                               />
                             ))}
                           </Bar>

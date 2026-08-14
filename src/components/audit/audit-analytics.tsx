@@ -26,6 +26,7 @@ import {
   PolarRadiusAxis,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 import {
   Trophy,
   AlertTriangle,
@@ -725,6 +726,9 @@ export function AuditAnalytics({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+      <Chart3DDefs idPrefix="audit3d" />
+
       {/* Yearly IQA Performance Table */}
       {yearlyIqaPerformance.length > 0 && (
         <Card className="shadow-md border-primary/10 overflow-hidden bg-card">
@@ -1012,22 +1016,34 @@ export function AuditAnalytics({
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-8 flex-1 flex flex-col items-center justify-center">
-            <ChartContainer config={{}} className="h-[280px] w-full">
+            <ChartContainer config={{}} className="h-[290px] w-full">
               <ResponsiveContainer>
                 <PieChart>
                   <Pie
                     data={analytics.findingsData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
+                    innerRadius={55}
+                    outerRadius={85}
                     paddingAngle={5}
                     dataKey="value"
-                    label={renderLabel}
+                    label={RenderPie3DLabel}
                     labelLine={false}
                   >
                     {analytics.findingsData.map((entry, index) => (
-                      <Cell key={index} fill={entry.fill} />
+                      <Cell
+                        key={index}
+                        fill={
+                          entry.name === 'NC'
+                            ? 'url(#audit3d-grad-rose)'
+                            : entry.name === 'OFI'
+                              ? 'url(#audit3d-grad-amber)'
+                              : entry.name === 'Compliance'
+                                ? 'url(#audit3d-grad-emerald)'
+                                : 'url(#audit3d-grad-slate)'
+                        }
+                        filter="url(#audit3d-soft-depth)"
+                      />
                     ))}
                   </Pie>
                   <RechartsTooltip content={<CustomPieTooltip />} />
@@ -1052,7 +1068,7 @@ export function AuditAnalytics({
             <div className="flex items-center gap-2">
               <Target className="h-5 w-5 text-primary" />
               <CardTitle className="text-sm font-black uppercase tracking-tight">
-                Process Maturity Findings Profile
+                Process Maturity Findings Profile (3D)
               </CardTitle>
             </div>
             <CardDescription className="text-xs text-muted-foreground mt-1">
@@ -1071,7 +1087,7 @@ export function AuditAnalytics({
             >
               <ResponsiveContainer>
                 <BarChart data={analytics.categoryFindingsData} margin={{ right: 30 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                   <XAxis
                     dataKey="name"
                     tick={{ fontSize: 10, fontWeight: 'black' }}
@@ -1090,7 +1106,7 @@ export function AuditAnalytics({
                       fontWeight: 'black',
                     }}
                   />
-                  <Bar dataKey="NC" stackId="a" fill={COLORS.NC}>
+                  <Bar dataKey="NC" stackId="a" fill="url(#audit3d-grad-rose)" filter="url(#audit3d-soft-depth)">
                     <LabelList
                       dataKey="NC"
                       position="center"
@@ -1098,7 +1114,7 @@ export function AuditAnalytics({
                       formatter={(val: number) => (val > 0 ? val : '')}
                     />
                   </Bar>
-                  <Bar dataKey="OFI" stackId="a" fill={COLORS.OFI}>
+                  <Bar dataKey="OFI" stackId="a" fill="url(#audit3d-grad-amber)" filter="url(#audit3d-soft-depth)">
                     <LabelList
                       dataKey="OFI"
                       position="center"
@@ -1106,7 +1122,13 @@ export function AuditAnalytics({
                       formatter={(val: number) => (val > 0 ? val : '')}
                     />
                   </Bar>
-                  <Bar dataKey="Compliance" stackId="a" fill={COLORS.Compliance} radius={[4, 4, 0, 0]}>
+                  <Bar
+                    dataKey="Compliance"
+                    stackId="a"
+                    fill="url(#audit3d-grad-emerald)"
+                    radius={[6, 6, 0, 0]}
+                    filter="url(#audit3d-soft-depth)"
+                  >
                     <LabelList
                       dataKey="Compliance"
                       position="center"
@@ -1126,7 +1148,7 @@ export function AuditAnalytics({
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-primary" />
                 <CardTitle className="text-sm font-black uppercase tracking-tight">
-                  Auditor Productivity & Completion Rate
+                  Auditor Productivity & Completion Rate (3D)
                 </CardTitle>
               </div>
               <CardDescription className="text-xs text-muted-foreground mt-1">
@@ -1149,31 +1171,29 @@ export function AuditAnalytics({
             <ChartContainer config={{}} className="h-[300px] w-full">
               <ResponsiveContainer>
                 <BarChart data={analytics.auditorData.slice(0, 10)}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                   <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 'bold' }} axisLine={false} tickLine={false} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
                   <RechartsTooltip content={<CustomAuditorTooltip />} />
                   <Bar
                     dataKey="completed"
                     name="Completed"
-                    fill="hsl(var(--primary))"
-                    radius={[4, 4, 0, 0]}
-                    barSize={30}
+                    fill="url(#audit3d-grad-emerald)"
+                    radius={[6, 6, 0, 0]}
+                    barSize={32}
+                    filter="url(#audit3d-soft-depth)"
                   >
-                    <LabelList
-                      dataKey="completed"
-                      position="top"
-                      style={{ fontSize: '10px', fontWeight: '900', fill: '#1B6535' }}
-                      formatter={(val: number) => (val > 0 ? val : '')}
-                    />
+                    <LabelList content={<RenderBar3DLabel />} />
                   </Bar>
-                  <Bar dataKey="count" name="Assigned" fill="hsl(var(--muted))" radius={[4, 4, 0, 0]} barSize={30}>
-                    <LabelList
-                      dataKey="count"
-                      position="top"
-                      style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--muted-foreground))' }}
-                      formatter={(val: number) => (val > 0 ? val : '')}
-                    />
+                  <Bar
+                    dataKey="count"
+                    name="Assigned"
+                    fill="url(#audit3d-grad-indigo)"
+                    radius={[6, 6, 0, 0]}
+                    barSize={32}
+                    filter="url(#audit3d-soft-depth)"
+                  >
+                    <LabelList content={<RenderBar3DLabel />} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -1191,7 +1211,7 @@ export function AuditAnalytics({
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-destructive" />
               <CardTitle className="text-sm font-black uppercase tracking-tight">
-                Top Finding Gaps by ISO Clause
+                Top Finding Gaps by ISO Clause (3D)
               </CardTitle>
             </div>
             <CardDescription className="text-xs text-muted-foreground mt-1">
@@ -1203,7 +1223,7 @@ export function AuditAnalytics({
             <ChartContainer config={{}} className="h-[350px] w-full">
               <ResponsiveContainer>
                 <BarChart data={analytics.clauseData} layout="vertical" margin={{ left: 20, right: 40 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} strokeOpacity={0.1} />
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.15} />
                   <XAxis type="number" hide />
                   <YAxis
                     dataKey="id"
@@ -1214,12 +1234,14 @@ export function AuditAnalytics({
                     tickLine={false}
                   />
                   <RechartsTooltip content={<CustomClauseTooltip />} />
-                  <Bar dataKey="count" fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={14}>
-                    <LabelList
-                      dataKey="count"
-                      position="right"
-                      style={{ fontSize: '10px', fontWeight: '900', fill: 'hsl(var(--destructive))' }}
-                    />
+                  <Bar
+                    dataKey="count"
+                    fill="url(#audit3d-grad-rose)"
+                    radius={[0, 6, 6, 0]}
+                    barSize={16}
+                    filter="url(#audit3d-soft-depth)"
+                  >
+                    <LabelList content={<RenderBar3DLabel />} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>

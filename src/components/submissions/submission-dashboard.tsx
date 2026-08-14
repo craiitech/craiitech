@@ -18,6 +18,7 @@ import {
   LabelList,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -751,12 +752,15 @@ export function SubmissionDashboard({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-md border-primary/10 overflow-hidden">
+        {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+        <Chart3DDefs idPrefix="subdash3d" />
+
+        <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
           <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center gap-2">
               <CalendarCheck className="h-5 w-5 text-primary" />
               <CardTitle className="text-sm font-black uppercase tracking-tight">
-                Institutional Timeliness index
+                Institutional Timeliness index (3D)
               </CardTitle>
             </div>
           </CardHeader>
@@ -770,13 +774,19 @@ export function SubmissionDashboard({
                       data={analytics.timelinessData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
+                      innerRadius={55}
                       outerRadius={85}
-                      paddingAngle={5}
+                      paddingAngle={4}
                       dataKey="value"
+                      label={RenderPie3DLabel}
+                      labelLine={false}
                     >
                       {analytics.timelinessData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={index === 0 ? 'url(#subdash3d-grad-emerald)' : 'url(#subdash3d-grad-rose)'}
+                          filter="url(#subdash3d-soft-depth)"
+                        />
                       ))}
                     </Pie>
                   </PieChart>
@@ -786,11 +796,13 @@ export function SubmissionDashboard({
           </CardContent>
         </Card>
 
-        <Card className="shadow-md border-primary/10 overflow-hidden">
+        <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
           <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-primary" />
-              <CardTitle className="text-sm font-black uppercase tracking-tight">Quality Maturity Lifecycle</CardTitle>
+              <CardTitle className="text-sm font-black uppercase tracking-tight">
+                Quality Maturity Lifecycle (3D)
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent className="pt-6">
@@ -802,12 +814,25 @@ export function SubmissionDashboard({
                     data={analytics.statusData}
                     cx="50%"
                     cy="50%"
+                    innerRadius={45}
                     outerRadius={80}
-                    label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                    paddingAngle={4}
+                    label={RenderPie3DLabel}
+                    labelLine={false}
                     dataKey="value"
                   >
                     {analytics.statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          index === 0
+                            ? 'url(#subdash3d-grad-emerald)'
+                            : index === 1
+                              ? 'url(#subdash3d-grad-amber)'
+                              : 'url(#subdash3d-grad-rose)'
+                        }
+                        filter="url(#subdash3d-soft-depth)"
+                      />
                     ))}
                   </Pie>
                   <Legend
@@ -826,12 +851,12 @@ export function SubmissionDashboard({
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2 shadow-md border-primary/10 overflow-hidden">
+        <Card className="lg:col-span-2 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
           <CardHeader className="bg-muted/10 border-b py-4">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               <CardTitle className="text-sm font-black uppercase tracking-tight">
-                Documentation Density Profile
+                Documentation Density Profile (3D)
               </CardTitle>
             </div>
           </CardHeader>
@@ -839,7 +864,7 @@ export function SubmissionDashboard({
             <ChartContainer config={{}} className="h-[350px] w-full">
               <ResponsiveContainer>
                 <BarChart data={analytics.reportData} layout="vertical" margin={{ left: 20, right: 40, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.15} />
                   <XAxis type="number" hide />
                   <YAxis
                     dataKey="name"
@@ -850,7 +875,15 @@ export function SubmissionDashboard({
                     tickLine={false}
                   />
                   <RechartsTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={14} />
+                  <Bar
+                    dataKey="total"
+                    fill="url(#subdash3d-grad-indigo)"
+                    radius={[0, 6, 6, 0]}
+                    barSize={16}
+                    filter="url(#subdash3d-soft-depth)"
+                  >
+                    <LabelList content={<RenderBar3DLabel />} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>

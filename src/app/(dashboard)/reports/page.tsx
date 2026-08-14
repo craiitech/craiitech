@@ -74,6 +74,7 @@ import {
   LabelList,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 import { Badge } from '@/components/ui/badge';
 import { normalizeReportType } from '@/lib/utils';
 
@@ -597,31 +598,36 @@ export default function ReportsPage() {
 
           {visualAnalytics ? (
             <>
+              {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+              <Chart3DDefs idPrefix="repvis3d" />
+
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-1 shadow-lg border-primary/10 overflow-hidden flex flex-col">
+                <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden flex flex-col bg-white dark:bg-slate-900">
                   <CardHeader className="bg-muted/10 border-b">
                     <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
                       <ShieldCheck className="h-4 w-4 text-primary" />
-                      Institutional Maturity Profile
+                      Institutional Maturity Profile (3D)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6 flex-1">
                     <ChartContainer config={{}} className="h-[300px] w-full">
                       <ResponsiveContainer>
                         <RadarChart cx="50%" cy="50%" outerRadius="80%" data={visualAnalytics.radarData}>
-                          <PolarGrid strokeOpacity={0.1} />
+                          <PolarGrid strokeOpacity={0.15} />
                           <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 'bold' }} />
                           <Radar
                             name="Maturity %"
                             dataKey="A"
-                            stroke="hsl(var(--primary))"
-                            fill="hsl(var(--primary))"
-                            fillOpacity={0.4}
+                            stroke="#10b981"
+                            strokeWidth={2}
+                            fill="url(#repvis3d-grad-emerald)"
+                            fillOpacity={0.6}
+                            filter="url(#repvis3d-soft-depth)"
                           >
                             <LabelList
                               dataKey="A"
                               position="top"
-                              style={{ fontSize: '10px', fontWeight: 'bold', fill: 'hsl(var(--primary))' }}
+                              style={{ fontSize: '10px', fontWeight: 'bold', fill: '#047857' }}
                               formatter={(v: any) => `${v}%`}
                             />
                           </Radar>
@@ -646,18 +652,18 @@ export default function ReportsPage() {
                   </CardFooter>
                 </Card>
 
-                <Card className="lg:col-span-2 shadow-lg border-primary/10 overflow-hidden flex flex-col">
+                <Card className="lg:col-span-2 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden flex flex-col bg-white dark:bg-slate-900">
                   <CardHeader className="bg-muted/10 border-b py-4">
                     <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-primary" />
-                      Campus Compliance Benchmarking
+                      Campus Compliance Benchmarking (3D)
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="pt-6 flex-1">
                     <ChartContainer config={{}} className="h-[350px] w-full">
                       <ResponsiveContainer>
                         <BarChart data={visualAnalytics.campusPerf}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                           <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 'bold' }} />
                           <YAxis tick={{ fontSize: 10 }} />
                           <Tooltip content={<ChartTooltipContent />} />
@@ -669,19 +675,21 @@ export default function ReportsPage() {
                               paddingTop: '10px',
                             }}
                           />
-                          <Bar dataKey="Approved" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]}>
-                            <LabelList
-                              dataKey="Approved"
-                              position="top"
-                              style={{ fontSize: '10px', fontWeight: 'bold' }}
-                            />
+                          <Bar
+                            dataKey="Approved"
+                            fill="url(#repvis3d-grad-emerald)"
+                            radius={[6, 6, 0, 0]}
+                            filter="url(#repvis3d-soft-depth)"
+                          >
+                            <LabelList content={<RenderBar3DLabel />} />
                           </Bar>
-                          <Bar dataKey="Pending" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]}>
-                            <LabelList
-                              dataKey="Pending"
-                              position="top"
-                              style={{ fontSize: '10px', fontWeight: 'bold' }}
-                            />
+                          <Bar
+                            dataKey="Pending"
+                            fill="url(#repvis3d-grad-amber)"
+                            radius={[6, 6, 0, 0]}
+                            filter="url(#repvis3d-soft-depth)"
+                          >
+                            <LabelList content={<RenderBar3DLabel />} />
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
@@ -705,10 +713,10 @@ export default function ReportsPage() {
                   <h3 className="text-lg font-black uppercase tracking-tight">Gender & Development (GAD) Summary</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card className="shadow-md border-primary/10 flex flex-col">
+                  <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
                     <CardHeader className="pb-2 border-b bg-blue-50/30">
                       <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                        <GraduationCap className="h-4 w-4 text-blue-600" /> Student Sex Distribution
+                        <GraduationCap className="h-4 w-4 text-blue-600" /> Student Sex Distribution (3D)
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6 flex-1">
@@ -719,14 +727,19 @@ export default function ReportsPage() {
                               data={visualAnalytics.gadEnrollmentData}
                               cx="50%"
                               cy="50%"
-                              innerRadius={40}
-                              outerRadius={70}
-                              paddingAngle={5}
+                              innerRadius={45}
+                              outerRadius={75}
+                              paddingAngle={4}
                               dataKey="value"
-                              label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                              label={RenderPie3DLabel}
+                              labelLine={false}
                             >
                               {visualAnalytics.gadEnrollmentData.map((entry, idx) => (
-                                <Cell key={idx} fill={entry.fill} />
+                                <Cell
+                                  key={idx}
+                                  fill={idx === 0 ? 'url(#repvis3d-grad-indigo)' : 'url(#repvis3d-grad-rose)'}
+                                  filter="url(#repvis3d-soft-depth)"
+                                />
                               ))}
                             </Pie>
                             <Tooltip content={<ChartTooltipContent hideLabel />} />
@@ -749,10 +762,10 @@ export default function ReportsPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="shadow-md border-primary/10 flex flex-col">
+                  <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
                     <CardHeader className="pb-2 border-b bg-emerald-50/30">
                       <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-emerald-600" /> SYSTEM REGISTERED USER
+                        <Briefcase className="h-4 w-4 text-emerald-600" /> SYSTEM REGISTERED USER (3D)
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6 flex-1">
@@ -763,14 +776,19 @@ export default function ReportsPage() {
                               data={visualAnalytics.gadFacultyData}
                               cx="50%"
                               cy="50%"
-                              innerRadius={40}
-                              outerRadius={60}
-                              paddingAngle={5}
+                              innerRadius={45}
+                              outerRadius={70}
+                              paddingAngle={4}
                               dataKey="value"
-                              label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                              label={RenderPie3DLabel}
+                              labelLine={false}
                             >
                               {visualAnalytics.gadFacultyData.map((entry, idx) => (
-                                <Cell key={idx} fill={entry.fill} />
+                                <Cell
+                                  key={idx}
+                                  fill={idx === 0 ? 'url(#repvis3d-grad-emerald)' : 'url(#repvis3d-grad-amber)'}
+                                  filter="url(#repvis3d-soft-depth)"
+                                />
                               ))}
                             </Pie>
                             <Tooltip content={<ChartTooltipContent hideLabel />} />
@@ -793,10 +811,10 @@ export default function ReportsPage() {
                     </CardContent>
                   </Card>
 
-                  <Card className="shadow-md border-primary/10 flex flex-col">
+                  <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
                     <CardHeader className="pb-2 border-b bg-purple-50/30">
                       <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-purple-600" /> Graduation GAD Audit
+                        <CheckCircle2 className="h-4 w-4 text-purple-600" /> Graduation GAD Audit (3D)
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="pt-6 flex-1">
@@ -807,14 +825,19 @@ export default function ReportsPage() {
                               data={visualAnalytics.gadGradsData}
                               cx="50%"
                               cy="50%"
-                              innerRadius={40}
-                              outerRadius={70}
-                              paddingAngle={5}
+                              innerRadius={45}
+                              outerRadius={75}
+                              paddingAngle={4}
                               dataKey="value"
-                              label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                              label={RenderPie3DLabel}
+                              labelLine={false}
                             >
                               {visualAnalytics.gadGradsData.map((entry, idx) => (
-                                <Cell key={idx} fill={entry.fill} />
+                                <Cell
+                                  key={idx}
+                                  fill={idx === 0 ? 'url(#repvis3d-grad-sky)' : 'url(#repvis3d-grad-rose)'}
+                                  filter="url(#repvis3d-soft-depth)"
+                                />
                               ))}
                             </Pie>
                             <Tooltip content={<ChartTooltipContent hideLabel />} />
@@ -839,12 +862,12 @@ export default function ReportsPage() {
                 </div>
               </div>
 
-              <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
+              <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden flex flex-col bg-white dark:bg-slate-900">
                 <CardHeader className="bg-muted/10 border-b py-4">
                   <div className="flex items-center gap-2">
                     <Target className="h-5 w-5 text-primary" />
                     <CardTitle className="text-sm font-black uppercase flex items-center gap-2">
-                      Institutional Risk Distribution Profile
+                      Institutional Risk Distribution Profile (3D)
                     </CardTitle>
                   </div>
                 </CardHeader>
@@ -852,7 +875,7 @@ export default function ReportsPage() {
                   <ChartContainer config={{}} className="h-[250px] w-full">
                     <ResponsiveContainer>
                       <BarChart data={visualAnalytics.riskRatingData}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                         <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 'black' }} />
                         <YAxis tick={{ fontSize: 10 }} />
                         <Tooltip content={<ChartTooltipContent />} />
@@ -866,10 +889,19 @@ export default function ReportsPage() {
                             paddingBottom: '10px',
                           }}
                         />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={60}>
-                          <LabelList dataKey="value" position="top" style={{ fontSize: '11px', fontWeight: '900' }} />
+                        <Bar dataKey="value" radius={[6, 6, 0, 0]} barSize={60} filter="url(#repvis3d-soft-depth)">
+                          <LabelList content={<RenderBar3DLabel />} />
                           {visualAnalytics.riskRatingData.map((entry, idx) => (
-                            <Cell key={`cell-${idx}`} fill={entry.fill} />
+                            <Cell
+                              key={`cell-${idx}`}
+                              fill={
+                                entry.name.toLowerCase().includes('high')
+                                  ? 'url(#repvis3d-grad-rose)'
+                                  : entry.name.toLowerCase().includes('medium')
+                                    ? 'url(#repvis3d-grad-amber)'
+                                    : 'url(#repvis3d-grad-emerald)'
+                              }
+                            />
                           ))}
                         </Bar>
                       </BarChart>

@@ -39,6 +39,7 @@ import {
   PolarRadiusAxis,
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 import {
   Award,
   TrendingUp,
@@ -943,6 +944,9 @@ export function ProgramAnalytics({
   return (
     <TooltipProvider delayDuration={100}>
       <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+        {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+        <Chart3DDefs idPrefix="progana3d" />
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <Card className="bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
             <div className="flex items-center justify-between mb-3">
@@ -1236,21 +1240,29 @@ export function ProgramAnalytics({
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
+          <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
             <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-emerald-600" />
               <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
-                Strategic Maturity Profile
+                Strategic Maturity Profile (3D)
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
               <ChartContainer config={{}} className="h-[300px] w-full">
                 <ResponsiveContainer>
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={analytics.radarData}>
-                    <PolarGrid strokeOpacity={0.1} />
+                    <PolarGrid strokeOpacity={0.15} />
                     <PolarAngleAxis dataKey="pillar" tick={{ fontSize: 10, fontWeight: 'bold' }} />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} hide />
-                    <Radar name="Maturity" dataKey="score" stroke="#1B6535" fill="#1B6535" fillOpacity={0.4} />
+                    <Radar
+                      name="Maturity"
+                      dataKey="score"
+                      stroke="#10b981"
+                      strokeWidth={2}
+                      fill="url(#progana3d-grad-emerald)"
+                      fillOpacity={0.6}
+                      filter="url(#progana3d-soft-depth)"
+                    />
                   </RadarChart>
                 </ResponsiveContainer>
               </ChartContainer>
@@ -1264,12 +1276,12 @@ export function ProgramAnalytics({
               </div>
             </CardContent>
           </Card>
-          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
+          <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
             <CardHeader className="py-5 px-8 border-b flex flex-row items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Award className="h-4 w-4 text-emerald-600" />
                 <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
-                  Accreditation Distribution
+                  Accreditation Distribution (3D)
                 </CardTitle>
               </div>
               <Tooltip>
@@ -1294,20 +1306,35 @@ export function ProgramAnalytics({
               </Tooltip>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col p-6 overflow-hidden">
-              <ChartContainer config={{}} className="h-[150px] w-full shrink-0">
+              <ChartContainer config={{}} className="h-[155px] w-full shrink-0">
                 <ResponsiveContainer>
                   <PieChart>
                     <Pie
                       data={accreditationDistData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={45}
+                      innerRadius={40}
                       outerRadius={65}
-                      paddingAngle={3}
+                      paddingAngle={4}
                       dataKey="value"
+                      label={RenderPie3DLabel}
+                      labelLine={false}
                     >
                       {accreditationDistData.map((entry, idx) => (
-                        <Cell key={idx} fill={entry.fill} className="outline-none" />
+                        <Cell
+                          key={idx}
+                          fill={
+                            entry.name.includes('IV') || entry.name.includes('III')
+                              ? 'url(#progana3d-grad-indigo)'
+                              : entry.name.includes('II') || entry.name.includes('I')
+                                ? 'url(#progana3d-grad-emerald)'
+                                : entry.name.includes('Candidate')
+                                  ? 'url(#progana3d-grad-amber)'
+                                  : 'url(#progana3d-grad-slate)'
+                          }
+                          filter="url(#progana3d-soft-depth)"
+                          className="outline-none"
+                        />
                       ))}
                     </Pie>
                     <RechartsTooltip />
@@ -1373,11 +1400,11 @@ export function ProgramAnalytics({
               </div>
             </CardContent>
           </Card>
-          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
+          <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
             <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
               <BookOpen className="h-4 w-4 text-emerald-600" />
               <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
-                Faculty Educational Attainment (GAD)
+                Faculty Educational Attainment (GAD - 3D)
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
@@ -1388,14 +1415,25 @@ export function ProgramAnalytics({
                       data={analytics.facultyAttainmentData}
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={90}
-                      paddingAngle={5}
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={4}
                       dataKey="value"
-                      label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                      label={RenderPie3DLabel}
+                      labelLine={false}
                     >
                       {analytics.facultyAttainmentData.map((entry, idx) => (
-                        <Cell key={idx} fill={entry.fill} />
+                        <Cell
+                          key={idx}
+                          fill={
+                            entry.name.includes('Doctorate') || entry.name.includes('PhD')
+                              ? 'url(#progana3d-grad-indigo)'
+                              : entry.name.includes('Master')
+                                ? 'url(#progana3d-grad-emerald)'
+                                : 'url(#progana3d-grad-amber)'
+                          }
+                          filter="url(#progana3d-soft-depth)"
+                        />
                       ))}
                     </Pie>
                     <RechartsTooltip />
@@ -1414,18 +1452,18 @@ export function ProgramAnalytics({
               </ChartContainer>
             </CardContent>
           </Card>
-          <Card className="lg:col-span-1 shadow-lg border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
+          <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
             <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
               <CalendarDays className="h-4 w-4 text-emerald-600" />
               <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
-                Institutional Survey Pipeline
+                Institutional Survey Pipeline (3D)
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-10 flex-1">
               <ChartContainer config={{}} className="h-[350px] w-full">
                 <ResponsiveContainer>
                   <BarChart data={analytics.roadmapForecastData} margin={{ left: 10, right: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                     <XAxis
                       dataKey="year"
                       tick={{ fontSize: 12, fontWeight: 'bold' }}
@@ -1434,12 +1472,14 @@ export function ProgramAnalytics({
                     />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
                     <RechartsTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="count" fill="#1B6535" radius={[4, 4, 0, 0]} barSize={40}>
-                      <LabelList
-                        dataKey="count"
-                        position="top"
-                        style={{ fontSize: '12px', fontWeight: '900', fill: '#1B6535' }}
-                      />
+                    <Bar
+                      dataKey="count"
+                      fill="url(#progana3d-grad-emerald)"
+                      radius={[6, 6, 0, 0]}
+                      barSize={40}
+                      filter="url(#progana3d-soft-depth)"
+                    >
+                      <LabelList content={<RenderBar3DLabel />} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -1451,52 +1491,56 @@ export function ProgramAnalytics({
         <Separator className="my-8" />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="shadow-md border-primary/10 overflow-hidden">
+          <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
             <CardHeader className="bg-muted/5 border-b">
               <CardTitle className="text-sm font-black uppercase text-primary">
-                Authority Maturity (COPC Trend)
+                Authority Maturity (COPC Trend - 3D)
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-8">
               <ChartContainer config={{}} className="h-[250px] w-full">
                 <ResponsiveContainer>
                   <BarChart data={analytics.copcTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                     <XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} />
                     <YAxis hide />
                     <RechartsTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="count" fill="#1B6535" radius={[4, 4, 0, 0]} barSize={40}>
-                      <LabelList
-                        dataKey="count"
-                        position="top"
-                        style={{ fontSize: '12px', fontWeight: '900', fill: '#1B6535' }}
-                      />
+                    <Bar
+                      dataKey="count"
+                      fill="url(#progana3d-grad-emerald)"
+                      radius={[6, 6, 0, 0]}
+                      barSize={40}
+                      filter="url(#progana3d-soft-depth)"
+                    >
+                      <LabelList content={<RenderBar3DLabel />} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
             </CardContent>
           </Card>
-          <Card className="shadow-md border-primary/10 overflow-hidden">
+          <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
             <CardHeader className="bg-muted/5 border-b">
               <CardTitle className="text-sm font-black uppercase text-indigo-700">
-                Accreditation Excellence velocity
+                Accreditation Excellence Velocity (3D)
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-8">
               <ChartContainer config={{}} className="h-[250px] w-full">
                 <ResponsiveContainer>
                   <BarChart data={analytics.accreditationTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
                     <XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} />
                     <YAxis hide />
                     <RechartsTooltip content={<ChartTooltipContent />} />
-                    <Bar dataKey="count" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40}>
-                      <LabelList
-                        dataKey="count"
-                        position="top"
-                        style={{ fontSize: '12px', fontWeight: '900', fill: '#1e3a8a' }}
-                      />
+                    <Bar
+                      dataKey="count"
+                      fill="url(#progana3d-grad-indigo)"
+                      radius={[6, 6, 0, 0]}
+                      barSize={40}
+                      filter="url(#progana3d-soft-depth)"
+                    >
+                      <LabelList content={<RenderBar3DLabel />} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -1511,14 +1555,14 @@ export function ProgramAnalytics({
             <h3 className="text-lg font-black uppercase tracking-tight">Institutional GAD Reach Summary</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="shadow-md border-primary/10 flex flex-col">
+            <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
               <CardHeader className="pb-2 border-b bg-blue-50/30">
                 <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4 text-blue-600" /> Student Sex Distribution
+                  <GraduationCap className="h-4 w-4 text-blue-600" /> Student Sex Distribution (3D)
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6 flex-1 flex flex-col items-center">
-                <ChartContainer config={{}} className="h-[200px] w-full">
+                <ChartContainer config={{}} className="h-[210px] w-full">
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie
@@ -1529,10 +1573,15 @@ export function ProgramAnalytics({
                         outerRadius={70}
                         paddingAngle={5}
                         dataKey="value"
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        label={RenderPie3DLabel}
+                        labelLine={false}
                       >
                         {analytics.gadData.enrollment.map((e, j) => (
-                          <Cell key={j} fill={e.fill} />
+                          <Cell
+                            key={j}
+                            fill={j === 0 ? 'url(#progana3d-grad-indigo)' : 'url(#progana3d-grad-rose)'}
+                            filter="url(#progana3d-soft-depth)"
+                          />
                         ))}
                       </Pie>
                       <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
@@ -1552,14 +1601,14 @@ export function ProgramAnalytics({
                 </div>
               </CardContent>
             </Card>
-            <Card className="shadow-md border-primary/10 flex flex-col">
+            <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
               <CardHeader className="pb-2 border-b bg-emerald-50/30">
                 <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-emerald-600" /> System Registered User
+                  <Briefcase className="h-4 w-4 text-emerald-600" /> System Registered User (3D)
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6 flex-1 flex flex-col items-center">
-                <ChartContainer config={{}} className="h-[200px] w-full">
+                <ChartContainer config={{}} className="h-[210px] w-full">
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie
@@ -1567,13 +1616,18 @@ export function ProgramAnalytics({
                         cx="50%"
                         cy="50%"
                         innerRadius={40}
-                        outerRadius={60}
+                        outerRadius={65}
                         paddingAngle={5}
                         dataKey="value"
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        label={RenderPie3DLabel}
+                        labelLine={false}
                       >
                         {analytics.gadData.faculty.map((e, j) => (
-                          <Cell key={j} fill={e.fill} />
+                          <Cell
+                            key={j}
+                            fill={j === 0 ? 'url(#progana3d-grad-emerald)' : 'url(#progana3d-grad-amber)'}
+                            filter="url(#progana3d-soft-depth)"
+                          />
                         ))}
                       </Pie>
                       <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
@@ -1593,14 +1647,14 @@ export function ProgramAnalytics({
                 </div>
               </CardContent>
             </Card>
-            <Card className="shadow-md border-primary/10 flex flex-col">
+            <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
               <CardHeader className="pb-2 border-b bg-purple-50/30">
                 <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-purple-600" /> Graduation Audit
+                  <CheckCircle2 className="h-4 w-4 text-purple-600" /> Graduation Audit (3D)
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-6 flex-1 flex flex-col items-center">
-                <ChartContainer config={{}} className="h-[200px] w-full">
+                <ChartContainer config={{}} className="h-[210px] w-full">
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie
@@ -1611,10 +1665,15 @@ export function ProgramAnalytics({
                         outerRadius={70}
                         paddingAngle={5}
                         dataKey="value"
-                        label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+                        label={RenderPie3DLabel}
+                        labelLine={false}
                       >
                         {analytics.gadData.grads.map((e, j) => (
-                          <Cell key={j} fill={e.fill} />
+                          <Cell
+                            key={j}
+                            fill={j === 0 ? 'url(#progana3d-grad-sky)' : 'url(#progana3d-grad-rose)'}
+                            filter="url(#progana3d-soft-depth)"
+                          />
                         ))}
                       </Pie>
                       <RechartsTooltip content={<ChartTooltipContent hideLabel />} />

@@ -18,6 +18,7 @@ import {
   Line,
   Legend,
 } from 'recharts';
+import { Chart3DDefs } from '@/components/ui/chart-3d-defs';
 import {
   ShieldCheck,
   AlertTriangle,
@@ -512,21 +513,21 @@ function GreenDonut({
               cy="50%"
               innerRadius={innerRadius}
               outerRadius={outerRadius}
-              paddingAngle={2}
+              paddingAngle={3}
               stroke="none"
               labelLine={false}
               label={false}
             >
               {data.map((entry, i) => (
-                <Cell key={i} fill={entry.color} fillOpacity={0.85} />
+                <Cell key={i} fill={entry.color} fillOpacity={0.9} filter="url(#execdisp3d-soft-depth)" />
               ))}
             </Pie>
           </PieChart>
         </ResponsiveContainer>
         {centerLabel && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-            <p className="text-lg font-black text-white tabular-nums">{centerValue}</p>
-            <p className="text-sm font-black uppercase tracking-widest text-white/65 mt-0.5">{centerLabel}</p>
+            <p className="text-lg font-black text-white tabular-nums drop-shadow">{centerValue}</p>
+            <p className="text-sm font-black uppercase tracking-widest text-white/70 mt-0.5">{centerLabel}</p>
           </div>
         )}
       </div>
@@ -563,10 +564,11 @@ function TrendLine({
           type="monotone"
           dataKey={dataKey}
           stroke={strokeColor}
-          strokeWidth={2}
-          dot={{ fill: strokeColor, r: 3, strokeWidth: 0 }}
+          strokeWidth={2.5}
+          dot={{ fill: strokeColor, r: 3.5, strokeWidth: 0 }}
+          filter="url(#execdisp3d-soft-depth)"
           label={({ x, y, value }) => (
-            <text x={x} y={y - 8} textAnchor="middle" fill="rgba(255,255,255,0.7)" fontSize={8} fontWeight="bold">
+            <text x={x} y={y - 8} textAnchor="middle" fill="rgba(255,255,255,0.9)" fontSize={9} fontWeight="bold">
               {value}
             </text>
           )}
@@ -938,10 +940,11 @@ function ViewSubmissions({
                   />
                   <Bar
                     dataKey="rate"
-                    radius={[0, 3, 3, 0]}
+                    radius={[0, 6, 6, 0]}
                     name="Rate"
                     fillOpacity={0.85}
-                    label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
+                    filter="url(#execdisp3d-soft-depth)"
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 'bold' }}
                   >
                     {chartData.map((_, i) => (
                       <Cell
@@ -1185,10 +1188,11 @@ function ViewRisks({
                   />
                   <Bar
                     dataKey="rate"
-                    radius={[0, 3, 3, 0]}
+                    radius={[0, 6, 6, 0]}
                     name="Mitigated"
                     fillOpacity={0.85}
-                    label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
+                    filter="url(#execdisp3d-soft-depth)"
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 'bold' }}
                   >
                     {chartData.map((_, i) => (
                       <Cell
@@ -1428,10 +1432,11 @@ function ViewCars({
                   />
                   <Bar
                     dataKey="rate"
-                    radius={[0, 3, 3, 0]}
+                    radius={[0, 6, 6, 0]}
                     name="Closed"
                     fillOpacity={0.85}
-                    label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
+                    filter="url(#execdisp3d-soft-depth)"
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 'bold' }}
                   >
                     {chartData.map((_, i) => (
                       <Cell
@@ -1693,10 +1698,11 @@ function ViewAccred({
                   />
                   <Bar
                     dataKey="rate"
-                    radius={[0, 3, 3, 0]}
+                    radius={[0, 6, 6, 0]}
                     name="COPC Rate"
                     fillOpacity={0.85}
-                    label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold' }}
+                    filter="url(#execdisp3d-soft-depth)"
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.9)', fontSize: 12, fontWeight: 'bold' }}
                   >
                     {chartData.map((_, i) => (
                       <Cell
@@ -1952,10 +1958,11 @@ function ViewUnitSubmission({
                   />
                   <Bar
                     dataKey="rate"
-                    radius={[0, 3, 3, 0]}
+                    radius={[0, 6, 6, 0]}
                     name="Rate"
                     fillOpacity={0.85}
-                    label={{ position: 'right', fill: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: 'bold' }}
+                    filter="url(#execdisp3d-soft-depth)"
+                    label={{ position: 'right', fill: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: 'bold' }}
                   >
                     {chartData.map((_, i) => (
                       <Cell
@@ -3769,6 +3776,9 @@ export default function ExecutiveDisplayPage() {
       className="h-screen w-screen text-white overflow-hidden flex flex-col select-none animate-gold-green-bg"
       style={{ fontFamily: "'Inter', sans-serif" }}
     >
+      {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
+      <Chart3DDefs idPrefix="execdisp3d" />
+
       <style>{`@keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
 
       {/* Green/gold animated background orbs */}
