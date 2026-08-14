@@ -14,6 +14,7 @@ export type ProcedureManualReportRow = {
   revisionNumber: string;
   revisionDate: string;
   pageCount: string | number;
+  status: 'Updated' | 'Needs Revision' | 'Not Submitted' | string;
   hasData: boolean;
 };
 
@@ -29,8 +30,9 @@ export function ProcedureManualsPrintTemplate({
   qmsHead = 'QMS Head',
 }: ProcedureManualsPrintTemplateProps) {
   const totalUnits = rows.length;
-  const configuredCount = rows.filter((r) => r.hasData).length;
-  const missingCount = totalUnits - configuredCount;
+  const updatedCount = rows.filter((r) => r.status === 'Updated').length;
+  const needsRevisionCount = rows.filter((r) => r.status === 'Needs Revision').length;
+  const notSubmittedCount = rows.filter((r) => r.status === 'Not Submitted' || !r.hasData).length;
 
   return (
     <div
@@ -74,28 +76,30 @@ export function ProcedureManualsPrintTemplate({
       </div>
 
       {/* SUMMARY BANNER */}
-      <div className="grid grid-cols-3 gap-3 mb-6 text-center">
+      <div className="grid grid-cols-4 gap-3 mb-6 text-center">
         <div className="border border-black p-2 bg-slate-50">
           <p className="text-[8pt] font-black uppercase tracking-wider text-slate-700">Total Units / Groups</p>
           <p className="text-base font-black">{totalUnits}</p>
         </div>
         <div className="border border-black p-2 bg-emerald-50">
-          <p className="text-[8pt] font-black uppercase tracking-wider text-emerald-800">Configured Manuals</p>
-          <p className="text-base font-black text-emerald-900">{configuredCount}</p>
+          <p className="text-[8pt] font-black uppercase tracking-wider text-emerald-800">Updated</p>
+          <p className="text-base font-black text-emerald-900">{updatedCount}</p>
         </div>
         <div className="border border-black p-2 bg-amber-50">
-          <p className="text-[8pt] font-black uppercase tracking-wider text-amber-800">
-            Pending / No Data (Highlighted)
-          </p>
-          <p className="text-base font-black text-amber-900">{missingCount}</p>
+          <p className="text-[8pt] font-black uppercase tracking-wider text-amber-800">Needs Revision</p>
+          <p className="text-base font-black text-amber-900">{needsRevisionCount}</p>
+        </div>
+        <div className="border border-black p-2 bg-rose-50">
+          <p className="text-[8pt] font-black uppercase tracking-wider text-rose-800">Not Submitted (Highlighted)</p>
+          <p className="text-base font-black text-rose-900">{notSubmittedCount}</p>
         </div>
       </div>
 
       {/* TABLE */}
       <div className="space-y-3 mb-8">
         <p className="text-[9pt] italic">
-          * Highlighted rows indicate units with <strong>no registered data</strong> on their procedure manual. These
-          units must be updated in the system settings.
+          * Highlighted rows indicate units with <strong>Not Submitted</strong> or missing data on their procedure
+          manual. These units must be updated in the system settings.
         </p>
 
         <table className="w-full border-collapse border border-black" style={{ fontSize: '8.5pt' }}>
@@ -109,16 +113,26 @@ export function ProcedureManualsPrintTemplate({
               <th className="border border-black p-2 text-center w-20 font-black uppercase">Revision No.</th>
               <th className="border border-black p-2 text-center w-24 font-black uppercase">Revision Date</th>
               <th className="border border-black p-2 text-center w-20 font-black uppercase">Total Pages</th>
-              <th className="border border-black p-2 text-center w-24 font-black uppercase">Status</th>
+              <th className="border border-black p-2 text-center w-28 font-black uppercase">Status</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((row, idx) => {
-              const isMissing = !row.hasData;
+              const isNotSubmitted = row.status === 'Not Submitted' || !row.hasData;
+              const isNeedsRevision = row.status === 'Needs Revision';
+
               return (
                 <tr
                   key={row.unitId}
-                  className={cn(isMissing ? 'bg-amber-100/80 font-medium' : idx % 2 === 1 ? 'bg-slate-50' : 'bg-white')}
+                  className={cn(
+                    isNotSubmitted
+                      ? 'bg-rose-50/80 font-medium'
+                      : isNeedsRevision
+                        ? 'bg-amber-50/80'
+                        : idx % 2 === 1
+                          ? 'bg-slate-50'
+                          : 'bg-white',
+                  )}
                 >
                   <td className="border border-black p-1.5 text-center font-mono">{idx + 1}</td>
                   <td className="border border-black p-1.5 font-mono font-bold">
@@ -152,12 +166,18 @@ export function ProcedureManualsPrintTemplate({
                     )}
                   </td>
                   <td className="border border-black p-1.5 text-center">
-                    {isMissing ? (
-                      <span className="font-black uppercase text-[7.5pt] text-amber-900 px-1 py-0.5 bg-amber-200 border border-amber-400 rounded">
-                        NO DATA
+                    {row.status === 'Updated' ? (
+                      <span className="font-black uppercase text-[7.5pt] text-emerald-800 px-1.5 py-0.5 bg-emerald-100 border border-emerald-300 rounded">
+                        Updated
+                      </span>
+                    ) : row.status === 'Needs Revision' ? (
+                      <span className="font-black uppercase text-[7.5pt] text-amber-900 px-1.5 py-0.5 bg-amber-100 border border-amber-400 rounded">
+                        Needs Revision
                       </span>
                     ) : (
-                      <span className="font-bold uppercase text-[7.5pt] text-emerald-800">Configured</span>
+                      <span className="font-black uppercase text-[7.5pt] text-rose-900 px-1.5 py-0.5 bg-rose-100 border border-rose-300 rounded">
+                        Not Submitted
+                      </span>
                     )}
                   </td>
                 </tr>

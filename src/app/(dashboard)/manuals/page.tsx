@@ -29,6 +29,7 @@ import {
   PlusCircle,
   School,
   CheckCircle,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -119,6 +120,7 @@ export default function ProcedureManualsPage() {
           revisionNumber: manual?.revisionNumber ? `Rev ${manual.revisionNumber}` : '',
           revisionDate: manual?.revisionDate || manual?.dateImplemented || '',
           pageCount: manual?.pageCount !== undefined && manual?.pageCount !== 0 ? manual.pageCount : '',
+          status: manual?.status || (hasData ? 'Updated' : 'Not Submitted'),
           hasData,
         };
       });
@@ -318,6 +320,17 @@ export default function ProcedureManualsPage() {
               <Printer className="mr-2 h-4 w-4 text-primary" />
               Print Procedure Manuals
             </Button>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white dark:bg-slate-900 border-primary/30 text-primary hover:bg-primary/5 shadow-sm"
+                onClick={() => router.push('/settings?tab=procedure-manuals')}
+              >
+                <Settings className="mr-2 h-4 w-4 text-primary" />
+                Update Manual Settings
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"

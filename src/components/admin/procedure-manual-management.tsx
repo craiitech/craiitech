@@ -39,6 +39,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Badge } from '../ui/badge';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const manualSchema = z.object({
   procedureNumber: z.string().optional().default(''),
@@ -49,6 +50,7 @@ const manualSchema = z.object({
   dateImplemented: z.string().optional().default(''),
   pageCount: z.string().optional().default(''),
   googleDriveLink: z.string().optional().default(''),
+  status: z.enum(['Updated', 'Needs Revision', 'Not Submitted']).default('Not Submitted'),
 });
 
 type VirtualUnit = { id: string; name: string; isShared?: boolean };
@@ -149,6 +151,12 @@ export function ProcedureManualManagement() {
   const handleOpenDialog = (unit: VirtualUnit) => {
     setSelectedUnit(unit);
     const existingManual = manualMap.get(unit.id);
+    const defaultStatus =
+      (existingManual?.status as 'Updated' | 'Needs Revision' | 'Not Submitted') ||
+      (existingManual && (existingManual.procedureNumber || existingManual.googleDriveLink)
+        ? 'Updated'
+        : 'Not Submitted');
+
     form.reset({
       procedureNumber: existingManual?.procedureNumber || '',
       manualTitle: existingManual?.manualTitle || '',
@@ -159,12 +167,41 @@ export function ProcedureManualManagement() {
       dateImplemented: existingManual?.dateImplemented || existingManual?.revisionDate || '',
       pageCount: existingManual?.pageCount !== undefined ? String(existingManual.pageCount) : '',
       googleDriveLink: existingManual?.googleDriveLink || '',
+      status: defaultStatus,
     });
   };
 
   const handleCloseDialog = () => {
     setSelectedUnit(null);
     form.reset();
+  };
+
+  const handleUpdateStatus = async (unit: VirtualUnit, newStatus: string) => {
+    if (!firestore) return;
+    try {
+      const manualRef = doc(firestore, 'procedureManuals', unit.id);
+      await setDoc(
+        manualRef,
+        {
+          id: unit.id,
+          unitName: unit.name,
+          status: newStatus,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+      toast({
+        title: 'Status Updated',
+        description: `Set status for ${unit.name} to "${newStatus}".`,
+      });
+    } catch (error) {
+      console.error('Error updating manual status:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not update manual status.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof manualSchema>) => {
@@ -183,6 +220,7 @@ export function ProcedureManualManagement() {
       dateImplemented: values.dateImplemented?.trim() || values.revisionDate?.trim() || '',
       pageCount: values.pageCount ? Number(values.pageCount) : 0,
       googleDriveLink: values.googleDriveLink?.trim() || '',
+      status: values.status || 'Not Submitted',
       updatedAt: serverTimestamp(),
     };
 
@@ -212,11 +250,12 @@ export function ProcedureManualManagement() {
   const isLoading = isLoadingUnits || isLoadingManuals;
 
   const totalUnitsCount = manageableUnits.length;
-  const configuredCount = manageableUnits.filter((u) => {
+  const updatedCount = manageableUnits.filter((u) => {
     const m = manualMap.get(u.id);
-    return m && (m.procedureNumber || m.manualTitle || m.googleDriveLink);
+    return m?.status === 'Updated' || (!m?.status && (m?.procedureNumber || m?.manualTitle || m?.googleDriveLink));
   }).length;
-  const missingCount = totalUnitsCount - configuredCount;
+  const needsRevisionCount = manageableUnits.filter((u) => manualMap.get(u.id)?.status === 'Needs Revision').length;
+  const notSubmittedCount = totalUnitsCount - updatedCount - needsRevisionCount;
 
   return (
     <>
@@ -229,8 +268,8 @@ export function ProcedureManualManagement() {
                 Procedure Manuals Administration
               </CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
-                Configure procedure manual metadata (Procedure Number, Title, Processes, Revision, Pages, Drive Link)
-                for all university units.
+                Configure procedure manual metadata (Procedure Number, Title, Processes, Revision, Pages, Drive Link,
+                Status) for all university units.
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -238,13 +277,19 @@ export function ProcedureManualManagement() {
                 variant="outline"
                 className="h-7 text-xs font-black uppercase px-3 bg-emerald-50 text-emerald-800 border-emerald-300"
               >
-                {configuredCount} Configured
+                {updatedCount} Updated
               </Badge>
               <Badge
                 variant="outline"
                 className="h-7 text-xs font-black uppercase px-3 bg-amber-50 text-amber-800 border-amber-300"
               >
-                {missingCount} Needs Update
+                {needsRevisionCount} Needs Revision
+              </Badge>
+              <Badge
+                variant="outline"
+                className="h-7 text-xs font-black uppercase px-3 bg-rose-50 text-rose-800 border-rose-300"
+              >
+                {notSubmittedCount} Not Submitted
               </Badge>
             </div>
           </div>
@@ -266,7 +311,9 @@ export function ProcedureManualManagement() {
                     <TableHead className="text-center text-[10px] font-black uppercase py-3">Rev</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase py-3">Rev Date</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase py-3">Pages</TableHead>
-                    <TableHead className="text-center text-[10px] font-black uppercase py-3">Status</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase py-3 min-w-[140px]">
+                      Status
+                    </TableHead>
                     <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -276,21 +323,27 @@ export function ProcedureManualManagement() {
                     const hasData = Boolean(
                       manual && (manual.procedureNumber || manual.manualTitle || manual.googleDriveLink),
                     );
+                    const currentStatus = manual?.status || (hasData ? 'Updated' : 'Not Submitted');
+                    const isNotSubmitted = currentStatus === 'Not Submitted';
+                    const isNeedsRevision = currentStatus === 'Needs Revision';
 
                     return (
                       <TableRow
                         key={unit.id}
                         className={cn(
                           'transition-colors',
-                          !hasData && 'bg-amber-50/70 dark:bg-amber-950/20 border-l-4 border-l-amber-500',
+                          isNotSubmitted && 'bg-rose-50/40 dark:bg-rose-950/20 border-l-4 border-l-rose-500',
+                          isNeedsRevision && 'bg-amber-50/40 dark:bg-amber-950/20 border-l-4 border-l-amber-500',
                         )}
                       >
                         <TableCell className="font-bold text-xs pl-6 py-3.5">
                           <div className="flex items-center gap-2">
-                            {hasData ? (
+                            {currentStatus === 'Updated' ? (
                               <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                            ) : (
+                            ) : currentStatus === 'Needs Revision' ? (
                               <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                            ) : (
+                              <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
                             )}
                             <span className="text-slate-900 dark:text-slate-100">{unit.name}</span>
                           </div>
@@ -330,18 +383,32 @@ export function ProcedureManualManagement() {
                           )}
                         </TableCell>
                         <TableCell className="text-center">
-                          {hasData ? (
-                            <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white font-black text-[9px] uppercase">
-                              Configured
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="border-amber-400 text-amber-700 dark:text-amber-400 bg-amber-100/50 dark:bg-amber-950/40 font-black text-[9px] uppercase"
+                          <Select value={currentStatus} onValueChange={(val) => handleUpdateStatus(unit, val)}>
+                            <SelectTrigger
+                              className={cn(
+                                'h-7 text-[10px] font-black uppercase tracking-wider px-2 border w-[130px] mx-auto transition-all',
+                                currentStatus === 'Updated' &&
+                                  'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800',
+                                currentStatus === 'Needs Revision' &&
+                                  'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
+                                currentStatus === 'Not Submitted' &&
+                                  'bg-rose-50 text-rose-800 border-rose-300 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800',
+                              )}
                             >
-                              Needs Update
-                            </Badge>
-                          )}
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Updated" className="text-xs font-bold text-emerald-700">
+                                Updated
+                              </SelectItem>
+                              <SelectItem value="Needs Revision" className="text-xs font-bold text-amber-700">
+                                Needs Revision
+                              </SelectItem>
+                              <SelectItem value="Not Submitted" className="text-xs font-bold text-rose-700">
+                                Not Submitted
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell className="text-right pr-6 space-x-1.5 whitespace-nowrap">
                           <Button
@@ -498,7 +565,7 @@ export function ProcedureManualManagement() {
 
           <div className="space-y-4 py-2">
             {/* METADATA GRID */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Procedure No.</p>
                 <p className="font-mono font-bold text-slate-900 dark:text-slate-100">
@@ -525,6 +592,18 @@ export function ProcedureManualManagement() {
                   {viewingManual?.pageCount !== undefined && viewingManual?.pageCount !== 0
                     ? viewingManual.pageCount
                     : '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Status</p>
+                <p className="font-bold">
+                  {viewingManual?.status === 'Updated' ? (
+                    <span className="text-emerald-700 dark:text-emerald-400">Updated</span>
+                  ) : viewingManual?.status === 'Needs Revision' ? (
+                    <span className="text-amber-700 dark:text-amber-400">Needs Revision</span>
+                  ) : (
+                    <span className="text-rose-700 dark:text-rose-400">Not Submitted</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -703,7 +782,7 @@ export function ProcedureManualManagement() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
                   name="revisionDate"
@@ -719,6 +798,37 @@ export function ProcedureManualManagement() {
                           {...field}
                         />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[11px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        Status
+                      </FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="h-9 text-xs font-bold">
+                            <SelectValue placeholder="Select Status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Updated" className="text-xs font-bold text-emerald-700">
+                            Updated
+                          </SelectItem>
+                          <SelectItem value="Needs Revision" className="text-xs font-bold text-amber-700">
+                            Needs Revision
+                          </SelectItem>
+                          <SelectItem value="Not Submitted" className="text-xs font-bold text-rose-700">
+                            Not Submitted
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
