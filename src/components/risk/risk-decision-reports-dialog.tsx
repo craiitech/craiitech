@@ -370,16 +370,37 @@ export function RiskDecisionReportsDialog({
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                 background: #f8fafc;
                 padding: 0;
-                color: #0f172a;
-              }
               table {
                 border-collapse: collapse !important;
                 table-layout: fixed !important;
                 width: 100% !important;
+                border: 1.5px solid #000 !important;
+                margin-top: 8px !important;
+                margin-bottom: 16px !important;
               }
               td, th {
-                overflow: hidden;
-                word-wrap: break-word;
+                border: 1px solid #000 !important;
+                overflow: hidden !important;
+                word-wrap: break-word !important;
+                padding: 5px 6px !important;
+              }
+              th {
+                text-align: center !important;
+                vertical-align: middle !important;
+                background-color: #f1f5f9 !important;
+                font-weight: 900 !important;
+                text-transform: uppercase !important;
+                color: #000 !important;
+                -webkit-print-color-adjust: exact !important;
+              }
+              .header-center {
+                text-align: center !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                margin: 0 auto !important;
+                width: 100% !important;
               }
             </style>
           </head>

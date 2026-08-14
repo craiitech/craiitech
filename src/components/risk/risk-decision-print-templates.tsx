@@ -79,17 +79,21 @@ export function ExecutiveRiskBriefingTemplate({
       style={{ fontSize: '9pt' }}
     >
       {/* HEADER */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
-        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700">Quality Assurance Office & Risk Management Council</p>
-        <div className="mt-2 py-1 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider">
+      <div className="text-center flex flex-col items-center justify-center border-b-2 border-black pb-3 mb-4 w-full">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+          Republic of the Philippines
+        </p>
+        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700 text-center">
+          Quality Assurance Office & Risk Management Council
+        </p>
+        <div className="mt-2 py-1 px-4 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
           Executive Risk Profile & Decision-Support Briefing (FY {year})
         </div>
       </div>
 
       {/* METADATA BAR */}
-      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-slate-300">
+      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-black">
         <div>
           Scope:{' '}
           <span className="underline">
@@ -107,26 +111,26 @@ export function ExecutiveRiskBriefingTemplate({
 
       {/* KEY DECISION METRICS GRID */}
       <div className="grid grid-cols-4 gap-3 mb-4 text-center">
-        <div className="border border-slate-300 p-2 rounded bg-slate-50">
+        <div className="border border-black p-2 rounded bg-slate-50">
           <p className="text-[7pt] font-black uppercase text-slate-500">Total Portfolio</p>
           <p className="text-xl font-black text-slate-900">{risks.length}</p>
           <p className="text-[7pt] text-slate-600 font-bold">
             {totalRisks.length} Risks | {totalOpportunities.length} Opps
           </p>
         </div>
-        <div className="border border-rose-200 p-2 rounded bg-rose-50/50">
+        <div className="border border-rose-400 p-2 rounded bg-rose-50/50">
           <p className="text-[7pt] font-black uppercase text-rose-700">High / Critical Vulnerabilities</p>
           <p className="text-xl font-black text-rose-700">{criticalCount}</p>
           <p className="text-[7pt] text-rose-600 font-bold">
             {mediumCount} Medium | {lowCount} Low
           </p>
         </div>
-        <div className="border border-emerald-200 p-2 rounded bg-emerald-50/50">
+        <div className="border border-emerald-400 p-2 rounded bg-emerald-50/50">
           <p className="text-[7pt] font-black uppercase text-emerald-700">Risk Reduction Achieved</p>
           <p className="text-xl font-black text-emerald-700">{reductionPercentage}%</p>
           <p className="text-[7pt] text-emerald-600 font-bold">{treatedRisks.length} Verified Treatments</p>
         </div>
-        <div className="border border-indigo-200 p-2 rounded bg-indigo-50/50">
+        <div className="border border-indigo-400 p-2 rounded bg-indigo-50/50">
           <p className="text-[7pt] font-black uppercase text-indigo-700">Closure / Execution Velocity</p>
           <p className="text-xl font-black text-indigo-700">
             {closedCount} / {totalRisks.length}
@@ -139,40 +143,40 @@ export function ExecutiveRiskBriefingTemplate({
 
       {/* TOP CRITICAL RISKS TABLE */}
       <div className="mb-4">
-        <h3 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 flex items-center gap-1.5 border-b border-slate-300 pb-1">
+        <h3 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 text-center border-b border-black pb-1">
           Top Critical Vulnerabilities & Strategic Action Status
         </h3>
-        <table className="w-full border-collapse border border-slate-400 text-[8pt]">
+        <table className="w-full border-collapse border-2 border-black text-[8pt]">
           <thead>
-            <tr className="bg-slate-200 font-black text-slate-800 uppercase">
-              <th className="border border-slate-400 p-1.5 text-left w-[20%]">Objective</th>
-              <th className="border border-slate-400 p-1.5 text-left w-[28%]">Risk Description & Causes</th>
-              <th className="border border-slate-400 p-1.5 text-center w-[10%]">Pre-Rating</th>
-              <th className="border border-slate-400 p-1.5 text-left w-[24%]">Mitigation Strategy</th>
-              <th className="border border-slate-400 p-1.5 text-center w-[8%]">Post-Rating</th>
-              <th className="border border-slate-400 p-1.5 text-center w-[10%]">Status</th>
+            <tr className="bg-slate-200 font-black text-slate-900 uppercase">
+              <th className="border border-black p-1.5 text-center w-[20%]">Objective</th>
+              <th className="border border-black p-1.5 text-center w-[28%]">Risk Description & Causes</th>
+              <th className="border border-black p-1.5 text-center w-[10%]">Pre-Rating</th>
+              <th className="border border-black p-1.5 text-center w-[24%]">Mitigation Strategy</th>
+              <th className="border border-black p-1.5 text-center w-[8%]">Post-Rating</th>
+              <th className="border border-black p-1.5 text-center w-[10%]">Status</th>
             </tr>
           </thead>
           <tbody>
             {topVulnerabilities.map((r, i) => (
               <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                <td className="border border-slate-300 p-1.5 font-bold align-top">{r.objective}</td>
-                <td className="border border-slate-300 p-1.5 align-top">{r.description}</td>
+                <td className="border border-black p-1.5 font-bold align-top">{r.objective}</td>
+                <td className="border border-black p-1.5 align-top">{r.description}</td>
                 <td
-                  className="border border-slate-300 p-1.5 text-center align-top font-bold"
+                  className="border border-black p-1.5 text-center align-top font-bold"
                   style={{ color: getRatingColor(r.preTreatment?.rating) }}
                 >
                   {r.preTreatment?.rating || '—'} ({r.preTreatment?.magnitude || 0})
                 </td>
-                <td className="border border-slate-300 p-1.5 align-top">{r.treatmentAction || '—'}</td>
+                <td className="border border-black p-1.5 align-top">{r.treatmentAction || '—'}</td>
                 <td
-                  className="border border-slate-300 p-1.5 text-center align-top font-bold"
+                  className="border border-black p-1.5 text-center align-top font-bold"
                   style={{ color: getRatingColor(r.postTreatment?.rating || '') }}
                 >
                   {r.postTreatment?.rating || 'Pending'}{' '}
                   {r.postTreatment?.magnitude ? `(${r.postTreatment.magnitude})` : ''}
                 </td>
-                <td className="border border-slate-300 p-1.5 text-center align-top font-bold">
+                <td className="border border-black p-1.5 text-center align-top font-bold">
                   <span
                     className={`inline-block px-1.5 py-0.5 rounded text-[7pt] font-black ${
                       r.status === 'Closed'
@@ -251,16 +255,20 @@ export function RiskResourceAllocationTemplate({ risks, unitName, campusName, ye
       style={{ fontSize: '8.5pt' }}
     >
       {/* HEADER */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
-        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700">Financial Planning & Institutional Quality Assurance</p>
-        <div className="mt-2 py-1 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider">
+      <div className="text-center flex flex-col items-center justify-center border-b-2 border-black pb-3 mb-4 w-full">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+          Republic of the Philippines
+        </p>
+        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700 text-center">
+          Financial Planning & Institutional Quality Assurance
+        </p>
+        <div className="mt-2 py-1 px-4 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
           Risk Treatment Action Plan & Resource Allocation Blueprint (RAP) — FY {year}
         </div>
       </div>
 
-      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-3 border border-slate-300">
+      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-3 border border-black">
         <div>
           Department / Unit:{' '}
           <span className="underline">
@@ -276,42 +284,40 @@ export function RiskResourceAllocationTemplate({ risks, unitName, campusName, ye
         </div>
       </div>
 
-      <table className="w-full border-collapse border border-slate-400 text-[8pt] mb-6">
+      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
         <thead>
-          <tr className="bg-slate-200 font-black text-slate-800 uppercase">
-            <th className="border border-slate-400 p-1.5 text-center w-[5%]">#</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[18%]">Objective & Risk Context</th>
-            <th className="border border-slate-400 p-1.5 text-center w-[8%]">Severity</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[26%]">Treatment Action Required</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[23%]">
-              Resources Needed (Budget / Tech / Staff)
-            </th>
-            <th className="border border-slate-400 p-1.5 text-left w-[12%]">Responsible Lead</th>
-            <th className="border border-slate-400 p-1.5 text-center w-[8%]">Target Date</th>
+          <tr className="bg-slate-200 font-black text-slate-900 uppercase">
+            <th className="border border-black p-1.5 text-center w-[5%]">#</th>
+            <th className="border border-black p-1.5 text-center w-[18%]">Objective & Risk Context</th>
+            <th className="border border-black p-1.5 text-center w-[8%]">Severity</th>
+            <th className="border border-black p-1.5 text-center w-[26%]">Treatment Action Required</th>
+            <th className="border border-black p-1.5 text-center w-[23%]">Resources Needed (Budget / Tech / Staff)</th>
+            <th className="border border-black p-1.5 text-center w-[12%]">Responsible Lead</th>
+            <th className="border border-black p-1.5 text-center w-[8%]">Target Date</th>
           </tr>
         </thead>
         <tbody>
           {treatmentPlans.map((r, i) => (
             <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-              <td className="border border-slate-300 p-1.5 text-center font-bold">{i + 1}</td>
-              <td className="border border-slate-300 p-1.5 align-top">
+              <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
+              <td className="border border-black p-1.5 align-top">
                 <p className="font-bold text-slate-900">{r.objective}</p>
                 <p className="text-[7.5pt] text-slate-600 mt-0.5 line-clamp-2">{r.description}</p>
               </td>
               <td
-                className="border border-slate-300 p-1.5 text-center font-bold align-top"
+                className="border border-black p-1.5 text-center font-bold align-top"
                 style={{ color: getRatingColor(r.preTreatment?.rating) }}
               >
                 {r.preTreatment?.rating || '—'}
               </td>
-              <td className="border border-slate-300 p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
-              <td className="border border-slate-300 p-1.5 align-top font-bold text-slate-800 bg-amber-50/40">
+              <td className="border border-black p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
+              <td className="border border-black p-1.5 align-top font-bold text-slate-800 bg-amber-50/40">
                 {r.resourcesNeeded || 'Internal Staff Time / Existing Operational Budget'}
               </td>
-              <td className="border border-slate-300 p-1.5 align-top font-medium">
+              <td className="border border-black p-1.5 align-top font-medium">
                 {r.responsiblePersonName || 'Unit Focal Person'}
               </td>
-              <td className="border border-slate-300 p-1.5 text-center align-top font-mono font-bold">
+              <td className="border border-black p-1.5 text-center align-top font-mono font-bold">
                 {safeFormatDate(r.targetDate)}
               </td>
             </tr>
@@ -380,18 +386,20 @@ export function RiskAccountabilityTrackerTemplate({
       style={{ fontSize: '8.5pt' }}
     >
       {/* HEADER */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
-        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700">
+      <div className="text-center flex flex-col items-center justify-center border-b-2 border-black pb-3 mb-4 w-full">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+          Republic of the Philippines
+        </p>
+        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700 text-center">
           Monitoring & Evaluation Division • Quality Assurance Office
         </p>
-        <div className="mt-2 py-1 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider">
+        <div className="mt-2 py-1 px-4 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
           Risk Treatment Accountability & Overdue Milestone Tracker (FY {year})
         </div>
       </div>
 
-      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-slate-300">
+      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-black">
         <div>
           Unit Context:{' '}
           <span className="underline">
@@ -411,34 +419,34 @@ export function RiskAccountabilityTrackerTemplate({
       {/* OVERDUE RISKS SECTION */}
       {overdueRisks.length > 0 && (
         <div className="mb-5">
-          <div className="flex items-center gap-2 mb-1.5 text-rose-700 font-black uppercase text-[9pt] border-b-2 border-rose-300 pb-1">
+          <div className="flex items-center justify-center gap-2 mb-1.5 text-rose-700 font-black uppercase text-[9pt] border-b-2 border-rose-600 pb-1 text-center">
             <span>⚠️ Critical Attention: Overdue Action Plans ({overdueRisks.length})</span>
           </div>
-          <table className="w-full border-collapse border border-rose-300 text-[8pt]">
+          <table className="w-full border-collapse border-2 border-rose-600 text-[8pt]">
             <thead>
               <tr className="bg-rose-100 font-black text-rose-900 uppercase">
-                <th className="border border-rose-300 p-1.5 text-left w-[22%]">Objective & Risk</th>
-                <th className="border border-rose-300 p-1.5 text-left w-[30%]">Committed Mitigation</th>
-                <th className="border border-rose-300 p-1.5 text-left w-[18%]">Accountable Lead</th>
-                <th className="border border-rose-300 p-1.5 text-center w-[12%]">Target Due Date</th>
-                <th className="border border-rose-300 p-1.5 text-center w-[18%]">Reminders / Status</th>
+                <th className="border border-rose-600 p-1.5 text-center w-[22%]">Objective & Risk</th>
+                <th className="border border-rose-600 p-1.5 text-center w-[30%]">Committed Mitigation</th>
+                <th className="border border-rose-600 p-1.5 text-center w-[18%]">Accountable Lead</th>
+                <th className="border border-rose-600 p-1.5 text-center w-[12%]">Target Due Date</th>
+                <th className="border border-rose-600 p-1.5 text-center w-[18%]">Reminders / Status</th>
               </tr>
             </thead>
             <tbody>
               {overdueRisks.map((r, i) => (
                 <tr key={r.id || i} className="bg-rose-50/40">
-                  <td className="border border-rose-200 p-1.5 align-top">
+                  <td className="border border-rose-400 p-1.5 align-top">
                     <p className="font-bold text-slate-900">{r.objective}</p>
                     <p className="text-[7.5pt] text-slate-600">{r.description}</p>
                   </td>
-                  <td className="border border-rose-200 p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
-                  <td className="border border-rose-200 p-1.5 align-top font-bold text-slate-900">
+                  <td className="border border-rose-400 p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
+                  <td className="border border-rose-400 p-1.5 align-top font-bold text-slate-900">
                     {r.responsiblePersonName || 'Not Assigned'}
                   </td>
-                  <td className="border border-rose-200 p-1.5 text-center align-top font-mono font-black text-rose-700">
+                  <td className="border border-rose-400 p-1.5 text-center align-top font-mono font-black text-rose-700">
                     {safeFormatDate(r.targetDate)}
                   </td>
-                  <td className="border border-rose-200 p-1.5 text-center align-top font-bold">
+                  <td className="border border-rose-400 p-1.5 text-center align-top font-bold">
                     <span className="bg-rose-200 text-rose-800 px-2 py-0.5 rounded text-[7.5pt] font-black">
                       OVERDUE
                     </span>
@@ -455,33 +463,33 @@ export function RiskAccountabilityTrackerTemplate({
 
       {/* ACTIVE & COMPLETED TABLE */}
       <div>
-        <h4 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 border-b border-slate-300 pb-1">
+        <h4 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 border-b border-black pb-1 text-center">
           Active On-Schedule & Closed Treatment Plans ({inProgressRisks.length + completedRisks.length})
         </h4>
-        <table className="w-full border-collapse border border-slate-400 text-[8pt] mb-6">
+        <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
           <thead>
-            <tr className="bg-slate-200 font-black text-slate-800 uppercase">
-              <th className="border border-slate-400 p-1.5 text-left w-[24%]">Objective</th>
-              <th className="border border-slate-400 p-1.5 text-left w-[32%]">Mitigation Action</th>
-              <th className="border border-slate-400 p-1.5 text-left w-[18%]">Responsible Person</th>
-              <th className="border border-slate-400 p-1.5 text-center w-[12%]">Target / Closed Date</th>
-              <th className="border border-slate-400 p-1.5 text-center w-[14%]">Status</th>
+            <tr className="bg-slate-200 font-black text-slate-900 uppercase">
+              <th className="border border-black p-1.5 text-center w-[24%]">Objective</th>
+              <th className="border border-black p-1.5 text-center w-[32%]">Mitigation Action</th>
+              <th className="border border-black p-1.5 text-center w-[18%]">Responsible Person</th>
+              <th className="border border-black p-1.5 text-center w-[12%]">Target / Closed Date</th>
+              <th className="border border-black p-1.5 text-center w-[14%]">Status</th>
             </tr>
           </thead>
           <tbody>
             {[...inProgressRisks, ...completedRisks].map((r, i) => (
               <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                <td className="border border-slate-300 p-1.5 font-bold align-top">{r.objective}</td>
-                <td className="border border-slate-300 p-1.5 align-top">{r.treatmentAction || '—'}</td>
-                <td className="border border-slate-300 p-1.5 align-top font-medium">
+                <td className="border border-black p-1.5 font-bold align-top">{r.objective}</td>
+                <td className="border border-black p-1.5 align-top">{r.treatmentAction || '—'}</td>
+                <td className="border border-black p-1.5 align-top font-medium">
                   {r.responsiblePersonName || 'Unit Lead'}
                 </td>
-                <td className="border border-slate-300 p-1.5 text-center align-top font-mono">
+                <td className="border border-black p-1.5 text-center align-top font-mono">
                   {r.status === 'Closed'
                     ? safeFormatDate(r.postTreatment?.dateImplemented || r.updatedAt)
                     : safeFormatDate(r.targetDate)}
                 </td>
-                <td className="border border-slate-300 p-1.5 text-center align-top">
+                <td className="border border-black p-1.5 text-center align-top">
                   <span
                     className={`inline-block px-2 py-0.5 rounded text-[7.5pt] font-black ${
                       r.status === 'Closed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
@@ -539,18 +547,20 @@ export function RiskEffectivenessAuditTemplate({
       style={{ fontSize: '8.5pt' }}
     >
       {/* HEADER */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
-        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700">
+      <div className="text-center flex flex-col items-center justify-center border-b-2 border-black pb-3 mb-4 w-full">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+          Republic of the Philippines
+        </p>
+        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700 text-center">
           Internal Quality Audit Committee • ISO 21001:2018 Clause 6.1 Audit Dossier
         </p>
-        <div className="mt-2 py-1 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider">
+        <div className="mt-2 py-1 px-4 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
           Residual Risk & Treatment Effectiveness Verification Audit Dossier (FY {year})
         </div>
       </div>
 
-      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-3 border border-slate-300">
+      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-3 border border-black">
         <div>
           Auditee Unit:{' '}
           <span className="underline">
@@ -566,16 +576,16 @@ export function RiskEffectivenessAuditTemplate({
         </div>
       </div>
 
-      <table className="w-full border-collapse border border-slate-400 text-[8pt] mb-6">
+      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
         <thead>
-          <tr className="bg-slate-200 font-black text-slate-800 uppercase">
-            <th className="border border-slate-400 p-1.5 text-left w-[20%]">Objective & Risk</th>
-            <th className="border border-slate-400 p-1.5 text-center w-[7%]">Pre-Mag</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[23%]">Implemented Treatment Action</th>
-            <th className="border border-slate-400 p-1.5 text-center w-[7%]">Post-Mag</th>
-            <th className="border border-slate-400 p-1.5 text-center w-[8%]">Delta Drop</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[23%]">Documentary Evidence / Verification</th>
-            <th className="border border-slate-400 p-1.5 text-center w-[12%]">QA Verdict</th>
+          <tr className="bg-slate-200 font-black text-slate-900 uppercase">
+            <th className="border border-black p-1.5 text-center w-[20%]">Objective & Risk</th>
+            <th className="border border-black p-1.5 text-center w-[7%]">Pre-Mag</th>
+            <th className="border border-black p-1.5 text-center w-[23%]">Implemented Treatment Action</th>
+            <th className="border border-black p-1.5 text-center w-[7%]">Post-Mag</th>
+            <th className="border border-black p-1.5 text-center w-[8%]">Delta Drop</th>
+            <th className="border border-black p-1.5 text-center w-[23%]">Documentary Evidence / Verification</th>
+            <th className="border border-black p-1.5 text-center w-[12%]">QA Verdict</th>
           </tr>
         </thead>
         <tbody>
@@ -587,24 +597,24 @@ export function RiskEffectivenessAuditTemplate({
 
             return (
               <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                <td className="border border-slate-300 p-1.5 align-top">
+                <td className="border border-black p-1.5 align-top">
                   <p className="font-bold text-slate-900">{r.objective}</p>
                   <p className="text-[7.5pt] text-slate-600 line-clamp-2">{r.description}</p>
                 </td>
                 <td
-                  className="border border-slate-300 p-1.5 text-center align-top font-bold"
+                  className="border border-black p-1.5 text-center align-top font-bold"
                   style={{ color: getRatingColor(r.preTreatment?.rating) }}
                 >
                   {preMag} ({r.preTreatment?.rating?.charAt(0)})
                 </td>
-                <td className="border border-slate-300 p-1.5 align-top">{r.treatmentAction || '—'}</td>
+                <td className="border border-black p-1.5 align-top">{r.treatmentAction || '—'}</td>
                 <td
-                  className="border border-slate-300 p-1.5 text-center align-top font-bold"
+                  className="border border-black p-1.5 text-center align-top font-bold"
                   style={{ color: getRatingColor(r.postTreatment?.rating || '') }}
                 >
                   {postMag || '—'}
                 </td>
-                <td className="border border-slate-300 p-1.5 text-center align-top font-black">
+                <td className="border border-black p-1.5 text-center align-top font-black">
                   {drop > 0 ? (
                     <span className="text-emerald-700">▼ -{drop}</span>
                   ) : drop === 0 ? (
@@ -613,13 +623,13 @@ export function RiskEffectivenessAuditTemplate({
                     <span className="text-rose-700">▲ +{Math.abs(drop)}</span>
                   )}
                 </td>
-                <td className="border border-slate-300 p-1.5 align-top text-[7.5pt]">
+                <td className="border border-black p-1.5 align-top text-[7.5pt]">
                   <p className="font-medium text-slate-800">
                     {r.postTreatment?.evidence || r.verification?.evidence || 'Attached in QAO-00-027'}
                   </p>
                   {r.auditorRemarks && <p className="text-indigo-700 font-bold mt-0.5">Auditor: {r.auditorRemarks}</p>}
                 </td>
-                <td className="border border-slate-300 p-1.5 text-center align-top">
+                <td className="border border-black p-1.5 text-center align-top">
                   <span
                     className={`inline-block px-1.5 py-0.5 rounded text-[7pt] font-black ${
                       r.verification?.status === 'Correct' || r.verification?.status === 'Implemented' || isEffective
@@ -684,16 +694,20 @@ export function OpportunityInnovationTemplate({
       style={{ fontSize: '8.5pt' }}
     >
       {/* HEADER */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
-        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700">Office of Strategic Planning, Innovation & Linkages</p>
-        <div className="mt-2 py-1 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider">
+      <div className="text-center flex flex-col items-center justify-center border-b-2 border-black pb-3 mb-4 w-full">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+          Republic of the Philippines
+        </p>
+        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700 text-center">
+          Office of Strategic Planning, Innovation & Linkages
+        </p>
+        <div className="mt-2 py-1 px-4 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
           Opportunity Capitalization & Strategic Innovation Scorecard (FY {year})
         </div>
       </div>
 
-      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-slate-300">
+      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-black">
         <div>
           Unit:{' '}
           <span className="underline">
@@ -712,30 +726,28 @@ export function OpportunityInnovationTemplate({
         </div>
       </div>
 
-      <table className="w-full border-collapse border border-slate-400 text-[8pt] mb-6">
+      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
         <thead>
-          <tr className="bg-slate-200 font-black text-slate-800 uppercase">
-            <th className="border border-slate-400 p-1.5 text-center w-[5%]">#</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[22%]">Strategic Objective</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[28%]">Opportunity Description & Potential</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[25%]">
-              Capitalization Plan / Enhancement Action
-            </th>
-            <th className="border border-slate-400 p-1.5 text-center w-[10%]">Target Date</th>
-            <th className="border border-slate-400 p-1.5 text-center w-[10%]">Realization Status</th>
+          <tr className="bg-slate-200 font-black text-slate-900 uppercase">
+            <th className="border border-black p-1.5 text-center w-[5%]">#</th>
+            <th className="border border-black p-1.5 text-center w-[22%]">Strategic Objective</th>
+            <th className="border border-black p-1.5 text-center w-[28%]">Opportunity Description & Potential</th>
+            <th className="border border-black p-1.5 text-center w-[25%]">Capitalization Plan / Enhancement Action</th>
+            <th className="border border-black p-1.5 text-center w-[10%]">Target Date</th>
+            <th className="border border-black p-1.5 text-center w-[10%]">Realization Status</th>
           </tr>
         </thead>
         <tbody>
           {opportunities.map((o, i) => (
             <tr key={o.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-              <td className="border border-slate-300 p-1.5 text-center font-bold">{i + 1}</td>
-              <td className="border border-slate-300 p-1.5 font-bold align-top">{o.objective}</td>
-              <td className="border border-slate-300 p-1.5 align-top">{o.description}</td>
-              <td className="border border-slate-300 p-1.5 align-top font-medium">{o.treatmentAction || '—'}</td>
-              <td className="border border-slate-300 p-1.5 text-center align-top font-mono">
+              <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
+              <td className="border border-black p-1.5 font-bold align-top">{o.objective}</td>
+              <td className="border border-black p-1.5 align-top">{o.description}</td>
+              <td className="border border-black p-1.5 align-top font-medium">{o.treatmentAction || '—'}</td>
+              <td className="border border-black p-1.5 text-center align-top font-mono">
                 {safeFormatDate(o.targetDate)}
               </td>
-              <td className="border border-slate-300 p-1.5 text-center align-top font-bold">
+              <td className="border border-black p-1.5 text-center align-top font-bold">
                 <span
                   className={`inline-block px-2 py-0.5 rounded text-[7.5pt] font-black ${
                     o.status === 'Closed' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
@@ -748,7 +760,7 @@ export function OpportunityInnovationTemplate({
           ))}
           {opportunities.length === 0 && (
             <tr>
-              <td colSpan={6} className="text-center p-6 text-slate-500 font-bold">
+              <td colSpan={6} className="text-center p-6 text-slate-500 font-bold border border-black">
                 No opportunities logged for this fiscal year.
               </td>
             </tr>
@@ -815,19 +827,21 @@ export function RiskStatusReminderNoticeTemplate({
       style={{ fontSize: '8.5pt' }}
     >
       {/* INSTITUTIONAL MEMORANDUM HEADER */}
-      <div className="border-b-2 border-black pb-3 mb-4 text-center">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
-        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700">
+      <div className="border-b-2 border-black pb-3 mb-4 text-center flex flex-col items-center justify-center w-full">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+          Republic of the Philippines
+        </p>
+        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700 text-center">
           Quality Assurance Office • Institutional Risk Monitoring Team
         </p>
-        <div className="mt-2 py-1.5 bg-rose-900 text-white rounded font-black text-xs uppercase tracking-wider">
+        <div className="mt-2 py-1.5 px-4 bg-rose-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
           Official Memorandum: Risk Treatment Plan Status & Action Reminder Notice
         </div>
       </div>
 
       {/* MEMORANDUM DETAILS */}
-      <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-300 text-[8.5pt] mb-4">
+      <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-black text-[8.5pt] mb-4">
         <div className="space-y-1">
           <div>
             <span className="font-bold text-slate-600 uppercase">TO:</span>{' '}
@@ -854,22 +868,22 @@ export function RiskStatusReminderNoticeTemplate({
 
       {/* SUMMARY STATUS METRIC CARDS */}
       <div className="grid grid-cols-4 gap-3 mb-4 text-center">
-        <div className="border border-slate-300 p-2 rounded bg-slate-100/70">
+        <div className="border border-black p-2 rounded bg-slate-100/70">
           <p className="text-[7pt] font-black uppercase text-slate-500">Total Unit Risks</p>
           <p className="text-xl font-black text-slate-900">{activeRisks.length}</p>
           <p className="text-[7pt] text-slate-600 font-bold">{pendingCount} Action Required</p>
         </div>
-        <div className="border border-rose-300 p-2 rounded bg-rose-50">
+        <div className="border border-rose-500 p-2 rounded bg-rose-50">
           <p className="text-[7pt] font-black uppercase text-rose-700">Overdue Treatments</p>
           <p className="text-xl font-black text-rose-700">{overdueRisks.length}</p>
           <p className="text-[7pt] text-rose-600 font-bold">Past Committed Deadline</p>
         </div>
-        <div className="border border-amber-300 p-2 rounded bg-amber-50">
+        <div className="border border-amber-500 p-2 rounded bg-amber-50">
           <p className="text-[7pt] font-black uppercase text-amber-700">In Progress / Pending</p>
           <p className="text-xl font-black text-amber-700">{inProgressRisks.length + openPendingRisks.length}</p>
           <p className="text-[7pt] text-amber-600 font-bold">Active Implementation</p>
         </div>
-        <div className="border border-emerald-300 p-2 rounded bg-emerald-50">
+        <div className="border border-emerald-500 p-2 rounded bg-emerald-50">
           <p className="text-[7pt] font-black uppercase text-emerald-700">Closed / Completed</p>
           <p className="text-xl font-black text-emerald-700">{closedRisks.length}</p>
           <p className="text-[7pt] text-emerald-600 font-bold">Verified Controls</p>
@@ -877,7 +891,7 @@ export function RiskStatusReminderNoticeTemplate({
       </div>
 
       {/* DIRECTIVE STATEMENT */}
-      <div className="border-l-4 border-rose-600 bg-rose-50/50 p-2.5 rounded-r text-[8pt] mb-4 text-slate-800">
+      <div className="border-l-4 border-rose-600 bg-rose-50/50 p-2.5 rounded-r text-[8pt] mb-4 text-slate-800 border-y border-r border-slate-300">
         <p className="font-bold text-rose-900 mb-0.5">COMPLIANCE DIRECTIVE:</p>
         <p className="leading-snug">
           Pursuant to RSU QMS & ISO 21001:2018 requirements, all operational units are instructed to expedite pending
@@ -887,19 +901,19 @@ export function RiskStatusReminderNoticeTemplate({
       </div>
 
       {/* DETAILED ACTION ITEMS TABLE */}
-      <h3 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 border-b border-slate-300 pb-1">
+      <h3 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 border-b border-black pb-1 text-center">
         Unit Risk Treatment Action Inventory & Current Status
       </h3>
-      <table className="w-full border-collapse border border-slate-400 text-[8pt] mb-6">
+      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
         <thead>
-          <tr className="bg-slate-200 font-black text-slate-800 uppercase">
-            <th className="border border-slate-400 p-1.5 text-center w-[4%]">#</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[20%]">Objective & Risk Context</th>
-            <th className="border border-slate-400 p-1.5 text-center w-[8%]">Severity</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[28%]">Committed Mitigation Strategy</th>
-            <th className="border border-slate-400 p-1.5 text-left w-[16%]">Accountable Lead</th>
-            <th className="border border-slate-400 p-1.5 text-center w-[10%]">Target Date</th>
-            <th className="border border-slate-400 p-1.5 text-center w-[14%]">Current Status</th>
+          <tr className="bg-slate-200 font-black text-slate-900 uppercase">
+            <th className="border border-black p-1.5 text-center w-[4%]">#</th>
+            <th className="border border-black p-1.5 text-center w-[20%]">Objective & Risk Context</th>
+            <th className="border border-black p-1.5 text-center w-[8%]">Severity</th>
+            <th className="border border-black p-1.5 text-center w-[28%]">Committed Mitigation Strategy</th>
+            <th className="border border-black p-1.5 text-center w-[16%]">Accountable Lead</th>
+            <th className="border border-black p-1.5 text-center w-[10%]">Target Date</th>
+            <th className="border border-black p-1.5 text-center w-[14%]">Current Status</th>
           </tr>
         </thead>
         <tbody>
@@ -920,25 +934,25 @@ export function RiskStatusReminderNoticeTemplate({
                         : 'bg-slate-50'
                 }
               >
-                <td className="border border-slate-300 p-1.5 text-center font-bold">{i + 1}</td>
-                <td className="border border-slate-300 p-1.5 align-top">
+                <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
+                <td className="border border-black p-1.5 align-top">
                   <p className="font-bold text-slate-900">{r.objective}</p>
                   <p className="text-[7.5pt] text-slate-600 line-clamp-2">{r.description}</p>
                 </td>
                 <td
-                  className="border border-slate-300 p-1.5 text-center align-top font-bold"
+                  className="border border-black p-1.5 text-center align-top font-bold"
                   style={{ color: getRatingColor(r.preTreatment?.rating) }}
                 >
                   {r.preTreatment?.rating || '—'}
                 </td>
-                <td className="border border-slate-300 p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
-                <td className="border border-slate-300 p-1.5 align-top font-bold text-slate-900">
+                <td className="border border-black p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
+                <td className="border border-black p-1.5 align-top font-bold text-slate-900">
                   {r.responsiblePersonName || 'Unit Focal Person'}
                 </td>
-                <td className="border border-slate-300 p-1.5 text-center align-top font-mono font-bold">
+                <td className="border border-black p-1.5 text-center align-top font-mono font-bold">
                   {safeFormatDate(r.targetDate)}
                 </td>
-                <td className="border border-slate-300 p-1.5 text-center align-top font-bold">
+                <td className="border border-black p-1.5 text-center align-top font-bold">
                   {isOverdue ? (
                     <span className="inline-block px-2 py-0.5 rounded text-[7.5pt] font-black bg-rose-200 text-rose-900 border border-rose-300 shadow-2xs">
                       ⚠️ OVERDUE
