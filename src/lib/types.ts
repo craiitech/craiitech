@@ -919,6 +919,7 @@ export type CurriculumRecord = {
 
 export type EnrollmentRecord = {
   id: string;
+  academicYear?: number | string; // e.g. 2024 or "2024-2025"
   majorId: string; // 'General' or specific specialization ID
   firstSemester: YearLevelEnrollment;
   secondSemester: YearLevelEnrollment;
