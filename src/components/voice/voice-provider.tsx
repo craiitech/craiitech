@@ -3,6 +3,17 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, type ReactNode } from 'react';
 import { useUser } from '@/firebase';
 import { VoiceAnnouncements } from './voice-announcements';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog';
+import { VolumeX } from 'lucide-react';
 
 type VoiceContextValue = {
   speak: (text: string) => void;
@@ -22,6 +33,7 @@ const VoiceCtx = createContext<VoiceContextValue>({
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   const [enabled, setEnabledState] = useState(false);
+  const [isVoicePromptOpen, setIsVoicePromptOpen] = useState(false);
   const { user, userProfile, isUserLoading } = useUser();
   const welcomed = useRef(false);
   const enabledRef = useRef(false);
@@ -138,14 +150,55 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   userProfileRef.current = userProfile;
   isUserLoadingRef.current = isUserLoading;
 
-  // Speak welcome on first user interaction (satisfies browser autoplay policy).
-  // Set up once on mount and re-used across re-renders via refs.
+  // Prompt user on every login session regarding voice announcements
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isUserLoading || !user || !userProfile || userProfile.verified === false) return;
+
+    const alreadyAnswered = sessionStorage.getItem('rsu_eoms_voice_prompt_answered_session') === 'true';
+    if (!alreadyAnswered) {
+      setIsVoicePromptOpen(true);
+    }
+  }, [isUserLoading, user, userProfile]);
+
+  const handleTurnOffVoice = useCallback(() => {
+    setEnabled(false);
+    welcomed.current = true;
+    pendingAnnouncement.current = null;
+    if (typeof window !== 'undefined') {
+      window.speechSynthesis?.cancel();
+      sessionStorage.setItem('rsu_eoms_voice_prompt_answered_session', 'true');
+    }
+    setIsVoicePromptOpen(false);
+  }, [setEnabled]);
+
+  const handleKeepVoiceOn = useCallback(() => {
+    setEnabled(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('rsu_eoms_voice_prompt_answered_session', 'true');
+    }
+    setIsVoicePromptOpen(false);
+
+    if (!welcomed.current && userProfile && userProfile.verified !== false) {
+      welcomed.current = true;
+      const name =
+        [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') ||
+        userProfile.email?.split('@')[0] ||
+        'User';
+      setTimeout(() => {
+        playWelcome(name);
+      }, 500);
+    }
+  }, [setEnabled, playWelcome, userProfile]);
+
+  // Speak welcome on first user interaction (satisfies browser autoplay policy) if prompt already completed.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (sessionStorage.getItem('rsu_eoms_announcement_spoken_session') === 'true') return;
 
     const onInteraction = () => {
-      if (welcomed.current || !enabledRef.current) return;
+      const promptAnswered = sessionStorage.getItem('rsu_eoms_voice_prompt_answered_session') === 'true';
+      if (!promptAnswered || welcomed.current || !enabledRef.current) return;
       const profile = userProfileRef.current;
       if (!profile || isUserLoadingRef.current || profile.verified === false) return;
       welcomed.current = true;
@@ -163,11 +216,14 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Fallback: if profile loads and no click has happened yet, speak welcome once
+  // Fallback: if profile loads and prompt already completed, speak welcome once
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (sessionStorage.getItem('rsu_eoms_announcement_spoken_session') === 'true') return;
     if (welcomed.current) return;
+
+    const promptAnswered = sessionStorage.getItem('rsu_eoms_voice_prompt_answered_session') === 'true';
+    if (!promptAnswered) return;
 
     if (!isUserLoading && userProfile && userProfile.verified !== false && enabledRef.current) {
       welcomed.current = true;
@@ -182,15 +238,17 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
   }, [isUserLoading, userProfile, playWelcome]);
 
-  // Reset welcomed state and cancel speech on logout
+  // Reset welcomed state, prompt state and cancel speech on logout
   useEffect(() => {
     if (!isUserLoading && !user) {
       welcomed.current = false;
       pendingAnnouncement.current = null;
+      setIsVoicePromptOpen(false);
       if (typeof window !== 'undefined') {
         window.speechSynthesis?.cancel();
         try {
           sessionStorage.removeItem('rsu_eoms_announcement_spoken_session');
+          sessionStorage.removeItem('rsu_eoms_voice_prompt_answered_session');
         } catch {
           void 0;
         }
@@ -202,6 +260,48 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     <VoiceCtx.Provider value={{ speak, stop, enabled, setEnabled, queueAnnouncement }}>
       <VoiceAnnouncements />
       {children}
+
+      {/* ================================================================== */}
+      {/* LOGIN VOICE PREFERENCE PROMPT ALERT DIALOG                         */}
+      {/* ================================================================== */}
+      <AlertDialog open={isVoicePromptOpen} onOpenChange={setIsVoicePromptOpen}>
+        <AlertDialogContent className="max-w-md p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-200">
+          <AlertDialogHeader className="space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-amber-500/10 dark:bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                <VolumeX className="h-5 w-5" />
+              </div>
+              <div>
+                <AlertDialogTitle className="text-base font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
+                  Turn Off Voice Announcements?
+                </AlertDialogTitle>
+                <p className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  Audio Preference
+                </p>
+              </div>
+            </div>
+            <AlertDialogDescription className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed font-medium pt-1">
+              Would you like to turn off automatic voice announcements and speech audio for this session? You can also
+              toggle this at any time using the speaker button in the top navigation bar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
+            <AlertDialogCancel
+              onClick={handleKeepVoiceOn}
+              className="h-9 text-xs font-bold uppercase tracking-wider border-slate-200 dark:border-slate-700"
+            >
+              No, Keep Voice On
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleTurnOffVoice}
+              className="h-9 text-xs font-black uppercase tracking-wider bg-destructive hover:bg-destructive/90 text-white shadow-md border-none"
+            >
+              <VolumeX className="h-4 w-4 mr-1.5" />
+              Yes, Turn Off Voice
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </VoiceCtx.Provider>
   );
 }
