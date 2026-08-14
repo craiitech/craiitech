@@ -1298,7 +1298,7 @@ export type ProcedureRevisionRequest = {
   updatedAt: any;
 };
 
-// --- COMMUNICATIONS HUB TYPES ---
+// --- COMMUNICATIONS HUB TYPES (ISO 21001:2025 CLAUSE 7.4) ---
 
 export type CommunicationKind =
   | 'Memorandum Order'
@@ -1307,7 +1307,23 @@ export type CommunicationKind =
   | 'Communication Letter / Request'
   | 'Invitation'
   | 'Transmittal Document';
+
 export type CommunicationRecipientType = 'unit' | 'campus' | 'individual' | 'all';
+
+export type CommunicationScope = 'Internal' | 'External';
+
+export type CommunicationActionType =
+  'For Information' | 'For Action / Compliance' | 'For Decision / Approval' | 'For Feedback / Consultation';
+
+export type CommunicationUrgency = 'Routine' | 'Urgent' | 'Time-Critical';
+
+export type CommunicationTargetAudience =
+  | 'All Stakeholders'
+  | 'Learners & Students'
+  | 'Faculty & Academic Staff'
+  | 'Administrative Personnel'
+  | 'Campus / Unit Heads'
+  | 'External Regulators & Partners';
 
 export type Communication = {
   id: string;
@@ -1326,6 +1342,13 @@ export type Communication = {
   senderText: string;
   manualType?: 'incoming' | 'outgoing';
   senderName?: string;
+  // ISO 21001:2025 Clause 7.4 Metadata
+  communicationScope?: CommunicationScope;
+  actionType?: CommunicationActionType;
+  urgencyLevel?: CommunicationUrgency;
+  targetAudience?: CommunicationTargetAudience;
+  complianceDeadline?: string;
+  actionStatus?: 'Pending Action' | 'Under Action' | 'Complied / Closed' | 'For Information Only';
 };
 
 // --- UNIT ACTIVITY ATTENDANCE & DEVICE BINDING TYPES ---

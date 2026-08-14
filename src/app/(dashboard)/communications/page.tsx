@@ -3,20 +3,37 @@
 import { useState, useMemo, useEffect } from 'react';
 
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, query, orderBy, addDoc, doc, updateDoc, arrayUnion, Timestamp, getDocs, where, limit, deleteDoc } from '@/firebase/firestore-wrapper';
-import type { Campus, Unit, Communication, CommunicationKind, CommunicationSettings } from '@/lib/types';
+import {
+  collection,
+  query,
+  orderBy,
+  addDoc,
+  doc,
+  updateDoc,
+  arrayUnion,
+  Timestamp,
+  getDocs,
+  where,
+  limit,
+  deleteDoc,
+} from '@/firebase/firestore-wrapper';
+import type {
+  Campus,
+  Unit,
+  Communication,
+  CommunicationKind,
+  CommunicationSettings,
+  CommunicationScope,
+  CommunicationActionType,
+  CommunicationUrgency,
+  CommunicationTargetAudience,
+} from '@/lib/types';
+import { CommunicationAnalytics } from '@/components/communications/communication-analytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import {
   Dialog,
@@ -50,7 +67,10 @@ import {
   Loader2,
   BookOpen,
   ChevronDown,
-  Volume2
+  Volume2,
+  Activity,
+  BarChart3,
+  ShieldCheck,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -85,6 +105,7 @@ export default function CommunicationsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  const [viewMode, setViewMode] = useState<'logbook' | 'analytics'>('logbook');
 
   const [searchTermIncoming, setSearchTermIncoming] = useState('');
   const [searchTermOutgoing, setSearchTermOutgoing] = useState('');
@@ -108,6 +129,13 @@ export default function CommunicationsPage() {
   const [subject, setSubject] = useState('');
   const [driveLink, setDriveLink] = useState('');
 
+  // ISO 21001:2025 Clause 7.4 Form Metadata
+  const [communicationScope, setCommunicationScope] = useState<CommunicationScope>('Internal');
+  const [actionType, setActionType] = useState<CommunicationActionType>('For Information');
+  const [urgencyLevel, setUrgencyLevel] = useState<CommunicationUrgency>('Routine');
+  const [targetAudience, setTargetAudience] = useState<CommunicationTargetAudience>('Campus / Unit Heads');
+  const [complianceDeadline, setComplianceDeadline] = useState('');
+
   // Digital Send Specifics
   const [recipientType, setRecipientType] = useState<'unit' | 'campus' | 'campus-unit' | 'individual' | 'all'>('unit');
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
@@ -126,39 +154,33 @@ export default function CommunicationsPage() {
   const [isReceivingSubmitting, setIsReceivingSubmitting] = useState(false);
 
   // Fetch collections
-  const unitsQuery = useMemoFirebase(() => firestore ? collection(firestore, 'units') : null, [firestore]);
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
-  const unitMap = useMemo(() => new Map((units || []).map(u => [u.id, u.name])), [units]);
+  const unitMap = useMemo(() => new Map((units || []).map((u) => [u.id, u.name])), [units]);
 
-  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
-  const campusMap = useMemo(() => new Map((campuses || []).map(c => [c.id, c.name])), [campuses]);
+  const campusMap = useMemo(() => new Map((campuses || []).map((c) => [c.id, c.name])), [campuses]);
 
-  const usersQuery = useMemoFirebase(() => firestore ? collection(firestore, 'users') : null, [firestore]);
+  const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: users } = useCollection<any>(usersQuery);
 
   const commsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(
-      collection(firestore, 'communications'),
-      orderBy('createdAt', 'desc'),
-      limit(150)
-    );
+    return query(collection(firestore, 'communications'), orderBy('createdAt', 'desc'), limit(150));
   }, [firestore]);
   const { data: rawComms, isLoading: isLoadingComms } = useCollection<Communication>(commsQuery);
 
   // Role permissions
   // Coordinators and ODIMOs can both receive and log communications
   const roleLower = userRole?.toLowerCase() || '';
-  const isOdimo = isAdmin ||
-    roleLower.includes('odimo') ||
-    roleLower.includes('coordinator');
+  const isOdimo = isAdmin || roleLower.includes('odimo') || roleLower.includes('coordinator');
   const isCampusOdimo = roleLower === 'campus odimo';
   const isPresident = roleLower.includes('president') || isAdmin;
 
   const commSettingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'communicationSettings') : null),
-    [firestore]
+    [firestore],
   );
   const { data: commSettings } = useDoc<CommunicationSettings>(commSettingsRef);
 
@@ -173,16 +195,14 @@ export default function CommunicationsPage() {
    * - Campus ODIMO logs at the campus level (campusId)
    * - Everyone else logs at the unit level (unitId)
    */
-  const receivingKey: string = isCampusOdimo
-    ? (userProfile?.campusId || '')
-    : (userProfile?.unitId || '');
+  const receivingKey: string = isCampusOdimo ? userProfile?.campusId || '' : userProfile?.unitId || '';
 
   /**
    * receivingLabel: human-readable name for the receiving entity.
    */
   const receivingLabel: string = isCampusOdimo
-    ? (campusMap.get(userProfile?.campusId || '') || 'your campus')
-    : (unitMap.get(userProfile?.unitId || '') || 'your unit');
+    ? campusMap.get(userProfile?.campusId || '') || 'your campus'
+    : unitMap.get(userProfile?.unitId || '') || 'your unit';
 
   const canManageComm = (comm: Communication): boolean => {
     if (!userProfile) return false;
@@ -208,7 +228,7 @@ export default function CommunicationsPage() {
     const incoming: Communication[] = [];
     const outgoing: Communication[] = [];
 
-    rawComms.forEach(c => {
+    rawComms.forEach((c) => {
       // Determine Outgoing matching:
       // Campus ODIMO: their senderUnitId is campusId; others: senderUnitId is unitId
       const myId = isCampusOdimo ? userProfile.campusId : userProfile.unitId;
@@ -227,8 +247,9 @@ export default function CommunicationsPage() {
             isIncoming = true;
           } else if (c.recipientType === 'unit') {
             // Check if any of the recipient units belong to this campus
-            const campusUnitIds = units?.filter(u => u.campusIds?.includes(userProfile.campusId || '')).map(u => u.id) || [];
-            isIncoming = c.recipientIds?.some(id => campusUnitIds.includes(id)) || false;
+            const campusUnitIds =
+              units?.filter((u) => u.campusIds?.includes(userProfile.campusId || '')).map((u) => u.id) || [];
+            isIncoming = c.recipientIds?.some((id) => campusUnitIds.includes(id)) || false;
           } else if (c.recipientType === 'individual' && c.recipientIds?.includes(userProfile.id)) {
             isIncoming = true;
           }
@@ -262,35 +283,43 @@ export default function CommunicationsPage() {
   }, [rawComms, userProfile, isOdimo, isCampusOdimo, receivingKey, units]);
 
   const filterComms = (list: Communication[], search: string, kind: string) => {
-    return list.filter(c => {
-      const matchesSearch = c.subject?.toLowerCase().includes(search.toLowerCase()) ||
-                            c.senderRefNum?.toLowerCase().includes(search.toLowerCase()) ||
-                            c.recipientRefNums?.[receivingKey]?.toLowerCase().includes(search.toLowerCase());
+    return list.filter((c) => {
+      const matchesSearch =
+        c.subject?.toLowerCase().includes(search.toLowerCase()) ||
+        c.senderRefNum?.toLowerCase().includes(search.toLowerCase()) ||
+        c.recipientRefNums?.[receivingKey]?.toLowerCase().includes(search.toLowerCase());
       const matchesKind = kind === 'all' || c.kind === kind;
       return matchesSearch && matchesKind;
     });
   };
 
-  const incomingFiltered = useMemo(() => filterComms(processedComms.incoming, searchTermIncoming, kindFilterIncoming), [processedComms.incoming, searchTermIncoming, kindFilterIncoming, receivingKey]);
-  const outgoingFiltered = useMemo(() => filterComms(processedComms.outgoing, searchTermOutgoing, kindFilterOutgoing), [processedComms.outgoing, searchTermOutgoing, kindFilterOutgoing, receivingKey]);
+  const incomingFiltered = useMemo(
+    () => filterComms(processedComms.incoming, searchTermIncoming, kindFilterIncoming),
+    [processedComms.incoming, searchTermIncoming, kindFilterIncoming, receivingKey],
+  );
+  const outgoingFiltered = useMemo(
+    () => filterComms(processedComms.outgoing, searchTermOutgoing, kindFilterOutgoing),
+    [processedComms.outgoing, searchTermOutgoing, kindFilterOutgoing, receivingKey],
+  );
 
   const unreadCount = useMemo(() => {
     if (!userProfile) return 0;
-    return processedComms.incoming.filter(c => {
-      const hasRead = c.readBy?.includes(userProfile.id) || (userProfile.unitId && c.readBy?.includes(userProfile.unitId));
+    return processedComms.incoming.filter((c) => {
+      const hasRead =
+        c.readBy?.includes(userProfile.id) || (userProfile.unitId && c.readBy?.includes(userProfile.unitId));
       return !hasRead && c.senderUnitId !== userProfile.unitId;
     }).length;
   }, [processedComms.incoming, userProfile]);
 
   const handleAddRecipient = () => {
     if (currentRecipientSelection && !selectedRecipients.includes(currentRecipientSelection)) {
-      setSelectedRecipients(prev => [...prev, currentRecipientSelection]);
+      setSelectedRecipients((prev) => [...prev, currentRecipientSelection]);
       setCurrentRecipientSelection('');
     }
   };
 
   const handleRemoveRecipient = (id: string) => {
-    setSelectedRecipients(prev => prev.filter(r => r !== id));
+    setSelectedRecipients((prev) => prev.filter((r) => r !== id));
   };
 
   const resetForm = () => {
@@ -305,6 +334,11 @@ export default function CommunicationsPage() {
     setCustomDate(format(new Date(), 'yyyy-MM-dd'));
     setEditingCommId(null);
     setSenderNameText('');
+    setCommunicationScope('Internal');
+    setActionType('For Information');
+    setUrgencyLevel('Routine');
+    setTargetAudience('Campus / Unit Heads');
+    setComplianceDeadline('');
   };
 
   // Google Drive preview URL parser
@@ -322,11 +356,12 @@ export default function CommunicationsPage() {
     setDetailContext(context);
     // Mark as read in Firestore if not read yet
     if (firestore && userProfile && comm.id) {
-      const hasRead = comm.readBy?.includes(userProfile.id) || (userProfile.unitId && comm.readBy?.includes(userProfile.unitId));
+      const hasRead =
+        comm.readBy?.includes(userProfile.id) || (userProfile.unitId && comm.readBy?.includes(userProfile.unitId));
       if (!hasRead) {
         try {
           await updateDoc(doc(firestore, 'communications', comm.id), {
-            readBy: userProfile.unitId ? arrayUnion(userProfile.id, userProfile.unitId) : arrayUnion(userProfile.id)
+            readBy: userProfile.unitId ? arrayUnion(userProfile.id, userProfile.unitId) : arrayUnion(userProfile.id),
           });
         } catch (e) {
           console.error('Error marking as read:', e);
@@ -338,13 +373,11 @@ export default function CommunicationsPage() {
   const getAutoReferenceNumber = (mode: 'digital' | 'manual', mType: 'incoming' | 'outgoing'): string => {
     if (!userProfile) return '';
     const currentYear = new Date().getFullYear();
-    const isIncoming = (mode === 'manual' && mType === 'incoming');
+    const isIncoming = mode === 'manual' && mType === 'incoming';
 
     if (isIncoming) {
       // Use receivingKey (campusId for Campus ODIMO, unitId for others)
-      const lastIncomingWithRef = processedComms.incoming.find(
-        (c) => c.recipientRefNums?.[receivingKey]
-      );
+      const lastIncomingWithRef = processedComms.incoming.find((c) => c.recipientRefNums?.[receivingKey]);
       if (lastIncomingWithRef?.recipientRefNums) {
         const lastRef = lastIncomingWithRef.recipientRefNums[receivingKey];
         if (lastRef) return incrementReferenceNumber(lastRef);
@@ -366,9 +399,7 @@ export default function CommunicationsPage() {
     if (!userProfile) return '';
     const currentYear = new Date().getFullYear();
     // Use receivingKey (campusId for Campus ODIMO, unitId for others)
-    const lastIncomingWithRef = processedComms.incoming.find(
-      (c) => c.recipientRefNums?.[receivingKey]
-    );
+    const lastIncomingWithRef = processedComms.incoming.find((c) => c.recipientRefNums?.[receivingKey]);
     if (lastIncomingWithRef?.recipientRefNums) {
       const lastRef = lastIncomingWithRef.recipientRefNums[receivingKey];
       if (lastRef) return incrementReferenceNumber(lastRef);
@@ -387,7 +418,11 @@ export default function CommunicationsPage() {
     e.preventDefault();
     if (!firestore || !userProfile || !commToReceive?.id) return;
     if (!receivingRefNum.trim()) {
-      toast({ title: 'Validation Error', description: 'Receiving reference number is required.', variant: 'destructive' });
+      toast({
+        title: 'Validation Error',
+        description: 'Receiving reference number is required.',
+        variant: 'destructive',
+      });
       return;
     }
 
@@ -399,7 +434,7 @@ export default function CommunicationsPage() {
         description: isCampusOdimo
           ? 'Your account does not have a campus assigned. Please complete your profile or contact an administrator.'
           : 'Your account does not have a unit assigned. Please complete your profile or contact an administrator.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -411,7 +446,7 @@ export default function CommunicationsPage() {
 
       await updateDoc(docRef, {
         [`recipientRefNums.${stampKey}`]: receivingRefNum.trim(),
-        readBy: arrayUnion(...readByEntries)
+        readBy: arrayUnion(...readByEntries),
       });
 
       toast({
@@ -422,7 +457,11 @@ export default function CommunicationsPage() {
       setCommToReceive(null);
     } catch (err: any) {
       console.error('Error receiving communication:', err);
-      toast({ title: 'Database Error', description: err.message || 'Failed to receive communication.', variant: 'destructive' });
+      toast({
+        title: 'Database Error',
+        description: err.message || 'Failed to receive communication.',
+        variant: 'destructive',
+      });
     } finally {
       setIsReceivingSubmitting(false);
     }
@@ -481,7 +520,11 @@ export default function CommunicationsPage() {
             return;
           }
           if (!manualOriginRefNum.trim()) {
-            toast({ title: 'Validation Error', description: "Origin's Reference Number is required for manual incoming.", variant: 'destructive' });
+            toast({
+              title: 'Validation Error',
+              description: "Origin's Reference Number is required for manual incoming.",
+              variant: 'destructive',
+            });
             setIsSubmitting(false);
             return;
           }
@@ -491,7 +534,11 @@ export default function CommunicationsPage() {
           computedSenderRef = manualOriginRefNum;
         } else {
           if (!manualRecipientText.trim()) {
-            toast({ title: 'Validation Error', description: 'Recipient details are required.', variant: 'destructive' });
+            toast({
+              title: 'Validation Error',
+              description: 'Recipient details are required.',
+              variant: 'destructive',
+            });
             setIsSubmitting(false);
             return;
           }
@@ -513,6 +560,12 @@ export default function CommunicationsPage() {
         manual: commsMode === 'manual',
         readBy: receivingKey ? [userProfile.id, receivingKey] : [userProfile.id],
         senderName: senderNameText.trim() || null,
+        communicationScope,
+        actionType,
+        urgencyLevel,
+        targetAudience,
+        complianceDeadline: complianceDeadline || null,
+        actionStatus: actionType === 'For Action / Compliance' ? 'Pending Action' : 'For Information Only',
       };
 
       if (commsMode === 'digital') {
@@ -523,7 +576,8 @@ export default function CommunicationsPage() {
 
         // Handle "campus-unit" pseudo-type: send to all units within the Campus ODIMO's campus
         if (recipientType === 'campus-unit') {
-          const campusUnitIds = units?.filter(u => u.campusIds?.includes(userProfile.campusId || '')).map(u => u.id) || [];
+          const campusUnitIds =
+            units?.filter((u) => u.campusIds?.includes(userProfile.campusId || '')).map((u) => u.id) || [];
           const campusName = campusMap.get(userProfile.campusId || '') || 'Campus';
           payload.recipientType = 'unit';
           payload.recipientIds = campusUnitIds;
@@ -536,27 +590,29 @@ export default function CommunicationsPage() {
           if (recipientType === 'all') {
             toText = 'University-Wide (All)';
           } else if (recipientType === 'unit') {
-            toText = selectedRecipients.map(id => unitMap.get(id) || id).join(', ');
+            toText = selectedRecipients.map((id) => unitMap.get(id) || id).join(', ');
           } else if (recipientType === 'campus') {
-            toText = selectedRecipients.map(id => campusMap.get(id) || id).join(', ');
+            toText = selectedRecipients.map((id) => campusMap.get(id) || id).join(', ');
           } else if (recipientType === 'individual') {
-            toText = selectedRecipients.map(id => {
-              const u = users?.find((x: any) => x.id === id);
-              return u ? `${u.firstName} ${u.lastName}` : id;
-            }).join(', ');
+            toText = selectedRecipients
+              .map((id) => {
+                const u = users?.find((x: any) => x.id === id);
+                return u ? `${u.firstName} ${u.lastName}` : id;
+              })
+              .join(', ');
           }
           payload.toText = toText;
         }
         const resolvedSenderName = isCampusOdimo
-          ? (campusMap.get(userProfile.campusId || '') || userProfile.campusId || '')
-          : (units?.find(u => u.id === userProfile.unitId)?.name || userProfile.unitId || '');
+          ? campusMap.get(userProfile.campusId || '') || userProfile.campusId || ''
+          : units?.find((u) => u.id === userProfile.unitId)?.name || userProfile.unitId || '';
         payload.senderText = resolvedSenderName;
       } else {
         // Manual entry
         payload.manualType = manualType;
         const resolvedSenderName = isCampusOdimo
-          ? (campusMap.get(userProfile.campusId || '') || userProfile.campusId || '')
-          : (units?.find(u => u.id === userProfile.unitId)?.name || userProfile.unitId || '');
+          ? campusMap.get(userProfile.campusId || '') || userProfile.campusId || ''
+          : units?.find((u) => u.id === userProfile.unitId)?.name || userProfile.unitId || '';
         if (manualType === 'incoming') {
           payload.senderText = manualSenderText;
           payload.toText = resolvedSenderName;
@@ -589,7 +645,11 @@ export default function CommunicationsPage() {
       resetForm();
     } catch (e: any) {
       console.error(e);
-      toast({ title: 'Database Error', description: e.message || 'Failed to log communication.', variant: 'destructive' });
+      toast({
+        title: 'Database Error',
+        description: e.message || 'Failed to log communication.',
+        variant: 'destructive',
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -597,17 +657,23 @@ export default function CommunicationsPage() {
 
   const getUnitHeadName = (unitIdOrText: string): string => {
     if (!unitIdOrText || !users) return '';
-    const isUnitId = units?.some(u => u.id === unitIdOrText);
-    const targetUnitId = isUnitId ? unitIdOrText : (users.find((u: any) => u.unitId === unitIdOrText)?.unitId || '');
+    const isUnitId = units?.some((u) => u.id === unitIdOrText);
+    const targetUnitId = isUnitId ? unitIdOrText : users.find((u: any) => u.unitId === unitIdOrText)?.unitId || '';
     if (!targetUnitId) return '';
 
     const coord = users.find((u: any) => u.unitId === targetUnitId && u.role === 'Unit Coordinator');
     if (coord) return `${coord.firstName} ${coord.lastName}`;
 
-    const coordLike = users.find((u: any) => u.unitId === targetUnitId && u.role?.toLowerCase().includes('coordinator'));
+    const coordLike = users.find(
+      (u: any) => u.unitId === targetUnitId && u.role?.toLowerCase().includes('coordinator'),
+    );
     if (coordLike) return `${coordLike.firstName} ${coordLike.lastName}`;
 
-    const directorLike = users.find((u: any) => u.unitId === targetUnitId && (u.role?.toLowerCase().includes('director') || u.role?.toLowerCase().includes('head')));
+    const directorLike = users.find(
+      (u: any) =>
+        u.unitId === targetUnitId &&
+        (u.role?.toLowerCase().includes('director') || u.role?.toLowerCase().includes('head')),
+    );
     if (directorLike) return `${directorLike.firstName} ${directorLike.lastName}`;
 
     const odimo = users.find((u: any) => u.unitId === targetUnitId && u.role === 'Unit ODIMO');
@@ -624,7 +690,7 @@ export default function CommunicationsPage() {
     if (unitMap.has(unitIdOrText)) {
       return unitMap.get(unitIdOrText) || unitIdOrText;
     }
-    const matchingUnit = units?.find(u => u.id === unitIdOrText);
+    const matchingUnit = units?.find((u) => u.id === unitIdOrText);
     if (matchingUnit) return matchingUnit.name;
     return unitIdOrText;
   };
@@ -633,13 +699,13 @@ export default function CommunicationsPage() {
     if (comms.length === 0) {
       return format(new Date(), 'MMMM yyyy');
     }
-    const dates = comms.map(c => {
+    const dates = comms.map((c) => {
       if (c.createdAt?.toDate) return c.createdAt.toDate();
       if (c.createdAt?.seconds) return new Date(c.createdAt.seconds * 1000);
       return new Date(c.createdAt || Date.now());
     });
-    const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
-    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+    const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
+    const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())));
     const minStr = format(minDate, 'MMMM yyyy');
     const maxStr = format(maxDate, 'MMMM yyyy');
     return minStr === maxStr ? minStr : `${minStr} - ${maxStr}`;
@@ -647,11 +713,11 @@ export default function CommunicationsPage() {
 
   const getRefNosRange = (comms: Communication[], isIncoming: boolean) => {
     if (comms.length === 0) return 'N/A';
-    const refs = comms.map(c => {
-      return isIncoming
-        ? (c.recipientRefNums?.[receivingKey] || '')
-        : (c.senderRefNum || '');
-    }).filter(Boolean);
+    const refs = comms
+      .map((c) => {
+        return isIncoming ? c.recipientRefNums?.[receivingKey] || '' : c.senderRefNum || '';
+      })
+      .filter(Boolean);
     if (refs.length === 0) return 'N/A';
     if (refs.length === 1) return refs[0];
     return `${refs[0]} - ${refs[refs.length - 1]}`;
@@ -663,23 +729,26 @@ export default function CommunicationsPage() {
     const list = processedComms[type];
     const search = type === 'incoming' ? searchTermIncoming : searchTermOutgoing;
     const kind = type === 'incoming' ? kindFilterIncoming : kindFilterOutgoing;
-    const printList = [...list].filter(c => {
-      const matchesSearch = c.subject?.toLowerCase().includes(search.toLowerCase()) ||
-                            c.senderRefNum?.toLowerCase().includes(search.toLowerCase()) ||
-                            c.recipientRefNums?.[receivingKey]?.toLowerCase().includes(search.toLowerCase());
-      const matchesKind = kind === 'all' || c.kind === kind;
-      return matchesSearch && matchesKind;
-    }).sort((a, b) => {
-      const tA = a.createdAt?.seconds || 0;
-      const tB = b.createdAt?.seconds || 0;
-      return tA - tB;
-    });
+    const printList = [...list]
+      .filter((c) => {
+        const matchesSearch =
+          c.subject?.toLowerCase().includes(search.toLowerCase()) ||
+          c.senderRefNum?.toLowerCase().includes(search.toLowerCase()) ||
+          c.recipientRefNums?.[receivingKey]?.toLowerCase().includes(search.toLowerCase());
+        const matchesKind = kind === 'all' || c.kind === kind;
+        return matchesSearch && matchesKind;
+      })
+      .sort((a, b) => {
+        const tA = a.createdAt?.seconds || 0;
+        const tB = b.createdAt?.seconds || 0;
+        return tA - tB;
+      });
 
     if (printList.length === 0) {
       toast({
         title: 'No Records Found',
         description: `There are no ${type} communications to print under your current filters.`,
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -692,7 +761,7 @@ export default function CommunicationsPage() {
       toast({
         title: 'Pop-up Blocked',
         description: 'Please allow pop-ups to print the logbook.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
       return;
     }
@@ -703,11 +772,9 @@ export default function CommunicationsPage() {
     printList.forEach((comm) => {
       const dateOfReceipt = comm.createdAt?.toDate ? format(comm.createdAt.toDate(), 'MM/dd/yyyy') : 'N/A';
       const originRefNo = comm.senderRefNum || 'N/A';
-      const receiverRefNo = isIncoming
-        ? (comm.recipientRefNums?.[receivingKey] || 'Pending Receipt')
-        : 'N/A';
+      const receiverRefNo = isIncoming ? comm.recipientRefNums?.[receivingKey] || 'Pending Receipt' : 'N/A';
       const nameOfAddressee = comm.toText || 'N/A';
-      
+
       let nameOfSender = comm.senderName || 'N/A';
       let agencyOrCompany = 'N/A';
       const officeOrUnit = !isIncoming
@@ -779,13 +846,17 @@ export default function CommunicationsPage() {
                     ${isIncoming ? `Receiver's Ref No: <span style="font-weight: bold; text-decoration: underline; padding-left: 5px; font-family: monospace;">${receiverRefNo}</span>` : `Reference No: <span style="font-weight: bold; text-decoration: underline; padding-left: 5px; font-family: monospace;">${originRefNo}</span>`}
                   </td>
                 </tr>
-                ${isIncoming ? `
+                ${
+                  isIncoming
+                    ? `
                 <tr style="border-bottom: 1px solid black;">
                   <td colspan="2" style="padding: 8px 0; font-weight: bold;">
                     Origin's Ref No: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px; font-family: monospace;">${originRefNo}</span>
                   </td>
                 </tr>
-                ` : ''}
+                `
+                    : ''
+                }
 
                 <!-- Row 2: Name of Addressee -->
                 <tr style="border-bottom: 1px solid black;">
@@ -795,7 +866,9 @@ export default function CommunicationsPage() {
                 </tr>
 
                 <!-- Row 3 & 4: Sender / Office/Unit -->
-                ${isIncoming ? `
+                ${
+                  isIncoming
+                    ? `
                 <tr style="border-bottom: 1px solid black;">
                   <td colspan="2" style="padding: 8px 0; font-weight: bold;">
                     Name of Sender: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${resolvedSenderNameDisplay}</span>
@@ -806,7 +879,8 @@ export default function CommunicationsPage() {
                     Agency/Company: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${agencyOrCompany}</span>
                   </td>
                 </tr>
-                ` : `
+                `
+                    : `
                 <tr style="border-bottom: 1px solid black;">
                   <td colspan="2" style="padding: 8px 0; font-weight: bold;">
                     Office / Unit: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${officeOrUnit}</span>
@@ -817,7 +891,8 @@ export default function CommunicationsPage() {
                     Name of Sender: <span style="font-weight: normal; text-decoration: underline; padding-left: 5px;">${resolvedSenderNameDisplay}</span>
                   </td>
                 </tr>
-                `}
+                `
+                }
 
                 <!-- Row 5: Address -->
                 <tr style="border-bottom: 1px solid black;">
@@ -841,7 +916,9 @@ export default function CommunicationsPage() {
                 </tr>
 
                 <!-- Row 7: Remarks (Outgoing only) -->
-                ${!isIncoming ? `
+                ${
+                  !isIncoming
+                    ? `
                 <tr>
                   <td colspan="2" style="padding: 12px 0 4px 0; font-weight: bold;">
                     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px; font-size: 11px;">
@@ -865,7 +942,9 @@ export default function CommunicationsPage() {
                     </div>
                   </td>
                 </tr>
-                ` : ''}
+                `
+                    : ''
+                }
               </tbody>
             </table>
           </div>
@@ -957,15 +1036,21 @@ export default function CommunicationsPage() {
     setSubject(comm.subject || '');
     setDriveLink(comm.driveLink || '');
     setKind(comm.kind);
-    
-    const formattedDate = comm.createdAt?.toDate 
-      ? format(comm.createdAt.toDate(), 'yyyy-MM-dd') 
-      : (comm.createdAt?.seconds 
-          ? format(new Date(comm.createdAt.seconds * 1000), 'yyyy-MM-dd') 
-          : format(new Date(), 'yyyy-MM-dd'));
+
+    const formattedDate = comm.createdAt?.toDate
+      ? format(comm.createdAt.toDate(), 'yyyy-MM-dd')
+      : comm.createdAt?.seconds
+        ? format(new Date(comm.createdAt.seconds * 1000), 'yyyy-MM-dd')
+        : format(new Date(), 'yyyy-MM-dd');
     setCustomDate(formattedDate);
 
     setSenderNameText(comm.senderName || '');
+    setCommunicationScope(comm.communicationScope || 'Internal');
+    setActionType(comm.actionType || 'For Information');
+    setUrgencyLevel(comm.urgencyLevel || 'Routine');
+    setTargetAudience(comm.targetAudience || 'Campus / Unit Heads');
+    setComplianceDeadline(comm.complianceDeadline || '');
+
     if (comm.manual) {
       setCommsMode('manual');
       setManualType(comm.manualType || 'incoming');
@@ -984,7 +1069,7 @@ export default function CommunicationsPage() {
       setRecipientType(comm.recipientType || 'unit');
       setSelectedRecipients(comm.recipientIds || []);
     }
-    
+
     setIsLogFormOpen(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -995,7 +1080,7 @@ export default function CommunicationsPage() {
       await deleteDoc(doc(firestore, 'communications', commId));
       toast({
         title: 'Record Deleted',
-        description: 'The communication record has been successfully deleted.'
+        description: 'The communication record has been successfully deleted.',
       });
       setDeleteConfirmCommId(null);
       if (selectedComm?.id === commId) {
@@ -1006,7 +1091,7 @@ export default function CommunicationsPage() {
       toast({
         title: 'Error Deleting Record',
         description: e.message || 'Failed to delete communication.',
-        variant: 'destructive'
+        variant: 'destructive',
       });
     }
   };
@@ -1028,7 +1113,9 @@ export default function CommunicationsPage() {
           <Mail className="h-8 w-8 text-slate-300 stroke-[1.5]" />
           <div>
             <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">No logs recorded</h4>
-            <p className="text-[9px] text-slate-400 font-medium mt-1">There are no records matching your current filter settings.</p>
+            <p className="text-[9px] text-slate-400 font-medium mt-1">
+              There are no records matching your current filter settings.
+            </p>
           </div>
         </div>
       );
@@ -1039,21 +1126,39 @@ export default function CommunicationsPage() {
           <Table>
             <TableHeader className="bg-slate-50/70 dark:bg-slate-800/70 border-b">
               <TableRow>
-                <TableHead className="pl-6 py-3 text-[9px] font-black uppercase text-slate-500 tracking-wider">Reference No.</TableHead>
-                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Date Logged</TableHead>
-                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Category</TableHead>
-                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">{tab === 'incoming' ? 'From' : 'To'}</TableHead>
-                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider max-w-sm">Subject</TableHead>
-                <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">Document</TableHead>
+                <TableHead className="pl-6 py-3 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                  Reference No.
+                </TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                  Date Logged
+                </TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                  Category
+                </TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                  {tab === 'incoming' ? 'From' : 'To'}
+                </TableHead>
+                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider max-w-sm">
+                  Subject
+                </TableHead>
+                <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                  Document
+                </TableHead>
                 {isOdimo && (
-                  <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider w-28">Actions</TableHead>
+                  <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider w-28">
+                    Actions
+                  </TableHead>
                 )}
               </TableRow>
             </TableHeader>
             <TableBody>
               {comms.map((comm) => {
-                const hasRead = comm.readBy?.includes(userProfile?.id || '') || (receivingKey && comm.readBy?.includes(receivingKey));
-                const isUnread = tab === 'incoming' && !hasRead && comm.senderUnitId !== (isCampusOdimo ? userProfile?.campusId : userProfile?.unitId);
+                const hasRead =
+                  comm.readBy?.includes(userProfile?.id || '') || (receivingKey && comm.readBy?.includes(receivingKey));
+                const isUnread =
+                  tab === 'incoming' &&
+                  !hasRead &&
+                  comm.senderUnitId !== (isCampusOdimo ? userProfile?.campusId : userProfile?.unitId);
                 const dateStr = comm.createdAt?.toDate ? format(comm.createdAt.toDate(), 'MMM dd, yyyy') : '...';
                 const receiverRef = comm.recipientRefNums?.[receivingKey];
                 const originRef = comm.senderRefNum;
@@ -1063,8 +1168,8 @@ export default function CommunicationsPage() {
                     key={comm.id}
                     onClick={() => handleOpenDetail(comm, tab)}
                     className={cn(
-                      "cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all border-b relative group",
-                      isUnread && "bg-indigo-50/10 hover:bg-indigo-50/20 font-bold"
+                      'cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/80 transition-all border-b relative group',
+                      isUnread && 'bg-indigo-50/10 hover:bg-indigo-50/20 font-bold',
                     )}
                   >
                     <TableCell className="pl-6 py-3 relative">
@@ -1107,21 +1212,55 @@ export default function CommunicationsPage() {
                     </TableCell>
                     <TableCell className="text-[10px] text-slate-500 font-medium tabular-nums">{dateStr}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className="h-4 text-[7px] font-black uppercase bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-none px-2 rounded-full">
-                        {comm.kind}
-                      </Badge>
+                      <div className="flex flex-col gap-1 items-start">
+                        <Badge
+                          variant="secondary"
+                          className="h-4 text-[7px] font-black uppercase bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-none px-2 rounded-full"
+                        >
+                          {comm.kind}
+                        </Badge>
+                        {comm.communicationScope === 'External' && (
+                          <Badge
+                            variant="outline"
+                            className="h-3.5 text-[6.5px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 px-1.5 rounded"
+                          >
+                            External
+                          </Badge>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-[10px] text-slate-800 dark:text-slate-200 font-black">
-                      {tab === 'incoming' ? (
-                        comm.manual ? comm.senderText : resolveUnitName(comm.senderUnitId || comm.senderText)
-                      ) : (
-                        comm.toText
-                      )}
+                      {tab === 'incoming'
+                        ? comm.manual
+                          ? comm.senderText
+                          : resolveUnitName(comm.senderUnitId || comm.senderText)
+                        : comm.toText}
                     </TableCell>
                     <TableCell className="max-w-md py-3">
-                      <p className={cn("text-[10px] text-slate-700 dark:text-slate-300 truncate", isUnread ? "font-bold text-slate-900 dark:text-slate-100" : "font-medium")}>
+                      <p
+                        className={cn(
+                          'text-[10px] text-slate-700 dark:text-slate-300 truncate',
+                          isUnread ? 'font-bold text-slate-900 dark:text-slate-100' : 'font-medium',
+                        )}
+                      >
                         {comm.subject}
                       </p>
+                      {(comm.actionType === 'For Action / Compliance' ||
+                        comm.urgencyLevel === 'Urgent' ||
+                        comm.urgencyLevel === 'Time-Critical') && (
+                        <div className="flex items-center gap-1 mt-1">
+                          {comm.actionType === 'For Action / Compliance' && (
+                            <span className="text-[7px] font-black uppercase tracking-wider text-rose-600 bg-rose-50 dark:bg-rose-950/40 px-1 py-0.2 rounded border border-rose-200 dark:border-rose-900">
+                              Action Required
+                            </span>
+                          )}
+                          {(comm.urgencyLevel === 'Urgent' || comm.urgencyLevel === 'Time-Critical') && (
+                            <span className="text-[7px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-1 py-0.2 rounded border border-amber-200 dark:border-amber-900">
+                              {comm.urgencyLevel}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-right pr-6" onClick={(e) => e.stopPropagation()}>
                       {comm.driveLink ? (
@@ -1195,14 +1334,20 @@ export default function CommunicationsPage() {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <Mail className="h-5 w-5 text-white/80" />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">Institutional Correspondence Management</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70">
+                Institutional Correspondence Management
+              </p>
             </div>
             <h3 className="text-2xl font-black uppercase tracking-tight">Communications Logbook</h3>
-            <p className="text-sm text-white/70 font-medium mt-1">Official incoming and outgoing records for <span className="font-black text-white">{receivingLabel}</span></p>
+            <p className="text-sm text-white/70 font-medium mt-1">
+              Official incoming and outgoing records for <span className="font-black text-white">{receivingLabel}</span>
+            </p>
             {voiceEnabled && (
               <button
                 onClick={() => {
-                  speakVoice('Communications Logbook. This page shows incoming and outgoing correspondence records. Use the search bar to filter by subject or reference number, and the category dropdown to filter by document type. Click any row to view full details. To log a new record, click the Log or Send Communication button.');
+                  speakVoice(
+                    'Communications Logbook. This page shows incoming and outgoing correspondence records. Use the search bar to filter by subject or reference number, and the category dropdown to filter by document type. Click any row to view full details. To log a new record, click the Log or Send Communication button.',
+                  );
                 }}
                 className="mt-2 inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-white/60 hover:text-white/90 transition-colors"
               >
@@ -1212,25 +1357,32 @@ export default function CommunicationsPage() {
           </div>
           {isOdimo && (
             <div className="flex flex-wrap items-center gap-3">
-              <Button 
-                onClick={() => handlePrintLogbook('incoming')} 
+              <Button
+                onClick={() => handlePrintLogbook('incoming')}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase text-xs tracking-wider py-5 px-4 rounded-xl shadow-lg flex items-center gap-2 transition-all hover:scale-105"
               >
                 <FileText className="h-4 w-4 shrink-0" />
                 Print Incoming Logbook
               </Button>
-              <Button 
-                onClick={() => handlePrintLogbook('outgoing')} 
+              <Button
+                onClick={() => handlePrintLogbook('outgoing')}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-xs tracking-wider py-5 px-4 rounded-xl shadow-lg flex items-center gap-2 transition-all hover:scale-105"
               >
                 <FileText className="h-4 w-4 shrink-0" />
                 Print Outgoing Logbook
               </Button>
-              <Button 
-                onClick={() => { setIsLogFormOpen(!isLogFormOpen); resetForm(); }} 
+              <Button
+                onClick={() => {
+                  setIsLogFormOpen(!isLogFormOpen);
+                  resetForm();
+                }}
                 className="bg-white hover:bg-slate-50 dark:hover:bg-slate-800/50 text-indigo-700 font-black uppercase text-xs tracking-wider py-5 px-6 rounded-xl shadow-lg border border-indigo-100 flex items-center gap-2 transition-all hover:scale-105"
               >
-                {isLogFormOpen ? <X className="h-4.5 w-4.5 text-indigo-700 shrink-0" /> : <Plus className="h-4.5 w-4.5 text-indigo-700 shrink-0" />}
+                {isLogFormOpen ? (
+                  <X className="h-4.5 w-4.5 text-indigo-700 shrink-0" />
+                ) : (
+                  <Plus className="h-4.5 w-4.5 text-indigo-700 shrink-0" />
+                )}
                 {isLogFormOpen ? 'Close Logging Panel' : 'Log/Send Communication'}
               </Button>
             </div>
@@ -1243,10 +1395,13 @@ export default function CommunicationsPage() {
         <Card className="border-slate-200/80 dark:border-slate-700/80 shadow-md rounded-2xl bg-white overflow-hidden animate-in slide-in-from-top-4 duration-300 mb-6">
           <CardHeader className="bg-slate-50/70 dark:bg-slate-800/70 border-b p-5">
             <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 flex items-center gap-2">
-              <Mail className="h-4 w-4 text-indigo-600" /> {editingCommId ? 'Edit Correspondence Record' : 'Log / Send New Correspondence'}
+              <Mail className="h-4 w-4 text-indigo-600" />{' '}
+              {editingCommId ? 'Edit Correspondence Record' : 'Log / Send New Correspondence'}
             </CardTitle>
             <CardDescription className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-              {editingCommId ? `Modifying existing record with Reference Number: ${customRefNum}` : 'Compose a digital notification to system users, or manually log physical correspondence.'}
+              {editingCommId
+                ? `Modifying existing record with Reference Number: ${customRefNum}`
+                : 'Compose a digital notification to system users, or manually log physical correspondence.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
@@ -1255,16 +1410,34 @@ export default function CommunicationsPage() {
               <button
                 type="button"
                 disabled={!!editingCommId}
-                onClick={() => { setCommsMode('digital'); resetForm(); }}
-                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'digital' ? "bg-white dark:bg-slate-900 shadow text-slate-850" : "text-slate-500 hover:text-slate-800 dark:text-slate-200", !!editingCommId && "opacity-60 cursor-not-allowed")}
+                onClick={() => {
+                  setCommsMode('digital');
+                  resetForm();
+                }}
+                className={cn(
+                  'flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all',
+                  commsMode === 'digital'
+                    ? 'bg-white dark:bg-slate-900 shadow text-slate-850'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-200',
+                  !!editingCommId && 'opacity-60 cursor-not-allowed',
+                )}
               >
                 Direct Digital Send
               </button>
               <button
                 type="button"
                 disabled={!!editingCommId}
-                onClick={() => { setCommsMode('manual'); resetForm(); }}
-                className={cn("flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all", commsMode === 'manual' ? "bg-white dark:bg-slate-900 shadow text-slate-850" : "text-slate-500 hover:text-slate-800 dark:text-slate-200", !!editingCommId && "opacity-60 cursor-not-allowed")}
+                onClick={() => {
+                  setCommsMode('manual');
+                  resetForm();
+                }}
+                className={cn(
+                  'flex-1 text-center py-1.5 text-[9px] font-black uppercase tracking-widest rounded transition-all',
+                  commsMode === 'manual'
+                    ? 'bg-white dark:bg-slate-900 shadow text-slate-850'
+                    : 'text-slate-500 hover:text-slate-800 dark:text-slate-200',
+                  !!editingCommId && 'opacity-60 cursor-not-allowed',
+                )}
               >
                 Manual Registry Log
               </button>
@@ -1282,30 +1455,56 @@ export default function CommunicationsPage() {
                   </div>
                   <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
                 </summary>
-                
+
                 <div className="mt-3.5 pt-3.5 border-t border-slate-200/60 dark:border-slate-700/60 text-xs text-slate-600 dark:text-slate-400 space-y-2.5 text-left">
                   {commsMode === 'digital' ? (
                     <>
                       <p className="font-semibold text-slate-700 dark:text-slate-300">
-                        Use this tab to compose and dispatch official digital notifications directly to other offices, campuses, or individual personnel within the EOMS portal.
+                        Use this tab to compose and dispatch official digital notifications directly to other offices,
+                        campuses, or individual personnel within the EOMS portal.
                       </p>
                       <ul className="list-disc pl-4 space-y-1.5 font-medium">
-                        <li><strong>Correspondence Type:</strong> Select the official document classification. Memorandums are restricted by user role permissions.</li>
-                        <li><strong>Reference Number:</strong> Automatically increments from the last record for convenience, but remains fully editable to align with local document control numbering.</li>
-                        <li><strong>Recipient Scope:</strong> Target specific units, campuses, or select individual users directly to route the digital alert.</li>
-                        <li><strong>Google Drive Link:</strong> Provide the shared cloud link containing the official file (ensure view permissions are open to authorized recipients).</li>
+                        <li>
+                          <strong>Correspondence Type:</strong> Select the official document classification. Memorandums
+                          are restricted by user role permissions.
+                        </li>
+                        <li>
+                          <strong>Reference Number:</strong> Automatically increments from the last record for
+                          convenience, but remains fully editable to align with local document control numbering.
+                        </li>
+                        <li>
+                          <strong>Recipient Scope:</strong> Target specific units, campuses, or select individual users
+                          directly to route the digital alert.
+                        </li>
+                        <li>
+                          <strong>Google Drive Link:</strong> Provide the shared cloud link containing the official file
+                          (ensure view permissions are open to authorized recipients).
+                        </li>
                       </ul>
                     </>
                   ) : (
                     <>
                       <p className="font-semibold text-slate-700 dark:text-slate-300">
-                        Use this tab to log paper-based, physical, or external correspondences received or sent outside EOMS to maintain institutional compliance records.
+                        Use this tab to log paper-based, physical, or external correspondences received or sent outside
+                        EOMS to maintain institutional compliance records.
                       </p>
                       <ul className="list-disc pl-4 space-y-1.5 font-medium">
-                        <li><strong>Log Direction:</strong> Categorize as <strong>Incoming</strong> (paper mail received) or <strong>Outgoing</strong> (sent externally) to adjust form parameters.</li>
-                        <li><strong>Reference Numbers:</strong> For incoming letters, record the origin office's reference code alongside your locally generated receiving control number.</li>
-                        <li><strong>Sender/Recipient Info:</strong> Log the names and departments of external correspondents involved in the exchange.</li>
-                        <li><strong>Scan Link:</strong> Provide a scanned PDF copy link (e.g. Google Drive) for institutional trace and verification.</li>
+                        <li>
+                          <strong>Log Direction:</strong> Categorize as <strong>Incoming</strong> (paper mail received)
+                          or <strong>Outgoing</strong> (sent externally) to adjust form parameters.
+                        </li>
+                        <li>
+                          <strong>Reference Numbers:</strong> For incoming letters, record the origin office's reference
+                          code alongside your locally generated receiving control number.
+                        </li>
+                        <li>
+                          <strong>Sender/Recipient Info:</strong> Log the names and departments of external
+                          correspondents involved in the exchange.
+                        </li>
+                        <li>
+                          <strong>Scan Link:</strong> Provide a scanned PDF copy link (e.g. Google Drive) for
+                          institutional trace and verification.
+                        </li>
                       </ul>
                     </>
                   )}
@@ -1317,14 +1516,26 @@ export default function CommunicationsPage() {
               {/* Log Direction (for Manual Registry Log, moved to top) */}
               {commsMode === 'manual' && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Log Direction</label>
-                  <Select value={manualType} onValueChange={(val: any) => { setManualType(val); resetForm(); }}>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                    Log Direction
+                  </label>
+                  <Select
+                    value={manualType}
+                    onValueChange={(val: any) => {
+                      setManualType(val);
+                      resetForm();
+                    }}
+                  >
                     <SelectTrigger className="h-10 text-xs bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl">
                       <SelectValue placeholder="Log Direction" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="incoming" className="text-xs font-medium">Incoming (Received Paper/Mail)</SelectItem>
-                      <SelectItem value="outgoing" className="text-xs font-medium">Outgoing (Sent Paper/External)</SelectItem>
+                      <SelectItem value="incoming" className="text-xs font-medium">
+                        Incoming (Received Paper/Mail)
+                      </SelectItem>
+                      <SelectItem value="outgoing" className="text-xs font-medium">
+                        Outgoing (Sent Paper/External)
+                      </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -1332,7 +1543,9 @@ export default function CommunicationsPage() {
 
               {/* KIND */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Correspondence Type</label>
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                  Correspondence Type
+                </label>
                 <Select value={kind} onValueChange={(val) => setKind(val as CommunicationKind)}>
                   <SelectTrigger className="h-10 text-xs bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl">
                     <SelectValue placeholder="Select type" />
@@ -1341,11 +1554,21 @@ export default function CommunicationsPage() {
                     <SelectItem value="Memorandum Order" disabled={!isPresident} className="text-xs font-medium">
                       Memorandum Order {!isPresident && '(President Only)'}
                     </SelectItem>
-                    <SelectItem value="Office Order" className="text-xs font-medium">Office Order</SelectItem>
-                    <SelectItem value="Office Memorandum" className="text-xs font-medium">Office Memorandum</SelectItem>
-                    <SelectItem value="Communication Letter / Request" className="text-xs font-medium">Communication Letter / Request</SelectItem>
-                    <SelectItem value="Invitation" className="text-xs font-medium">Invitation</SelectItem>
-                    <SelectItem value="Transmittal Document" className="text-xs font-medium">Transmittal Document</SelectItem>
+                    <SelectItem value="Office Order" className="text-xs font-medium">
+                      Office Order
+                    </SelectItem>
+                    <SelectItem value="Office Memorandum" className="text-xs font-medium">
+                      Office Memorandum
+                    </SelectItem>
+                    <SelectItem value="Communication Letter / Request" className="text-xs font-medium">
+                      Communication Letter / Request
+                    </SelectItem>
+                    <SelectItem value="Invitation" className="text-xs font-medium">
+                      Invitation
+                    </SelectItem>
+                    <SelectItem value="Transmittal Document" className="text-xs font-medium">
+                      Transmittal Document
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -1368,7 +1591,9 @@ export default function CommunicationsPage() {
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
                       <span>Receiving Reference Number</span>
-                      <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">(Auto-populated)</span>
+                      <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">
+                        (Auto-populated)
+                      </span>
                     </label>
                     <Input
                       placeholder="e.g. 2026-001"
@@ -1383,7 +1608,9 @@ export default function CommunicationsPage() {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
                     <span>Reference Number</span>
-                    <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">(Editable - Auto-increments from last entry)</span>
+                    <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">
+                      (Editable - Auto-increments from last entry)
+                    </span>
                   </label>
                   <Input
                     placeholder="e.g. 2026-001"
@@ -1396,7 +1623,9 @@ export default function CommunicationsPage() {
 
               {/* DATE OF RECEIPT */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Date of Receipt</label>
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                  Date of Receipt
+                </label>
                 <Input
                   type="date"
                   value={customDate}
@@ -1409,13 +1638,21 @@ export default function CommunicationsPage() {
                 <>
                   {/* FROM */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">{isCampusOdimo ? 'From Campus' : 'From Office / Unit'}</label>
-                    <Input value={receivingLabel} disabled className="h-10 text-xs bg-slate-100/50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-700 rounded-xl font-bold" />
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                      {isCampusOdimo ? 'From Campus' : 'From Office / Unit'}
+                    </label>
+                    <Input
+                      value={receivingLabel}
+                      disabled
+                      className="h-10 text-xs bg-slate-100/50 dark:bg-slate-700/50 border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                    />
                   </div>
 
                   {/* SENDER NAME */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Name of Sender</label>
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                      Name of Sender
+                    </label>
                     <Input
                       placeholder="e.g. Dr. John Doe (Unit Coordinator)"
                       value={senderNameText}
@@ -1426,25 +1663,50 @@ export default function CommunicationsPage() {
 
                   {/* RECIPIENT TYPE */}
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Send To Recipients</label>
-                    <Select value={recipientType} onValueChange={(val: any) => { setRecipientType(val); setSelectedRecipients([]); }}>
+                    <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                      Send To Recipients
+                    </label>
+                    <Select
+                      value={recipientType}
+                      onValueChange={(val: any) => {
+                        setRecipientType(val);
+                        setSelectedRecipients([]);
+                      }}
+                    >
                       <SelectTrigger className="h-10 text-xs bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl">
                         <SelectValue placeholder="Select Scope" />
                       </SelectTrigger>
                       <SelectContent>
                         {isCampusOdimo ? (
                           <>
-                            <SelectItem value="unit" className="text-xs font-medium">Specific Unit (within campus)</SelectItem>
-                            <SelectItem value="campus-unit" className="text-xs font-medium">All Units in Campus</SelectItem>
-                            <SelectItem value="individual" className="text-xs font-medium">Individual User (Direct)</SelectItem>
+                            <SelectItem value="unit" className="text-xs font-medium">
+                              Specific Unit (within campus)
+                            </SelectItem>
+                            <SelectItem value="campus-unit" className="text-xs font-medium">
+                              All Units in Campus
+                            </SelectItem>
+                            <SelectItem value="individual" className="text-xs font-medium">
+                              Individual User (Direct)
+                            </SelectItem>
                           </>
                         ) : (
                           <>
-                            <SelectItem value="unit" className="text-xs font-medium">Academic & Oversight Units</SelectItem>
-                            <SelectItem value="campus" className="text-xs font-medium">Campus Sites</SelectItem>
-                            <SelectItem value="individual" className="text-xs font-medium">Individual Users (Direct)</SelectItem>
-                            <SelectItem value="all" disabled={!isAuthorizedForUniversityWide} className="text-xs font-medium">
-                              University-Wide (All Officers) {!isAuthorizedForUniversityWide && '(President / Authorized Units Only)'}
+                            <SelectItem value="unit" className="text-xs font-medium">
+                              Academic & Oversight Units
+                            </SelectItem>
+                            <SelectItem value="campus" className="text-xs font-medium">
+                              Campus Sites
+                            </SelectItem>
+                            <SelectItem value="individual" className="text-xs font-medium">
+                              Individual Users (Direct)
+                            </SelectItem>
+                            <SelectItem
+                              value="all"
+                              disabled={!isAuthorizedForUniversityWide}
+                              className="text-xs font-medium"
+                            >
+                              University-Wide (All Officers){' '}
+                              {!isAuthorizedForUniversityWide && '(President / Authorized Units Only)'}
                             </SelectItem>
                           </>
                         )}
@@ -1455,67 +1717,100 @@ export default function CommunicationsPage() {
                   {/* RECIPIENT LIST BUILDER */}
                   {recipientType !== 'all' && recipientType !== 'campus-unit' && (
                     <div className="space-y-2 border p-3.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
-                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Add Recipients</label>
+                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">
+                        Add Recipients
+                      </label>
                       <div className="flex gap-2">
                         <Select value={currentRecipientSelection} onValueChange={setCurrentRecipientSelection}>
                           <SelectTrigger className="h-9 text-xs bg-white border-slate-200 dark:border-slate-700 rounded-lg flex-1">
                             <SelectValue placeholder={`Select ${recipientType}`} />
                           </SelectTrigger>
                           <SelectContent>
-                            {recipientType === 'unit' && (
+                            {recipientType === 'unit' &&
                               // Campus ODIMO: only units within their campus; others: all units
-                              isCampusOdimo
+                              (isCampusOdimo
                                 ? units
-                                    ?.filter(u => u.campusIds?.includes(userProfile?.campusId || ''))
+                                    ?.filter((u) => u.campusIds?.includes(userProfile?.campusId || ''))
                                     .sort((a, b) => a.name.localeCompare(b.name))
-                                    .map(u => (
-                                      <SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>
+                                    .map((u) => (
+                                      <SelectItem key={u.id} value={u.id} className="text-xs">
+                                        {u.name}
+                                      </SelectItem>
                                     ))
-                                : units?.sort((a, b) => a.name.localeCompare(b.name)).map(u => (
-                                    <SelectItem key={u.id} value={u.id} className="text-xs">{u.name}</SelectItem>
-                                  ))
-                            )}
-                            {recipientType === 'campus' && campuses?.sort((a,b) => a.name.localeCompare(b.name)).map(c => (
-                              <SelectItem key={c.id} value={c.id} className="text-xs">{c.name}</SelectItem>
-                            ))}
-                            {recipientType === 'individual' && (
+                                : units
+                                    ?.sort((a, b) => a.name.localeCompare(b.name))
+                                    .map((u) => (
+                                      <SelectItem key={u.id} value={u.id} className="text-xs">
+                                        {u.name}
+                                      </SelectItem>
+                                    )))}
+                            {recipientType === 'campus' &&
+                              campuses
+                                ?.sort((a, b) => a.name.localeCompare(b.name))
+                                .map((c) => (
+                                  <SelectItem key={c.id} value={c.id} className="text-xs">
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                            {recipientType === 'individual' &&
                               // Campus ODIMO: only individuals within their campus; others: all users
-                              isCampusOdimo
+                              (isCampusOdimo
                                 ? users
                                     ?.filter((u: any) => {
-                                      const userUnit = units?.find(un => un.id === u.unitId);
-                                      return userUnit?.campusIds?.includes(userProfile?.campusId || '') || u.campusId === userProfile?.campusId;
+                                      const userUnit = units?.find((un) => un.id === u.unitId);
+                                      return (
+                                        userUnit?.campusIds?.includes(userProfile?.campusId || '') ||
+                                        u.campusId === userProfile?.campusId
+                                      );
                                     })
                                     .sort((a: any, b: any) => a.firstName.localeCompare(b.firstName))
                                     .map((u: any) => (
-                                      <SelectItem key={u.id} value={u.id} className="text-xs">{u.firstName} {u.lastName} ({u.role})</SelectItem>
+                                      <SelectItem key={u.id} value={u.id} className="text-xs">
+                                        {u.firstName} {u.lastName} ({u.role})
+                                      </SelectItem>
                                     ))
-                                : users?.sort((a: any, b: any) => a.firstName.localeCompare(b.firstName)).map((u: any) => (
-                                    <SelectItem key={u.id} value={u.id} className="text-xs">{u.firstName} {u.lastName} ({u.role})</SelectItem>
-                                  ))
-                            )}
+                                : users
+                                    ?.sort((a: any, b: any) => a.firstName.localeCompare(b.firstName))
+                                    .map((u: any) => (
+                                      <SelectItem key={u.id} value={u.id} className="text-xs">
+                                        {u.firstName} {u.lastName} ({u.role})
+                                      </SelectItem>
+                                    )))}
                           </SelectContent>
                         </Select>
-                        <Button type="button" onClick={handleAddRecipient} size="sm" className="h-9 px-4 font-bold bg-indigo-600 rounded-lg shrink-0">
+                        <Button
+                          type="button"
+                          onClick={handleAddRecipient}
+                          size="sm"
+                          className="h-9 px-4 font-bold bg-indigo-600 rounded-lg shrink-0"
+                        >
                           <Plus className="h-4 w-4" /> Add
                         </Button>
                       </div>
 
                       {/* Selected List */}
                       <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 empty:hidden">
-                        {selectedRecipients.map(id => {
+                        {selectedRecipients.map((id) => {
                           let labelText = id;
                           if (recipientType === 'unit') labelText = unitMap.get(id) || id;
                           else if (recipientType === 'campus') labelText = campusMap.get(id) || id;
                           else if (recipientType === 'individual') {
-                            const u = users?.find(x => x.id === id);
+                            const u = users?.find((x) => x.id === id);
                             labelText = u ? `${u.firstName} ${u.lastName}` : id;
                           }
 
                           return (
-                            <Badge key={id} variant="outline" className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1.5">
+                            <Badge
+                              key={id}
+                              variant="outline"
+                              className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1.5"
+                            >
                               {labelText}
-                              <button type="button" onClick={() => handleRemoveRecipient(id)} className="text-slate-400 hover:text-rose-600 focus:outline-none">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveRecipient(id)}
+                                className="text-slate-400 hover:text-rose-600 focus:outline-none"
+                              >
                                 <X className="h-3 w-3" />
                               </button>
                             </Badge>
@@ -1532,7 +1827,9 @@ export default function CommunicationsPage() {
                   {manualType === 'incoming' ? (
                     <>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Sender (From Office/Person)</label>
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                          Sender (From Office/Person)
+                        </label>
                         <Input
                           placeholder="e.g. CHED Regional Office / Executive Director"
                           value={manualSenderText}
@@ -1541,7 +1838,9 @@ export default function CommunicationsPage() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Name of Sender</label>
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                          Name of Sender
+                        </label>
                         <Input
                           placeholder="e.g. Dr. John Smith (Executive Director)"
                           value={senderNameText}
@@ -1553,7 +1852,9 @@ export default function CommunicationsPage() {
                   ) : (
                     <>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Recipient (To Office/Person)</label>
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                          Recipient (To Office/Person)
+                        </label>
                         <Input
                           placeholder="e.g. RSU President / Quality Assurance Committee"
                           value={manualRecipientText}
@@ -1562,7 +1863,9 @@ export default function CommunicationsPage() {
                         />
                       </div>
                       <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Name of Sender</label>
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                          Name of Sender
+                        </label>
                         <Input
                           placeholder="e.g. Jane Doe (Unit Coordinator)"
                           value={senderNameText}
@@ -1575,9 +1878,140 @@ export default function CommunicationsPage() {
                 </>
               )}
 
+              {/* ISO 21001:2025 CLAUSE 7.4 SPECIFICATIONS */}
+              <div className="p-3.5 bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/40 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-indigo-700 dark:text-indigo-300 font-black uppercase text-[10px] tracking-wider">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    <span>ISO 21001:2025 Cl. 7.4 Classification</span>
+                  </div>
+                  <Badge variant="outline" className="text-[9px] font-bold bg-white dark:bg-slate-900">
+                    EOMS Standard
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Scope */}
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">Scope</label>
+                    <Select value={communicationScope} onValueChange={(val: any) => setCommunicationScope(val)}>
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg">
+                        <SelectValue placeholder="Scope" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Internal" className="text-xs font-bold text-blue-600">
+                          Internal (University/Campus)
+                        </SelectItem>
+                        <SelectItem value="External" className="text-xs font-bold text-emerald-600">
+                          External (Regulators/Partners)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Purpose / Action Type */}
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Purpose / Action Type
+                    </label>
+                    <Select value={actionType} onValueChange={(val: any) => setActionType(val)}>
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg">
+                        <SelectValue placeholder="Action Type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="For Information" className="text-xs font-medium">
+                          For Information
+                        </SelectItem>
+                        <SelectItem value="For Action / Compliance" className="text-xs font-bold text-rose-600">
+                          For Action / Compliance
+                        </SelectItem>
+                        <SelectItem value="For Decision / Approval" className="text-xs font-bold text-amber-600">
+                          For Decision / Approval
+                        </SelectItem>
+                        <SelectItem value="For Feedback / Consultation" className="text-xs font-medium text-purple-600">
+                          For Feedback / Consultation
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Urgency */}
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Urgency Level
+                    </label>
+                    <Select value={urgencyLevel} onValueChange={(val: any) => setUrgencyLevel(val)}>
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg">
+                        <SelectValue placeholder="Urgency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Routine" className="text-xs font-medium">
+                          Routine
+                        </SelectItem>
+                        <SelectItem value="Urgent" className="text-xs font-bold text-amber-600">
+                          Urgent
+                        </SelectItem>
+                        <SelectItem value="Time-Critical" className="text-xs font-black text-rose-600">
+                          Time-Critical
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {/* Target Audience */}
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Target Stakeholders
+                    </label>
+                    <Select value={targetAudience} onValueChange={(val: any) => setTargetAudience(val)}>
+                      <SelectTrigger className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg">
+                        <SelectValue placeholder="Target Audience" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="All Stakeholders" className="text-xs font-medium">
+                          All Stakeholders
+                        </SelectItem>
+                        <SelectItem value="Campus / Unit Heads" className="text-xs font-medium">
+                          Campus / Unit Heads
+                        </SelectItem>
+                        <SelectItem value="Faculty & Academic Staff" className="text-xs font-medium">
+                          Faculty & Academic Staff
+                        </SelectItem>
+                        <SelectItem value="Administrative Personnel" className="text-xs font-medium">
+                          Administrative Personnel
+                        </SelectItem>
+                        <SelectItem value="Learners & Students" className="text-xs font-medium">
+                          Learners & Students
+                        </SelectItem>
+                        <SelectItem value="External Regulators & Partners" className="text-xs font-medium">
+                          External Regulators & Partners
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Compliance Deadline */}
+                  <div className="space-y-1">
+                    <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Compliance / Response Deadline (Optional)
+                    </label>
+                    <Input
+                      type="date"
+                      value={complianceDeadline}
+                      onChange={(e) => setComplianceDeadline(e.target.value)}
+                      className="h-9 text-xs bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 rounded-lg font-bold"
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* SUBJECT */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Subject / Purpose</label>
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                  Subject / Purpose
+                </label>
                 <Input
                   placeholder="Brief summary of the communication..."
                   value={subject}
@@ -1588,7 +2022,9 @@ export default function CommunicationsPage() {
 
               {/* GOOGLE DRIVE LINK */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Google Drive Link (with view permissions)</label>
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                  Google Drive Link (with view permissions)
+                </label>
                 <Input
                   placeholder="https://drive.google.com/file/d/..."
                   value={driveLink}
@@ -1598,12 +2034,28 @@ export default function CommunicationsPage() {
               </div>
 
               <div className="flex justify-end gap-2 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => setIsLogFormOpen(false)} disabled={isSubmitting} className="h-10 font-bold text-xs uppercase tracking-wider rounded-xl">Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="bg-indigo-600 text-white h-10 font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-600/15">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsLogFormOpen(false)}
+                  disabled={isSubmitting}
+                  className="h-10 font-bold text-xs uppercase tracking-wider rounded-xl"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="bg-indigo-600 text-white h-10 font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-indigo-600/15"
+                >
                   {isSubmitting ? (
-                    <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...</>
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" /> Saving...
+                    </>
+                  ) : editingCommId ? (
+                    'Save Changes'
                   ) : (
-                    editingCommId ? 'Save Changes' : 'Log Record'
+                    'Log Record'
                   )}
                 </Button>
               </div>
@@ -1612,90 +2064,167 @@ export default function CommunicationsPage() {
         </Card>
       )}
 
-      {/* Primary Logbook Workspace - Dual Column */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* --- Incoming Column --- */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
-              <ArrowDownLeft className="h-4 w-4 text-emerald-600" />
-              Incoming Logbook
-              {unreadCount > 0 && (
-                <span className="ml-1 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-black tabular-nums">
-                  {unreadCount}
-                </span>
-              )}
-            </h2>
-            <div className="flex items-center gap-2">
-              <div className="relative w-48">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                <Input
-                  placeholder="Search incoming..."
-                  value={searchTermIncoming}
-                  onChange={(e) => setSearchTermIncoming(e.target.value)}
-                  className="pl-8 h-8 text-[10px] bg-white border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500 rounded-lg"
-                />
-              </div>
-              <Select value={kindFilterIncoming} onValueChange={setKindFilterIncoming}>
-                <SelectTrigger className="h-8 text-[10px] bg-white border-slate-200 dark:border-slate-700 rounded-lg w-[130px] focus:ring-0">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-[10px] font-bold">All Categories</SelectItem>
-                  <SelectItem value="Memorandum Order" className="text-[10px] font-medium">Memorandum Order</SelectItem>
-                  <SelectItem value="Office Order" className="text-[10px] font-medium">Office Order</SelectItem>
-                  <SelectItem value="Office Memorandum" className="text-[10px] font-medium">Office Memorandum</SelectItem>
-                  <SelectItem value="Communication Letter / Request" className="text-[10px] font-medium">Communication Letter / Request</SelectItem>
-                  <SelectItem value="Invitation" className="text-[10px] font-medium">Invitation</SelectItem>
-                  <SelectItem value="Transmittal Document" className="text-[10px] font-medium">Transmittal Document</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {renderCommTable(incomingFiltered, 'incoming', isLoadingComms)}
+      {/* Top View Mode Switcher */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+        <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <Button
+            type="button"
+            variant={viewMode === 'logbook' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('logbook')}
+            className={cn(
+              'text-xs font-black uppercase tracking-wider rounded-lg h-8 px-4',
+              viewMode === 'logbook'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900',
+            )}
+          >
+            <Mail className="mr-1.5 h-3.5 w-3.5" /> Logbook Records
+          </Button>
+          <Button
+            type="button"
+            variant={viewMode === 'analytics' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setViewMode('analytics')}
+            className={cn(
+              'text-xs font-black uppercase tracking-wider rounded-lg h-8 px-4',
+              viewMode === 'analytics'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900',
+            )}
+          >
+            <Activity className="mr-1.5 h-3.5 w-3.5 text-emerald-400" /> ISO 21001:2025 Analytics
+            <Badge className="ml-2 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-[9px] font-black uppercase py-0 px-1.5 border-none">
+              Cl. 7.4
+            </Badge>
+          </Button>
         </div>
-
-        {/* --- Outgoing Column --- */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
-              <ArrowUpRight className="h-4 w-4 text-indigo-600" />
-              Outgoing Logbook
-            </h2>
-            <div className="flex items-center gap-2">
-              <div className="relative w-48">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-                <Input
-                  placeholder="Search outgoing..."
-                  value={searchTermOutgoing}
-                  onChange={(e) => setSearchTermOutgoing(e.target.value)}
-                  className="pl-8 h-8 text-[10px] bg-white border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500 rounded-lg"
-                />
-              </div>
-              <Select value={kindFilterOutgoing} onValueChange={setKindFilterOutgoing}>
-                <SelectTrigger className="h-8 text-[10px] bg-white border-slate-200 dark:border-slate-700 rounded-lg w-[130px] focus:ring-0">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-[10px] font-bold">All Categories</SelectItem>
-                  <SelectItem value="Memorandum Order" className="text-[10px] font-medium">Memorandum Order</SelectItem>
-                  <SelectItem value="Office Order" className="text-[10px] font-medium">Office Order</SelectItem>
-                  <SelectItem value="Office Memorandum" className="text-[10px] font-medium">Office Memorandum</SelectItem>
-                  <SelectItem value="Communication Letter / Request" className="text-[10px] font-medium">Communication Letter / Request</SelectItem>
-                  <SelectItem value="Invitation" className="text-[10px] font-medium">Invitation</SelectItem>
-                  <SelectItem value="Transmittal Document" className="text-[10px] font-medium">Transmittal Document</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {renderCommTable(outgoingFiltered, 'outgoing', isLoadingComms)}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground px-2">
+          <Badge variant="outline" className="text-[10px] font-mono font-bold">
+            Total Logs: {rawComms?.length || 0}
+          </Badge>
         </div>
       </div>
 
+      {viewMode === 'analytics' ? (
+        <CommunicationAnalytics
+          communications={rawComms || []}
+          units={units || []}
+          campuses={campuses || []}
+          currentUnitId={userProfile?.unitId}
+          isOdimo={isOdimo}
+        />
+      ) : (
+        /* Primary Logbook Workspace - Dual Column */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* --- Incoming Column --- */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
+                <ArrowDownLeft className="h-4 w-4 text-emerald-600" />
+                Incoming Logbook
+                {unreadCount > 0 && (
+                  <span className="ml-1 px-2 py-0.5 rounded-full bg-indigo-600 text-white text-[9px] font-black tabular-nums">
+                    {unreadCount}
+                  </span>
+                )}
+              </h2>
+              <div className="flex items-center gap-2">
+                <div className="relative w-48">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <Input
+                    placeholder="Search incoming..."
+                    value={searchTermIncoming}
+                    onChange={(e) => setSearchTermIncoming(e.target.value)}
+                    className="pl-8 h-8 text-[10px] bg-white border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500 rounded-lg"
+                  />
+                </div>
+                <Select value={kindFilterIncoming} onValueChange={setKindFilterIncoming}>
+                  <SelectTrigger className="h-8 text-[10px] bg-white border-slate-200 dark:border-slate-700 rounded-lg w-[130px] focus:ring-0">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-[10px] font-bold">
+                      All Categories
+                    </SelectItem>
+                    <SelectItem value="Memorandum Order" className="text-[10px] font-medium">
+                      Memorandum Order
+                    </SelectItem>
+                    <SelectItem value="Office Order" className="text-[10px] font-medium">
+                      Office Order
+                    </SelectItem>
+                    <SelectItem value="Office Memorandum" className="text-[10px] font-medium">
+                      Office Memorandum
+                    </SelectItem>
+                    <SelectItem value="Communication Letter / Request" className="text-[10px] font-medium">
+                      Communication Letter / Request
+                    </SelectItem>
+                    <SelectItem value="Invitation" className="text-[10px] font-medium">
+                      Invitation
+                    </SelectItem>
+                    <SelectItem value="Transmittal Document" className="text-[10px] font-medium">
+                      Transmittal Document
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
+            {renderCommTable(incomingFiltered, 'incoming', isLoadingComms)}
+          </div>
+
+          {/* --- Outgoing Column --- */}
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">
+                <ArrowUpRight className="h-4 w-4 text-indigo-600" />
+                Outgoing Logbook
+              </h2>
+              <div className="flex items-center gap-2">
+                <div className="relative w-48">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                  <Input
+                    placeholder="Search outgoing..."
+                    value={searchTermOutgoing}
+                    onChange={(e) => setSearchTermOutgoing(e.target.value)}
+                    className="pl-8 h-8 text-[10px] bg-white border-slate-200 dark:border-slate-700 focus-visible:ring-indigo-500 rounded-lg"
+                  />
+                </div>
+                <Select value={kindFilterOutgoing} onValueChange={setKindFilterOutgoing}>
+                  <SelectTrigger className="h-8 text-[10px] bg-white border-slate-200 dark:border-slate-700 rounded-lg w-[130px] focus:ring-0">
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-[10px] font-bold">
+                      All Categories
+                    </SelectItem>
+                    <SelectItem value="Memorandum Order" className="text-[10px] font-medium">
+                      Memorandum Order
+                    </SelectItem>
+                    <SelectItem value="Office Order" className="text-[10px] font-medium">
+                      Office Order
+                    </SelectItem>
+                    <SelectItem value="Office Memorandum" className="text-[10px] font-medium">
+                      Office Memorandum
+                    </SelectItem>
+                    <SelectItem value="Communication Letter / Request" className="text-[10px] font-medium">
+                      Communication Letter / Request
+                    </SelectItem>
+                    <SelectItem value="Invitation" className="text-[10px] font-medium">
+                      Invitation
+                    </SelectItem>
+                    <SelectItem value="Transmittal Document" className="text-[10px] font-medium">
+                      Transmittal Document
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {renderCommTable(outgoingFiltered, 'outgoing', isLoadingComms)}
+          </div>
+        </div>
+      )}
 
       {/* Detail Viewer Modal */}
       <Dialog open={!!selectedComm} onOpenChange={(open) => !open && setSelectedComm(null)}>
@@ -1706,11 +2235,17 @@ export default function CommunicationsPage() {
               <div className="bg-slate-50 dark:bg-slate-800/50 border-b p-5 shrink-0 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-indigo-100 text-indigo-850 px-2 py-0.5 rounded-full text-[8px] font-black uppercase">
+                    <Badge
+                      variant="secondary"
+                      className="bg-indigo-100 text-indigo-850 px-2 py-0.5 rounded-full text-[8px] font-black uppercase"
+                    >
                       {selectedComm.kind}
                     </Badge>
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                      Reference: {detailContext === 'incoming' ? (selectedComm.recipientRefNums?.[receivingKey] || 'Pending') : (selectedComm.senderRefNum || 'N/A')}
+                      Reference:{' '}
+                      {detailContext === 'incoming'
+                        ? selectedComm.recipientRefNums?.[receivingKey] || 'Pending'
+                        : selectedComm.senderRefNum || 'N/A'}
                     </span>
                   </div>
                   <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 leading-snug uppercase">
@@ -1720,7 +2255,9 @@ export default function CommunicationsPage() {
                 <div className="text-right shrink-0">
                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Date Logged</p>
                   <p className="text-xs font-black text-slate-800 dark:text-slate-200 tabular-nums">
-                    {selectedComm.createdAt?.toDate ? format(selectedComm.createdAt.toDate(), 'MMMM dd, yyyy - hh:mm a') : '...'}
+                    {selectedComm.createdAt?.toDate
+                      ? format(selectedComm.createdAt.toDate(), 'MMMM dd, yyyy - hh:mm a')
+                      : '...'}
                   </p>
                 </div>
               </div>
@@ -1730,27 +2267,33 @@ export default function CommunicationsPage() {
                 {/* Left side: Metadata details */}
                 <div className="w-full md:w-80 border-r p-5 overflow-auto shrink-0 space-y-5 bg-slate-50/50 dark:bg-slate-800/50">
                   <div>
-                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Sender Office / Unit</h5>
+                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Sender Office / Unit
+                    </h5>
                     <div className="flex items-center gap-2 bg-white border p-2.5 rounded-xl shadow-sm">
                       <div className="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
                         <Building2 className="h-4 w-4" />
                       </div>
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-normal break-words flex-1 py-0.5">
-                        {selectedComm.manual 
-                          ? (selectedComm.senderText || 'N/A')
+                        {selectedComm.manual
+                          ? selectedComm.senderText || 'N/A'
                           : resolveUnitName(selectedComm.senderUnitId || selectedComm.senderText)}
                       </span>
                     </div>
                   </div>
 
                   {(() => {
-                    const coordinator = selectedComm.senderName || (selectedComm.manual 
-                      ? '' 
-                      : getUnitHeadName(selectedComm.senderUnitId || selectedComm.senderText));
+                    const coordinator =
+                      selectedComm.senderName ||
+                      (selectedComm.manual
+                        ? ''
+                        : getUnitHeadName(selectedComm.senderUnitId || selectedComm.senderText));
                     if (!coordinator || coordinator === 'N/A') return null;
                     return (
                       <div>
-                        <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Sender Name</h5>
+                        <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                          Sender Name
+                        </h5>
                         <div className="flex items-center gap-2 bg-white border p-2.5 rounded-xl shadow-sm">
                           <div className="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
                             <User className="h-4 w-4" />
@@ -1764,17 +2307,23 @@ export default function CommunicationsPage() {
                   })()}
 
                   <div>
-                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Recipient (To)</h5>
+                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Recipient (To)
+                    </h5>
                     <div className="flex items-center gap-2 bg-white border p-2.5 rounded-xl shadow-sm">
                       <div className="h-7 w-7 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-400 shrink-0">
                         <Globe className="h-4 w-4" />
                       </div>
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-normal break-words flex-1 py-0.5">{selectedComm.toText}</span>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-normal break-words flex-1 py-0.5">
+                        {selectedComm.toText}
+                      </span>
                     </div>
                   </div>
 
                   <div>
-                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Origin's Reference Number</h5>
+                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Origin's Reference Number
+                    </h5>
                     <div className="flex items-center gap-2 bg-white border p-2.5 rounded-xl shadow-sm">
                       <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-normal break-words py-0.5">
                         {selectedComm.senderRefNum || 'N/A'}
@@ -1783,7 +2332,9 @@ export default function CommunicationsPage() {
                   </div>
 
                   <div>
-                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">Receiver's Reference Number</h5>
+                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
+                      Receiver's Reference Number
+                    </h5>
                     <div className="flex items-center gap-2 bg-white border p-2.5 rounded-xl shadow-sm">
                       <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 whitespace-normal break-words py-0.5">
                         {selectedComm.recipientRefNums?.[receivingKey] || 'Pending Receipt'}
@@ -1791,8 +2342,66 @@ export default function CommunicationsPage() {
                     </div>
                   </div>
 
+                  {/* ISO 21001:2025 METADATA PANEL */}
+                  <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700 rounded-xl space-y-2 text-xs shadow-sm">
+                    <div className="flex items-center justify-between border-b pb-1.5 dark:border-slate-800">
+                      <span className="text-[9px] font-black uppercase text-indigo-600 dark:text-indigo-400 flex items-center gap-1">
+                        <ShieldCheck className="h-3.5 w-3.5" /> ISO 21001 Cl. 7.4
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          'text-[8px] font-bold',
+                          selectedComm.communicationScope === 'External'
+                            ? 'text-emerald-600 border-emerald-300'
+                            : 'text-blue-600 border-blue-300',
+                        )}
+                      >
+                        {selectedComm.communicationScope || 'Internal'}
+                      </Badge>
+                    </div>
+                    <div className="space-y-1.5 text-[10px]">
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground font-bold">Purpose:</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {selectedComm.actionType || 'For Information'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground font-bold">Urgency:</span>
+                        <span
+                          className={cn(
+                            'font-bold',
+                            selectedComm.urgencyLevel === 'Urgent' || selectedComm.urgencyLevel === 'Time-Critical'
+                              ? 'text-rose-600'
+                              : 'text-slate-800 dark:text-slate-200',
+                          )}
+                        >
+                          {selectedComm.urgencyLevel || 'Routine'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-muted-foreground font-bold">Audience:</span>
+                        <span
+                          className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[130px]"
+                          title={selectedComm.targetAudience || 'Campus / Unit Heads'}
+                        >
+                          {selectedComm.targetAudience || 'Campus / Unit Heads'}
+                        </span>
+                      </div>
+                      {selectedComm.complianceDeadline && (
+                        <div className="flex items-center justify-between text-rose-600 bg-rose-50 dark:bg-rose-950/30 p-1 rounded font-bold">
+                          <span>Deadline:</span>
+                          <span className="font-mono">{selectedComm.complianceDeadline}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="pt-4 border-t">
-                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">Original Documents</h5>
+                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">
+                      Original Documents
+                    </h5>
                     {selectedComm.driveLink ? (
                       <div className="space-y-2">
                         <a
@@ -1803,7 +2412,9 @@ export default function CommunicationsPage() {
                         >
                           Open in Google Drive <ExternalLink className="h-3 w-3" />
                         </a>
-                        <p className="text-[9px] text-slate-400 font-medium italic text-center">Open in new tab to download or comment.</p>
+                        <p className="text-[9px] text-slate-400 font-medium italic text-center">
+                          Open in new tab to download or comment.
+                        </p>
                       </div>
                     ) : (
                       <div className="border border-dashed border-slate-350 p-4 rounded-xl text-center bg-white">
@@ -1815,7 +2426,9 @@ export default function CommunicationsPage() {
 
                   {detailContext === 'incoming' && isOdimo && !selectedComm.recipientRefNums?.[receivingKey] && (
                     <div className="pt-4 border-t space-y-2">
-                      <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">Incoming Receipt</h5>
+                      <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">
+                        Incoming Receipt
+                      </h5>
                       <Button
                         onClick={() => {
                           handleOpenReceiveDialog(selectedComm);
@@ -1829,7 +2442,9 @@ export default function CommunicationsPage() {
 
                   {canManageComm(selectedComm) && (
                     <div className="pt-4 border-t space-y-2">
-                      <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">Manage Record</h5>
+                      <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-2">
+                        Manage Record
+                      </h5>
                       <div className="flex gap-2">
                         <Button
                           onClick={() => {
@@ -1867,7 +2482,9 @@ export default function CommunicationsPage() {
                       <ShieldAlert className="h-10 w-10 text-white/20 mx-auto stroke-[1.5]" />
                       <div>
                         <p className="text-xs font-black uppercase tracking-wider">No Document Preview Available</p>
-                        <p className="text-[10px] text-white/30 font-medium mt-1">This communication is logged as metadata-only.</p>
+                        <p className="text-[10px] text-white/30 font-medium mt-1">
+                          This communication is logged as metadata-only.
+                        </p>
                       </div>
                     </div>
                   )}
@@ -1917,13 +2534,16 @@ export default function CommunicationsPage() {
               <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Stamp & Receive Log
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-500 font-medium pt-2">
-              Provide the unique receiving reference number for this communication. This logs the document in your unit's incoming records.
+              Provide the unique receiving reference number for this communication. This logs the document in your
+              unit's incoming records.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleReceiveComm}>
             <div className="space-y-4 py-4">
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Origin's Ref No</label>
+                <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                  Origin's Ref No
+                </label>
                 <Input
                   value={commToReceive?.senderRefNum || 'N/A'}
                   disabled
@@ -1941,7 +2561,9 @@ export default function CommunicationsPage() {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider flex items-center justify-between">
                   <span>Receiving Reference Number</span>
-                  <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">(Auto-populated & editable)</span>
+                  <span className="text-[9px] text-indigo-600 font-bold lowercase tracking-normal italic">
+                    (Auto-populated & editable)
+                  </span>
                 </label>
                 <Input
                   placeholder="e.g. 2026-001"
@@ -1968,7 +2590,9 @@ export default function CommunicationsPage() {
                 className="bg-emerald-600 hover:bg-emerald-700 text-white h-10 text-xs font-bold uppercase tracking-wider rounded-xl flex-1 shadow-lg shadow-emerald-600/15"
               >
                 {isReceivingSubmitting ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Stamping...</>
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Stamping...
+                  </>
                 ) : (
                   'Stamp & Log'
                 )}
