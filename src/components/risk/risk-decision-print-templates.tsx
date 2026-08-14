@@ -774,3 +774,213 @@ export function OpportunityInnovationTemplate({
     </div>
   );
 }
+
+/* =========================================================================
+   6. UNIT RISK TREATMENT STATUS & ACTION REMINDER NOTICE (MEMORANDUM)
+   ========================================================================= */
+interface StatusReminderProps {
+  risks: Risk[];
+  unitName: string;
+  campusName: string;
+  year: number;
+  signatories?: Signatories;
+}
+
+export function RiskStatusReminderNoticeTemplate({
+  risks,
+  unitName,
+  campusName,
+  year,
+  signatories,
+}: StatusReminderProps) {
+  const today = new Date();
+  const activeRisks = risks.filter((r) => r.type === 'Risk');
+
+  const overdueRisks = activeRisks.filter((r) => {
+    if (r.status === 'Closed') return false;
+    if (!r.targetDate) return false;
+    const target = r.targetDate instanceof Timestamp ? r.targetDate.toDate() : new Date(r.targetDate);
+    return target < today;
+  });
+
+  const inProgressRisks = activeRisks.filter((r) => r.status === 'In Progress' && !overdueRisks.includes(r));
+  const openPendingRisks = activeRisks.filter((r) => r.status === 'Open' && !overdueRisks.includes(r));
+  const closedRisks = activeRisks.filter((r) => r.status === 'Closed');
+
+  const pendingCount = overdueRisks.length + inProgressRisks.length + openPendingRisks.length;
+
+  return (
+    <div
+      className="p-8 text-black bg-white max-w-[11.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
+      style={{ fontSize: '8.5pt' }}
+    >
+      {/* INSTITUTIONAL MEMORANDUM HEADER */}
+      <div className="border-b-2 border-black pb-3 mb-4 text-center">
+        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600">Republic of the Philippines</p>
+        <h1 className="text-base font-black uppercase tracking-tight">Romblon State University</h1>
+        <p className="text-[8pt] font-semibold text-slate-700">
+          Quality Assurance Office • Institutional Risk Monitoring Team
+        </p>
+        <div className="mt-2 py-1.5 bg-rose-900 text-white rounded font-black text-xs uppercase tracking-wider">
+          Official Memorandum: Risk Treatment Plan Status & Action Reminder Notice
+        </div>
+      </div>
+
+      {/* MEMORANDUM DETAILS */}
+      <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-slate-300 text-[8.5pt] mb-4">
+        <div className="space-y-1">
+          <div>
+            <span className="font-bold text-slate-600 uppercase">TO:</span>{' '}
+            <strong className="uppercase text-slate-900">
+              {unitName} ({campusName})
+            </strong>
+          </div>
+          <div>
+            <span className="font-bold text-slate-600 uppercase">ATTENTION:</span>{' '}
+            <strong className="text-slate-900">Unit Head, QMS Focal Persons & Risk Leads</strong>
+          </div>
+        </div>
+        <div className="space-y-1 sm:text-right">
+          <div>
+            <span className="font-bold text-slate-600 uppercase">DATE ISSUED:</span>{' '}
+            <strong className="text-slate-900">{format(new Date(), 'MMMM dd, yyyy')}</strong>
+          </div>
+          <div>
+            <span className="font-bold text-slate-600 uppercase">MONITORING YEAR:</span>{' '}
+            <strong className="text-slate-900">Fiscal Year {year}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* SUMMARY STATUS METRIC CARDS */}
+      <div className="grid grid-cols-4 gap-3 mb-4 text-center">
+        <div className="border border-slate-300 p-2 rounded bg-slate-100/70">
+          <p className="text-[7pt] font-black uppercase text-slate-500">Total Unit Risks</p>
+          <p className="text-xl font-black text-slate-900">{activeRisks.length}</p>
+          <p className="text-[7pt] text-slate-600 font-bold">{pendingCount} Action Required</p>
+        </div>
+        <div className="border border-rose-300 p-2 rounded bg-rose-50">
+          <p className="text-[7pt] font-black uppercase text-rose-700">Overdue Treatments</p>
+          <p className="text-xl font-black text-rose-700">{overdueRisks.length}</p>
+          <p className="text-[7pt] text-rose-600 font-bold">Past Committed Deadline</p>
+        </div>
+        <div className="border border-amber-300 p-2 rounded bg-amber-50">
+          <p className="text-[7pt] font-black uppercase text-amber-700">In Progress / Pending</p>
+          <p className="text-xl font-black text-amber-700">{inProgressRisks.length + openPendingRisks.length}</p>
+          <p className="text-[7pt] text-amber-600 font-bold">Active Implementation</p>
+        </div>
+        <div className="border border-emerald-300 p-2 rounded bg-emerald-50">
+          <p className="text-[7pt] font-black uppercase text-emerald-700">Closed / Completed</p>
+          <p className="text-xl font-black text-emerald-700">{closedRisks.length}</p>
+          <p className="text-[7pt] text-emerald-600 font-bold">Verified Controls</p>
+        </div>
+      </div>
+
+      {/* DIRECTIVE STATEMENT */}
+      <div className="border-l-4 border-rose-600 bg-rose-50/50 p-2.5 rounded-r text-[8pt] mb-4 text-slate-800">
+        <p className="font-bold text-rose-900 mb-0.5">COMPLIANCE DIRECTIVE:</p>
+        <p className="leading-snug">
+          Pursuant to RSU QMS & ISO 21001:2018 requirements, all operational units are instructed to expedite pending
+          risk treatment actions, record progress in the digital register, and upload signed verification evidence (Form
+          QAO-00-027) prior to the upcoming Internal Quality Audit.
+        </p>
+      </div>
+
+      {/* DETAILED ACTION ITEMS TABLE */}
+      <h3 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 border-b border-slate-300 pb-1">
+        Unit Risk Treatment Action Inventory & Current Status
+      </h3>
+      <table className="w-full border-collapse border border-slate-400 text-[8pt] mb-6">
+        <thead>
+          <tr className="bg-slate-200 font-black text-slate-800 uppercase">
+            <th className="border border-slate-400 p-1.5 text-center w-[4%]">#</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[20%]">Objective & Risk Context</th>
+            <th className="border border-slate-400 p-1.5 text-center w-[8%]">Severity</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[28%]">Committed Mitigation Strategy</th>
+            <th className="border border-slate-400 p-1.5 text-left w-[16%]">Accountable Lead</th>
+            <th className="border border-slate-400 p-1.5 text-center w-[10%]">Target Date</th>
+            <th className="border border-slate-400 p-1.5 text-center w-[14%]">Current Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {activeRisks.map((r, i) => {
+            const isOverdue = overdueRisks.includes(r);
+            const isClosed = r.status === 'Closed';
+
+            return (
+              <tr
+                key={r.id || i}
+                className={
+                  isOverdue
+                    ? 'bg-rose-50/60 font-medium'
+                    : isClosed
+                      ? 'bg-emerald-50/20'
+                      : i % 2 === 0
+                        ? 'bg-white'
+                        : 'bg-slate-50'
+                }
+              >
+                <td className="border border-slate-300 p-1.5 text-center font-bold">{i + 1}</td>
+                <td className="border border-slate-300 p-1.5 align-top">
+                  <p className="font-bold text-slate-900">{r.objective}</p>
+                  <p className="text-[7.5pt] text-slate-600 line-clamp-2">{r.description}</p>
+                </td>
+                <td
+                  className="border border-slate-300 p-1.5 text-center align-top font-bold"
+                  style={{ color: getRatingColor(r.preTreatment?.rating) }}
+                >
+                  {r.preTreatment?.rating || '—'}
+                </td>
+                <td className="border border-slate-300 p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
+                <td className="border border-slate-300 p-1.5 align-top font-bold text-slate-900">
+                  {r.responsiblePersonName || 'Unit Focal Person'}
+                </td>
+                <td className="border border-slate-300 p-1.5 text-center align-top font-mono font-bold">
+                  {safeFormatDate(r.targetDate)}
+                </td>
+                <td className="border border-slate-300 p-1.5 text-center align-top font-bold">
+                  {isOverdue ? (
+                    <span className="inline-block px-2 py-0.5 rounded text-[7.5pt] font-black bg-rose-200 text-rose-900 border border-rose-300 shadow-2xs">
+                      ⚠️ OVERDUE
+                    </span>
+                  ) : isClosed ? (
+                    <span className="inline-block px-2 py-0.5 rounded text-[7.5pt] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      ✓ CLOSED
+                    </span>
+                  ) : r.status === 'In Progress' ? (
+                    <span className="inline-block px-2 py-0.5 rounded text-[7.5pt] font-black bg-amber-100 text-amber-800 border border-amber-200">
+                      ⏳ IN PROGRESS
+                    </span>
+                  ) : (
+                    <span className="inline-block px-2 py-0.5 rounded text-[7.5pt] font-black bg-slate-200 text-slate-800 border border-slate-300">
+                      OPEN PENDING
+                    </span>
+                  )}
+                  {r.remindersSent ? (
+                    <p className="text-[6.5pt] text-slate-500 font-normal mt-0.5">Notice #{r.remindersSent}</p>
+                  ) : null}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* SIGNATORIES */}
+      <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
+        <div>
+          <p className="font-bold text-slate-600 mb-5">Issued by Quality Assurance Office:</p>
+          <div className="border-b border-black w-48 mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qmsHead || 'QMS Lead Officer'}</p>
+          <p className="text-[7.5pt] text-slate-500">Quality Management System Division</p>
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-slate-600 mb-5">Noted & Endorsed by Director:</p>
+          <div className="border-b border-black w-48 ml-auto mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qaoDirector || 'Director, Quality Assurance'}</p>
+          <p className="text-[7.5pt] text-slate-500">Director, Quality Assurance Office</p>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -24,6 +24,10 @@ import {
   SlidersHorizontal,
   ChevronRight,
   Eye,
+  School,
+  Building,
+  BellRing,
+  Filter,
 } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RORPrintTemplate } from '@/components/risk/ror-print-template';
@@ -33,12 +37,14 @@ import {
   RiskAccountabilityTrackerTemplate,
   RiskEffectivenessAuditTemplate,
   OpportunityInnovationTemplate,
+  RiskStatusReminderNoticeTemplate,
 } from '@/components/risk/risk-decision-print-templates';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export type DecisionReportType =
   | 'ror-standard'
+  | 'status-reminder'
   | 'executive-briefing'
   | 'resource-allocation'
   | 'accountability-tracker'
@@ -52,6 +58,8 @@ interface RiskDecisionReportsDialogProps {
   selectedYear: number;
   unitMap: Map<string, string>;
   campusMap: Map<string, string>;
+  allCampuses?: Campus[];
+  allUnits?: Unit[];
   signatories?: Signatories;
   currentCycle?: 'first' | 'final';
 }
@@ -69,6 +77,18 @@ interface ReportOption {
 }
 
 const REPORT_OPTIONS: ReportOption[] = [
+  {
+    id: 'status-reminder',
+    title: 'Unit Risk Treatment Status & Action Reminder Notice',
+    category: 'Institutional Directive',
+    badge: 'Reminder Memorandum',
+    badgeColor: 'bg-rose-100 text-rose-900 border-rose-300',
+    description:
+      'Official memorandum to Unit and Campus heads detailing all pending and overdue risk treatments, compliance directives, and evidence submission instructions.',
+    icon: BellRing,
+    pageSize: '11.5in 8.5in',
+    orientation: 'landscape',
+  },
   {
     id: 'executive-briefing',
     title: 'Executive Risk Profile & Decision Briefing',
@@ -150,19 +170,58 @@ export function RiskDecisionReportsDialog({
   selectedYear,
   unitMap,
   campusMap,
+  allCampuses = [],
+  allUnits = [],
   signatories,
   currentCycle = 'final',
 }: RiskDecisionReportsDialogProps) {
-  const [selectedReportId, setSelectedReportId] = useState<DecisionReportType>('executive-briefing');
+  const [selectedReportId, setSelectedReportId] = useState<DecisionReportType>('status-reminder');
   const [cycle, setCycle] = useState<'first' | 'final'>(currentCycle);
+  const [selectedCampusScope, setSelectedCampusScope] = useState<string>('all');
   const [selectedUnitScope, setSelectedUnitScope] = useState<string>('all');
+  const [selectedStatusScope, setSelectedStatusScope] = useState<string>('all');
 
   const selectedReport = REPORT_OPTIONS.find((r) => r.id === selectedReportId) || REPORT_OPTIONS[0];
+
+  // Filter available units based on selected campus
+  const availableUnitsForCampus = useMemo(() => {
+    if (selectedCampusScope === 'all') return allUnits;
+    return allUnits.filter(
+      (u) => !u.campusIds || u.campusIds.length === 0 || u.campusIds.includes(selectedCampusScope),
+    );
+  }, [allUnits, selectedCampusScope]);
+
+  // Filter risks based on campus, status, and unit filters
+  const processedRisks = useMemo(() => {
+    const today = new Date();
+    return filteredRisks.filter((r) => {
+      // 1. Campus Site Filter
+      if (selectedCampusScope !== 'all' && r.campusId !== selectedCampusScope) {
+        return false;
+      }
+
+      // 2. Status Filter
+      if (selectedStatusScope !== 'all') {
+        if (selectedStatusScope === 'action-required') {
+          if (r.status === 'Closed') return false;
+        } else if (selectedStatusScope === 'overdue') {
+          if (r.status === 'Closed') return false;
+          if (!r.targetDate) return false;
+          const target = r.targetDate?.toDate ? r.targetDate.toDate() : new Date(r.targetDate);
+          if (isNaN(target.getTime()) || target >= today) return false;
+        } else if (r.status !== selectedStatusScope) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [filteredRisks, selectedCampusScope, selectedStatusScope]);
 
   // Group risks by unit
   const unitsInFilter = useMemo(() => {
     const map = new Map<string, Risk[]>();
-    filteredRisks.forEach((r) => {
+    processedRisks.forEach((r) => {
       if (!map.has(r.unitId)) map.set(r.unitId, []);
       map.get(r.unitId)!.push(r);
     });
@@ -172,7 +231,7 @@ export function RiskDecisionReportsDialog({
       campusName: campusMap.get(rList[0]?.campusId) || 'Institutional',
       risks: rList,
     }));
-  }, [filteredRisks, unitMap, campusMap]);
+  }, [processedRisks, unitMap, campusMap]);
 
   const targetUnitGroups = useMemo(() => {
     if (selectedUnitScope === 'all') return unitsInFilter;
@@ -188,6 +247,17 @@ export function RiskDecisionReportsDialog({
           let templateNode: React.ReactNode = null;
 
           switch (selectedReportId) {
+            case 'status-reminder':
+              templateNode = (
+                <RiskStatusReminderNoticeTemplate
+                  risks={uRisks}
+                  unitName={unitName}
+                  campusName={campusName}
+                  year={selectedYear}
+                  signatories={signatories}
+                />
+              );
+              break;
             case 'executive-briefing':
               templateNode = (
                 <ExecutiveRiskBriefingTemplate
@@ -353,34 +423,86 @@ export function RiskDecisionReportsDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* CONFIGURATION BAR */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200/60 dark:border-slate-800 text-xs">
+          {/* CONFIGURATION BAR (SITE/CAMPUS, UNIT, STATUS, CYCLE) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-800 text-xs">
+            {/* 1. CAMPUS / SITE SELECTION */}
             <div className="space-y-1.5">
-              <label className="font-bold uppercase text-[10px] text-muted-foreground">Scope / Unit Target</label>
-              <Select value={selectedUnitScope} onValueChange={setSelectedUnitScope}>
-                <SelectTrigger className="h-9 bg-white dark:bg-slate-900">
-                  <SelectValue placeholder="Select Scope" />
+              <label className="font-bold uppercase text-[10px] text-muted-foreground flex items-center gap-1">
+                <School className="h-3 w-3 text-primary" /> Campus / Site
+              </label>
+              <Select
+                value={selectedCampusScope}
+                onValueChange={(val) => {
+                  setSelectedCampusScope(val);
+                  setSelectedUnitScope('all');
+                }}
+              >
+                <SelectTrigger className="h-9 bg-white dark:bg-slate-900 font-medium">
+                  <SelectValue placeholder="All Campuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Filtered Units ({unitsInFilter.length} Units)</SelectItem>
-                  {unitsInFilter.map((u) => (
-                    <SelectItem key={u.unitId} value={u.unitId}>
-                      {u.unitName} ({u.risks.length} entries)
+                  <SelectItem value="all">All Campuses / University-Wide</SelectItem>
+                  {allCampuses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* 2. UNIT / DEPARTMENT SCOPE */}
             <div className="space-y-1.5">
-              <label className="font-bold uppercase text-[10px] text-muted-foreground">Monitoring Cycle</label>
+              <label className="font-bold uppercase text-[10px] text-muted-foreground flex items-center gap-1">
+                <Building className="h-3 w-3 text-primary" /> Unit / Department
+              </label>
+              <Select value={selectedUnitScope} onValueChange={setSelectedUnitScope}>
+                <SelectTrigger className="h-9 bg-white dark:bg-slate-900 font-medium">
+                  <SelectValue placeholder="All Units" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Filtered Units ({unitsInFilter.length} Units)</SelectItem>
+                  {unitsInFilter.map((u) => (
+                    <SelectItem key={u.unitId} value={u.unitId}>
+                      {u.unitName} ({u.risks.length} {u.risks.length === 1 ? 'entry' : 'entries'})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 3. STATUS FILTER */}
+            <div className="space-y-1.5">
+              <label className="font-bold uppercase text-[10px] text-muted-foreground flex items-center gap-1">
+                <Filter className="h-3 w-3 text-primary" /> Status Filter
+              </label>
+              <Select value={selectedStatusScope} onValueChange={setSelectedStatusScope}>
+                <SelectTrigger className="h-9 bg-white dark:bg-slate-900 font-bold">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses (Open, In Progress, Closed)</SelectItem>
+                  <SelectItem value="action-required">⚠️ Action Required (Open & In Progress)</SelectItem>
+                  <SelectItem value="overdue">🚨 Overdue Only (Past Deadline)</SelectItem>
+                  <SelectItem value="Open">Open Pending Only</SelectItem>
+                  <SelectItem value="In Progress">In Progress Only</SelectItem>
+                  <SelectItem value="Closed">Closed / Completed Only</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 4. MONITORING CYCLE */}
+            <div className="space-y-1.5">
+              <label className="font-bold uppercase text-[10px] text-muted-foreground flex items-center gap-1">
+                <Clock className="h-3 w-3 text-primary" /> Monitoring Cycle
+              </label>
               <Select value={cycle} onValueChange={(v) => setCycle(v as 'first' | 'final')}>
                 <SelectTrigger className="h-9 bg-white dark:bg-slate-900 font-bold">
                   <SelectValue placeholder="Cycle" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="first">First Cycle (Pre-Treatment Baseline)</SelectItem>
-                  <SelectItem value="final">Final Cycle (Post-Treatment Evaluation)</SelectItem>
+                  <SelectItem value="first">1st Cycle (Baseline)</SelectItem>
+                  <SelectItem value="final">Final Cycle (Evaluation)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

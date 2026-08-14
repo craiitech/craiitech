@@ -1023,6 +1023,8 @@ export default function RiskRegisterPage() {
         selectedYear={selectedYear}
         unitMap={unitMap}
         campusMap={campusMap}
+        allCampuses={allCampuses || []}
+        allUnits={allUnits || []}
         signatories={signatories || undefined}
         currentCycle={printCycle}
       />
