@@ -14,19 +14,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import {
   Calendar,
+  Camera,
   CheckCircle2,
   XCircle,
   Clock,
@@ -58,8 +51,9 @@ function UnitActivityScannerTerminal() {
   const [paramActivityId, setParamActivityId] = useState<string | null>(null);
   const [offlineLogs, setOfflineLogs] = useState<ActivityAttendanceLog[]>([]);
 
-  // Manual Attendee Entry Modal States
-  const [isManualDialogOpen, setIsManualDialogOpen] = useState(false);
+  // Console Display Mode & On-Screen Manual Attendee Entry States
+  const [activeConsoleTab, setActiveConsoleTab] = useState<'both' | 'camera' | 'manual'>('both');
+  const manualNameInputRef = useRef<HTMLInputElement>(null);
   const [manualName, setManualName] = useState('');
   const [manualContact, setManualContact] = useState('');
   const [manualSex, setManualSex] = useState('');
@@ -854,11 +848,11 @@ function UnitActivityScannerTerminal() {
                   status: 'LOGOUT',
                 },
               });
-              setIsManualDialogOpen(false);
               setManualName('');
               setManualContact('');
               setManualSex('');
               setManualUnit('');
+              setTimeout(() => manualNameInputRef.current?.focus(), 100);
               return;
             } catch (err) {
               console.warn('Online logout update failed, falling back to offline:', err);
@@ -884,11 +878,11 @@ function UnitActivityScannerTerminal() {
               status: 'LOGOUT (OFFLINE)',
             },
           });
-          setIsManualDialogOpen(false);
           setManualName('');
           setManualContact('');
           setManualSex('');
           setManualUnit('');
+          setTimeout(() => manualNameInputRef.current?.focus(), 100);
           return;
         } else if (requiresLogout && existingLogData.logoutAt) {
           showScanResult({
@@ -896,7 +890,7 @@ function UnitActivityScannerTerminal() {
             message: `${cleanName} has already completed login and logout for ${selectedSession.label}. Duplicate ignored.`,
             details: { name: cleanName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' },
           });
-          setIsManualDialogOpen(false);
+          setTimeout(() => manualNameInputRef.current?.focus(), 100);
           return;
         } else {
           showScanResult({
@@ -904,7 +898,7 @@ function UnitActivityScannerTerminal() {
             message: `${cleanName} has already signed in for ${selectedSession.label}. Duplicate ignored.`,
             details: { name: cleanName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' },
           });
-          setIsManualDialogOpen(false);
+          setTimeout(() => manualNameInputRef.current?.focus(), 100);
           return;
         }
       }
@@ -945,11 +939,11 @@ function UnitActivityScannerTerminal() {
                 logStatus === 'ON_TIME' ? 'LOGIN ON TIME' : logStatus === 'LATE' ? 'LOGIN LATE' : 'OUTSIDE WINDOW',
             },
           });
-          setIsManualDialogOpen(false);
           setManualName('');
           setManualContact('');
           setManualSex('');
           setManualUnit('');
+          setTimeout(() => manualNameInputRef.current?.focus(), 100);
           return;
         } catch (err: any) {
           console.warn('Online manual setDoc failed, saving offline:', err);
@@ -977,11 +971,11 @@ function UnitActivityScannerTerminal() {
                 : 'OUTSIDE WINDOW (OFFLINE)',
         },
       });
-      setIsManualDialogOpen(false);
       setManualName('');
       setManualContact('');
       setManualSex('');
       setManualUnit('');
+      setTimeout(() => manualNameInputRef.current?.focus(), 100);
     } catch (err: any) {
       console.error(err);
       setManualError(err.message || 'Failed to record attendance.');
@@ -1259,13 +1253,13 @@ function UnitActivityScannerTerminal() {
             </div>
             <button
               onClick={() => {
-                setIsManualDialogOpen(true);
-                setManualError('');
+                setActiveConsoleTab((prev) => (prev === 'camera' ? 'both' : prev));
+                setTimeout(() => manualNameInputRef.current?.focus(), 100);
               }}
               className="inline-flex items-center gap-1 text-[7.5px] font-black uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-0.5 rounded-full transition-all shadow-sm"
             >
               <PenLine className="h-3 w-3" />
-              Manual Sign-In
+              Manual Entry
             </button>
             <button
               onClick={toggleFullscreen}
@@ -1382,8 +1376,8 @@ function UnitActivityScannerTerminal() {
                     </p>
                     <button
                       onClick={() => {
-                        setIsManualDialogOpen(true);
-                        setManualError('');
+                        setActiveConsoleTab((prev) => (prev === 'camera' ? 'both' : prev));
+                        setTimeout(() => manualNameInputRef.current?.focus(), 100);
                       }}
                       className="text-[8px] sm:text-[9px] text-[#D4AF37] hover:text-white uppercase tracking-widest font-black px-3 py-1 rounded-full flex items-center gap-1 transition-all cursor-pointer"
                       style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)' }}
@@ -1694,138 +1688,194 @@ function UnitActivityScannerTerminal() {
 
         {/* ==================== RIGHT COLUMN: SCANNER & CONTROLS ==================== */}
         <section
-          className="w-[280px] shrink-0 flex flex-col p-4 gap-3 overflow-hidden animate-in slide-in-from-right duration-300"
+          className="w-[360px] xl:w-[420px] shrink-0 flex flex-col p-3.5 gap-3 overflow-y-auto custom-scrollbar animate-in slide-in-from-right duration-300"
           style={{
             borderLeft: '1px solid rgba(255,255,255,0.10)',
-            background: 'rgba(0,0,0,0.20)',
+            background: 'rgba(0,0,0,0.25)',
             backdropFilter: 'blur(24px)',
             WebkitBackdropFilter: 'blur(24px)',
           }}
         >
-          {/* ---- COMPACT SCANNER CARD ---- */}
-          <div className="flex flex-col gap-2 items-center">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest self-start">
-              Scan Camera Viewport
-            </span>
-            <div
-              className="relative w-60 h-60 rounded-2xl overflow-hidden flex items-center justify-center"
-              style={{
-                background: 'rgba(0,0,0,0.60)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+          {/* CONSOLE MODE SELECTOR */}
+          <div
+            className="flex items-center p-1 rounded-xl shrink-0"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            <button
+              type="button"
+              onClick={() => setActiveConsoleTab('both')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-[8px] sm:text-[8.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${
+                activeConsoleTab === 'both'
+                  ? 'bg-gradient-to-r from-[#1B6535] to-emerald-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Sparkles className="h-3 w-3" /> Split (Both)
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveConsoleTab('camera')}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-[8px] sm:text-[8.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${
+                activeConsoleTab === 'camera'
+                  ? 'bg-gradient-to-r from-[#1B6535] to-emerald-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <QrCode className="h-3 w-3" /> Camera QR
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveConsoleTab('manual');
+                setTimeout(() => manualNameInputRef.current?.focus(), 100);
               }}
+              className={`flex-1 py-1.5 px-2 rounded-lg text-[8px] sm:text-[8.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${
+                activeConsoleTab === 'manual'
+                  ? 'bg-gradient-to-r from-[#1B6535] to-emerald-600 text-white shadow-md'
+                  : 'text-slate-400 hover:text-white'
+              }`}
             >
-              {/* Camera Mount */}
-              <div ref={readerBgRef} id="reader-bg" className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }} />
-
-              {/* Reticle */}
-              {scannerActive &&
-                (() => {
-                  const hasResult = scanResult.status === 'success' || scanResult.status === 'warning';
-                  const colorClass = hasResult ? 'border-emerald-400' : 'border-rose-500';
-                  const sweepBg = hasResult
-                    ? 'linear-gradient(to right, transparent, #34d399, #6ee7b7, #34d399, transparent)'
-                    : 'linear-gradient(to right, transparent, #f43f5e, #fda4af, #f43f5e, transparent)';
-                  const sweepShadow = hasResult
-                    ? '0 0 8px 2px rgba(52,211,153,0.5)'
-                    : '0 0 8px 2px rgba(244,63,94,0.5)';
-                  const dotColor = hasResult
-                    ? 'bg-emerald-400/90 shadow-[0_0_8px_3px_rgba(52,211,153,0.8)]'
-                    : 'bg-rose-500/90 shadow-[0_0_8px_3px_rgba(244,63,94,0.8)]';
-                  return (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-                      <div className="relative" style={{ width: '75%', height: '75%' }}>
-                        <div
-                          className={`absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 rounded-tl-md ${colorClass}`}
-                        />
-                        <div
-                          className={`absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 rounded-tr-md ${colorClass}`}
-                        />
-                        <div
-                          className={`absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 rounded-bl-md ${colorClass}`}
-                        />
-                        <div
-                          className={`absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 rounded-br-md ${colorClass}`}
-                        />
-                        <div
-                          className="absolute left-2 right-2"
-                          style={{
-                            height: 2,
-                            background: sweepBg,
-                            animation: 'scanSweep 2s ease-in-out infinite',
-                            top: '50%',
-                            boxShadow: sweepShadow,
-                          }}
-                        />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-              <div className="absolute inset-0 pointer-events-none z-0" style={{ background: 'rgba(15,23,42,0.15)' }} />
-            </div>
-
-            {/* Status label */}
-            <div
-              className="text-center px-3 py-1.5 rounded-xl w-full"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}
-            >
-              <span
-                className={`text-[8px] font-black uppercase tracking-wider ${
-                  scanResult.status === 'success' || scanResult.status === 'warning'
-                    ? 'text-emerald-300'
-                    : scanResult.status === 'error'
-                      ? 'text-rose-300'
-                      : 'text-rose-300/80'
-                }`}
-              >
-                {scanResult.status === 'success'
-                  ? '✓ Logged'
-                  : scanResult.status === 'warning'
-                    ? '⚠ Logged (Warning)'
-                    : scanResult.status === 'error'
-                      ? '✗ Rejected'
-                      : '⚠ Align QR Code in Box'}
-              </span>
-              <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
-                {scanResult.status === 'none' ? 'Hold device steady & center QR' : 'Ready for next scan'}
-              </p>
-            </div>
-
-            {/* Zoom slider */}
-            {scannerActive && supportsZoom && (
-              <div
-                className="flex items-center gap-2 rounded-xl px-3 py-1 w-full"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}
-              >
-                <ZoomOut
-                  className="h-3 w-3 text-slate-400 shrink-0 cursor-pointer"
-                  onClick={() => handleZoomChange(Math.max(1, zoomLevel - 0.5))}
-                />
-                <input
-                  type="range"
-                  min={1}
-                  max={5}
-                  step={0.1}
-                  value={zoomLevel}
-                  onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
-                  className="flex-1 h-0.5 accent-emerald-400"
-                />
-                <ZoomIn
-                  className="h-3 w-3 text-slate-400 shrink-0 cursor-pointer"
-                  onClick={() => handleZoomChange(Math.min(5, zoomLevel + 0.5))}
-                />
-                <span className="text-[7.5px] font-black text-emerald-400 w-6 text-right shrink-0">
-                  {zoomLevel.toFixed(1)}×
-                </span>
-              </div>
-            )}
+              <PenLine className="h-3 w-3" /> Manual Entry
+            </button>
           </div>
 
-          {/* ---- ATTENDANCE OTP CARD ---- */}
-          {activeActivity && activeCode && (
+          {/* SECTION 1: LIVE QR CAMERA VIEWPORT (Shown in 'both' and 'camera' modes) */}
+          {(activeConsoleTab === 'both' || activeConsoleTab === 'camera') && (
+            <div className="flex flex-col gap-2 items-center">
+              <div className="flex items-center justify-between w-full px-1">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                  <Camera className="h-3 w-3 text-emerald-400" /> Live QR Camera Viewport
+                </span>
+                <span className="text-[7.5px] font-black text-emerald-300 uppercase tracking-wider">Active</span>
+              </div>
+              <div
+                className={`relative ${activeConsoleTab === 'both' ? 'w-48 h-48 sm:w-52 sm:h-52' : 'w-64 h-64'} rounded-2xl overflow-hidden flex items-center justify-center transition-all`}
+                style={{
+                  background: 'rgba(0,0,0,0.60)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06)',
+                }}
+              >
+                {/* Camera Mount */}
+                <div
+                  ref={readerBgRef}
+                  id="reader-bg"
+                  className="absolute inset-0 w-full h-full"
+                  style={{ zIndex: 0 }}
+                />
+
+                {/* Reticle */}
+                {scannerActive &&
+                  (() => {
+                    const hasResult = scanResult.status === 'success' || scanResult.status === 'warning';
+                    const colorClass = hasResult ? 'border-emerald-400' : 'border-rose-500';
+                    const sweepBg = hasResult
+                      ? 'linear-gradient(to right, transparent, #34d399, #6ee7b7, #34d399, transparent)'
+                      : 'linear-gradient(to right, transparent, #f43f5e, #fda4af, #f43f5e, transparent)';
+                    const sweepShadow = hasResult
+                      ? '0 0 8px 2px rgba(52,211,153,0.5)'
+                      : '0 0 8px 2px rgba(244,63,94,0.5)';
+                    const dotColor = hasResult
+                      ? 'bg-emerald-400/90 shadow-[0_0_8px_3px_rgba(52,211,153,0.8)]'
+                      : 'bg-rose-500/90 shadow-[0_0_8px_3px_rgba(244,63,94,0.8)]';
+                    return (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div className="relative" style={{ width: '75%', height: '75%' }}>
+                          <div
+                            className={`absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 rounded-tl-md ${colorClass}`}
+                          />
+                          <div
+                            className={`absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 rounded-tr-md ${colorClass}`}
+                          />
+                          <div
+                            className={`absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 rounded-bl-md ${colorClass}`}
+                          />
+                          <div
+                            className={`absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 rounded-br-md ${colorClass}`}
+                          />
+                          <div
+                            className="absolute left-2 right-2"
+                            style={{
+                              height: 2,
+                              background: sweepBg,
+                              animation: 'scanSweep 2s ease-in-out infinite',
+                              top: '50%',
+                              boxShadow: sweepShadow,
+                            }}
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                <div
+                  className="absolute inset-0 pointer-events-none z-0"
+                  style={{ background: 'rgba(15,23,42,0.15)' }}
+                />
+              </div>
+
+              {/* Status label */}
+              <div
+                className="text-center px-3 py-1.5 rounded-xl w-full"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}
+              >
+                <span
+                  className={`text-[8px] font-black uppercase tracking-wider ${
+                    scanResult.status === 'success' || scanResult.status === 'warning'
+                      ? 'text-emerald-300'
+                      : scanResult.status === 'error'
+                        ? 'text-rose-300'
+                        : 'text-rose-300/80'
+                  }`}
+                >
+                  {scanResult.status === 'success'
+                    ? '✓ Logged'
+                    : scanResult.status === 'warning'
+                      ? '⚠ Logged (Warning)'
+                      : scanResult.status === 'error'
+                        ? '✗ Rejected'
+                        : '⚠ Align QR Code in Box'}
+                </span>
+                <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                  {scanResult.status === 'none' ? 'Hold device steady & center QR' : 'Ready for next scan'}
+                </p>
+              </div>
+
+              {/* Zoom slider */}
+              {scannerActive && supportsZoom && (
+                <div
+                  className="flex items-center gap-2 rounded-xl px-3 py-1 w-full"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}
+                >
+                  <ZoomOut
+                    className="h-3 w-3 text-slate-400 shrink-0 cursor-pointer"
+                    onClick={() => handleZoomChange(Math.max(1, zoomLevel - 0.5))}
+                  />
+                  <input
+                    type="range"
+                    min={1}
+                    max={5}
+                    step={0.1}
+                    value={zoomLevel}
+                    onChange={(e) => handleZoomChange(parseFloat(e.target.value))}
+                    className="flex-1 h-0.5 accent-emerald-400"
+                  />
+                  <ZoomIn
+                    className="h-3 w-3 text-slate-400 shrink-0 cursor-pointer"
+                    onClick={() => handleZoomChange(Math.min(5, zoomLevel + 0.5))}
+                  />
+                  <span className="text-[7.5px] font-black text-emerald-400 w-6 text-right shrink-0">
+                    {zoomLevel.toFixed(1)}×
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* SECTION 2: ATTENDANCE OTP CARD (Shown in 'camera' mode or if code is active) */}
+          {activeConsoleTab === 'camera' && activeActivity && activeCode && (
             <div
               className="p-3 rounded-2xl flex flex-col gap-2 relative overflow-hidden shrink-0"
               style={{
@@ -1863,8 +1913,122 @@ function UnitActivityScannerTerminal() {
             </div>
           )}
 
+          {/* SECTION 3: DIRECT ON-SCREEN MANUAL DATA ENTRY FORM (Shown in 'both' and 'manual' modes) */}
+          {(activeConsoleTab === 'both' || activeConsoleTab === 'manual') && (
+            <div
+              className="p-3.5 rounded-2xl flex flex-col gap-2.5 relative overflow-hidden shrink-0 animate-in fade-in duration-200"
+              style={{
+                background: 'rgba(255,255,255,0.05)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.08)',
+              }}
+            >
+              <div
+                className="flex items-center justify-between pb-1.5 border-b"
+                style={{ borderColor: 'rgba(255,255,255,0.10)' }}
+              >
+                <span className="text-[8.5px] font-black text-[#D4AF37] uppercase tracking-widest flex items-center gap-1.5">
+                  <PenLine className="h-3 w-3 text-[#D4AF37]" /> Manual Attendee Sign-In
+                </span>
+                <span className="text-[7px] font-bold text-emerald-400 uppercase tracking-wider bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+                  Direct Form
+                </span>
+              </div>
+
+              {manualError && (
+                <div className="p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[9px] font-bold flex items-center gap-1.5">
+                  <ShieldAlert className="h-3 w-3 shrink-0" />
+                  <span>{manualError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleManualLogSubmit} className="space-y-2.5">
+                {/* Full Name */}
+                <div className="space-y-1">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider pl-0.5 flex items-center gap-1">
+                    <User className="h-2.5 w-2.5 text-[#D4AF37]" /> Full Name <span className="text-rose-400">*</span>
+                  </label>
+                  <Input
+                    ref={manualNameInputRef}
+                    placeholder="e.g. Dr. Juan Dela Cruz"
+                    value={manualName}
+                    onChange={(e) => setManualName(e.target.value)}
+                    className="bg-slate-950/80 border-slate-700/80 text-[11px] font-bold text-white h-8 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
+                    disabled={manualSubmitting}
+                    required
+                  />
+                </div>
+
+                {/* Mobile & Sex Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider pl-0.5 flex items-center gap-1">
+                      <Phone className="h-2.5 w-2.5 text-[#D4AF37]" /> Mobile Number{' '}
+                      <span className="text-rose-400">*</span>
+                    </label>
+                    <Input
+                      placeholder="09123456789"
+                      value={manualContact}
+                      onChange={(e) => setManualContact(e.target.value)}
+                      className="bg-slate-950/80 border-slate-700/80 text-[11px] font-bold text-white h-8 rounded-xl font-mono focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
+                      disabled={manualSubmitting}
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider pl-0.5 flex items-center gap-1">
+                      <Users className="h-2.5 w-2.5 text-[#D4AF37]" /> Sex <span className="text-rose-400">*</span>
+                    </label>
+                    <Select value={manualSex} onValueChange={setManualSex} disabled={manualSubmitting}>
+                      <SelectTrigger className="bg-slate-950/80 border-slate-700/80 text-[10.5px] font-bold text-white h-8 rounded-xl">
+                        <SelectValue placeholder="Select Sex" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-slate-800 text-white text-xs font-semibold">
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Office / Unit */}
+                <div className="space-y-1">
+                  <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider pl-0.5 flex items-center gap-1">
+                    <Building2 className="h-2.5 w-2.5 text-[#D4AF37]" /> Office / Department / Unit
+                  </label>
+                  <Input
+                    placeholder="e.g. College of Engineering / Guest"
+                    value={manualUnit}
+                    onChange={(e) => setManualUnit(e.target.value)}
+                    className="bg-slate-950/80 border-slate-700/80 text-[11px] font-bold text-white h-8 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
+                    disabled={manualSubmitting}
+                  />
+                </div>
+
+                {/* Submit button */}
+                <Button
+                  type="submit"
+                  disabled={manualSubmitting || !manualName.trim() || !manualContact.trim() || !manualSex}
+                  className="w-full h-8.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-xl shadow-lg border-none active:scale-95 transition-all mt-1"
+                >
+                  {manualSubmitting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> Registering...
+                    </>
+                  ) : (
+                    <>
+                      <ClipboardCheck className="h-3.5 w-3.5 mr-1.5" /> Log Attendance (Save)
+                    </>
+                  )}
+                </Button>
+              </form>
+            </div>
+          )}
+
           {/* Footer brand label */}
-          <div className="mt-auto pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="mt-auto pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <p className="text-[7px] font-black uppercase tracking-widest text-slate-500 text-center leading-none">
               RSU EOMS &bull; CRAIITech
             </p>
@@ -2007,132 +2171,6 @@ function UnitActivityScannerTerminal() {
           display: none !important;
         }
       `}</style>
-
-      {/* ================================================================== */}
-      {/* MANUAL ATTENDEE ENTRY DIALOG (Walk-in sign-in)                      */}
-      {/* ================================================================== */}
-      <Dialog open={isManualDialogOpen} onOpenChange={setIsManualDialogOpen}>
-        <DialogContent className="bg-slate-900 border border-slate-700 text-white max-w-md p-6 rounded-2xl shadow-2xl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-black uppercase tracking-tight text-white flex items-center gap-2">
-              <PenLine className="h-5 w-5 text-[#D4AF37]" />
-              Walk-In / Manual Attendee Sign-In
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400 font-medium">
-              Enter the attendee&apos;s name and mobile number, and select their sex to log attendance.
-            </DialogDescription>
-          </DialogHeader>
-
-          {manualError && (
-            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-bold flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 shrink-0" />
-              <span>{manualError}</span>
-            </div>
-          )}
-
-          {activeActivity && (
-            <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between text-xs">
-              <div>
-                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest block">
-                  Activity &amp; Session
-                </span>
-                <span className="font-bold text-[#D4AF37] truncate block max-w-[260px]">{activeActivity.name}</span>
-              </div>
-              <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-black uppercase">
-                {selectedSession?.label || 'General'}
-              </Badge>
-            </div>
-          )}
-
-          <form onSubmit={handleManualLogSubmit} className="space-y-4 pt-1">
-            <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
-                <User className="h-3 w-3 text-[#D4AF37]" /> Full Name <span className="text-rose-400">*</span>
-              </label>
-              <Input
-                placeholder="e.g. Dr. Juan Dela Cruz"
-                value={manualName}
-                onChange={(e) => setManualName(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-xs font-bold text-white h-10 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
-                disabled={manualSubmitting}
-                required
-                autoFocus
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
-                  <Phone className="h-3 w-3 text-[#D4AF37]" /> Mobile Number <span className="text-rose-400">*</span>
-                </label>
-                <Input
-                  placeholder="09123456789"
-                  value={manualContact}
-                  onChange={(e) => setManualContact(e.target.value)}
-                  className="bg-slate-950 border-slate-800 text-xs font-bold text-white h-10 rounded-xl font-mono focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
-                  disabled={manualSubmitting}
-                  required
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
-                  <Users className="h-3 w-3 text-[#D4AF37]" /> Sex <span className="text-rose-400">*</span>
-                </label>
-                <Select value={manualSex} onValueChange={setManualSex} disabled={manualSubmitting}>
-                  <SelectTrigger className="bg-slate-950 border-slate-800 text-xs font-bold text-white h-10 rounded-xl">
-                    <SelectValue placeholder="Select Sex" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-800 text-white text-xs font-semibold">
-                    <SelectItem value="Male">Male</SelectItem>
-                    <SelectItem value="Female">Female</SelectItem>
-                    <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
-                <Building2 className="h-3 w-3 text-[#D4AF37]" /> Office / Department / Unit
-              </label>
-              <Input
-                placeholder="e.g. College of Engineering / Guest"
-                value={manualUnit}
-                onChange={(e) => setManualUnit(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-xs font-bold text-white h-10 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50"
-                disabled={manualSubmitting}
-              />
-            </div>
-
-            <DialogFooter className="pt-2 gap-2 flex sm:justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsManualDialogOpen(false)}
-                className="border-slate-700 hover:bg-slate-800 text-white text-xs font-bold h-10 rounded-xl"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={manualSubmitting || !manualName.trim() || !manualContact.trim() || !manualSex}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 dark:text-white text-xs font-black uppercase tracking-wider h-10 rounded-xl border-none shadow-lg"
-              >
-                {manualSubmitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" /> Logging...
-                  </>
-                ) : (
-                  <>
-                    <ClipboardCheck className="h-4 w-4 mr-2" /> Log Attendance
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
