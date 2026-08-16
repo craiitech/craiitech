@@ -215,6 +215,42 @@ function getNextCarNumber(
   return `${prefix}-${yr}-${next}`;
 }
 
+/**
+ * Resolves the 4-digit year of a CAR by inspecting carNumber, requestDate, or createdAt.
+ */
+export function getCarYear(car: Partial<CorrectiveActionRequest>): number | null {
+  if (car.carNumber) {
+    const match = car.carNumber.match(/\b(20\d{2})\b/);
+    if (match) {
+      const parsed = parseInt(match[1], 10);
+      if (!isNaN(parsed) && parsed >= 2000 && parsed <= 2100) return parsed;
+    }
+  }
+  if (car.requestDate) {
+    const d = (car.requestDate as any)?.toDate
+      ? (car.requestDate as any).toDate()
+      : typeof car.requestDate === 'string'
+        ? new Date(car.requestDate)
+        : null;
+    if (d && !isNaN(d.getTime())) {
+      const yr = d.getFullYear();
+      if (yr >= 2000 && yr <= 2100) return yr;
+    }
+  }
+  if (car.createdAt) {
+    const d = (car.createdAt as any)?.toDate
+      ? (car.createdAt as any).toDate()
+      : typeof car.createdAt === 'string'
+        ? new Date(car.createdAt)
+        : null;
+    if (d && !isNaN(d.getTime())) {
+      const yr = d.getFullYear();
+      if (yr >= 2000 && yr <= 2100) return yr;
+    }
+  }
+  return null;
+}
+
 export function CorrectiveActionRequestTab({
   campuses,
   units,
@@ -238,6 +274,7 @@ export function CorrectiveActionRequestTab({
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState('all');
+  const [yearFilter, setYearFilter] = useState('all');
   const [notifyingCarId, setNotifyingCarId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'IQA' | 'EQA'>('IQA');
 
@@ -319,6 +356,19 @@ export function CorrectiveActionRequestTab({
 
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
+
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear; y >= currentYear - 5; y--) {
+      years.add(y);
+    }
+    (rawCars || []).forEach((car) => {
+      const yr = getCarYear(car);
+      if (yr) years.add(yr);
+    });
+    return Array.from(years).sort((a, b) => b - a);
+  }, [rawCars]);
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: currentSignatories } = useDoc<Signatories>(signatoryRef);
@@ -496,6 +546,11 @@ export function CorrectiveActionRequestTab({
         }
       }
 
+      if (yearFilter !== 'all') {
+        const carYear = getCarYear(car);
+        if (carYear !== Number(yearFilter)) return false;
+      }
+
       const matchesCampus =
         campusFilter === 'all' ||
         car.campusId === campusFilter ||
@@ -506,7 +561,17 @@ export function CorrectiveActionRequestTab({
         unitMap.get(car.unitId)?.toLowerCase().includes(lowerSearch);
       return matchesCampus && matchesSearch;
     });
-  }, [rawCars, campusFilter, searchTerm, unitMap, isInstitutionalViewer, userRole, userProfile, effectiveTypeFilter]);
+  }, [
+    rawCars,
+    campusFilter,
+    yearFilter,
+    searchTerm,
+    unitMap,
+    isInstitutionalViewer,
+    userRole,
+    userProfile,
+    effectiveTypeFilter,
+  ]);
 
   const carsForAction = useMemo(() => {
     return filteredCars.filter((car) => car.status !== 'Open' && car.status !== 'Closed');
@@ -525,16 +590,34 @@ export function CorrectiveActionRequestTab({
   }, [filteredCars]);
 
   const yearlyPerformance = useMemo(() => {
-    if (!filteredCars) return [];
+    if (!rawCars) return [];
     const stats: Record<number, { year: number; NC: number; Open: number; 'On-Going': number; Closed: number }> = {};
-    filteredCars.forEach((car) => {
-      const year = parseInt(car.carNumber?.substring(0, 4), 10);
-      const validYear =
-        !isNaN(year) && year >= 2000 && year <= 2100
-          ? year
-          : car.createdAt?.toDate
-            ? car.createdAt.toDate().getFullYear()
-            : new Date().getFullYear();
+    rawCars.forEach((car) => {
+      if (effectiveTypeFilter === 'EQA' && car.auditType !== 'EQA') return;
+      if (effectiveTypeFilter === 'IQA' && car.auditType === 'EQA') return;
+      if (!isInstitutionalViewer) {
+        const isCampusSupervisor =
+          userRole === 'Campus Director' ||
+          userRole === 'Campus ODIMO' ||
+          userRole?.toLowerCase().includes('vice president');
+        if (isCampusSupervisor) {
+          const campusAccess = car.campusId === userProfile?.campusId;
+          const campusInAssignments = (car.assignedUnits || []).some((a) => a.campusId === userProfile?.campusId);
+          if (!campusAccess && !campusInAssignments) return;
+        } else {
+          const unitOwn = car.unitId === userProfile?.unitId;
+          const unitInAssignments = (car.assignedUnits || []).some((a) => a.unitId === userProfile?.unitId);
+          if (!unitOwn && !unitInAssignments) return;
+        }
+      }
+      if (
+        campusFilter !== 'all' &&
+        car.campusId !== campusFilter &&
+        !(car.assignedUnits || []).some((a) => a.campusId === campusFilter)
+      ) {
+        return;
+      }
+      const validYear = getCarYear(car) || new Date().getFullYear();
       if (!stats[validYear]) stats[validYear] = { year: validYear, NC: 0, Open: 0, 'On-Going': 0, Closed: 0 };
       stats[validYear].NC++;
       if (car.status === 'Open') stats[validYear].Open++;
@@ -542,7 +625,7 @@ export function CorrectiveActionRequestTab({
       else stats[validYear]['On-Going']++;
     });
     return Object.values(stats).sort((a, b) => a.year - b.year);
-  }, [filteredCars]);
+  }, [rawCars, campusFilter, isInstitutionalViewer, userRole, userProfile, effectiveTypeFilter]);
 
   const chartConfig = {
     Open: { label: 'Open', color: 'hsl(var(--destructive))' },
@@ -1209,7 +1292,7 @@ export function CorrectiveActionRequestTab({
   const handlePrintRegistry = () => {
     try {
       const reportHtml = renderToStaticMarkup(
-        <CARControlRegisterTemplate cars={filteredCars} unitMap={unitMap} campusMap={campusMap} year="all" />,
+        <CARControlRegisterTemplate cars={filteredCars} unitMap={unitMap} campusMap={campusMap} year={yearFilter} />,
       );
       const printWindow = window.open('', '_blank');
       if (printWindow) {
@@ -1442,8 +1525,8 @@ export function CorrectiveActionRequestTab({
 
         <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
           <Card className="border-primary/10 shadow-sm bg-muted/10">
-            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div className="md:col-span-2 space-y-1.5">
+            <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 items-end">
+              <div className="sm:col-span-2 md:col-span-4 space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Search Registry</label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -1455,7 +1538,23 @@ export function CorrectiveActionRequestTab({
                   />
                 </div>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Year Filter</label>
+                <Select value={yearFilter} onValueChange={setYearFilter}>
+                  <SelectTrigger className="h-10 bg-white text-xs font-bold">
+                    <SelectValue placeholder="All Years" />
+                  </SelectTrigger>
+                  <SelectContent modal={false}>
+                    <SelectItem value="all">All Years</SelectItem>
+                    {availableYears.map((yr) => (
+                      <SelectItem key={yr} value={String(yr)}>
+                        {yr}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5 md:col-span-3">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Filter</label>
                 <Select value={campusFilter} onValueChange={setCampusFilter}>
                   <SelectTrigger className="h-10 bg-white text-xs font-bold">
@@ -1471,13 +1570,15 @@ export function CorrectiveActionRequestTab({
                   </SelectContent>
                 </Select>
               </div>
-              <Button
-                variant="outline"
-                className="h-10 bg-white border-primary/20 text-primary font-black text-[10px] uppercase gap-2"
-                onClick={handlePrintRegistry}
-              >
-                <Printer className="h-4 w-4" /> Print Control Register
-              </Button>
+              <div className="sm:col-span-2 md:col-span-3">
+                <Button
+                  variant="outline"
+                  className="w-full h-10 bg-white border-primary/20 text-primary font-black text-[10px] uppercase gap-2"
+                  onClick={handlePrintRegistry}
+                >
+                  <Printer className="h-4 w-4" /> Print Control Register
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -1494,95 +1595,105 @@ export function CorrectiveActionRequestTab({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredCars.map((car) => (
-                    <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
-                      <TableCell className="pl-6 py-4">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                            {car.auditType === 'EQA' ? (
-                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
-                                EQA
-                              </Badge>
-                            ) : (
-                              <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
-                                IQA
-                              </Badge>
+                  {filteredCars.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                        No Corrective Action Requests found matching the selected filters.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredCars.map((car) => (
+                      <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                        <TableCell className="pl-6 py-4">
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                              {car.auditType === 'EQA' ? (
+                                <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                  EQA
+                                </Badge>
+                              ) : (
+                                <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                  IQA
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
+                              {car.procedureTitle}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                              <Building2 className="h-3.5 w-3.5 opacity-30" />
+                              {unitMap.get(car.unitId) || 'Unknown Unit'}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
+                              <School className="h-2.5 w-2.5 ml-0.5" />
+                              {campusMap.get(car.campusId) || 'Institutional'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
+                          {car.timeLimitForReply?.toDate
+                            ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy')
+                            : '--'}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary"
+                          >
+                            {car.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="flex items-center justify-end gap-2">
+                            {isAdmin && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={notifyingCarId === car.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleNotifyCar(car);
+                                }}
+                                className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
+                                title="Notify Accountable Unit"
+                              >
+                                {notifyingCarId === car.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Bell className="h-3 w-3" />
+                                )}
+                                NOTIFY
+                              </Button>
                             )}
-                          </div>
-                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
-                            {car.procedureTitle}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
-                            <Building2 className="h-3.5 w-3.5 opacity-30" />
-                            {unitMap.get(car.unitId) || 'Unknown Unit'}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
-                            <School className="h-2.5 w-2.5 ml-0.5" />
-                            {campusMap.get(car.campusId) || 'Institutional'}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
-                        {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant="outline"
-                          className="text-[9px] font-black uppercase border-primary/20 bg-primary/5 text-primary"
-                        >
-                          {car.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex items-center justify-end gap-2">
-                          {isAdmin && (
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={notifyingCarId === car.id}
+                              className="h-8 text-[9px] font-bold bg-white gap-1.5"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleNotifyCar(car);
+                                handlePrint(car);
                               }}
-                              className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
-                              title="Notify Accountable Unit"
                             >
-                              {notifyingCarId === car.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Bell className="h-3 w-3" />
-                              )}
-                              NOTIFY
+                              <Printer className="h-3 w-3" /> PRINT
                             </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-[9px] font-bold bg-white gap-1.5"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePrint(car);
-                            }}
-                          >
-                            <Printer className="h-3 w-3" /> PRINT
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 font-black uppercase text-[10px]"
-                            onClick={() => handleEdit(car)}
-                          >
-                            Manage Record
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 font-black uppercase text-[10px]"
+                              onClick={() => handleEdit(car)}
+                            >
+                              Manage Record
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -1609,91 +1720,101 @@ export function CorrectiveActionRequestTab({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {openOngoingCars.map((car) => (
-                    <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
-                      <TableCell className="pl-6 py-4">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                            {car.auditType === 'EQA' ? (
-                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
-                                EQA
-                              </Badge>
-                            ) : (
-                              <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
-                                IQA
-                              </Badge>
+                  {openOngoingCars.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                        No Open or On-going Corrective Action Requests found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    openOngoingCars.map((car) => (
+                      <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                        <TableCell className="pl-6 py-4">
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                              {car.auditType === 'EQA' ? (
+                                <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                  EQA
+                                </Badge>
+                              ) : (
+                                <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                  IQA
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
+                              {car.procedureTitle}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                              <Building2 className="h-3.5 w-3.5 opacity-30" />
+                              {unitMap.get(car.unitId) || 'Unknown Unit'}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
+                              <School className="h-2.5 w-2.5 ml-0.5" />
+                              {campusMap.get(car.campusId) || 'Institutional'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
+                          {car.timeLimitForReply?.toDate
+                            ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy')
+                            : '--'}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className="text-[9px] font-black uppercase bg-amber-50 text-amber-700 border-amber-200 px-2 h-5">
+                            {car.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="flex items-center justify-end gap-2">
+                            {isAdmin && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={notifyingCarId === car.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleNotifyCar(car);
+                                }}
+                                className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
+                                title="Notify Accountable Unit"
+                              >
+                                {notifyingCarId === car.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Bell className="h-3 w-3" />
+                                )}
+                                NOTIFY
+                              </Button>
                             )}
-                          </div>
-                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
-                            {car.procedureTitle}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
-                            <Building2 className="h-3.5 w-3.5 opacity-30" />
-                            {unitMap.get(car.unitId) || 'Unknown Unit'}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
-                            <School className="h-2.5 w-2.5 ml-0.5" />
-                            {campusMap.get(car.campusId) || 'Institutional'}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
-                        {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge className="text-[9px] font-black uppercase bg-amber-50 text-amber-700 border-amber-200 px-2 h-5">
-                          {car.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex items-center justify-end gap-2">
-                          {isAdmin && (
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={notifyingCarId === car.id}
+                              className="h-8 text-[9px] font-bold bg-white gap-1.5"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleNotifyCar(car);
+                                handlePrint(car);
                               }}
-                              className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
-                              title="Notify Accountable Unit"
                             >
-                              {notifyingCarId === car.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Bell className="h-3 w-3" />
-                              )}
-                              NOTIFY
+                              <Printer className="h-3 w-3" /> PRINT
                             </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-[9px] font-bold bg-white gap-1.5"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePrint(car);
-                            }}
-                          >
-                            <Printer className="h-3 w-3" /> PRINT
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="h-8 font-black uppercase text-[10px] shadow-sm bg-amber-600"
-                            onClick={() => handleEdit(car)}
-                          >
-                            Manage
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <Button
+                              size="sm"
+                              className="h-8 font-black uppercase text-[10px] shadow-sm bg-amber-600"
+                              onClick={() => handleEdit(car)}
+                            >
+                              Manage
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -1720,92 +1841,102 @@ export function CorrectiveActionRequestTab({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {closedCars.map((car) => (
-                    <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
-                      <TableCell className="pl-6 py-4">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                            {car.auditType === 'EQA' ? (
-                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
-                                EQA
-                              </Badge>
-                            ) : (
-                              <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
-                                IQA
-                              </Badge>
+                  {closedCars.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                        No Closed Non-Conformance records found.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    closedCars.map((car) => (
+                      <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                        <TableCell className="pl-6 py-4">
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                              {car.auditType === 'EQA' ? (
+                                <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                  EQA
+                                </Badge>
+                              ) : (
+                                <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                  IQA
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
+                              {car.procedureTitle}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                              <Building2 className="h-3.5 w-3.5 opacity-30" />
+                              {unitMap.get(car.unitId) || 'Unknown Unit'}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
+                              <School className="h-2.5 w-2.5 ml-0.5" />
+                              {campusMap.get(car.campusId) || 'Institutional'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
+                          {car.timeLimitForReply?.toDate
+                            ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy')
+                            : '--'}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className="text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border-emerald-200 px-2 h-5">
+                            {car.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="flex items-center justify-end gap-2">
+                            {isAdmin && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={notifyingCarId === car.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleNotifyCar(car);
+                                }}
+                                className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
+                                title="Notify Accountable Unit"
+                              >
+                                {notifyingCarId === car.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Bell className="h-3 w-3" />
+                                )}
+                                NOTIFY
+                              </Button>
                             )}
-                          </div>
-                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
-                            {car.procedureTitle}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
-                            <Building2 className="h-3.5 w-3.5 opacity-30" />
-                            {unitMap.get(car.unitId) || 'Unknown Unit'}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
-                            <School className="h-2.5 w-2.5 ml-0.5" />
-                            {campusMap.get(car.campusId) || 'Institutional'}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
-                        {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge className="text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border-emerald-200 px-2 h-5">
-                          {car.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex items-center justify-end gap-2">
-                          {isAdmin && (
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={notifyingCarId === car.id}
+                              className="h-8 text-[9px] font-bold bg-white gap-1.5"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleNotifyCar(car);
+                                handlePrint(car);
                               }}
-                              className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
-                              title="Notify Accountable Unit"
                             >
-                              {notifyingCarId === car.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Bell className="h-3 w-3" />
-                              )}
-                              NOTIFY
+                              <Printer className="h-3 w-3" /> PRINT
                             </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-[9px] font-bold bg-white gap-1.5"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePrint(car);
-                            }}
-                          >
-                            <Printer className="h-3 w-3" /> PRINT
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 font-black uppercase text-[10px]"
-                            onClick={() => handleEdit(car)}
-                          >
-                            View
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 font-black uppercase text-[10px]"
+                              onClick={() => handleEdit(car)}
+                            >
+                              View
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -1832,91 +1963,101 @@ export function CorrectiveActionRequestTab({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {carsForAction.map((car) => (
-                    <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
-                      <TableCell className="pl-6 py-4">
-                        <div className="flex flex-col">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                            {car.auditType === 'EQA' ? (
-                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
-                                EQA
-                              </Badge>
-                            ) : (
-                              <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
-                                IQA
-                              </Badge>
+                  {carsForAction.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                        No items currently requiring active update or closure verification.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    carsForAction.map((car) => (
+                      <TableRow key={car.id} className="hover:bg-muted/20 transition-colors group">
+                        <TableCell className="pl-6 py-4">
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-black text-xs text-primary">{car.carNumber}</span>
+                              {car.auditType === 'EQA' ? (
+                                <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                  EQA
+                                </Badge>
+                              ) : (
+                                <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                  IQA
+                                </Badge>
+                              )}
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
+                              {car.procedureTitle}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+                              <Building2 className="h-3.5 w-3.5 opacity-30" />
+                              {unitMap.get(car.unitId) || 'Unknown Unit'}
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
+                              <School className="h-2.5 w-2.5 ml-0.5" />
+                              {campusMap.get(car.campusId) || 'Institutional'}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
+                          {car.timeLimitForReply?.toDate
+                            ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy')
+                            : '--'}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge className="text-[9px] font-black uppercase bg-indigo-50 text-indigo-700 border-none px-2 h-5">
+                            {car.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          <div className="flex items-center justify-end gap-2">
+                            {isAdmin && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={notifyingCarId === car.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleNotifyCar(car);
+                                }}
+                                className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
+                                title="Notify Accountable Unit"
+                              >
+                                {notifyingCarId === car.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <Bell className="h-3 w-3" />
+                                )}
+                                NOTIFY
+                              </Button>
                             )}
-                          </div>
-                          <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
-                            {car.procedureTitle}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
-                            <Building2 className="h-3.5 w-3.5 opacity-30" />
-                            {unitMap.get(car.unitId) || 'Unknown Unit'}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
-                            <School className="h-2.5 w-2.5 ml-0.5" />
-                            {campusMap.get(car.campusId) || 'Institutional'}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center text-[10px] font-black text-rose-700 tabular-nums">
-                        {car.timeLimitForReply?.toDate ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy') : '--'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge className="text-[9px] font-black uppercase bg-indigo-50 text-indigo-700 border-none px-2 h-5">
-                          {car.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        <div className="flex items-center justify-end gap-2">
-                          {isAdmin && (
                             <Button
                               variant="outline"
                               size="sm"
-                              disabled={notifyingCarId === car.id}
+                              className="h-8 text-[9px] font-bold bg-white gap-1.5"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleNotifyCar(car);
+                                handlePrint(car);
                               }}
-                              className="h-8 text-[9px] font-bold bg-white gap-1.5 text-amber-600 border-amber-300 hover:bg-amber-50"
-                              title="Notify Accountable Unit"
                             >
-                              {notifyingCarId === car.id ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <Bell className="h-3 w-3" />
-                              )}
-                              NOTIFY
+                              <Printer className="h-3 w-3" /> PRINT
                             </Button>
-                          )}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-[9px] font-bold bg-white gap-1.5"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePrint(car);
-                            }}
-                          >
-                            <Printer className="h-3 w-3" /> PRINT
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="h-8 font-black uppercase text-[10px] shadow-sm bg-indigo-600"
-                            onClick={() => handleEdit(car)}
-                          >
-                            Take Action
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                            <Button
+                              size="sm"
+                              className="h-8 font-black uppercase text-[10px] shadow-sm bg-indigo-600"
+                              onClick={() => handleEdit(car)}
+                            >
+                              Take Action
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
