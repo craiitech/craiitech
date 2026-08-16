@@ -311,19 +311,18 @@ export function NotificationInbox({ initialNotifications = [], totalNotification
         </div>
 
         {/* Footer Actions */}
-        <div className="p-2 bg-muted/30 border-t border-primary/10 flex items-center justify-between">
+        <div className="p-2 bg-muted/30 border-t border-primary/10 flex items-center justify-between gap-1">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() =>
-              triggerLocalNotification('⚡ Quick Test Notice', {
-                body: 'Testing local foreground OS notification from inbox.',
-                category: 'system',
-              })
-            }
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('rsu-open-notification-digest'));
+              }
+            }}
             className="text-[10px] font-black uppercase tracking-wider h-7 text-primary hover:bg-primary/10 gap-1.5"
           >
-            <Sparkles className="h-3 w-3" /> Quick OS Test
+            <Sparkles className="h-3 w-3" /> Digest View
           </Button>
 
           <Button

@@ -41,6 +41,9 @@ import { Chatbot } from '@/components/dashboard/chatbot';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { WhatsNewDialog } from '@/components/dashboard/whats-new-dialog';
+import { NotificationDigestDialog } from '@/components/notifications/notification-digest-dialog';
+import { ModalAlertDialog } from '@/components/notifications/modal-alert-dialog';
+import { useNotifications, getAcknowledgedDigestIds, saveAcknowledgedDigestIds } from '@/hooks/use-notifications';
 import { Logo } from '@/components/logo';
 import { PageGuidance } from '@/components/dashboard/page-guidance';
 import { GuidedTour } from '@/components/dashboard/guided-tour';
@@ -198,7 +201,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     isDoi,
   } = useUser();
   const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
+  const [isNotificationDigestOpen, setIsNotificationDigestOpen] = useState(false);
   const [isEvalSkipped, setIsEvalSkipped] = useState(false);
+  const hasTriggeredDigestRef = useRef(false);
+  const { modalState, closeModalAlert, markAllAsRead } = useNotifications();
 
   // Defaulting guidance to false (hidden) as requested
   const [isGuidanceVisible, setIsGuidanceVisible] = useState(false);
@@ -797,6 +803,51 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     allUnits,
   ]);
 
+  const handleAcknowledgeDigest = useCallback(() => {
+    if (notificationsList && notificationsList.length > 0) {
+      saveAcknowledgedDigestIds(notificationsList.map((n) => n.id));
+    }
+    setIsNotificationDigestOpen(false);
+  }, [notificationsList]);
+
+  // Listen for manual open requests from notification center or anywhere
+  useEffect(() => {
+    const handleOpenDigestEvent = () => {
+      setIsNotificationDigestOpen(true);
+    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('rsu-open-notification-digest', handleOpenDigestEvent);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('rsu-open-notification-digest', handleOpenDigestEvent);
+      }
+    };
+  }, []);
+
+  // Automatic trigger on dashboard entry when new unacknowledged notifications arrive
+  useEffect(() => {
+    if (
+      !isUserLoading &&
+      userProfile &&
+      userProfile.verified &&
+      !showEvalGate &&
+      !isWhatsNewOpen &&
+      notificationsList.length > 0 &&
+      !hasTriggeredDigestRef.current
+    ) {
+      const ackIds = getAcknowledgedDigestIds();
+      const hasUnacknowledged = notificationsList.some((n) => !ackIds.includes(n.id));
+      if (hasUnacknowledged) {
+        hasTriggeredDigestRef.current = true;
+        const timer = setTimeout(() => {
+          setIsNotificationDigestOpen(true);
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [isUserLoading, userProfile, showEvalGate, isWhatsNewOpen, notificationsList]);
+
   const notificationCount = subNotificationsCount;
 
   const displayName = userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : user?.displayName;
@@ -1008,6 +1059,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             isOpen={isWhatsNewOpen}
             onOpenChange={setIsWhatsNewOpen}
             onAcknowledge={handleAcknowledgeUpdates}
+          />
+          <NotificationDigestDialog
+            isOpen={isNotificationDigestOpen}
+            onOpenChange={setIsNotificationDigestOpen}
+            notifications={notificationsList}
+            onAcknowledge={handleAcknowledgeDigest}
+            onMarkAllAsRead={() => markAllAsRead(notificationsList.map((n) => n.id))}
+          />
+          <ModalAlertDialog
+            isOpen={modalState.isOpen}
+            title={modalState.title}
+            description={modalState.description}
+            confirmLabel={modalState.confirmLabel}
+            cancelLabel={modalState.cancelLabel}
+            variant={modalState.variant}
+            actionUrl={modalState.actionUrl}
+            category={modalState.category}
+            onConfirm={modalState.onConfirm}
+            onCancel={modalState.onCancel}
+            onClose={closeModalAlert}
           />
           {showEvalGate && (
             <SoftwareEvaluationGate

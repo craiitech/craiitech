@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,16 +11,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ShieldAlert, AlertTriangle, Info } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Info, FileCheck, Activity, MessageSquare, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface ModalAlertDialogProps {
+export interface ModalAlertDialogProps {
   isOpen: boolean;
   title: string;
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: 'destructive' | 'default' | 'warning';
+  actionUrl?: string;
+  category?: string;
   onConfirm?: () => void;
   onCancel?: () => void;
   onClose: () => void;
@@ -32,18 +35,35 @@ export function ModalAlertDialog({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   variant = 'default',
+  actionUrl,
+  category,
   onConfirm,
   onCancel,
   onClose,
 }: ModalAlertDialogProps) {
+  const router = useRouter();
+
   const handleConfirm = () => {
     if (onConfirm) onConfirm();
+    if (actionUrl) {
+      router.push(actionUrl);
+    }
     onClose();
   };
 
   const handleCancel = () => {
     if (onCancel) onCancel();
     onClose();
+  };
+
+  const renderIcon = () => {
+    if (category === 'submissions') return <FileCheck className="h-5 w-5" />;
+    if (category === 'risk') return <Activity className="h-5 w-5" />;
+    if (category === 'communications') return <MessageSquare className="h-5 w-5" />;
+    if (category === 'accreditation') return <Sparkles className="h-5 w-5" />;
+    if (variant === 'destructive') return <ShieldAlert className="h-5 w-5" />;
+    if (variant === 'warning') return <AlertTriangle className="h-5 w-5" />;
+    return <Info className="h-5 w-5" />;
   };
 
   return (
@@ -59,16 +79,14 @@ export function ModalAlertDialog({
                 variant === 'default' && 'bg-primary/10 text-primary',
               )}
             >
-              {variant === 'destructive' && <ShieldAlert className="h-5 w-5" />}
-              {variant === 'warning' && <AlertTriangle className="h-5 w-5" />}
-              {variant === 'default' && <Info className="h-5 w-5" />}
+              {renderIcon()}
             </div>
             <div>
               <AlertDialogTitle className="text-base font-black uppercase tracking-tight text-foreground">
                 {title}
               </AlertDialogTitle>
               <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                Intrusive System Alert
+                {category ? `${category.toUpperCase()} ALERT` : 'SYSTEM ALERT'}
               </span>
             </div>
           </div>

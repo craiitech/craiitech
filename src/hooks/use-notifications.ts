@@ -18,6 +18,44 @@ export interface AppNotificationItem {
   metadata?: Record<string, any>;
 }
 
+export interface ModalAlertOptions {
+  isOpen?: boolean;
+  title: string;
+  description: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  variant?: 'destructive' | 'default' | 'warning';
+  actionUrl?: string;
+  category?: AppNotificationItem['category'];
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
+export function triggerGlobalModalAlert(options: ModalAlertOptions) {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('rsu-modal-alert', { detail: options }));
+  }
+}
+
+export function getAcknowledgedDigestIds(): string[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const stored = localStorage.getItem('rsu_eoms_last_acknowledged_notif_digest');
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveAcknowledgedDigestIds(ids: string[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem('rsu_eoms_last_acknowledged_notif_digest', JSON.stringify(ids));
+  } catch (e) {
+    console.warn('Failed to save acknowledged digest ids', e);
+  }
+}
+
 export function useNotifications() {
   const { toast } = useToast();
   const [permission, setPermission] = useState<NotificationPermission>('default');
@@ -30,6 +68,8 @@ export function useNotifications() {
     confirmLabel?: string;
     cancelLabel?: string;
     variant?: 'destructive' | 'default' | 'warning';
+    actionUrl?: string;
+    category?: AppNotificationItem['category'];
     onConfirm?: () => void;
     onCancel?: () => void;
   }>({
@@ -41,13 +81,35 @@ export function useNotifications() {
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const [readIds, setReadIds] = useState<string[]>([]);
 
-  // Check initial permission & service worker support & load persisted state
+  // Check initial permission & service worker support & load persisted state & modal event listener
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
       setPermission(Notification.permission);
     }
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then(() => setIsSwRegistered(true)).catch(() => {});
+    }
+
+    const handleGlobalAlert = (event: Event) => {
+      const customEvent = event as CustomEvent<ModalAlertOptions>;
+      if (customEvent.detail) {
+        setModalState({
+          isOpen: true,
+          title: customEvent.detail.title,
+          description: customEvent.detail.description,
+          confirmLabel: customEvent.detail.confirmLabel || 'Confirm',
+          cancelLabel: customEvent.detail.cancelLabel || 'Cancel',
+          variant: customEvent.detail.variant || 'default',
+          actionUrl: customEvent.detail.actionUrl,
+          category: customEvent.detail.category,
+          onConfirm: customEvent.detail.onConfirm,
+          onCancel: customEvent.detail.onCancel,
+        });
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('rsu-modal-alert', handleGlobalAlert);
     }
 
     // Load persisted inbox items from localStorage
@@ -67,6 +129,12 @@ export function useNotifications() {
     } catch (e) {
       console.warn('Could not parse notification state from localStorage', e);
     }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('rsu-modal-alert', handleGlobalAlert);
+      }
+    };
   }, []);
 
   // Save inbox changes to localStorage
@@ -308,6 +376,7 @@ export function useNotifications() {
       confirmLabel?: string;
       cancelLabel?: string;
       variant?: 'destructive' | 'default' | 'warning';
+      actionUrl?: string;
       onConfirm?: () => void;
       onCancel?: () => void;
       category?: AppNotificationItem['category'];
@@ -320,6 +389,7 @@ export function useNotifications() {
         type: 'modal',
         timestamp: new Date().toISOString(),
         read: false,
+        link: options.actionUrl,
       };
 
       setInbox((prev) => {
@@ -339,6 +409,8 @@ export function useNotifications() {
         confirmLabel: options.confirmLabel || 'Confirm',
         cancelLabel: options.cancelLabel || 'Cancel',
         variant: options.variant || 'default',
+        actionUrl: options.actionUrl,
+        category: options.category,
         onConfirm: options.onConfirm,
         onCancel: options.onCancel,
       });
