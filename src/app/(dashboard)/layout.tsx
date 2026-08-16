@@ -825,7 +825,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     };
   }, []);
 
-  // Automatic trigger on dashboard entry when new unacknowledged notifications arrive
+  // Automatic trigger on dashboard entry to guide the user on what is new, pending deadlines, and notifications
   useEffect(() => {
     if (
       !isUserLoading &&
@@ -833,15 +833,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       userProfile.verified &&
       !showEvalGate &&
       !isWhatsNewOpen &&
-      notificationsList.length > 0 &&
       !hasTriggeredDigestRef.current
     ) {
+      const sessionSeen = sessionStorage.getItem('rsu_eoms_digest_seen_session') === 'true';
       const ackIds = getAcknowledgedDigestIds();
-      const hasUnacknowledged = notificationsList.some((n) => !ackIds.includes(n.id));
-      if (hasUnacknowledged) {
+      const hasUnacknowledged = notificationsList.length > 0 && notificationsList.some((n) => !ackIds.includes(n.id));
+
+      if (!sessionSeen || hasUnacknowledged) {
         hasTriggeredDigestRef.current = true;
         const timer = setTimeout(() => {
           setIsNotificationDigestOpen(true);
+          sessionStorage.setItem('rsu_eoms_digest_seen_session', 'true');
         }, 1200);
         return () => clearTimeout(timer);
       }
@@ -1064,6 +1066,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             isOpen={isNotificationDigestOpen}
             onOpenChange={setIsNotificationDigestOpen}
             notifications={notificationsList}
+            userProfile={userProfile}
+            userRole={displayRole}
+            unitName={allUnits?.find((u) => u.id === userProfile?.unitId)?.name}
+            campusName={allCampuses?.find((c) => c.id === userProfile?.campusId)?.name}
+            cycles={cycles}
+            eomsSubmissions={eomsSubmissions}
             onAcknowledge={handleAcknowledgeDigest}
             onMarkAllAsRead={() => markAllAsRead(notificationsList.map((n) => n.id))}
           />
