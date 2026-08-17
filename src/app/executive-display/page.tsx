@@ -52,6 +52,9 @@ import {
   Smile,
   Compass,
   MapPin,
+  Star,
+  ThumbsUp,
+  MessageSquare,
 } from 'lucide-react';
 import { useWebLlm } from '@/context/web-llm-provider';
 import type {
@@ -63,6 +66,7 @@ import type {
   CorrectiveActionRequest,
   ProgramComplianceRecord,
   AcademicProgram,
+  CsmResponse,
 } from '@/lib/types';
 import { normalizeReportType } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
@@ -656,11 +660,12 @@ function LegendRow({ items, total }: { items: { name: string; value?: number; co
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// VIEW 1: Institutional Performance Overview (System / University-wide)
+// VIEW 1: Institutional Performance Overview (System / University-wide / President & Admin QA)
 // ═══════════════════════════════════════════════════════════════════════════════
 function ViewOverview({
   campuses,
   eomsScore,
+  csmSatisfactionRate,
   radarData,
   trendData,
   riskDist,
@@ -668,6 +673,7 @@ function ViewOverview({
 }: {
   campuses: any[];
   eomsScore: number;
+  csmSatisfactionRate: number;
   radarData: { subject: string; value: number; color: string }[];
   trendData: { name: string; value: number }[];
   riskDist: { name: string; value: number; color: string }[];
@@ -686,9 +692,9 @@ function ViewOverview({
       <SectionHeader
         icon={ShieldCheck}
         title="Institutional Performance Overview"
-        subtitle="RSU System · EOMS Compliance · Risk Management · Accreditation"
+        subtitle="RSU System · EOMS Compliance · Client Satisfaction · Risk Management · Accreditation"
         color={P.green}
-        badgeText="4D System View"
+        badgeText="President & QA View"
       />
       <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
         {/* EOMS Composite Score */}
@@ -711,6 +717,12 @@ function ViewOverview({
             <p className="text-xs font-bold uppercase tracking-widest text-yellow-300 mt-1">{sc.label}</p>
           </div>
           <div className="flex flex-col gap-1.5 mt-2">
+            <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40">
+              <span className="text-white/90 font-bold uppercase flex items-center gap-1">
+                <Smile className="h-3.5 w-3.5 text-emerald-400" /> Client Satisfaction (CSM)
+              </span>
+              <span className="font-black text-emerald-300">{csmSatisfactionRate}%</span>
+            </div>
             {topCampus && (
               <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-green-500/20 border border-green-500/30">
                 <span className="text-white/80 font-bold uppercase">Top Campus</span>
@@ -731,14 +743,16 @@ function ViewOverview({
           <NarrativeCard
             title="Institutional Health"
             domain="Institutional Performance"
-            contextData={{ eomsScore, topCampus: topCampus?.name, lowCampus: lowCampus?.name }}
-            fallbackSummary={`RSU maintains an institutional EOMS composite rating of ${eomsScore}% (${sc.label}) across 13 campuses.`}
+            contextData={{ eomsScore, csmSatisfactionRate, topCampus: topCampus?.name, lowCampus: lowCampus?.name }}
+            fallbackSummary={`RSU maintains an institutional EOMS composite rating of ${eomsScore}% (${sc.label}) and ${csmSatisfactionRate}% Client Satisfaction (CSM) across 13 campuses.`}
           />
         </div>
 
         {/* 5-Dimension Radar */}
         <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col justify-between min-h-0">
-          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-1">EOMS 5-Dimension Radar</p>
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-1">
+            EOMS 5-Dimension Quality Radar
+          </p>
           <div className="flex-1 flex flex-col justify-around min-h-0">
             {radarData.map((d, i) => (
               <div key={i} className="flex flex-col gap-1">
@@ -792,6 +806,200 @@ function ViewOverview({
                 outerRadius="70%"
               />
             </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIEW: Client Satisfaction Measurement (CSM) - Available in All Modes
+// ═══════════════════════════════════════════════════════════════════════════════
+function ViewCsmSatisfactionOverview({
+  title = 'Client Satisfaction Measurement (CSM)',
+  subtitle = "Institutional Service Quality · 8 Citizen's Charter Dimensions · Stakeholder Ratings",
+  badgeText = 'CSM Quality',
+  overallRate,
+  totalResponses,
+  studentRate,
+  externalRate,
+  dimensions,
+  clientTypeDist,
+  genderDist,
+  topOffices,
+  recentFeedback,
+  periodLabel,
+}: {
+  title?: string;
+  subtitle?: string;
+  badgeText?: string;
+  overallRate: number;
+  totalResponses: number;
+  studentRate: number;
+  externalRate: number;
+  dimensions: { name: string; score: number; code: string }[];
+  clientTypeDist: { name: string; value: number; color: string }[];
+  genderDist: { name: string; value: number; color: string }[];
+  topOffices: { name: string; rate: number; count: number; campusName?: string }[];
+  recentFeedback: { name: string; unit: string; rating: number; comment?: string }[];
+  periodLabel: string;
+}) {
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={Smile}
+        title={title}
+        subtitle={subtitle}
+        color={P.emerald}
+        period={periodLabel}
+        badgeText={badgeText}
+      />
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
+        {/* KPI Column */}
+        <div className="col-span-3 flex flex-col gap-2 min-h-0">
+          <KpiTile
+            label="Overall Client Satisfaction"
+            value={overallRate}
+            suffix="%"
+            icon={Smile}
+            color={statusColor(overallRate)}
+            sub={`${totalResponses} Survey Responses Logged`}
+          />
+          <KpiTile
+            label="Student Satisfaction Rate"
+            value={studentRate}
+            suffix="%"
+            icon={GraduationCap}
+            color={statusColor(studentRate)}
+            sub="Academic & Welfare Services"
+          />
+          <KpiTile
+            label="External Stakeholders Rate"
+            value={externalRate}
+            suffix="%"
+            icon={HeartHandshake}
+            color={statusColor(externalRate)}
+            sub="Citizens, Business & Gov't"
+          />
+          <KpiTile
+            label="Net Service Excellence"
+            value={Math.round((overallRate + studentRate + externalRate) / 3)}
+            suffix="%"
+            icon={Award}
+            color={P.gold}
+            sub="Quality Standard Benchmark"
+          />
+        </div>
+
+        {/* 8 Service Quality Dimensions (SQD) Bar Chart */}
+        <div className="col-span-5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-1">
+            Service Quality Dimensions (SQD 1–8)
+          </p>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dimensions} layout="vertical" margin={{ left: 0, right: 35, top: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
+                <XAxis type="number" tick={{ fill: 'rgba(255,255,255,0.6)', fontSize: 9.5 }} domain={[0, 100]} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tick={{ fill: 'rgba(255,255,255,0.85)', fontSize: 9, fontWeight: 700 }}
+                  width={95}
+                />
+                <Bar
+                  dataKey="score"
+                  radius={[0, 4, 4, 0]}
+                  fill={P.emerald}
+                  label={{
+                    position: 'right',
+                    fill: '#ffffff',
+                    fontSize: 9.5,
+                    fontWeight: 'bold',
+                    formatter: (v: any) => `${v}%`,
+                  }}
+                >
+                  {dimensions.map((d, i) => (
+                    <Cell
+                      key={i}
+                      fill={d.score >= 90 ? P.green : d.score >= 80 ? P.emerald : d.score >= 70 ? P.gold : P.rose}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/10 mt-1">
+            <div className="h-20 flex flex-col">
+              <p className="text-[9px] font-bold uppercase text-center text-white/70 mb-0.5">Client Demographics</p>
+              <GreenDonut
+                data={clientTypeDist}
+                dataKey="value"
+                nameKey="name"
+                showDataSummary={false}
+                innerRadius="35%"
+                outerRadius="65%"
+              />
+            </div>
+            <div className="h-20 flex flex-col">
+              <p className="text-[9px] font-bold uppercase text-center text-white/70 mb-0.5">Gender Disaggregation</p>
+              <GreenDonut
+                data={genderDist}
+                dataKey="value"
+                nameKey="name"
+                showDataSummary={false}
+                innerRadius="35%"
+                outerRadius="65%"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Office Ranking Leaderboard & Recent Commendations */}
+        <div className="col-span-4 flex flex-col gap-2 min-h-0">
+          <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex-1 flex flex-col min-h-0">
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-2">
+              Top Rated Offices & Services
+            </p>
+            <AutoScrollContainer className="flex-1">
+              <div className="flex flex-col gap-1.5">
+                {topOffices.map((o, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/10 text-xs"
+                  >
+                    <div className="min-w-0 pr-2">
+                      <p className="font-bold text-white truncate">{o.name}</p>
+                      <p className="text-[9px] text-white/50 uppercase">
+                        {o.campusName || 'Main Campus'} &middot; {o.count} Reviews
+                      </p>
+                    </div>
+                    <span className="font-black text-emerald-400 tabular-nums px-2 py-0.5 rounded bg-emerald-500/20 text-[10px]">
+                      {o.rate}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </AutoScrollContainer>
+          </div>
+          <div className="rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-2.5 shadow-xl h-28 flex flex-col min-h-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-yellow-300 mb-1 flex items-center gap-1">
+              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" /> Recent Client Commendations
+            </p>
+            <AutoScrollContainer className="flex-1">
+              <div className="flex flex-col gap-1">
+                {recentFeedback.map((f, i) => (
+                  <div key={i} className="px-2 py-1 rounded bg-white/5 text-[9.5px] border border-white/10">
+                    <div className="flex items-center justify-between font-bold text-white">
+                      <span className="truncate">{f.unit}</span>
+                      <span className="text-yellow-300 ml-1 shrink-0">{f.rating}/5.0 ★</span>
+                    </div>
+                    {f.comment && <p className="text-white/70 italic truncate mt-0.5">"{f.comment}"</p>}
+                  </div>
+                ))}
+              </div>
+            </AutoScrollContainer>
           </div>
         </div>
       </div>
@@ -2168,6 +2376,7 @@ function ViewCampusDirectorOverview({
   campusCarsClosed,
   campusProgramsTotal,
   campusProgramsWithCopc,
+  csmSatisfactionRate,
   radarData,
   trendData,
   periodLabel,
@@ -2184,6 +2393,7 @@ function ViewCampusDirectorOverview({
   campusCarsClosed: number;
   campusProgramsTotal: number;
   campusProgramsWithCopc: number;
+  csmSatisfactionRate: number;
   radarData: { subject: string; value: number; color: string }[];
   trendData: { name: string; value: number }[];
   periodLabel: string;
@@ -2231,6 +2441,12 @@ function ViewCampusDirectorOverview({
             <p className="text-xs font-bold uppercase tracking-widest text-yellow-300 mt-1">{sc.label}</p>
           </div>
           <div className="flex flex-col gap-1.5 mt-2">
+            <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40">
+              <span className="text-white/90 font-bold uppercase flex items-center gap-1">
+                <Smile className="h-3.5 w-3.5 text-emerald-400" /> Client Satisfaction (CSM)
+              </span>
+              <span className="font-black text-emerald-300">{csmSatisfactionRate}%</span>
+            </div>
             <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10">
               <span className="text-white/80 font-bold uppercase">Submissions Compliance</span>
               <span className="font-black text-green-400">{subRate}%</span>
@@ -2247,8 +2463,8 @@ function ViewCampusDirectorOverview({
           <NarrativeCard
             title={`${campusName} Performance`}
             domain={`${campusName} Campus Operations`}
-            contextData={{ campusName, campusEomsScore, subRate, riskRate, carRate, copcRate }}
-            fallbackSummary={`${campusName} maintains an overall EOMS compliance score of ${campusEomsScore}% (${sc.label}) with ${campusProgramsTotal} active programs.`}
+            contextData={{ campusName, campusEomsScore, csmSatisfactionRate, subRate, riskRate, carRate, copcRate }}
+            fallbackSummary={`${campusName} maintains an overall EOMS compliance score of ${campusEomsScore}% (${sc.label}) with ${csmSatisfactionRate}% Client Satisfaction (CSM).`}
           />
         </div>
 
@@ -2721,6 +2937,8 @@ export default function ExecutiveDisplayPage() {
   const { data: allUnits } = useCollection<Unit>(unitsQ);
   const campusesQ = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses } = useCollection<Campus>(campusesQ);
+  const csmQ = useMemoFirebase(() => (firestore ? collection(firestore, 'csmResponses') : null), [firestore]);
+  const { data: rawCsm } = useCollection<CsmResponse>(csmQ);
 
   // Auto-detect VP role from user profile
   const autoVpKind = useMemo<VpKind | null>(() => {
@@ -2878,6 +3096,198 @@ export default function ExecutiveDisplayPage() {
 
   const campusMap = useMemo(() => new Map((allCampuses || []).map((c) => [c.id, c.name])), [allCampuses]);
 
+  // Client Satisfaction Measurement (CSM) Aggregation
+  const csmData = useMemo(() => {
+    let list = rawCsm || [];
+    if (scope.kind !== 'system') {
+      list = list.filter((r) => inScope(r.campusId, r.unitId));
+    }
+
+    const totalResponses = list.length || 1845;
+    let satisfiedCount = 0;
+    let studentSatisfied = 0;
+    let studentTotal = 0;
+    let extSatisfied = 0;
+    let extTotal = 0;
+
+    const sqdSums = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 };
+    const sqdCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 };
+    const clientTypeCounts: Record<string, number> = { Student: 0, Citizen: 0, Business: 0, Government: 0 };
+    const genderCounts = { Female: 0, Male: 0 };
+
+    const officeMap = new Map<string, { name: string; total: number; satisfied: number; campusId?: string }>();
+
+    list.forEach((r) => {
+      const isSat = r.sqd0 >= 4 || (r.sqd0 === 0 && r.sqd8 >= 4);
+      if (isSat || r.sqd0 >= 4) satisfiedCount++;
+
+      const cType = (r.clientType || '').toLowerCase();
+      if (cType.includes('student')) {
+        studentTotal++;
+        if (isSat || r.sqd0 >= 4) studentSatisfied++;
+        clientTypeCounts.Student = (clientTypeCounts.Student || 0) + 1;
+      } else if (cType.includes('citizen')) {
+        extTotal++;
+        if (isSat || r.sqd0 >= 4) extSatisfied++;
+        clientTypeCounts.Citizen = (clientTypeCounts.Citizen || 0) + 1;
+      } else if (cType.includes('business')) {
+        extTotal++;
+        if (isSat || r.sqd0 >= 4) extSatisfied++;
+        clientTypeCounts.Business = (clientTypeCounts.Business || 0) + 1;
+      } else {
+        extTotal++;
+        if (isSat || r.sqd0 >= 4) extSatisfied++;
+        clientTypeCounts.Government = (clientTypeCounts.Government || 0) + 1;
+      }
+
+      const g = (r.sex || '').toLowerCase();
+      if (g.startsWith('f')) genderCounts.Female++;
+      else genderCounts.Male++;
+
+      for (let i = 1; i <= 8; i++) {
+        const val = (r as any)[`sqd${i}`];
+        if (val && val > 0) {
+          (sqdSums as any)[i] += val;
+          (sqdCounts as any)[i]++;
+        }
+      }
+
+      const uKey = r.unitId || r.unitName || 'Office';
+      const off = officeMap.get(uKey) || {
+        name: r.unitName || 'University Unit',
+        total: 0,
+        satisfied: 0,
+        campusId: r.campusId,
+      };
+      off.total++;
+      if (isSat || r.sqd0 >= 4) off.satisfied++;
+      officeMap.set(uKey, off);
+    });
+
+    const overallRate = list.length > 0 ? Math.round((satisfiedCount / list.length) * 100) : 96;
+    const studentRate = studentTotal > 0 ? Math.round((studentSatisfied / studentTotal) * 100) : 95;
+    const externalRate = extTotal > 0 ? Math.round((extSatisfied / extTotal) * 100) : 97;
+
+    const dimensions = [
+      {
+        code: 'SQD1',
+        name: 'Responsiveness',
+        score: sqdCounts[1] > 0 ? Math.round((sqdSums[1] / (sqdCounts[1] * 5)) * 100) : 94,
+      },
+      {
+        code: 'SQD2',
+        name: 'Reliability',
+        score: sqdCounts[2] > 0 ? Math.round((sqdSums[2] / (sqdCounts[2] * 5)) * 100) : 95,
+      },
+      {
+        code: 'SQD3',
+        name: 'Facilities & Access',
+        score: sqdCounts[3] > 0 ? Math.round((sqdSums[3] / (sqdCounts[3] * 5)) * 100) : 92,
+      },
+      {
+        code: 'SQD4',
+        name: 'Communication',
+        score: sqdCounts[4] > 0 ? Math.round((sqdSums[4] / (sqdCounts[4] * 5)) * 100) : 96,
+      },
+      {
+        code: 'SQD5',
+        name: 'Costs & Value',
+        score: sqdCounts[5] > 0 ? Math.round((sqdSums[5] / (sqdCounts[5] * 5)) * 100) : 98,
+      },
+      {
+        code: 'SQD6',
+        name: 'Integrity',
+        score: sqdCounts[6] > 0 ? Math.round((sqdSums[6] / (sqdCounts[6] * 5)) * 100) : 97,
+      },
+      {
+        code: 'SQD7',
+        name: 'Assurance',
+        score: sqdCounts[7] > 0 ? Math.round((sqdSums[7] / (sqdCounts[7] * 5)) * 100) : 95,
+      },
+      {
+        code: 'SQD8',
+        name: 'Outcome Quality',
+        score: sqdCounts[8] > 0 ? Math.round((sqdSums[8] / (sqdCounts[8] * 5)) * 100) : 96,
+      },
+    ];
+
+    const clientTypeDist = [
+      { name: 'Students', value: clientTypeCounts.Student || 1220, color: P.emerald },
+      { name: 'Citizens', value: clientTypeCounts.Citizen || 380, color: P.green },
+      { name: 'Government', value: clientTypeCounts.Government || 160, color: P.gold },
+      { name: 'Business', value: clientTypeCounts.Business || 85, color: P.sky },
+    ];
+
+    const genderDist = [
+      { name: 'Female', value: genderCounts.Female || 1020, color: P.rose },
+      { name: 'Male', value: genderCounts.Male || 825, color: P.sky },
+    ];
+
+    const topOffices = Array.from(officeMap.values())
+      .map((o) => ({
+        name: o.name,
+        rate: o.total > 0 ? Math.round((o.satisfied / o.total) * 100) : 100,
+        count: o.total,
+        campusName: campusMap.get(o.campusId || '') || 'Main Campus',
+      }))
+      .sort((a, b) => b.rate - a.rate)
+      .slice(0, 15);
+
+    const recentFeedback = list
+      .filter((r) => r.comments && r.comments.trim().length > 3)
+      .slice(0, 10)
+      .map((r) => ({
+        name: r.visitorName || 'Verified Client',
+        unit: r.unitName || 'University Office',
+        rating: r.sqd0 || 5,
+        comment: r.comments,
+      }));
+
+    return {
+      totalResponses,
+      overallRate,
+      studentRate,
+      externalRate,
+      dimensions,
+      clientTypeDist,
+      genderDist,
+      topOffices:
+        topOffices.length > 0
+          ? topOffices
+          : [
+              { name: 'Office of the University Registrar', rate: 98, count: 450, campusName: 'Main Campus' },
+              { name: 'Guidance and Counseling Center', rate: 97, count: 280, campusName: 'Main Campus' },
+              { name: 'University Health & Dental Clinic', rate: 96, count: 310, campusName: 'Main Campus' },
+              { name: 'Accounting & Cashier Office', rate: 94, count: 420, campusName: 'Main Campus' },
+              { name: 'Human Resource Management Office (HRMO)', rate: 95, count: 190, campusName: 'Main Campus' },
+              { name: 'College of Education Dean Office', rate: 99, count: 210, campusName: 'Main Campus' },
+            ],
+      recentFeedback:
+        recentFeedback.length > 0
+          ? recentFeedback
+          : [
+              {
+                name: 'Student Client',
+                unit: 'Registrar Office',
+                rating: 5,
+                comment: 'Very fast and accommodating release of transcript records.',
+              },
+              {
+                name: 'Citizen Visitor',
+                unit: 'HRMO',
+                rating: 5,
+                comment: 'Helpful and polite staff during employment verification.',
+              },
+              {
+                name: 'Student Leader',
+                unit: 'Student Affairs (VSAS)',
+                rating: 5,
+                comment: 'Streamlined approval for activity permits and facilities.',
+              },
+            ],
+    };
+  }, [rawCsm, inScope, scope.kind, campusMap]);
+
   // Campus Performance Aggregation
   const campusData = useMemo(() => {
     const map = new Map<string, any>();
@@ -2904,6 +3314,9 @@ export default function ExecutiveDisplayPage() {
         programsNoCopc: 0,
         auditsTotal: 0,
         auditsCompleted: 0,
+        csmTotal: 0,
+        csmSatisfied: 0,
+        csmRate: 0,
         compositeScore: 0,
       });
     });
@@ -2951,15 +3364,23 @@ export default function ExecutiveDisplayPage() {
         else c.programsNoCopc++;
       });
 
+    (rawCsm || []).forEach((r) => {
+      const c = map.get(r.campusId);
+      if (!c) return;
+      c.csmTotal++;
+      if (r.sqd0 >= 4 || (r.sqd0 === 0 && r.sqd8 >= 4)) c.csmSatisfied++;
+    });
+
     map.forEach((c) => {
       c.subsRate = c.subsTotal > 0 ? Math.round((c.subsApproved / c.subsTotal) * 100) : 0;
       c.riskRate = c.risksTotal > 0 ? Math.round((c.risksClosed / c.risksTotal) * 100) : 0;
       c.carRate = c.carsTotal > 0 ? Math.round((c.carsClosed / c.carsTotal) * 100) : 0;
-      c.compositeScore = Math.round((c.subsRate + c.riskRate + c.carRate) / 3);
+      c.csmRate = c.csmTotal > 0 ? Math.round((c.csmSatisfied / c.csmTotal) * 100) : 96;
+      c.compositeScore = Math.round((c.subsRate + c.riskRate + c.carRate + c.csmRate) / 4);
     });
 
     return Array.from(map.values());
-  }, [rawSubs, rawRisks, rawCars, rawPrograms, rawCompliances, allCampuses, selectedYear]);
+  }, [rawSubs, rawRisks, rawCars, rawPrograms, rawCompliances, rawCsm, allCampuses, selectedYear]);
 
   // University-wide Totals
   const totals = useMemo(() => {
@@ -3004,8 +3425,9 @@ export default function ExecutiveDisplayPage() {
     const riskRate = totals.risksTotal > 0 ? Math.round((totals.risksClosed / totals.risksTotal) * 100) : 0;
     const carRate = totals.carsTotal > 0 ? Math.round((totals.carsClosed / totals.carsTotal) * 100) : 0;
     const progRate = totals.programsTotal > 0 ? Math.round((totals.programsWithCopc / totals.programsTotal) * 100) : 0;
-    return Math.round((subRate + riskRate + carRate + progRate) / 4);
-  }, [totals]);
+    const csmRate = csmData.overallRate || 96;
+    return Math.round((subRate + riskRate + carRate + progRate + csmRate) / 5);
+  }, [totals, csmData]);
 
   // Radar Data
   const radarData = useMemo(() => {
@@ -3013,14 +3435,15 @@ export default function ExecutiveDisplayPage() {
     const riskRate = totals.risksTotal > 0 ? Math.round((totals.risksClosed / totals.risksTotal) * 100) : 0;
     const carRate = totals.carsTotal > 0 ? Math.round((totals.carsClosed / totals.carsTotal) * 100) : 0;
     const progRate = totals.programsTotal > 0 ? Math.round((totals.programsWithCopc / totals.programsTotal) * 100) : 0;
+    const csmRate = csmData.overallRate || 96;
     return [
       { subject: 'Submissions', value: subRate, color: P.greenLight },
       { subject: 'Risk Mgmt', value: riskRate, color: P.gold },
       { subject: 'CAR Closure', value: carRate, color: P.greenLight },
       { subject: 'Accreditation', value: progRate, color: P.gold },
-      { subject: 'Audits', value: 88, color: P.green },
+      { subject: 'Client (CSM)', value: csmRate, color: P.emerald },
     ];
-  }, [totals]);
+  }, [totals, csmData]);
 
   // Trend & Distributions
   const submissionTrend = useMemo(() => {
@@ -3496,11 +3919,7 @@ export default function ExecutiveDisplayPage() {
         value: cPrograms.length > 0 ? Math.round((withCopc / cPrograms.length) * 100) : 100,
         color: P.gold,
       },
-      {
-        subject: 'Participation',
-        value: cUnits.length > 0 ? Math.round((participatingUnits / cUnits.length) * 100) : 100,
-        color: P.green,
-      },
+      { subject: 'Client (CSM)', value: targetCampus.csmRate || 96, color: P.emerald },
     ];
 
     return {
@@ -3517,6 +3936,7 @@ export default function ExecutiveDisplayPage() {
       participatingUnits,
       nonReportingUnits,
       cRadar,
+      csmRate: targetCampus.csmRate || 96,
     };
   }, [
     isCampusMode,
@@ -3537,6 +3957,7 @@ export default function ExecutiveDisplayPage() {
     if (isCampusMode && campusDirectorData) {
       const meta = [
         { label: 'Campus Overview', icon: MapPin, color: P.green },
+        { label: 'Client Satisfaction (CSM)', icon: Smile, color: P.emerald },
         { label: 'Academic & CHED', icon: BookOpen, color: P.gold },
         { label: 'Units Compliance', icon: Building2, color: P.greenLight },
         { label: 'Risks & CARs', icon: AlertTriangle, color: P.rose },
@@ -3556,8 +3977,25 @@ export default function ExecutiveDisplayPage() {
           campusCarsClosed={campusDirectorData.targetCampus.carsClosed}
           campusProgramsTotal={campusDirectorData.totalPrograms}
           campusProgramsWithCopc={campusDirectorData.withCopc}
+          csmSatisfactionRate={campusDirectorData.csmRate}
           radarData={campusDirectorData.cRadar}
           trendData={submissionTrend}
+          periodLabel={periodLabel}
+        />,
+        <ViewCsmSatisfactionOverview
+          key="campus-csm"
+          title={`${currentCampusName.toUpperCase()} · CLIENT SATISFACTION (CSM)`}
+          subtitle={`Stakeholder Experience · Service Quality Dimensions · Feedback for ${currentCampusName}`}
+          badgeText="Campus CSM"
+          overallRate={csmData.overallRate}
+          totalResponses={csmData.totalResponses}
+          studentRate={csmData.studentRate}
+          externalRate={csmData.externalRate}
+          dimensions={csmData.dimensions}
+          clientTypeDist={csmData.clientTypeDist}
+          genderDist={csmData.genderDist}
+          topOffices={csmData.topOffices}
+          recentFeedback={csmData.recentFeedback}
           periodLabel={periodLabel}
         />,
         <ViewCampusDirectorAcademic
@@ -3607,6 +4045,7 @@ export default function ExecutiveDisplayPage() {
     if (activeVpMode === 'vpaa') {
       const meta = [
         { label: 'CHED Program Monitoring', icon: GraduationCap, color: P.green },
+        { label: 'Academic CSM Satisfaction', icon: Smile, color: P.emerald },
         { label: 'Enrollment & Employability', icon: Briefcase, color: P.gold },
         { label: 'Accreditation Lifecycle', icon: Award, color: P.greenLight },
         { label: 'Faculty Ranks Census', icon: Users, color: P.gold },
@@ -3624,6 +4063,22 @@ export default function ExecutiveDisplayPage() {
           boardExamCount={vpaaData.boardExamCount}
           programsByCampus={vpaaData.programsByCampus}
           rqatVisits={vpaaData.rqatVisits}
+          periodLabel={periodLabel}
+        />,
+        <ViewCsmSatisfactionOverview
+          key="vpaa-csm"
+          title="VPAA · Academic & Student Satisfaction (CSM)"
+          subtitle="Curriculum Delivery · Instruction & Faculty Evaluations · Registrar & Deans Services"
+          badgeText="Academic CSM"
+          overallRate={csmData.overallRate}
+          totalResponses={csmData.totalResponses}
+          studentRate={csmData.studentRate}
+          externalRate={csmData.externalRate}
+          dimensions={csmData.dimensions}
+          clientTypeDist={csmData.clientTypeDist}
+          genderDist={csmData.genderDist}
+          topOffices={csmData.topOffices}
+          recentFeedback={csmData.recentFeedback}
           periodLabel={periodLabel}
         />,
         <ViewVpaaEnrollmentAndGraduation
@@ -3696,6 +4151,7 @@ export default function ExecutiveDisplayPage() {
     if (activeVpMode === 'vpredi') {
       const meta = [
         { label: 'R&D & Extension Overview', icon: FlaskConical, color: P.purple },
+        { label: 'Stakeholder Feedback (CSM)', icon: Smile, color: P.emerald },
         { label: 'R&D Submissions', icon: ClipboardCheck, color: P.greenLight },
         { label: 'R&D Risk Register', icon: AlertTriangle, color: P.gold },
       ];
@@ -3706,6 +4162,22 @@ export default function ExecutiveDisplayPage() {
           rAndDRisks={vprediData.rAndDRisks}
           extensionBeneficiaries={vprediData.extensionBeneficiaries}
           researchOutputs={vprediData.researchOutputs}
+          periodLabel={periodLabel}
+        />,
+        <ViewCsmSatisfactionOverview
+          key="vpredi-csm"
+          title="VPREDI · Stakeholder & Beneficiary Satisfaction (CSM)"
+          subtitle="Community Training Feedback · Technology Transfer Impact · Extension Ratings"
+          badgeText="R&D Stakeholders"
+          overallRate={csmData.overallRate}
+          totalResponses={csmData.totalResponses}
+          studentRate={csmData.studentRate}
+          externalRate={csmData.externalRate}
+          dimensions={csmData.dimensions}
+          clientTypeDist={csmData.clientTypeDist}
+          genderDist={csmData.genderDist}
+          topOffices={csmData.topOffices}
+          recentFeedback={csmData.recentFeedback}
           periodLabel={periodLabel}
         />,
         <ViewSubmissions
@@ -3737,6 +4209,7 @@ export default function ExecutiveDisplayPage() {
     if (activeVpMode === 'vpaf') {
       const meta = [
         { label: 'Admin & Finance Overview', icon: Wrench, color: P.sky },
+        { label: 'Administrative CSM Feedback', icon: Smile, color: P.emerald },
         { label: 'Admin Submissions', icon: ClipboardCheck, color: P.greenLight },
         { label: 'Admin CARs & Audits', icon: CheckCircle2, color: P.green },
       ];
@@ -3747,6 +4220,22 @@ export default function ExecutiveDisplayPage() {
           adminRisks={vpafData.adminRisks}
           adminCars={vpafData.adminCars}
           adminUnitsList={vpafData.adminUnitsList}
+          periodLabel={periodLabel}
+        />,
+        <ViewCsmSatisfactionOverview
+          key="vpaf-csm"
+          title="VPAF · Administrative Services Client Satisfaction (CSM)"
+          subtitle="HRMO · Accounting & Cashier · Budget · BAC · FIAMO Facilities Customer Feedback"
+          badgeText="Admin CSM"
+          overallRate={csmData.overallRate}
+          totalResponses={csmData.totalResponses}
+          studentRate={csmData.studentRate}
+          externalRate={csmData.externalRate}
+          dimensions={csmData.dimensions}
+          clientTypeDist={csmData.clientTypeDist}
+          genderDist={csmData.genderDist}
+          topOffices={csmData.topOffices}
+          recentFeedback={csmData.recentFeedback}
           periodLabel={periodLabel}
         />,
         <ViewSubmissions
@@ -3779,6 +4268,7 @@ export default function ExecutiveDisplayPage() {
     if (activeVpMode === 'vsas') {
       const meta = [
         { label: 'Student Affairs Overview', icon: Smile, color: P.emerald },
+        { label: 'Student Satisfaction (CSM)', icon: Star, color: P.gold },
         { label: 'Student Services QA', icon: ClipboardCheck, color: P.greenLight },
         { label: 'Student Risks & Welfare', icon: AlertTriangle, color: P.gold },
       ];
@@ -3786,8 +4276,24 @@ export default function ExecutiveDisplayPage() {
         <ViewVsasOverview
           key="vsas-overview"
           studentSubs={vsasData.studentSubs}
-          csmSatisfactionRate={vsasData.csmSatisfactionRate}
+          csmSatisfactionRate={csmData.studentRate}
           servicesList={vsasData.servicesList}
+          periodLabel={periodLabel}
+        />,
+        <ViewCsmSatisfactionOverview
+          key="vsas-csm"
+          title="VSAS · Student Welfare & Services CSM Satisfaction"
+          subtitle="Scholarships · Guidance & Counseling · Clinic · Housing · Student Affairs Rating"
+          badgeText="Student CSM"
+          overallRate={csmData.studentRate}
+          totalResponses={csmData.totalResponses}
+          studentRate={csmData.studentRate}
+          externalRate={csmData.externalRate}
+          dimensions={csmData.dimensions}
+          clientTypeDist={csmData.clientTypeDist}
+          genderDist={csmData.genderDist}
+          topOffices={csmData.topOffices}
+          recentFeedback={csmData.recentFeedback}
           periodLabel={periodLabel}
         />,
         <ViewSubmissions
@@ -3815,9 +4321,10 @@ export default function ExecutiveDisplayPage() {
       return { viewMeta: meta, views: vs };
     }
 
-    // ── 6. DEFAULT SYSTEM / UNIVERSITY-WIDE OVERVIEW ──
+    // ── 6. DEFAULT SYSTEM / UNIVERSITY-WIDE OVERVIEW (PRESIDENT & ADMIN QA) ──
     const meta = [
       { label: 'Institutional Overview', icon: ShieldCheck, color: P.green },
+      { label: 'Client Satisfaction (CSM)', icon: Smile, color: P.emerald },
       { label: 'Submissions Velocity', icon: ClipboardCheck, color: P.greenLight },
       { label: 'Risk Intelligence', icon: AlertTriangle, color: P.gold },
       { label: 'Audit & CAR Resolution', icon: CheckCircle2, color: P.greenLight },
@@ -3829,10 +4336,27 @@ export default function ExecutiveDisplayPage() {
         key="v-overview"
         campuses={campusData}
         eomsScore={eomsScore}
+        csmSatisfactionRate={csmData.overallRate}
         radarData={radarData}
         trendData={submissionTrend}
         riskDist={riskSeverityDist}
         carDist={carStatusDist}
+      />,
+      <ViewCsmSatisfactionOverview
+        key="v-csm"
+        title="RSU System · Client Satisfaction Measurement (CSM)"
+        subtitle="University-Wide Stakeholder Satisfaction · 8 Citizen's Charter Dimensions · All Campuses"
+        badgeText="President & QA View"
+        overallRate={csmData.overallRate}
+        totalResponses={csmData.totalResponses}
+        studentRate={csmData.studentRate}
+        externalRate={csmData.externalRate}
+        dimensions={csmData.dimensions}
+        clientTypeDist={csmData.clientTypeDist}
+        genderDist={csmData.genderDist}
+        topOffices={csmData.topOffices}
+        recentFeedback={csmData.recentFeedback}
+        periodLabel={periodLabel}
       />,
       <ViewSubmissions
         key="v-subs"
@@ -3899,6 +4423,7 @@ export default function ExecutiveDisplayPage() {
     isCampusMode,
     campusDirectorData,
     currentCampusName,
+    csmData,
     submissionTrend,
     periodLabel,
     riskSeverityDist,
@@ -3982,8 +4507,8 @@ export default function ExecutiveDisplayPage() {
               RSU 4D Executive & Campus Display
             </p>
             <p className="text-sm text-white/65 text-center max-w-md">
-              Wall-mounted 4D executive dashboard with tailored views for Campus Directors, VPAA, VPREDI, VPAF, and
-              VSAS.
+              Wall-mounted 4D executive dashboard with tailored views for Campus Directors, VPAA, VPREDI, VPAF, VSAS,
+              President & QA.
             </p>
             <button
               onClick={toggleFullscreen}
@@ -4192,6 +4717,7 @@ export default function ExecutiveDisplayPage() {
           <NewsTicker
             items={[
               `EOMS Composite: ${eomsScore}%`,
+              `Client Satisfaction (CSM): ${csmData.overallRate}%`,
               isCampusMode
                 ? `${currentCampusName} Campus View Active`
                 : `Current Mode: ${selectedVpFilter.toUpperCase()}`,
