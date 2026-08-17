@@ -25,10 +25,11 @@ const getSiteNumber = (name: string): number => {
   if (nameUpper.includes('BANTON')) return 11;
   if (nameUpper.includes('CONCEPCION')) return 12;
   if (nameUpper.includes('CORCUERA')) return 13;
-  return 10;
+  return 999;
 };
 
 const getCampusSiteLabel = (name: string): string => {
+  if (!name) return 'UNKNOWN SITE';
   const nameUpper = name.toUpperCase();
   if (/^SITE\s+\d+\s+-/.test(nameUpper)) {
     return nameUpper;
@@ -36,7 +37,10 @@ const getCampusSiteLabel = (name: string): string => {
   const match = nameUpper.match(/\bSITE\s+(\d+)\b/);
   if (match) {
     const siteNum = match[1];
-    const cleanName = nameUpper.replace(/\bSITE\s+\d+\b/g, '').replace(/^[\s-:]+/, '').trim();
+    const cleanName = nameUpper
+      .replace(/\bSITE\s+\d+\b/g, '')
+      .replace(/^[\s-:]+/, '')
+      .trim();
     return `SITE ${siteNum} - ${cleanName}`;
   }
   if (nameUpper.includes('MAIN') || nameUpper.includes('ODIONGAN')) return 'SITE 1 - MAIN CAMPUS';
@@ -52,7 +56,7 @@ const getCampusSiteLabel = (name: string): string => {
   if (nameUpper.includes('BANTON')) return 'SITE 11 - BANTON CAMPUS';
   if (nameUpper.includes('CONCEPCION')) return 'SITE 12 - CONCEPCION CAMPUS';
   if (nameUpper.includes('CORCUERA')) return 'SITE 13 - CORCUERA CAMPUS';
-  return nameUpper === 'UNIVERSITY-WIDE' ? nameUpper : `SITE 10 - ${nameUpper}`;
+  return nameUpper;
 };
 
 interface ConsolidatedAuditReportTemplateProps {
@@ -65,6 +69,8 @@ interface ConsolidatedAuditReportTemplateProps {
   signatories?: Signatories;
   /** Override the displayed campus/site name. When omitted, falls back to plan.campusId lookup. */
   campusName?: string;
+  /** Name of the supervising office / VP if filtering by VP */
+  supervisingOfficeName?: string;
   /** When true, render separate sections per campus instead of one combined section. */
   perCampus?: boolean;
   /** When true, render findings grouped by Unit across Sites instead of by Campus. */
@@ -78,14 +84,18 @@ function CampusFindingsSection({
   campusLabel,
   schedules,
   findings,
+  campusMap,
 }: {
   campusLabel: string;
   schedules: AuditSchedule[];
   findings: AuditFinding[];
+  campusMap?: Map<string, string>;
 }) {
-  const commendableList = schedules.filter(s => s.summaryCommendable);
-  const ofiList = schedules.filter(s => s.summaryOFI);
-  const ncList = schedules.filter(s => s.summaryNC || findings.some(f => f.auditScheduleId === s.id && f.type === 'Non-Conformance'));
+  const commendableList = schedules.filter((s) => s.summaryCommendable);
+  const ofiList = schedules.filter((s) => s.summaryOFI);
+  const ncList = schedules.filter(
+    (s) => s.summaryNC || findings.some((f) => f.auditScheduleId === s.id && f.type === 'Non-Conformance'),
+  );
 
   return (
     <div className="space-y-4 break-before-page pt-8 first:pt-0">
@@ -98,28 +108,47 @@ function CampusFindingsSection({
         <thead>
           <tr className="bg-slate-200">
             <th className="border border-black p-2 w-[50px] text-center font-black uppercase text-[10pt]">No.</th>
-            <th className="border border-black p-2 w-[180px] text-center font-black uppercase text-[10pt]">Site / Unit / Department</th>
-            <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">Commendable Findings</th>
+            <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">
+              Site / Unit / Department
+            </th>
+            <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">
+              Commendable Findings
+            </th>
           </tr>
         </thead>
         <tbody>
-          {commendableList.map((s, i) => (
-            <tr key={s.id}>
-              <td className="border border-black p-2 text-center font-bold">{i + 1}</td>
-              <td className="border border-black p-2 text-center align-top">
-                <p className="font-black uppercase text-[10pt]">{s.targetName}</p>
-                <p className="text-[9pt] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
-              </td>
-              <td className="border border-black p-2 align-top">
-                <div className="flex gap-2">
-                  <span className="font-black">•</span>
-                  <p className="whitespace-pre-wrap leading-relaxed">{s.summaryCommendable}</p>
-                </div>
+          {commendableList.map((s, i) => {
+            const rawCampus = campusMap?.get(s.campusId) || '';
+            const rowCampusLabel = rawCampus ? getCampusSiteLabel(rawCampus) : '';
+            return (
+              <tr key={s.id}>
+                <td className="border border-black p-2 text-center font-bold">{i + 1}</td>
+                <td className="border border-black p-2 text-center align-top">
+                  {rowCampusLabel && (
+                    <p className="text-[8pt] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-0.5">
+                      {rowCampusLabel}
+                    </p>
+                  )}
+                  <p className="font-black uppercase text-[10pt]">{s.targetName}</p>
+                  <p className="text-[9pt] font-bold text-slate-500 italic uppercase">
+                    ({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})
+                  </p>
+                </td>
+                <td className="border border-black p-2 align-top">
+                  <div className="flex gap-2">
+                    <span className="font-black">•</span>
+                    <p className="whitespace-pre-wrap leading-relaxed">{s.summaryCommendable}</p>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+          {commendableList.length === 0 && (
+            <tr>
+              <td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">
+                No commendable practices recorded for this cycle.
               </td>
             </tr>
-          ))}
-          {commendableList.length === 0 && (
-            <tr><td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">No commendable practices recorded for this cycle.</td></tr>
           )}
         </tbody>
       </table>
@@ -127,31 +156,51 @@ function CampusFindingsSection({
       {/* TABLE 2: RECOMMENDATIONS & OFI */}
       <div className="space-y-4 pt-4">
         <p className="leading-relaxed italic">
-          The following recommendations and opportunities for improvement provided by the auditor are intended to contribute to the continuous improvement of the management system of the University.
+          The following recommendations and opportunities for improvement provided by the auditor are intended to
+          contribute to the continuous improvement of the management system of the University.
         </p>
         <table className="w-full border-collapse border-[1.5px] border-black">
           <thead>
             <tr className="bg-slate-200">
               <th className="border border-black p-2 w-[50px] text-center font-black uppercase text-[10pt]">No.</th>
-              <th className="border border-black p-2 w-[180px] text-center font-black uppercase text-[10pt]">Site / Unit / Department</th>
-              <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">Recommendation and Opportunities for Improvement</th>
+              <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">
+                Site / Unit / Department
+              </th>
+              <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">
+                Recommendation and Opportunities for Improvement
+              </th>
             </tr>
           </thead>
           <tbody>
-            {ofiList.map((s, i) => (
-              <tr key={s.id}>
-                <td className="border border-black p-2 text-center font-bold">{i + 1}</td>
-                <td className="border border-black p-2 text-center align-top">
-                  <p className="font-black uppercase text-[10pt]">{s.targetName}</p>
-                  <p className="text-[9pt] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
-                </td>
-                <td className="border border-black p-2 align-top whitespace-pre-wrap leading-relaxed italic">
-                  {s.summaryOFI}
+            {ofiList.map((s, i) => {
+              const rawCampus = campusMap?.get(s.campusId) || '';
+              const rowCampusLabel = rawCampus ? getCampusSiteLabel(rawCampus) : '';
+              return (
+                <tr key={s.id}>
+                  <td className="border border-black p-2 text-center font-bold">{i + 1}</td>
+                  <td className="border border-black p-2 text-center align-top">
+                    {rowCampusLabel && (
+                      <p className="text-[8pt] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-0.5">
+                        {rowCampusLabel}
+                      </p>
+                    )}
+                    <p className="font-black uppercase text-[10pt]">{s.targetName}</p>
+                    <p className="text-[9pt] font-bold text-slate-500 italic uppercase">
+                      ({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})
+                    </p>
+                  </td>
+                  <td className="border border-black p-2 align-top whitespace-pre-wrap leading-relaxed italic">
+                    {s.summaryOFI}
+                  </td>
+                </tr>
+              );
+            })}
+            {ofiList.length === 0 && (
+              <tr>
+                <td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">
+                  No opportunities for improvement recorded.
                 </td>
               </tr>
-            ))}
-            {ofiList.length === 0 && (
-              <tr><td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">No opportunities for improvement recorded.</td></tr>
             )}
           </tbody>
         </table>
@@ -165,19 +214,32 @@ function CampusFindingsSection({
         <table className="w-full border-collapse border-[1.5px] border-black">
           <thead>
             <tr className="bg-slate-200">
-              <th className="border border-black p-2 w-[180px] text-center font-black uppercase text-[10pt]">Site / Unit / Department</th>
+              <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">
+                Site / Unit / Department
+              </th>
               <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">Non-Conformances</th>
-              <th className="border border-black p-2 w-[180px] text-center font-black uppercase text-[9pt] leading-tight">ISO 21001:2018 Clauses</th>
+              <th className="border border-black p-2 w-[180px] text-center font-black uppercase text-[9pt] leading-tight">
+                ISO 21001:2018 Clauses
+              </th>
             </tr>
           </thead>
           <tbody>
             {ncList.map((s) => {
-              const ncFindings = findings.filter(f => f.auditScheduleId === s.id && f.type === 'Non-Conformance');
+              const ncFindings = findings.filter((f) => f.auditScheduleId === s.id && f.type === 'Non-Conformance');
+              const rawCampus = campusMap?.get(s.campusId) || '';
+              const rowCampusLabel = rawCampus ? getCampusSiteLabel(rawCampus) : '';
               return (
                 <tr key={s.id}>
                   <td className="border border-black p-2 text-center align-top">
+                    {rowCampusLabel && (
+                      <p className="text-[8pt] font-black text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-0.5">
+                        {rowCampusLabel}
+                      </p>
+                    )}
                     <p className="font-black uppercase text-[10pt]">{s.targetName}</p>
-                    <p className="text-[9pt] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
+                    <p className="text-[9pt] font-bold text-slate-500 italic uppercase">
+                      ({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})
+                    </p>
                   </td>
                   <td className="border border-black p-2 align-top">
                     <div className="space-y-4">
@@ -185,24 +247,30 @@ function CampusFindingsSection({
                       <div className="space-y-2">
                         {ncFindings.map((f, fIdx) => (
                           <div key={fIdx} className="pl-2 border-l-2 border-slate-200 dark:border-slate-700">
-                            <p className="text-[10pt] font-black text-primary uppercase">Finding for Clause {f.isoClause}:</p>
+                            <p className="text-[10pt] font-black text-primary uppercase">
+                              Finding for Clause {f.isoClause}:
+                            </p>
                             <p className="text-[11pt] leading-relaxed italic">"{f.ncStatement || f.description}"</p>
                           </div>
                         ))}
                         {ncFindings.length === 0 && s.summaryNC && (
-                            <p className="whitespace-pre-wrap leading-relaxed font-bold italic">"{s.summaryNC}"</p>
+                          <p className="whitespace-pre-wrap leading-relaxed font-bold italic">"{s.summaryNC}"</p>
                         )}
                       </div>
                     </div>
                   </td>
                   <td className="border border-black p-2 text-center align-top font-black text-primary">
-                    {Array.from(new Set(ncFindings.map(f => f.isoClause))).join(', ') || '--'}
+                    {Array.from(new Set(ncFindings.map((f) => f.isoClause))).join(', ') || '--'}
                   </td>
                 </tr>
               );
             })}
             {ncList.length === 0 && (
-              <tr><td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">Zero non-conformances identified. Full standard compliance verified.</td></tr>
+              <tr>
+                <td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">
+                  Zero non-conformances identified. Full standard compliance verified.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -222,11 +290,11 @@ function UnitFindingsSection({
   findings: AuditFinding[];
   campusMap: Map<string, string>;
 }) {
-  const commendableList = schedules.filter(s => s.summaryCommendable);
-  const ofiList = schedules.filter(s => s.summaryOFI);
-  const ncList = schedules.filter(s => s.summaryNC || findings.some(f => f.auditScheduleId === s.id && f.type === 'Non-Conformance'));
-
-
+  const commendableList = schedules.filter((s) => s.summaryCommendable);
+  const ofiList = schedules.filter((s) => s.summaryOFI);
+  const ncList = schedules.filter(
+    (s) => s.summaryNC || findings.some((f) => f.auditScheduleId === s.id && f.type === 'Non-Conformance'),
+  );
 
   const commendableSorted = [...commendableList].sort((a, b) => {
     const aName = campusMap.get(a.campusId) || '';
@@ -257,8 +325,12 @@ function UnitFindingsSection({
         <thead>
           <tr className="bg-slate-200">
             <th className="border border-black p-2 w-[50px] text-center font-black uppercase text-[10pt]">No.</th>
-            <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">Campus / Site</th>
-            <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">Commendable Findings</th>
+            <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">
+              Campus / Site
+            </th>
+            <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">
+              Commendable Findings
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -269,7 +341,9 @@ function UnitFindingsSection({
                 <td className="border border-black p-2 text-center font-bold">{i + 1}</td>
                 <td className="border border-black p-2 text-center align-top">
                   <p className="font-black uppercase text-[9pt]">{campusLabel}</p>
-                  <p className="text-[8pt] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
+                  <p className="text-[8pt] font-bold text-slate-500 italic uppercase">
+                    ({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})
+                  </p>
                 </td>
                 <td className="border border-black p-2 align-top">
                   <div className="flex gap-2">
@@ -281,7 +355,11 @@ function UnitFindingsSection({
             );
           })}
           {commendableSorted.length === 0 && (
-            <tr><td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">No commendable practices recorded for this unit.</td></tr>
+            <tr>
+              <td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">
+                No commendable practices recorded for this unit.
+              </td>
+            </tr>
           )}
         </tbody>
       </table>
@@ -289,14 +367,19 @@ function UnitFindingsSection({
       {/* TABLE 2: RECOMMENDATIONS & OFI */}
       <div className="space-y-4 pt-4">
         <p className="leading-relaxed italic">
-          The following recommendations and opportunities for improvement provided by the auditor are intended to contribute to the continuous improvement of the management system of the University.
+          The following recommendations and opportunities for improvement provided by the auditor are intended to
+          contribute to the continuous improvement of the management system of the University.
         </p>
         <table className="w-full border-collapse border-[1.5px] border-black">
           <thead>
             <tr className="bg-slate-200">
               <th className="border border-black p-2 w-[50px] text-center font-black uppercase text-[10pt]">No.</th>
-              <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">Campus / Site</th>
-              <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">Recommendation and Opportunities for Improvement</th>
+              <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">
+                Campus / Site
+              </th>
+              <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">
+                Recommendation and Opportunities for Improvement
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -307,7 +390,9 @@ function UnitFindingsSection({
                   <td className="border border-black p-2 text-center font-bold">{i + 1}</td>
                   <td className="border border-black p-2 text-center align-top">
                     <p className="font-black uppercase text-[9pt]">{campusLabel}</p>
-                    <p className="text-[8pt] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
+                    <p className="text-[8pt] font-bold text-slate-500 italic uppercase">
+                      ({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})
+                    </p>
                   </td>
                   <td className="border border-black p-2 align-top whitespace-pre-wrap leading-relaxed italic">
                     {s.summaryOFI}
@@ -316,7 +401,11 @@ function UnitFindingsSection({
               );
             })}
             {ofiSorted.length === 0 && (
-              <tr><td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">No opportunities for improvement recorded.</td></tr>
+              <tr>
+                <td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">
+                  No opportunities for improvement recorded.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -330,44 +419,56 @@ function UnitFindingsSection({
         <table className="w-full border-collapse border-[1.5px] border-black">
           <thead>
             <tr className="bg-slate-200">
-              <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">Campus / Site</th>
+              <th className="border border-black p-2 w-[220px] text-center font-black uppercase text-[10pt]">
+                Campus / Site
+              </th>
               <th className="border border-black p-2 text-center font-black uppercase text-[10pt]">Non-Conformances</th>
-              <th className="border border-black p-2 w-[150px] text-center font-black uppercase text-[9pt] leading-tight">ISO 21001:2018 Clauses</th>
+              <th className="border border-black p-2 w-[150px] text-center font-black uppercase text-[9pt] leading-tight">
+                ISO 21001:2018 Clauses
+              </th>
             </tr>
           </thead>
           <tbody>
             {ncSorted.map((s) => {
-              const ncFindings = findings.filter(f => f.auditScheduleId === s.id && f.type === 'Non-Conformance');
+              const ncFindings = findings.filter((f) => f.auditScheduleId === s.id && f.type === 'Non-Conformance');
               const campusLabel = getCampusSiteLabel(campusMap.get(s.campusId) || 'Unknown Campus');
               return (
                 <tr key={s.id}>
                   <td className="border border-black p-2 text-center align-top">
                     <p className="font-black uppercase text-[9pt]">{campusLabel}</p>
-                    <p className="text-[8pt] font-bold text-slate-500 italic uppercase">({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})</p>
+                    <p className="text-[8pt] font-bold text-slate-500 italic uppercase">
+                      ({s.officerInCharge || s.auditeeHeadName || 'Unit Head'})
+                    </p>
                   </td>
                   <td className="border border-black p-2 align-top">
                     <div className="space-y-4">
                       <div className="space-y-2">
                         {ncFindings.map((f, fIdx) => (
                           <div key={fIdx} className="pl-2 border-l-2 border-slate-200 dark:border-slate-700">
-                            <p className="text-[9pt] font-black text-primary uppercase">Finding for Clause {f.isoClause}:</p>
+                            <p className="text-[9pt] font-black text-primary uppercase">
+                              Finding for Clause {f.isoClause}:
+                            </p>
                             <p className="text-[10pt] leading-relaxed italic">"{f.ncStatement || f.description}"</p>
                           </div>
                         ))}
                         {ncFindings.length === 0 && s.summaryNC && (
-                            <p className="whitespace-pre-wrap leading-relaxed font-bold italic">"{s.summaryNC}"</p>
+                          <p className="whitespace-pre-wrap leading-relaxed font-bold italic">"{s.summaryNC}"</p>
                         )}
                       </div>
                     </div>
                   </td>
                   <td className="border border-black p-2 text-center align-top font-black text-primary">
-                    {Array.from(new Set(ncFindings.map(f => f.isoClause))).join(', ') || '--'}
+                    {Array.from(new Set(ncFindings.map((f) => f.isoClause))).join(', ') || '--'}
                   </td>
                 </tr>
               );
             })}
             {ncSorted.length === 0 && (
-              <tr><td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">Zero non-conformances identified. Full standard compliance verified.</td></tr>
+              <tr>
+                <td colSpan={3} className="border border-black p-4 text-center italic text-slate-400">
+                  Zero non-conformances identified. Full standard compliance verified.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -376,54 +477,52 @@ function UnitFindingsSection({
   );
 }
 
-export function ConsolidatedAuditReportTemplate({ 
-    plan, 
-    schedules, 
-    findings, 
-    clauses, 
-    units, 
-    campuses, 
-    signatories,
-    campusName: overrideCampusName,
-    perCampus = false,
-    byUnit = false,
-    unitFilter = 'all',
+export function ConsolidatedAuditReportTemplate({
+  plan,
+  schedules,
+  findings,
+  clauses,
+  units,
+  campuses,
+  signatories,
+  campusName: overrideCampusName,
+  supervisingOfficeName,
+  perCampus = false,
+  byUnit = false,
+  unitFilter = 'all',
 }: ConsolidatedAuditReportTemplateProps) {
-  
-  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
-  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
+  const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
+  const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
 
   const auditDateRange = useMemo(() => {
     if (schedules.length === 0) return '--';
-    const dates = schedules.map(s => parseDate(s.scheduledDate));
-    const min = new Date(Math.min(...dates.map(d => d.getTime())));
-    const max = new Date(Math.max(...dates.map(d => d.getTime())));
+    const dates = schedules.map((s) => parseDate(s.scheduledDate));
+    const min = new Date(Math.min(...dates.map((d) => d.getTime())));
+    const max = new Date(Math.max(...dates.map((d) => d.getTime())));
     return `${format(min, 'MMMM dd, yyyy')} to ${format(max, 'MMMM dd, yyyy')}`;
   }, [schedules]);
 
   const qaoDirectorName = signatories?.qaoDirector || '____________________';
 
-
-
   // The display label for the site header when NOT in perCampus mode
-  const displayTarget = overrideCampusName ? getCampusSiteLabel(overrideCampusName) : getCampusSiteLabel(campusMap.get(plan.campusId) || 'UNIVERSITY-WIDE');
+  const displayTarget = overrideCampusName
+    ? getCampusSiteLabel(overrideCampusName)
+    : getCampusSiteLabel(campusMap.get(plan.campusId) || 'UNIVERSITY-WIDE');
 
   // For perCampus mode: gather distinct campus IDs from the schedules, sorted by Site
   const campusSections = useMemo(() => {
     if (!perCampus) return [];
-    const campusIds = Array.from(new Set(schedules.map(s => s.campusId).filter(Boolean)));
-    const sections = campusIds.map(cId => ({
+    const campusIds = Array.from(new Set(schedules.map((s) => s.campusId).filter(Boolean)));
+    const sections = campusIds.map((cId) => ({
       campusId: cId,
       campusLabel: campusMap.get(cId) || 'Unknown Campus',
-      schedules: schedules.filter(s => s.campusId === cId),
+      schedules: schedules.filter((s) => s.campusId === cId),
     }));
 
-
-
     return sections
-      .map(s => ({
+      .map((s) => ({
         ...s,
-        campusLabel: getCampusSiteLabel(s.campusLabel)
+        campusLabel: getCampusSiteLabel(s.campusLabel),
       }))
       .sort((a, b) => getSiteNumber(a.campusLabel) - getSiteNumber(b.campusLabel));
   }, [perCampus, schedules, campusMap]);
@@ -431,57 +530,77 @@ export function ConsolidatedAuditReportTemplate({
   // For byUnit mode: gather distinct units from the schedules
   const unitSections = useMemo(() => {
     if (!byUnit) return [];
-    
+
     if (unitFilter && unitFilter !== 'all') {
       const uName = unitMap.get(unitFilter) || 'Unknown Unit';
-      return [{
-        unitId: unitFilter,
-        unitLabel: uName,
-        schedules: schedules.filter(s => s.targetId === unitFilter),
-      }];
+      return [
+        {
+          unitId: unitFilter,
+          unitLabel: uName,
+          schedules: schedules.filter((s) => s.targetId === unitFilter),
+        },
+      ];
     }
-    
-    const unitIds = Array.from(new Set(schedules.map(s => s.targetId).filter(Boolean)));
-    const sections = unitIds.map(uId => ({
+
+    const unitIds = Array.from(new Set(schedules.map((s) => s.targetId).filter(Boolean)));
+    const sections = unitIds.map((uId) => ({
       unitId: uId,
       unitLabel: unitMap.get(uId) || 'Unknown Unit',
-      schedules: schedules.filter(s => s.targetId === uId),
+      schedules: schedules.filter((s) => s.targetId === uId),
     }));
-    
+
     return sections.sort((a, b) => a.unitLabel.localeCompare(b.unitLabel));
   }, [byUnit, unitFilter, schedules, unitMap]);
 
+  const titleText = supervisingOfficeName
+    ? `${plan.year} INTERNAL QUALITY AUDIT REPORT - ${supervisingOfficeName.toUpperCase()}`
+    : `${plan.year} INTERNAL QUALITY AUDIT REPORT`;
+
   return (
-    <div className="p-0 text-black dark:text-white bg-white dark:bg-slate-900 max-w-[7.5in] mx-auto font-sans leading-tight border-none" style={{ fontSize: '12pt' }}>
-      
+    <div
+      className="p-0 text-black dark:text-white bg-white dark:bg-slate-900 max-w-[7.5in] mx-auto font-sans leading-tight border-none"
+      style={{ fontSize: '12pt' }}
+    >
       {/* OFFICIAL HEADER TABLE */}
       <table className="w-full border-collapse border-[1.5px] border-slate-400 mb-8">
         <tbody>
           <tr>
             <td className="border-[1.5px] border-slate-400 p-4 w-[70%] text-center align-middle space-y-1">
-              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 leading-none">Romblon State University</p>
-              <p className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">INTERNAL QUALITY AUDIT</p>
+              <p className="text-xs font-bold text-slate-600 dark:text-slate-400 leading-none">
+                Romblon State University
+              </p>
+              <p className="text-sm font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
+                INTERNAL QUALITY AUDIT
+              </p>
               <div className="h-px bg-slate-300 w-24 mx-auto my-1" />
-              <p className="text-sm font-black uppercase text-slate-900 dark:text-slate-100">{plan.year} INTERNAL QUALITY AUDIT REPORT</p>
+              <p className="text-sm font-black uppercase text-slate-900 dark:text-slate-100">{titleText}</p>
               <p className="text-[10pt] italic">Main Campus, Odiongan, Romblon</p>
             </td>
             <td className="border-[1.5px] border-slate-400 w-[30%] p-0">
               <table className="w-full border-collapse h-full">
                 <tbody>
                   <tr className="border-b-[1.5px] border-slate-400">
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 w-1/3 text-[10pt]">Doc. Num.</td>
+                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 w-1/3 text-[10pt]">
+                      Doc. Num.
+                    </td>
                     <td className="p-1.5 text-[10pt]">{plan.auditNumber}</td>
                   </tr>
                   <tr className="border-b-[1.5px] border-slate-400">
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[10pt]">Standard</td>
+                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[10pt]">
+                      Standard
+                    </td>
                     <td className="p-1.5 font-bold text-[10pt]">ISO 21001:2018</td>
                   </tr>
                   <tr className="border-b-[1.5px] border-slate-400">
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[10pt]">Date of Audit</td>
+                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[10pt]">
+                      Date of Audit
+                    </td>
                     <td className="p-1.5 text-[9pt]">{auditDateRange}</td>
                   </tr>
                   <tr>
-                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[10pt]">Page No.</td>
+                    <td className="p-1.5 font-bold border-r-[1.5px] border-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[10pt]">
+                      Page No.
+                    </td>
                     <td className="p-1.5 font-bold text-slate-400 text-[10pt]">Page 1 of 1</td>
                   </tr>
                 </tbody>
@@ -494,9 +613,12 @@ export function ConsolidatedAuditReportTemplate({
       {/* SECTION: AUDIT FINDINGS */}
       <div className="space-y-10">
         <div className="space-y-2">
-          <h3 className="font-black text-sm text-slate-900 dark:text-slate-100" style={{ fontSize: '13pt' }}>Audit Findings</h3>
+          <h3 className="font-black text-sm text-slate-900 dark:text-slate-100" style={{ fontSize: '13pt' }}>
+            Audit Findings
+          </h3>
           <p className="leading-relaxed">
-            The following audit findings are gained during the audit and will assist the university in preparing for the next stage of the external audit.
+            The following audit findings are gained during the audit and will assist the university in preparing for the
+            next stage of the external audit.
           </p>
         </div>
 
@@ -518,6 +640,7 @@ export function ConsolidatedAuditReportTemplate({
               campusLabel={campusLabel}
               schedules={campusSchedules}
               findings={findings}
+              campusMap={campusMap}
             />
           ))
         ) : (
@@ -526,30 +649,41 @@ export function ConsolidatedAuditReportTemplate({
             campusLabel={displayTarget}
             schedules={schedules}
             findings={findings}
+            campusMap={campusMap}
           />
         )}
       </div>
 
       {/* V. Auditor Team Conclusion */}
       <section className="mt-12 mb-12 space-y-4 break-inside-avoid">
-        <h3 className="font-black text-sm uppercase border-b border-black pb-1 flex items-center gap-2" style={{ fontSize: '13pt' }}>
+        <h3
+          className="font-black text-sm uppercase border-b border-black pb-1 flex items-center gap-2"
+          style={{ fontSize: '13pt' }}
+        >
           V. Auditor Team Conclusion
         </h3>
         <div className="border border-black p-6 min-h-[150px] leading-relaxed italic text-slate-700 dark:text-slate-300">
-          Based on the objective evidence collected across the university units, the Internal Quality Audit team concludes that the Romblon State University Educational Organizations Management System (EOMS) is...
+          Based on the objective evidence collected across the university units, the Internal Quality Audit team
+          concludes that the Romblon State University Educational Organizations Management System (EOMS) is...
         </div>
       </section>
 
       {/* FINAL SIGNATORIES */}
       <div className="grid grid-cols-2 gap-16 mt-20 text-center break-inside-avoid px-10">
         <div>
-          <div className="border-b border-black font-black text-sm pb-1 mb-1 min-h-[24px] uppercase" style={{ fontSize: '12pt' }}>
+          <div
+            className="border-b border-black font-black text-sm pb-1 mb-1 min-h-[24px] uppercase"
+            style={{ fontSize: '12pt' }}
+          >
             {plan.leadAuditorName || '__________________________'}
           </div>
           <p className="text-[10pt] uppercase font-black text-slate-500">Lead Internal Auditor</p>
         </div>
         <div>
-          <div className="border-b border-black font-black text-sm pb-1 mb-1 min-h-[24px] uppercase" style={{ fontSize: '12pt' }}>
+          <div
+            className="border-b border-black font-black text-sm pb-1 mb-1 min-h-[24px] uppercase"
+            style={{ fontSize: '12pt' }}
+          >
             {qaoDirectorName}
           </div>
           <p className="text-[10pt] uppercase font-black text-slate-500">Director, Quality Assurance Office</p>

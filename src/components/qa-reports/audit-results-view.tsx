@@ -272,7 +272,7 @@ export function AuditResultsView({
     if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
-      const isAllCampuses = campusFilter === 'all' && unitFilter === 'all' && vpFilter === 'all';
+      const isAllCampuses = campusFilter === 'all' && unitFilter === 'all';
       const vpOfficeName =
         vpFilter !== 'all'
           ? vpFilter === 'unassigned'
@@ -282,11 +282,11 @@ export function AuditResultsView({
       const cName =
         unitFilter !== 'all'
           ? unitMap.get(unitFilter) || 'UNIT'
-          : vpFilter !== 'all'
-            ? vpOfficeName
-            : campusFilter === 'all'
-              ? 'UNIVERSITY-WIDE'
-              : campusMap.get(campusFilter) || 'UNIVERSITY-WIDE';
+          : campusFilter !== 'all'
+            ? campusMap.get(campusFilter) || 'UNIVERSITY-WIDE'
+            : vpFilter !== 'all'
+              ? vpOfficeName
+              : 'UNIVERSITY-WIDE';
 
       const reportHtml = renderToStaticMarkup(
         <ConsolidatedAuditReportTemplate
@@ -298,6 +298,7 @@ export function AuditResultsView({
           campuses={campuses}
           signatories={signatories || undefined}
           campusName={isAllCampuses ? undefined : cName}
+          supervisingOfficeName={vpOfficeName || undefined}
           perCampus={isAllCampuses}
         />,
       );
@@ -417,6 +418,7 @@ export function AuditResultsView({
           campuses={campuses}
           signatories={signatories || undefined}
           campusName={uName}
+          supervisingOfficeName={vpOfficeName || undefined}
           byUnit={true}
           unitFilter={unitFilter}
         />,
@@ -546,6 +548,7 @@ export function AuditResultsView({
                 onValueChange={(v) => {
                   setVpFilter(v);
                   setUnitFilter('all');
+                  setProcessTypeFilter('all');
                 }}
               >
                 <SelectTrigger className="h-10 bg-white font-bold text-xs">
