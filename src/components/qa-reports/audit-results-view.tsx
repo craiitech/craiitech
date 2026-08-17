@@ -40,6 +40,8 @@ import {
   Layers,
   Calendar,
   Clock,
+  Building2,
+  Undo2,
 } from 'lucide-react';
 import { Timestamp, collection, doc, query, where } from '@/firebase/firestore-wrapper';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -83,6 +85,7 @@ export function AuditResultsView({
   const [isProcessingReport, setIsProcessingReport] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState<string>('all');
+  const [vpFilter, setVpFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [processTypeFilter, setProcessTypeFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('non-conformance');
@@ -96,10 +99,45 @@ export function AuditResultsView({
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
+  const vpUnitOptions = useMemo(() => {
+    if (!units) return [];
+    const assignedVpIds = new Set(units.map((u) => u.vicePresidentId).filter(Boolean) as string[]);
+    return units
+      .filter((u) => {
+        const name = u.name.toLowerCase();
+        const isExecutive =
+          name.includes('vice president') ||
+          name.includes('president') ||
+          name.includes('chancellor') ||
+          name.includes('ovp');
+        return isExecutive || assignedVpIds.has(u.id);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [units]);
+
   const filteredUnits = useMemo(() => {
-    if (campusFilter === 'all') return units;
-    return units.filter((u) => u.campusIds?.includes(campusFilter));
-  }, [units, campusFilter]);
+    let list = units;
+    if (campusFilter !== 'all') {
+      list = list.filter((u) => u.campusIds?.includes(campusFilter));
+    }
+    if (vpFilter !== 'all') {
+      if (vpFilter === 'unassigned') {
+        list = list.filter((u) => !u.vicePresidentId);
+      } else {
+        list = list.filter((u) => u.vicePresidentId === vpFilter || u.id === vpFilter);
+      }
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [units, campusFilter, vpFilter]);
+
+  const getSupervisingOfficeName = (targetId?: string, targetName?: string) => {
+    if (!units) return null;
+    const u = units.find(
+      (unit) => unit.id === targetId || unit.name.toLowerCase() === (targetName || '').toLowerCase(),
+    );
+    if (!u?.vicePresidentId) return null;
+    return unitMap.get(u.vicePresidentId) || null;
+  };
 
   /**
    * DATA PROCESSING PIPELINE WITH FILTERS
@@ -108,9 +146,42 @@ export function AuditResultsView({
     const yearPlans = plans.filter((p) => p.year === selectedYear);
     const planIds = new Set(yearPlans.map((p) => p.id));
 
-    // Filter schedules by Campus/Unit/Search
+    // Filter schedules by Campus/VP/Unit/Search
     let filteredSchedules = schedules.filter((s) => planIds.has(s.auditPlanId));
     if (campusFilter !== 'all') filteredSchedules = filteredSchedules.filter((s) => s.campusId === campusFilter);
+
+    if (vpFilter !== 'all') {
+      const matchingUnitIds = new Set(
+        units
+          .filter((u) => {
+            if (vpFilter === 'unassigned') return !u.vicePresidentId;
+            return u.vicePresidentId === vpFilter || u.id === vpFilter;
+          })
+          .map((u) => u.id),
+      );
+      const matchingUnitNames = new Set(
+        units
+          .filter((u) => {
+            if (vpFilter === 'unassigned') return !u.vicePresidentId;
+            return u.vicePresidentId === vpFilter || u.id === vpFilter;
+          })
+          .map((u) => u.name.toLowerCase()),
+      );
+
+      filteredSchedules = filteredSchedules.filter((s) => {
+        if (matchingUnitIds.has(s.targetId)) return true;
+        if (matchingUnitNames.has((s.targetName || '').toLowerCase())) return true;
+        const u = units.find(
+          (unit) => unit.id === s.targetId || unit.name.toLowerCase() === (s.targetName || '').toLowerCase(),
+        );
+        if (u) {
+          if (vpFilter === 'unassigned') return !u.vicePresidentId;
+          return u.vicePresidentId === vpFilter || u.id === vpFilter;
+        }
+        return false;
+      });
+    }
+
     if (unitFilter !== 'all') filteredSchedules = filteredSchedules.filter((s) => s.targetId === unitFilter);
     if (processTypeFilter !== 'all')
       filteredSchedules = filteredSchedules.filter((s) => s.processCategory === processTypeFilter);
@@ -149,7 +220,19 @@ export function AuditResultsView({
       yearSchedules: filteredSchedules,
       yearFindings: filteredFindings,
     };
-  }, [plans, schedules, findings, cars, selectedYear, campusFilter, unitFilter, processTypeFilter, searchTerm]);
+  }, [
+    plans,
+    schedules,
+    findings,
+    units,
+    cars,
+    selectedYear,
+    campusFilter,
+    vpFilter,
+    unitFilter,
+    processTypeFilter,
+    searchTerm,
+  ]);
 
   const commendableRegistry = useMemo(() => {
     return kpis.yearSchedules.filter((s) => s.summaryCommendable && s.summaryCommendable.trim() !== '');
@@ -189,13 +272,21 @@ export function AuditResultsView({
     if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
-      const isAllCampuses = campusFilter === 'all' && unitFilter === 'all';
+      const isAllCampuses = campusFilter === 'all' && unitFilter === 'all' && vpFilter === 'all';
+      const vpOfficeName =
+        vpFilter !== 'all'
+          ? vpFilter === 'unassigned'
+            ? 'DIRECT / UNASSIGNED UNITS'
+            : unitMap.get(vpFilter) || 'SUPERVISING OFFICE'
+          : '';
       const cName =
         unitFilter !== 'all'
           ? unitMap.get(unitFilter) || 'UNIT'
-          : campusFilter === 'all'
-            ? 'UNIVERSITY-WIDE'
-            : campusMap.get(campusFilter) || 'UNIVERSITY-WIDE';
+          : vpFilter !== 'all'
+            ? vpOfficeName
+            : campusFilter === 'all'
+              ? 'UNIVERSITY-WIDE'
+              : campusMap.get(campusFilter) || 'UNIVERSITY-WIDE';
 
       const reportHtml = renderToStaticMarkup(
         <ConsolidatedAuditReportTemplate
@@ -253,6 +344,40 @@ export function AuditResultsView({
       if (!isAdmin) {
         printSchedules = printSchedules.filter((s) => s.auditorId === user?.uid);
       }
+      if (campusFilter !== 'all') {
+        printSchedules = printSchedules.filter((s) => s.campusId === campusFilter);
+      }
+      if (vpFilter !== 'all') {
+        const matchingUnitIds = new Set(
+          units
+            .filter((u) => {
+              if (vpFilter === 'unassigned') return !u.vicePresidentId;
+              return u.vicePresidentId === vpFilter || u.id === vpFilter;
+            })
+            .map((u) => u.id),
+        );
+        const matchingUnitNames = new Set(
+          units
+            .filter((u) => {
+              if (vpFilter === 'unassigned') return !u.vicePresidentId;
+              return u.vicePresidentId === vpFilter || u.id === vpFilter;
+            })
+            .map((u) => u.name.toLowerCase()),
+        );
+
+        printSchedules = printSchedules.filter((s) => {
+          if (matchingUnitIds.has(s.targetId)) return true;
+          if (matchingUnitNames.has((s.targetName || '').toLowerCase())) return true;
+          const u = units.find(
+            (unit) => unit.id === s.targetId || unit.name.toLowerCase() === (s.targetName || '').toLowerCase(),
+          );
+          if (u) {
+            if (vpFilter === 'unassigned') return !u.vicePresidentId;
+            return u.vicePresidentId === vpFilter || u.id === vpFilter;
+          }
+          return false;
+        });
+      }
       if (unitFilter !== 'all') {
         printSchedules = printSchedules.filter((s) => s.targetId === unitFilter);
       }
@@ -269,7 +394,18 @@ export function AuditResultsView({
       const scheduleIds = new Set(printSchedules.map((s) => s.id));
       const printFindings = findings.filter((f) => scheduleIds.has(f.auditScheduleId));
 
-      const uName = unitFilter !== 'all' ? unitMap.get(unitFilter) || 'UNIT' : 'ALL UNITS';
+      const vpOfficeName =
+        vpFilter !== 'all'
+          ? vpFilter === 'unassigned'
+            ? 'DIRECT / UNASSIGNED UNITS'
+            : unitMap.get(vpFilter) || 'SUPERVISING OFFICE'
+          : '';
+      const uName =
+        unitFilter !== 'all'
+          ? unitMap.get(unitFilter) || 'UNIT'
+          : vpFilter !== 'all'
+            ? `ALL UNITS UNDER ${vpOfficeName}`
+            : 'ALL UNITS';
 
       const reportHtml = renderToStaticMarkup(
         <ConsolidatedAuditReportTemplate
@@ -376,7 +512,7 @@ export function AuditResultsView({
               className="pl-9 h-11 shadow-sm bg-white border-primary/10 font-medium"
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                 <School className="h-2.5 w-2.5" /> Campus / Site
@@ -388,7 +524,7 @@ export function AuditResultsView({
                   setUnitFilter('all');
                 }}
               >
-                <SelectTrigger className="h-10 bg-white font-bold">
+                <SelectTrigger className="h-10 bg-white font-bold text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -403,18 +539,53 @@ export function AuditResultsView({
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                <Building2 className="h-2.5 w-2.5" /> Supervising Office / VP
+              </label>
+              <Select
+                value={vpFilter}
+                onValueChange={(v) => {
+                  setVpFilter(v);
+                  setUnitFilter('all');
+                }}
+              >
+                <SelectTrigger className="h-10 bg-white font-bold text-xs">
+                  <div className="truncate">
+                    <SelectValue placeholder="All Supervising Offices" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="font-semibold">
+                    All Supervising Offices
+                  </SelectItem>
+                  <SelectItem value="unassigned" className="text-muted-foreground">
+                    Unassigned / Direct Units Only
+                  </SelectItem>
+                  {vpUnitOptions.map((vp) => (
+                    <SelectItem key={vp.id} value={vp.id}>
+                      {vp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                 <Building className="h-2.5 w-2.5" /> Unit / Office
               </label>
               <Select
                 value={unitFilter}
                 onValueChange={setUnitFilter}
-                disabled={(campusFilter === 'all' && !isAdmin) || processTypeFilter !== 'all'}
+                disabled={(campusFilter === 'all' && vpFilter === 'all' && !isAdmin) || processTypeFilter !== 'all'}
               >
-                <SelectTrigger className="h-10 bg-white font-bold">
-                  <SelectValue />
+                <SelectTrigger className="h-10 bg-white font-bold text-xs">
+                  <div className="truncate">
+                    <SelectValue />
+                  </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Units in Campus</SelectItem>
+                  <SelectItem value="all">
+                    {vpFilter !== 'all' ? 'All Units Under Office' : 'All Units in Campus'}
+                  </SelectItem>
                   {filteredUnits.map((u) => (
                     <SelectItem key={u.id} value={u.id}>
                       {u.name}
@@ -434,7 +605,7 @@ export function AuditResultsView({
                   setUnitFilter('all');
                 }}
               >
-                <SelectTrigger className="h-10 bg-white font-bold">
+                <SelectTrigger className="h-10 bg-white font-bold text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -445,7 +616,7 @@ export function AuditResultsView({
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-3 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-2">
+            <div className="sm:col-span-2 lg:col-span-4 flex flex-col sm:flex-row items-stretch gap-2 pt-1">
               <Button
                 onClick={handlePrintConsolidated}
                 className="flex-1 h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"
@@ -455,7 +626,13 @@ export function AuditResultsView({
                 ) : (
                   <Printer className="h-4 w-4 mr-1.5" />
                 )}
-                {campusFilter === 'all' ? 'Print IQA Report' : `Print ${campusMap.get(campusFilter)} Report`}
+                {unitFilter !== 'all'
+                  ? `Print ${unitMap.get(unitFilter) || 'Unit'} Report`
+                  : vpFilter !== 'all'
+                    ? `Print ${vpFilter === 'unassigned' ? 'Unassigned Units' : unitMap.get(vpFilter) || 'Supervising Office'} Report`
+                    : campusFilter === 'all'
+                      ? 'Print IQA Report'
+                      : `Print ${campusMap.get(campusFilter)} Report`}
               </Button>
               <Button
                 onClick={handlePrintByUnit}
@@ -469,6 +646,26 @@ export function AuditResultsView({
                 )}
                 Print IQA Report by Unit
               </Button>
+              {(campusFilter !== 'all' ||
+                vpFilter !== 'all' ||
+                unitFilter !== 'all' ||
+                processTypeFilter !== 'all' ||
+                searchTerm) && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setCampusFilter('all');
+                    setVpFilter('all');
+                    setUnitFilter('all');
+                    setProcessTypeFilter('all');
+                    setSearchTerm('');
+                  }}
+                  className="h-10 text-[10px] font-black uppercase text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  <Undo2 className="h-3.5 w-3.5 mr-1" />
+                  Reset Filters
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -510,16 +707,27 @@ export function AuditResultsView({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {commendableRegistry.map((s) => (
-                    <TableRow key={s.id} className="hover:bg-emerald-50/20">
-                      <TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell>
-                      <TableCell className="py-5">
-                        <p className="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
-                          "{s.summaryCommendable}"
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {commendableRegistry.map((s) => {
+                    const supervisingOffice = getSupervisingOfficeName(s.targetId, s.targetName);
+                    return (
+                      <TableRow key={s.id} className="hover:bg-emerald-50/20">
+                        <TableCell className="pl-8 py-5 w-[250px]">
+                          <p className="font-bold text-xs uppercase">{s.targetName}</p>
+                          {supervisingOffice && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10 mt-1">
+                              <Building2 className="h-2.5 w-2.5 shrink-0" />
+                              {supervisingOffice}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-5">
+                          <p className="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
+                            "{s.summaryCommendable}"
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {commendableRegistry.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={2} className="h-40 text-center opacity-20">
@@ -553,16 +761,27 @@ export function AuditResultsView({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ofiRegistry.map((s) => (
-                    <TableRow key={s.id} className="hover:bg-amber-50/20">
-                      <TableCell className="pl-8 py-5 font-bold text-xs uppercase w-[250px]">{s.targetName}</TableCell>
-                      <TableCell className="py-5">
-                        <p className="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
-                          "{s.summaryOFI}"
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {ofiRegistry.map((s) => {
+                    const supervisingOffice = getSupervisingOfficeName(s.targetId, s.targetName);
+                    return (
+                      <TableRow key={s.id} className="hover:bg-amber-50/20">
+                        <TableCell className="pl-8 py-5 w-[250px]">
+                          <p className="font-bold text-xs uppercase">{s.targetName}</p>
+                          {supervisingOffice && (
+                            <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10 mt-1">
+                              <Building2 className="h-2.5 w-2.5 shrink-0" />
+                              {supervisingOffice}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-5">
+                          <p className="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">
+                            "{s.summaryOFI}"
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {ofiRegistry.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={2} className="h-40 text-center opacity-20">
@@ -604,84 +823,98 @@ export function AuditResultsView({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {ncRegistry.map((item) => (
-                    <TableRow key={item.finding.id} className="hover:bg-rose-50/20 transition-colors group">
-                      <TableCell className="pl-8 py-5">
-                        <div className="space-y-1">
-                          <p className="font-black text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">
-                            {item.schedule?.targetName}
-                          </p>
-                          <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase">
-                            <User className="h-3 w-3" />
-                            {item.schedule?.auditorName}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="py-5 font-bold text-xs uppercase text-slate-700 dark:text-slate-300">
-                        {item.schedule?.scheduledDate ? (
+                  {ncRegistry.map((item) => {
+                    const supervisingOffice = getSupervisingOfficeName(
+                      item.schedule?.targetId,
+                      item.schedule?.targetName,
+                    );
+                    return (
+                      <TableRow key={item.finding.id} className="hover:bg-rose-50/20 transition-colors group">
+                        <TableCell className="pl-8 py-5">
                           <div className="space-y-1">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="h-3.5 w-3.5 text-[#1B6535]" />
-                              <span>{format(parseDate(item.schedule.scheduledDate), 'PPP')}</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                              <Clock className="h-3 w-3" />
-                              <span>{format(parseDate(item.schedule.scheduledDate), 'p')}</span>
+                            <p className="font-black text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">
+                              {item.schedule?.targetName}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase">
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                {item.schedule?.auditorName}
+                              </span>
+                              {supervisingOffice && (
+                                <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">
+                                  <Building2 className="h-2.5 w-2.5 shrink-0" />
+                                  {supervisingOffice}
+                                </span>
+                              )}
                             </div>
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground italic">N/A</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="max-w-md py-5">
-                        <div className="space-y-2">
-                          <Badge className="bg-rose-600 text-white border-none h-4 px-1.5 text-[8px] font-black">
-                            Clause {item.finding.isoClause}
-                          </Badge>
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic">
-                            "{item.finding.ncStatement || item.finding.description}"
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {item.linkedCar ? (
-                          <Badge className="bg-emerald-600 text-white font-black text-[9px] h-5 px-2">
-                            CAR {item.linkedCar.carNumber}
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="text-rose-600 border-rose-200 bg-rose-50 h-5 text-[9px] font-black uppercase"
-                          >
-                            PENDING
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right pr-8">
-                        {item.isIssued ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-[9px] font-black uppercase tracking-widest bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1.5"
-                            onClick={() => router.push('/qa-reports?tab=car')}
-                          >
-                            <Target className="h-3.5 w-3.5" /> View CAR
-                          </Button>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => handleNavigateToIssueCar(item)}
-                            className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md gap-1.5"
-                          >
-                            <Gavel className="h-3.5 w-3.5" /> Issue CAR
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="py-5 font-bold text-xs uppercase text-slate-700 dark:text-slate-300">
+                          {item.schedule?.scheduledDate ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <Calendar className="h-3.5 w-3.5 text-[#1B6535]" />
+                                <span>{format(parseDate(item.schedule.scheduledDate), 'PPP')}</span>
+                              </div>
+                              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                                <Clock className="h-3 w-3" />
+                                <span>{format(parseDate(item.schedule.scheduledDate), 'p')}</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground italic">N/A</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="max-w-md py-5">
+                          <div className="space-y-2">
+                            <Badge className="bg-rose-600 text-white border-none h-4 px-1.5 text-[8px] font-black">
+                              Clause {item.finding.isoClause}
+                            </Badge>
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic">
+                              "{item.finding.ncStatement || item.finding.description}"
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {item.linkedCar ? (
+                            <Badge className="bg-emerald-600 text-white font-black text-[9px] h-5 px-2">
+                              CAR {item.linkedCar.carNumber}
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="text-rose-600 border-rose-200 bg-rose-50 h-5 text-[9px] font-black uppercase"
+                            >
+                              PENDING
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right pr-8">
+                          {item.isIssued ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-[9px] font-black uppercase tracking-widest bg-white border-emerald-200 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+                              onClick={() => router.push('/qa-reports?tab=car')}
+                            >
+                              <Target className="h-3.5 w-3.5" /> View CAR
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => handleNavigateToIssueCar(item)}
+                              className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md gap-1.5"
+                            >
+                              <Gavel className="h-3.5 w-3.5" /> Issue CAR
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {ncRegistry.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={4} className="h-40 text-center opacity-20">
+                      <TableCell colSpan={5} className="h-40 text-center opacity-20">
                         <CheckCircle2 className="h-10 w-10 mx-auto" />
                         <p className="text-[10px] font-black uppercase">Registry Clean</p>
                       </TableCell>

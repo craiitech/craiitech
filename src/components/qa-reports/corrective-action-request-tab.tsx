@@ -257,7 +257,7 @@ export function CorrectiveActionRequestTab({
   canManage,
   auditTypeFilter = 'ALL',
 }: CorrectiveActionRequestTabProps) {
-  const { userProfile, isAdmin, userRole, isAuditor } = useUser();
+  const { user, userProfile, isAdmin, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const { triggerLocalNotification } = useNotifications();
@@ -1023,17 +1023,26 @@ export function CorrectiveActionRequestTab({
     setIsDialogOpen(true);
   };
 
+  const isCampusSupervisor =
+    userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
+
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
     if (fieldName.startsWith('assignedUnits')) return !isInstitutionalViewer;
     if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits'))
       return !isInstitutionalViewer;
     if (fieldName === 'adminFeedback') return !isInstitutionalViewer;
+
     const activeAssigned = (form.getValues('assignedUnits') || [])[activeUnitIndex] as any;
     const isActiveMyUnit = activeAssigned?.unitId === userProfile?.unitId;
+    const isMyCampusUnit =
+      isCampusSupervisor &&
+      userProfile?.campusId &&
+      (activeAssigned?.campusId === userProfile.campusId || form.getValues('campusId') === userProfile.campusId);
+
     const responderFields = ['rootCauseAnalysis', 'actionSteps'];
     if (responderFields.some((f) => fieldName.startsWith(f))) {
-      return !isInstitutionalViewer && !isActiveMyUnit;
+      return !isInstitutionalViewer && !isActiveMyUnit && !isMyCampusUnit;
     }
     if (fieldName === 'status') return !isInstitutionalViewer;
     return true;
@@ -1042,9 +1051,16 @@ export function CorrectiveActionRequestTab({
   const onSubmit = async (values: z.infer<typeof carSchema>) => {
     if (!firestore || !userProfile) return;
 
+    const activeAssigned = (values.assignedUnits || [])[activeUnitIndex] as any;
+    const isMyCampusUnit =
+      isCampusSupervisor &&
+      userProfile?.campusId &&
+      (activeAssigned?.campusId === userProfile.campusId || values.campusId === userProfile.campusId);
+
     const isUnitResponding =
       (values.unitId === userProfile.unitId ||
-        (values.assignedUnits || []).some((a) => a.unitId === userProfile.unitId)) &&
+        (values.assignedUnits || []).some((a) => a.unitId === userProfile.unitId) ||
+        isMyCampusUnit) &&
       !isAdmin &&
       (userRole !== 'Auditor' || !isInstitutionalViewer);
 
@@ -1083,6 +1099,14 @@ export function CorrectiveActionRequestTab({
 
     setIsSubmitting(true);
 
+    const authorName = userProfile
+      ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
+      : user?.displayName || user?.email || 'Authorized User';
+    const userUnitName = userProfile?.unitId ? unitMap.get(userProfile.unitId) : '';
+    const authorRoleDescription = userUnitName
+      ? `${userRole || 'User'} (${userUnitName})`
+      : userRole || (isAdmin ? 'QA Admin' : 'User');
+
     let nextStatus = values.status;
     let needsVerification = liveCar?.needsVerification || false;
 
@@ -1091,8 +1115,8 @@ export function CorrectiveActionRequestTab({
       updatedComments.push({
         text: `[QA OFFICE FEEDBACK]: ${values.adminFeedback.trim()}`,
         authorId: userProfile.id,
-        authorName: `${userProfile.firstName} ${userProfile.lastName}`,
-        authorRole: userRole || 'Admin',
+        authorName,
+        authorRole: authorRoleDescription,
         createdAt: new Date(),
       });
       form.setValue('adminFeedback', '');
@@ -1172,6 +1196,91 @@ export function CorrectiveActionRequestTab({
       unitHead: values.unitHead || '',
     };
 
+    if (!editingCar) {
+      const primaryUnitName = unitMap.get(primaryUnit.unitId) || primaryUnit.unitId || 'Accountable Unit';
+      const primaryCampusName = campusMap.get(primaryUnit.campusId) || '';
+      const replyDateStr = values.timeLimitForReply ? format(new Date(values.timeLimitForReply), 'MMM dd, yyyy') : '';
+      updatedComments.push({
+        text: `[CAR ISSUED]: Corrective Action Request initiated and issued to ${primaryUnitName}${primaryCampusName ? ` (${primaryCampusName})` : ''}${replyDateStr ? ` with reply deadline ${replyDateStr}` : ''}.`,
+        authorId: userProfile.id,
+        authorName,
+        authorRole: authorRoleDescription,
+        createdAt: new Date(),
+      });
+    } else {
+      const changes: string[] = [];
+
+      const prevRca = (liveCar?.rootCauseAnalysis || '').trim();
+      const newRca = (values.rootCauseAnalysis || '').trim();
+      if (newRca && newRca !== prevRca) {
+        changes.push('Root Cause Analysis updated');
+      }
+
+      const prevSteps = liveCar?.actionSteps || [];
+      const newSteps = values.actionSteps || [];
+      if (newSteps.length > prevSteps.length) {
+        changes.push(`Added ${newSteps.length - prevSteps.length} action step(s)`);
+      } else if (JSON.stringify(newSteps) !== JSON.stringify(prevSteps)) {
+        changes.push('Corrective action steps & evidence updated');
+      }
+
+      const prevFollowUps = liveCar?.followUpLogs || [];
+      const newFollowUps = values.followUpLogs || [];
+      if (newFollowUps.length > prevFollowUps.length) {
+        const latestLog = newFollowUps[newFollowUps.length - 1];
+        changes.push(`Follow-up log recorded: "${latestLog?.result || 'Updated'}"`);
+      } else if (JSON.stringify(newFollowUps) !== JSON.stringify(prevFollowUps)) {
+        changes.push('Follow-up verification logs updated');
+      }
+
+      const prevAudits = liveCar?.effectivenessAudits || [];
+      const newAudits = values.effectivenessAudits || [];
+      if (newAudits.length > prevAudits.length) {
+        const latestAudit = newAudits[newAudits.length - 1];
+        changes.push(`Verification audit recorded: "${latestAudit?.action || 'Audit updated'}"`);
+      } else if (JSON.stringify(newAudits) !== JSON.stringify(prevAudits)) {
+        changes.push('Verification audit logs updated');
+      }
+
+      if (nextStatus !== (liveCar?.status || 'Open')) {
+        changes.push(`Status transitioned from "${liveCar?.status || 'Open'}" to "${nextStatus}"`);
+      }
+
+      const prevAssigned = liveCar?.assignedUnits || [];
+      if (assignedUnits.length !== prevAssigned.length) {
+        changes.push(`Assigned units updated (${assignedUnits.length} assigned)`);
+      }
+
+      if (values.procedureTitle !== liveCar?.procedureTitle) {
+        changes.push('Procedure title updated');
+      }
+      if (values.concerningClause !== liveCar?.concerningClause) {
+        changes.push('Concerning clause updated');
+      }
+
+      if (changes.length === 0) {
+        changes.push('CAR form details updated');
+      }
+
+      let logPrefix = '[CAR UPDATED]';
+      if (isUnitResponding) {
+        logPrefix = '[UNIT RESPONSE UPDATED]';
+      } else if (
+        isInstitutionalViewer &&
+        (newFollowUps.length > prevFollowUps.length || newAudits.length > prevAudits.length)
+      ) {
+        logPrefix = '[QA VERIFICATION LOGGED]';
+      }
+
+      updatedComments.push({
+        text: `${logPrefix}: ${changes.join(', ')}.`,
+        authorId: userProfile.id,
+        authorName,
+        authorRole: authorRoleDescription,
+        createdAt: new Date(),
+      });
+    }
+
     const carData = {
       ...values,
       unitId: primaryUnit.unitId,
@@ -1182,6 +1291,9 @@ export function CorrectiveActionRequestTab({
       status: nextStatus,
       needsVerification,
       comments: updatedComments,
+      lastUpdatedBy: userProfile.id,
+      lastUpdatedByName: authorName,
+      lastUpdatedByRole: authorRoleDescription,
       timeLimitForReply: Timestamp.fromDate(new Date(values.timeLimitForReply)),
       requestDate: Timestamp.fromDate(new Date(values.requestDate)),
       actionSteps: (values.actionSteps || []).map((step) => ({
@@ -1621,6 +1733,18 @@ export function CorrectiveActionRequestTab({
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                               {car.procedureTitle}
                             </span>
+                            {car.lastUpdatedByName && (
+                              <span
+                                className="text-[8px] text-muted-foreground font-medium flex items-center gap-1 mt-0.5"
+                                title={`Last updated by ${car.lastUpdatedByName} (${car.lastUpdatedByRole || ''})`}
+                              >
+                                <Clock className="h-2.5 w-2.5 text-primary/50 shrink-0" />
+                                Updated by:{' '}
+                                <strong className="font-semibold text-foreground/80 truncate max-w-[150px]">
+                                  {car.lastUpdatedByName}
+                                </strong>
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -1746,6 +1870,18 @@ export function CorrectiveActionRequestTab({
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                               {car.procedureTitle}
                             </span>
+                            {car.lastUpdatedByName && (
+                              <span
+                                className="text-[8px] text-muted-foreground font-medium flex items-center gap-1 mt-0.5"
+                                title={`Last updated by ${car.lastUpdatedByName} (${car.lastUpdatedByRole || ''})`}
+                              >
+                                <Clock className="h-2.5 w-2.5 text-primary/50 shrink-0" />
+                                Updated by:{' '}
+                                <strong className="font-semibold text-foreground/80 truncate max-w-[150px]">
+                                  {car.lastUpdatedByName}
+                                </strong>
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -1867,6 +2003,18 @@ export function CorrectiveActionRequestTab({
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                               {car.procedureTitle}
                             </span>
+                            {car.lastUpdatedByName && (
+                              <span
+                                className="text-[8px] text-muted-foreground font-medium flex items-center gap-1 mt-0.5"
+                                title={`Last updated by ${car.lastUpdatedByName} (${car.lastUpdatedByRole || ''})`}
+                              >
+                                <Clock className="h-2.5 w-2.5 text-primary/50 shrink-0" />
+                                Updated by:{' '}
+                                <strong className="font-semibold text-foreground/80 truncate max-w-[150px]">
+                                  {car.lastUpdatedByName}
+                                </strong>
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -1989,6 +2137,18 @@ export function CorrectiveActionRequestTab({
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                               {car.procedureTitle}
                             </span>
+                            {car.lastUpdatedByName && (
+                              <span
+                                className="text-[8px] text-muted-foreground font-medium flex items-center gap-1 mt-0.5"
+                                title={`Last updated by ${car.lastUpdatedByName} (${car.lastUpdatedByRole || ''})`}
+                              >
+                                <Clock className="h-2.5 w-2.5 text-primary/50 shrink-0" />
+                                Updated by:{' '}
+                                <strong className="font-semibold text-foreground/80 truncate max-w-[150px]">
+                                  {car.lastUpdatedByName}
+                                </strong>
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -2103,6 +2263,12 @@ export function CorrectiveActionRequestTab({
                     {editingCar
                       ? isAdmin ||
                         isInstitutionalViewer ||
+                        (isCampusSupervisor &&
+                          !!userProfile?.campusId &&
+                          (form.getValues('campusId') === userProfile.campusId ||
+                            (form.getValues('assignedUnits') || []).some(
+                              (a) => a.campusId === userProfile.campusId,
+                            ))) ||
                         (userProfile?.unitId &&
                           (userProfile.unitId === form.getValues('unitId') ||
                             (form.getValues('assignedUnits') || []).some((a) => a.unitId === userProfile.unitId)))
@@ -2116,6 +2282,17 @@ export function CorrectiveActionRequestTab({
                     </Badge>
                   )}
                 </div>
+                {liveCar && (liveCar.lastUpdatedByName || liveCar.updatedAt) && (
+                  <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium pt-0.5">
+                    <Clock className="h-3 w-3 text-primary/60 shrink-0" />
+                    <span>
+                      Last updated by{' '}
+                      <strong className="text-foreground font-bold">{liveCar.lastUpdatedByName || 'User'}</strong>
+                      {liveCar.lastUpdatedByRole ? ` (${liveCar.lastUpdatedByRole})` : ''}
+                      {liveCar.updatedAt?.toDate ? ` on ${format(liveCar.updatedAt.toDate(), 'PPP p')}` : ''}
+                    </span>
+                  </div>
+                )}
               </div>
               <Button
                 variant="ghost"
@@ -3044,38 +3221,92 @@ export function CorrectiveActionRequestTab({
                 </div>
               </div>
 
-              <div className="w-[400px] flex flex-col bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
+              <div className="w-[420px] flex flex-col bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
                 <div className="p-4 border-b font-black text-xs uppercase tracking-widest text-primary flex items-center gap-2 bg-white">
-                  <MessageSquare className="h-4 w-4" /> Conversation History
+                  <History className="h-4 w-4" /> Activity &amp; Conversation History
                 </div>
-                <ScrollArea className="flex-1 p-6">
-                  <div className="space-y-6">
+                <ScrollArea className="flex-1 p-5">
+                  <div className="space-y-4">
                     {liveCar?.comments && liveCar.comments.length > 0 ? (
-                      liveCar.comments.map((comment, index) => (
-                        <div key={index} className="space-y-2">
-                          <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
-                            <span className="text-[10px] font-black uppercase text-primary truncate max-w-[150px]">
-                              {comment.authorName}
-                            </span>
-                            <span className="text-[8px] font-mono text-muted-foreground">
-                              {(() => {
-                                const c = comment.createdAt;
-                                if (!c) return '';
-                                const d = c instanceof Date ? c : (c as any).toDate?.();
-                                return d && !isNaN(d.getTime()) ? format(d, 'MMM dd, p') : '';
-                              })()}
-                            </span>
+                      liveCar.comments.map((comment, index) => {
+                        const text = comment.text || '';
+                        const isFeedback = text.startsWith('[QA DIRECTIVE') || text.startsWith('[QA OFFICE FEEDBACK');
+                        const isUnitResponse = text.startsWith('[UNIT RESPONSE');
+                        const isVerification = text.startsWith('[QA VERIFICATION');
+                        const isIssued = text.startsWith('[CAR ISSUED') || text.startsWith('[CAR INITIATED');
+                        const isUpdate = text.startsWith('[CAR UPDATED');
+
+                        let badgeLabel = 'Note';
+                        let badgeColor = 'bg-slate-100 text-slate-700 border-slate-200';
+                        let iconEl = <MessageSquare className="h-3 w-3" />;
+
+                        if (isFeedback) {
+                          badgeLabel = 'QA Directive';
+                          badgeColor =
+                            'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-950 dark:text-indigo-200';
+                          iconEl = <MessageCircle className="h-3 w-3 text-indigo-600" />;
+                        } else if (isUnitResponse) {
+                          badgeLabel = 'Unit Response';
+                          badgeColor =
+                            'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950 dark:text-amber-200';
+                          iconEl = <CheckCircle2 className="h-3 w-3 text-amber-600" />;
+                        } else if (isVerification) {
+                          badgeLabel = 'QA Verification';
+                          badgeColor =
+                            'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200';
+                          iconEl = <ShieldCheck className="h-3 w-3 text-emerald-600" />;
+                        } else if (isIssued) {
+                          badgeLabel = 'CAR Issued';
+                          badgeColor = 'bg-primary/10 text-primary border-primary/20';
+                          iconEl = <PlusCircle className="h-3 w-3 text-primary" />;
+                        } else if (isUpdate) {
+                          badgeLabel = 'Record Updated';
+                          badgeColor = 'bg-sky-100 text-sky-800 border-sky-200 dark:bg-sky-950 dark:text-sky-200';
+                          iconEl = <History className="h-3 w-3 text-sky-600" />;
+                        }
+
+                        const displayBody = text.replace(/^\[.*?\]:\s*/, '');
+
+                        return (
+                          <div
+                            key={index}
+                            className="space-y-1.5 p-3 rounded-xl border bg-white dark:bg-slate-900 shadow-sm transition-all hover:border-primary/20"
+                          >
+                            <div className="flex items-center justify-between gap-2 border-b pb-1.5">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                {iconEl}
+                                <span className="text-[10px] font-black uppercase text-foreground truncate max-w-[150px]">
+                                  {comment.authorName}
+                                </span>
+                              </div>
+                              <span className="text-[8px] font-mono text-muted-foreground shrink-0">
+                                {(() => {
+                                  const c = comment.createdAt;
+                                  if (!c) return '';
+                                  const d = c instanceof Date ? c : (c as any).toDate?.();
+                                  return d && !isNaN(d.getTime()) ? format(d, 'MMM dd, p') : '';
+                                })()}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between gap-1 pt-0.5">
+                              <Badge
+                                variant="outline"
+                                className={cn('text-[8px] font-black uppercase px-1.5 py-0 h-4', badgeColor)}
+                              >
+                                {badgeLabel}
+                              </Badge>
+                              <p className="text-[8px] font-bold text-muted-foreground uppercase truncate max-w-[190px]">
+                                {comment.authorRole}
+                              </p>
+                            </div>
+                            <div className="text-[11px] leading-relaxed text-slate-700 dark:text-slate-300 pt-1 font-medium">
+                              "{displayBody}"
+                            </div>
                           </div>
-                          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-primary/5 shadow-sm text-[11px] leading-relaxed italic text-slate-700 dark:text-slate-300">
-                            "{comment.text}"
-                          </div>
-                          <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">
-                            {comment.authorRole}
-                          </p>
-                        </div>
-                      ))
+                        );
+                      })
                     ) : (
-                      <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
+                      <div className="py-20 text-center opacity-20 flex flex-col items-center gap-3">
                         <History className="h-12 w-12" />
                         <p className="text-[10px] font-black uppercase tracking-widest">No history logged</p>
                       </div>
@@ -3131,6 +3362,10 @@ export function CorrectiveActionRequestTab({
                 )}
                 {(isAdmin ||
                   isInstitutionalViewer ||
+                  (isCampusSupervisor &&
+                    !!userProfile?.campusId &&
+                    (form.getValues('campusId') === userProfile.campusId ||
+                      (form.getValues('assignedUnits') || []).some((a) => a.campusId === userProfile.campusId))) ||
                   (userProfile?.unitId &&
                     (userProfile.unitId === form.getValues('unitId') ||
                       (form.getValues('assignedUnits') || []).some((a) => a.unitId === userProfile.unitId)))) && (

@@ -43,6 +43,8 @@ import {
   Save,
   Calendar,
   Clock,
+  Building2,
+  Undo2,
 } from 'lucide-react';
 import {
   Timestamp,
@@ -106,6 +108,7 @@ export function AuditResultsView({
   const [isProcessingReport, setIsProcessingReport] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [campusFilter, setCampusFilter] = useState<string>('all');
+  const [vpFilter, setVpFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
   const [processTypeFilter, setProcessTypeFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState('non-conformance');
@@ -123,6 +126,46 @@ export function AuditResultsView({
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
+  const vpUnitOptions = useMemo(() => {
+    if (!units) return [];
+    const assignedVpIds = new Set(units.map((u) => u.vicePresidentId).filter(Boolean) as string[]);
+    return units
+      .filter((u) => {
+        const name = u.name.toLowerCase();
+        const isExecutive =
+          name.includes('vice president') ||
+          name.includes('president') ||
+          name.includes('chancellor') ||
+          name.includes('ovp');
+        return isExecutive || assignedVpIds.has(u.id);
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [units]);
+
+  const filteredUnits = useMemo(() => {
+    let list = units;
+    if (campusFilter !== 'all') {
+      list = list.filter((u) => u.campusIds?.includes(campusFilter));
+    }
+    if (vpFilter !== 'all') {
+      if (vpFilter === 'unassigned') {
+        list = list.filter((u) => !u.vicePresidentId);
+      } else {
+        list = list.filter((u) => u.vicePresidentId === vpFilter || u.id === vpFilter);
+      }
+    }
+    return list.sort((a, b) => a.name.localeCompare(b.name));
+  }, [units, campusFilter, vpFilter]);
+
+  const getSupervisingOfficeName = (targetId?: string, targetName?: string) => {
+    if (!units) return null;
+    const u = units.find(
+      (unit) => unit.id === targetId || unit.name.toLowerCase() === (targetName || '').toLowerCase(),
+    );
+    if (!u?.vicePresidentId) return null;
+    return unitMap.get(u.vicePresidentId) || null;
+  };
+
   const kpis = useMemo(() => {
     const yearPlans = plans.filter((p) => p.year === selectedYear);
     const planIds = new Set(yearPlans.map((p) => p.id));
@@ -131,6 +174,39 @@ export function AuditResultsView({
       filteredSchedules = filteredSchedules.filter((s) => s.auditorId === user?.uid);
     }
     if (campusFilter !== 'all') filteredSchedules = filteredSchedules.filter((s) => s.campusId === campusFilter);
+
+    if (vpFilter !== 'all') {
+      const matchingUnitIds = new Set(
+        units
+          .filter((u) => {
+            if (vpFilter === 'unassigned') return !u.vicePresidentId;
+            return u.vicePresidentId === vpFilter || u.id === vpFilter;
+          })
+          .map((u) => u.id),
+      );
+      const matchingUnitNames = new Set(
+        units
+          .filter((u) => {
+            if (vpFilter === 'unassigned') return !u.vicePresidentId;
+            return u.vicePresidentId === vpFilter || u.id === vpFilter;
+          })
+          .map((u) => u.name.toLowerCase()),
+      );
+
+      filteredSchedules = filteredSchedules.filter((s) => {
+        if (matchingUnitIds.has(s.targetId)) return true;
+        if (matchingUnitNames.has((s.targetName || '').toLowerCase())) return true;
+        const u = units.find(
+          (unit) => unit.id === s.targetId || unit.name.toLowerCase() === (s.targetName || '').toLowerCase(),
+        );
+        if (u) {
+          if (vpFilter === 'unassigned') return !u.vicePresidentId;
+          return u.vicePresidentId === vpFilter || u.id === vpFilter;
+        }
+        return false;
+      });
+    }
+
     if (unitFilter !== 'all') filteredSchedules = filteredSchedules.filter((s) => s.targetId === unitFilter);
     if (processTypeFilter !== 'all')
       filteredSchedules = filteredSchedules.filter((s) => s.processCategory === processTypeFilter);
@@ -155,8 +231,10 @@ export function AuditResultsView({
     plans,
     schedules,
     findings,
+    units,
     selectedYear,
     campusFilter,
+    vpFilter,
     unitFilter,
     processTypeFilter,
     searchTerm,
@@ -177,15 +255,22 @@ export function AuditResultsView({
     if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
-      // When a specific campus is selected, use its name; for a specific unit, use unit name.
-      // When "all" campuses are selected, use perCampus mode to render a separate section per campus.
-      const isAllCampuses = campusFilter === 'all' && unitFilter === 'all';
+      // When a specific campus/VP/unit is selected, customize title; when all, use perCampus mode.
+      const isAllCampuses = campusFilter === 'all' && unitFilter === 'all' && vpFilter === 'all';
+      const vpOfficeName =
+        vpFilter !== 'all'
+          ? vpFilter === 'unassigned'
+            ? 'DIRECT / UNASSIGNED UNITS'
+            : unitMap.get(vpFilter) || 'SUPERVISING OFFICE'
+          : '';
       const cName =
         unitFilter !== 'all'
           ? unitMap.get(unitFilter) || 'UNIT'
-          : campusFilter !== 'all'
-            ? campusMap.get(campusFilter) || 'UNIVERSITY-WIDE'
-            : 'UNIVERSITY-WIDE';
+          : vpFilter !== 'all'
+            ? vpOfficeName
+            : campusFilter !== 'all'
+              ? campusMap.get(campusFilter) || 'UNIVERSITY-WIDE'
+              : 'UNIVERSITY-WIDE';
 
       const reportHtml = renderToStaticMarkup(
         <ConsolidatedAuditReportTemplate
@@ -243,6 +328,40 @@ export function AuditResultsView({
       if (!isAdmin) {
         printSchedules = printSchedules.filter((s) => s.auditorId === user?.uid);
       }
+      if (campusFilter !== 'all') {
+        printSchedules = printSchedules.filter((s) => s.campusId === campusFilter);
+      }
+      if (vpFilter !== 'all') {
+        const matchingUnitIds = new Set(
+          units
+            .filter((u) => {
+              if (vpFilter === 'unassigned') return !u.vicePresidentId;
+              return u.vicePresidentId === vpFilter || u.id === vpFilter;
+            })
+            .map((u) => u.id),
+        );
+        const matchingUnitNames = new Set(
+          units
+            .filter((u) => {
+              if (vpFilter === 'unassigned') return !u.vicePresidentId;
+              return u.vicePresidentId === vpFilter || u.id === vpFilter;
+            })
+            .map((u) => u.name.toLowerCase()),
+        );
+
+        printSchedules = printSchedules.filter((s) => {
+          if (matchingUnitIds.has(s.targetId)) return true;
+          if (matchingUnitNames.has((s.targetName || '').toLowerCase())) return true;
+          const u = units.find(
+            (unit) => unit.id === s.targetId || unit.name.toLowerCase() === (s.targetName || '').toLowerCase(),
+          );
+          if (u) {
+            if (vpFilter === 'unassigned') return !u.vicePresidentId;
+            return u.vicePresidentId === vpFilter || u.id === vpFilter;
+          }
+          return false;
+        });
+      }
       if (unitFilter !== 'all') {
         printSchedules = printSchedules.filter((s) => s.targetId === unitFilter);
       }
@@ -259,7 +378,18 @@ export function AuditResultsView({
       const scheduleIds = new Set(printSchedules.map((s) => s.id));
       const printFindings = findings.filter((f) => scheduleIds.has(f.auditScheduleId));
 
-      const uName = unitFilter !== 'all' ? unitMap.get(unitFilter) || 'UNIT' : 'ALL UNITS';
+      const vpOfficeName =
+        vpFilter !== 'all'
+          ? vpFilter === 'unassigned'
+            ? 'DIRECT / UNASSIGNED UNITS'
+            : unitMap.get(vpFilter) || 'SUPERVISING OFFICE'
+          : '';
+      const uName =
+        unitFilter !== 'all'
+          ? unitMap.get(unitFilter) || 'UNIT'
+          : vpFilter !== 'all'
+            ? `ALL UNITS UNDER ${vpOfficeName}`
+            : 'ALL UNITS';
 
       const reportHtml = renderToStaticMarkup(
         <ConsolidatedAuditReportTemplate
@@ -350,13 +480,13 @@ export function AuditResultsView({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search findings..."
+              placeholder="Search finding by auditee or auditor..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 h-11 bg-white border-primary/10"
+              className="pl-9 h-11 shadow-sm bg-white border-primary/10 font-medium"
             />
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                 <School className="h-2.5 w-2.5" /> Campus / Site
@@ -368,7 +498,7 @@ export function AuditResultsView({
                   setUnitFilter('all');
                 }}
               >
-                <SelectTrigger className="h-10 bg-white font-bold">
+                <SelectTrigger className="h-10 bg-white font-bold text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -383,25 +513,58 @@ export function AuditResultsView({
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                <Building2 className="h-2.5 w-2.5" /> Supervising Office / VP
+              </label>
+              <Select
+                value={vpFilter}
+                onValueChange={(v) => {
+                  setVpFilter(v);
+                  setUnitFilter('all');
+                }}
+              >
+                <SelectTrigger className="h-10 bg-white font-bold text-xs">
+                  <div className="truncate">
+                    <SelectValue placeholder="All Supervising Offices" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="font-semibold">
+                    All Supervising Offices
+                  </SelectItem>
+                  <SelectItem value="unassigned" className="text-muted-foreground">
+                    Unassigned / Direct Units Only
+                  </SelectItem>
+                  {vpUnitOptions.map((vp) => (
+                    <SelectItem key={vp.id} value={vp.id}>
+                      {vp.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                 <Building className="h-2.5 w-2.5" /> Unit / Office
               </label>
               <Select
                 value={unitFilter}
                 onValueChange={setUnitFilter}
-                disabled={(campusFilter === 'all' && !isAdmin) || processTypeFilter !== 'all'}
+                disabled={(campusFilter === 'all' && vpFilter === 'all' && !isAdmin) || processTypeFilter !== 'all'}
               >
-                <SelectTrigger className="h-10 bg-white font-bold">
-                  <SelectValue />
+                <SelectTrigger className="h-10 bg-white font-bold text-xs">
+                  <div className="truncate">
+                    <SelectValue />
+                  </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Units in Campus</SelectItem>
-                  {units
-                    .filter((u) => campusFilter === 'all' || u.campusIds?.includes(campusFilter))
-                    .map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name}
-                      </SelectItem>
-                    ))}
+                  <SelectItem value="all">
+                    {vpFilter !== 'all' ? 'All Units Under Office' : 'All Units in Campus'}
+                  </SelectItem>
+                  {filteredUnits.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -416,7 +579,7 @@ export function AuditResultsView({
                   setUnitFilter('all');
                 }}
               >
-                <SelectTrigger className="h-10 bg-white font-bold">
+                <SelectTrigger className="h-10 bg-white font-bold text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -427,7 +590,7 @@ export function AuditResultsView({
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-3 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-2">
+            <div className="sm:col-span-2 lg:col-span-4 flex flex-col sm:flex-row items-stretch gap-2 pt-1">
               <Button
                 onClick={handlePrintConsolidated}
                 className="flex-1 font-black uppercase text-[10px] h-10 shadow-lg shadow-primary/20"
@@ -437,7 +600,13 @@ export function AuditResultsView({
                 ) : (
                   <Printer className="h-4 w-4 mr-1.5" />
                 )}
-                {campusFilter === 'all' ? 'Print IQA Report' : `Print ${campusMap.get(campusFilter)} Report`}
+                {unitFilter !== 'all'
+                  ? `Print ${unitMap.get(unitFilter) || 'Unit'} Report`
+                  : vpFilter !== 'all'
+                    ? `Print ${vpFilter === 'unassigned' ? 'Unassigned Units' : unitMap.get(vpFilter) || 'Supervising Office'} Report`
+                    : campusFilter === 'all'
+                      ? 'Print IQA Report'
+                      : `Print ${campusMap.get(campusFilter)} Report`}
               </Button>
               <Button
                 onClick={handlePrintByUnit}
@@ -451,6 +620,26 @@ export function AuditResultsView({
                 )}
                 Print IQA Report by Unit
               </Button>
+              {(campusFilter !== 'all' ||
+                vpFilter !== 'all' ||
+                unitFilter !== 'all' ||
+                processTypeFilter !== 'all' ||
+                searchTerm) && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setCampusFilter('all');
+                    setVpFilter('all');
+                    setUnitFilter('all');
+                    setProcessTypeFilter('all');
+                    setSearchTerm('');
+                  }}
+                  className="h-10 text-[10px] font-black uppercase text-muted-foreground hover:text-foreground shrink-0"
+                >
+                  <Undo2 className="h-3.5 w-3.5 mr-1" />
+                  Reset Filters
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -507,13 +696,22 @@ export function AuditResultsView({
                     const auditeeName = schedule
                       ? schedule.auditeeHeadName || schedule.officerInCharge || 'Unit Head'
                       : 'Unit Head';
+                    const supervisingOffice = getSupervisingOfficeName(schedule?.targetId, schedule?.targetName);
                     return (
                       <TableRow key={finding.id} className="hover:bg-rose-50/20 group">
                         <TableCell className="pl-8 py-5">
                           <p className="font-black text-sm uppercase">{schedule?.targetName}</p>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                            {campusName}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                              {campusName}
+                            </span>
+                            {supervisingOffice && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">
+                                <Building2 className="h-2.5 w-2.5 shrink-0" />
+                                {supervisingOffice}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
                             Auditee: {auditeeName}
                           </p>
@@ -579,7 +777,7 @@ export function AuditResultsView({
                   })}
                 {kpis.yearFindings.filter((f) => f.type === 'Non-Conformance').length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={3} className="h-40 text-center opacity-20">
+                    <TableCell colSpan={4} className="h-40 text-center opacity-20">
                       <Activity className="h-10 w-10 mx-auto" />
                       <p className="text-[10px] font-black uppercase tracking-widest">No verified NCs in this scope</p>
                     </TableCell>
@@ -610,13 +808,22 @@ export function AuditResultsView({
                     const auditeeName = schedule
                       ? schedule.auditeeHeadName || schedule.officerInCharge || 'Unit Head'
                       : 'Unit Head';
+                    const supervisingOffice = getSupervisingOfficeName(schedule?.targetId, schedule?.targetName);
                     return (
                       <TableRow key={finding.id} className="hover:bg-emerald-50/10 transition-colors">
                         <TableCell className="pl-8 py-5">
                           <p className="font-black text-sm uppercase">{schedule?.targetName}</p>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                            {campusName}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                              {campusName}
+                            </span>
+                            {supervisingOffice && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">
+                                <Building2 className="h-2.5 w-2.5 shrink-0" />
+                                {supervisingOffice}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
                             Auditee: {auditeeName}
                           </p>
@@ -674,13 +881,22 @@ export function AuditResultsView({
                     const auditeeName = schedule
                       ? schedule.auditeeHeadName || schedule.officerInCharge || 'Unit Head'
                       : 'Unit Head';
+                    const supervisingOffice = getSupervisingOfficeName(schedule?.targetId, schedule?.targetName);
                     return (
                       <TableRow key={finding.id} className="hover:bg-amber-50/10 transition-colors">
                         <TableCell className="pl-8 py-5">
                           <p className="font-black text-sm uppercase">{schedule?.targetName}</p>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                            {campusName}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                              {campusName}
+                            </span>
+                            {supervisingOffice && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">
+                                <Building2 className="h-2.5 w-2.5 shrink-0" />
+                                {supervisingOffice}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
                             Auditee: {auditeeName}
                           </p>
@@ -733,13 +949,22 @@ export function AuditResultsView({
                   .map((s) => {
                     const campusName = campusMap.get(s.campusId) || 'Institutional';
                     const auditeeName = s.auditeeHeadName || s.officerInCharge || 'Unit Head';
+                    const supervisingOffice = getSupervisingOfficeName(s.targetId, s.targetName);
                     return (
                       <TableRow key={s.id} className="hover:bg-emerald-50/20 transition-colors">
                         <TableCell className="pl-8 py-5 w-[250px]">
                           <p className="font-black text-sm uppercase">{s.targetName}</p>
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                            {campusName}
-                          </p>
+                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                              {campusName}
+                            </span>
+                            {supervisingOffice && (
+                              <span className="inline-flex items-center gap-1 text-[9px] font-semibold text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded border border-primary/10">
+                                <Building2 className="h-2.5 w-2.5 shrink-0" />
+                                {supervisingOffice}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
                             Auditee: {auditeeName}
                           </p>
