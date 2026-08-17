@@ -1,7 +1,7 @@
 'use client';
 
 import { NotificationInbox } from '@/components/dashboard/notification-inbox';
-import { LogOut, Bell, User as UserIcon, Settings, Accessibility, Sun, Moon } from 'lucide-react';
+import { LogOut, Bell, User as UserIcon, Settings, Accessibility, Sun, Moon, Tv, ExternalLink } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,7 +40,7 @@ export function UserNav({
 }: UserNavProps) {
   const router = useRouter();
   const { logSessionActivity } = useSessionActivity();
-  const { userRole, isSupervisor } = useUser();
+  const { userRole, isSupervisor, isAdmin, isVp } = useUser();
   const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
@@ -62,6 +62,18 @@ export function UserNav({
   };
 
   const canViewSettings = userRole === 'Admin' || userRole === 'Campus Director';
+
+  const canAccessExecutiveDisplay =
+    isAdmin ||
+    isVp ||
+    userRole === 'Admin' ||
+    userRole === 'Super Admin' ||
+    userRole === 'Campus Director' ||
+    (userProfile?.role || '').toLowerCase().includes('director') ||
+    (userProfile?.role || '').toLowerCase().includes('president') ||
+    (userProfile?.role || '').toLowerCase().includes('vp') ||
+    (userProfile?.role || '').toLowerCase().includes('vice president') ||
+    !!userProfile?.campusId;
 
   if (!user || !userProfile) {
     return null;
@@ -122,6 +134,20 @@ export function UserNav({
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
+            {canAccessExecutiveDisplay && (
+              <DropdownMenuItem asChild>
+                <a
+                  href="/executive-display"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center text-emerald-600 dark:text-emerald-400 font-bold cursor-pointer"
+                >
+                  <Tv className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <span>Executive Display</span>
+                  <ExternalLink className="ml-auto h-3 w-3 opacity-60" />
+                </a>
+              </DropdownMenuItem>
+            )}
             {canViewSettings && (
               <DropdownMenuItem asChild>
                 <Link href="/settings">

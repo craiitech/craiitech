@@ -41,6 +41,8 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  Tv,
+  ExternalLink,
 } from 'lucide-react';
 import type { Campus, Unit, User, Role, Cycle, Submission } from '@/lib/types';
 import { format } from 'date-fns';
@@ -109,7 +111,7 @@ const colorPalettes = [
 ];
 
 export default function ProfilePage() {
-  const { user, userProfile, isUserLoading } = useUser();
+  const { user, userProfile, isUserLoading, isAdmin, isVp, userRole, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -122,6 +124,18 @@ export default function ProfilePage() {
   const { logSessionActivity } = useSessionActivity();
 
   const canEdit = !isSubmitting && !isUpdatingPassword && !isDeletingAccount && !isGlobalSaving;
+
+  const canAccessExecutiveDisplay =
+    isAdmin ||
+    isVp ||
+    userRole === 'Admin' ||
+    userRole === 'Super Admin' ||
+    userRole === 'Campus Director' ||
+    (userProfile?.role || '').toLowerCase().includes('director') ||
+    (userProfile?.role || '').toLowerCase().includes('president') ||
+    (userProfile?.role || '').toLowerCase().includes('vp') ||
+    (userProfile?.role || '').toLowerCase().includes('vice president') ||
+    !!userProfile?.campusId;
 
   const [selectedPointsYear, setSelectedPointsYear] = useState<number>(new Date().getFullYear());
   const [isFirstCycleExpanded, setIsFirstCycleExpanded] = useState(false);
@@ -561,6 +575,45 @@ export default function ProfilePage() {
           View your institutional data and personalize your accessibility experience.
         </p>
       </div>
+
+      {canAccessExecutiveDisplay && (
+        <Card className="border-emerald-500/40 bg-gradient-to-r from-emerald-950/20 via-emerald-900/10 to-amber-950/20 shadow-md relative overflow-hidden">
+          <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-amber-500 flex items-center justify-center text-white shadow-md shrink-0">
+                <Tv className="h-6 w-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-sm uppercase tracking-wider text-emerald-900 dark:text-emerald-300">
+                    Executive 4D Display & Monitoring
+                  </h3>
+                  <Badge
+                    variant="outline"
+                    className="text-[9px] font-black uppercase tracking-widest border-emerald-500/40 text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+                  >
+                    Full Screen
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Launch the live 4D executive intelligence dashboard tailored for your office and campus in a dedicated
+                  new tab.
+                </p>
+              </div>
+            </div>
+            <Button
+              asChild
+              className="bg-gradient-to-r from-emerald-600 to-amber-600 hover:from-emerald-700 hover:to-amber-700 text-white font-black uppercase text-xs tracking-wider shadow-md shrink-0 w-full sm:w-auto"
+            >
+              <a href="/executive-display" target="_blank" rel="noopener noreferrer">
+                <Tv className="mr-2 h-4 w-4" />
+                Launch Executive Display
+                <ExternalLink className="ml-2 h-3.5 w-3.5" />
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Form {...form}>
