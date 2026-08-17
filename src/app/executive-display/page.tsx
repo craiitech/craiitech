@@ -51,6 +51,7 @@ import {
   HeartHandshake,
   Smile,
   Compass,
+  MapPin,
 } from 'lucide-react';
 import { useWebLlm } from '@/context/web-llm-provider';
 import type {
@@ -285,43 +286,6 @@ function SectionHeader({
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-// ─── Mini Bar ────────────────────────────────────────────────────────────────
-function MiniBar({ value, color }: { value: number; color?: string }) {
-  const c = color || statusColor(value);
-  return (
-    <div className="h-2 bg-white/20 rounded-full overflow-hidden w-full max-w-[80px] shadow-inner">
-      <div
-        className="h-full rounded-full transition-all duration-700"
-        style={{ width: `${Math.min(100, value)}%`, background: c }}
-      />
-    </div>
-  );
-}
-
-// ─── Campus Row ──────────────────────────────────────────────────────────────
-function CampusRow({
-  rank,
-  name,
-  metrics,
-}: {
-  rank: number;
-  name: string;
-  metrics: { label: string; value: number; color?: string }[];
-}) {
-  return (
-    <div className="flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-colors border-b border-white/10 last:border-0">
-      <span className="text-sm font-black text-white/55 w-5 text-right tabular-nums">{rank}</span>
-      <span className="text-xs font-bold text-white/90 truncate w-36 shrink-0">{name}</span>
-      {metrics.map((m, i) => (
-        <div key={i} className="flex items-center gap-1.5 flex-1">
-          <span className="text-xs font-black text-white/90 w-12 text-right tabular-nums">{m.value}%</span>
-          <MiniBar value={m.value} color={m.color || statusColor(m.value)} />
-        </div>
-      ))}
     </div>
   );
 }
@@ -2187,6 +2151,440 @@ function ViewVsasOverview({
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SPECIALIZED CAMPUS DIRECTOR VIEWS (FOCUSED WITHIN SPECIFIC CAMPUS ONLY)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Campus Director 1: Campus Performance Overview ───────────────────────────
+function ViewCampusDirectorOverview({
+  campusName,
+  campusEomsScore,
+  campusSubsTotal,
+  campusSubsApproved,
+  campusSubsPending,
+  campusSubsRejected,
+  campusRisksTotal,
+  campusRisksClosed,
+  campusCarsTotal,
+  campusCarsClosed,
+  campusProgramsTotal,
+  campusProgramsWithCopc,
+  radarData,
+  trendData,
+  periodLabel,
+}: {
+  campusName: string;
+  campusEomsScore: number;
+  campusSubsTotal: number;
+  campusSubsApproved: number;
+  campusSubsPending: number;
+  campusSubsRejected: number;
+  campusRisksTotal: number;
+  campusRisksClosed: number;
+  campusCarsTotal: number;
+  campusCarsClosed: number;
+  campusProgramsTotal: number;
+  campusProgramsWithCopc: number;
+  radarData: { subject: string; value: number; color: string }[];
+  trendData: { name: string; value: number }[];
+  periodLabel: string;
+}) {
+  const sc = gradeColor(campusEomsScore);
+  const subRate = campusSubsTotal > 0 ? Math.round((campusSubsApproved / campusSubsTotal) * 100) : 0;
+  const riskRate = campusRisksTotal > 0 ? Math.round((campusRisksClosed / campusRisksTotal) * 100) : 0;
+  const carRate = campusCarsTotal > 0 ? Math.round((campusCarsClosed / campusCarsTotal) * 100) : 0;
+  const copcRate = campusProgramsTotal > 0 ? Math.round((campusProgramsWithCopc / campusProgramsTotal) * 100) : 0;
+
+  const subDist = [
+    { name: 'Approved', value: campusSubsApproved, color: P.green },
+    { name: 'Pending', value: campusSubsPending, color: P.gold },
+    { name: 'Rejected', value: campusSubsRejected, color: P.rose },
+  ];
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={MapPin}
+        title={`${campusName.toUpperCase()} · CAMPUS DIRECTOR EXECUTIVE DISPLAY`}
+        subtitle="Campus Operations · EOMS Compliance · Academic Programs · Local Risk Register"
+        color={P.green}
+        period={periodLabel}
+        badgeText="Campus Director View"
+      />
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
+        {/* Composite Score Card */}
+        <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-4 shadow-xl flex flex-col justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-2">Campus EOMS Score</p>
+            <div className="flex items-baseline gap-2">
+              <AnimatedNumber
+                value={campusEomsScore}
+                suffix="%"
+                className="text-5xl font-black tabular-nums text-white drop-shadow-md"
+              />
+              <span
+                className="text-xl font-black px-2.5 py-0.5 rounded-lg text-white shadow-lg"
+                style={{ background: sc.color }}
+              >
+                {sc.grade}
+              </span>
+            </div>
+            <p className="text-xs font-bold uppercase tracking-widest text-yellow-300 mt-1">{sc.label}</p>
+          </div>
+          <div className="flex flex-col gap-1.5 mt-2">
+            <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10">
+              <span className="text-white/80 font-bold uppercase">Submissions Compliance</span>
+              <span className="font-black text-green-400">{subRate}%</span>
+            </div>
+            <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10">
+              <span className="text-white/80 font-bold uppercase">Risk Mitigation</span>
+              <span className="font-black text-yellow-300">{riskRate}%</span>
+            </div>
+            <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10">
+              <span className="text-white/80 font-bold uppercase">CAR Resolution</span>
+              <span className="font-black text-sky-400">{carRate}%</span>
+            </div>
+          </div>
+          <NarrativeCard
+            title={`${campusName} Performance`}
+            domain={`${campusName} Campus Operations`}
+            contextData={{ campusName, campusEomsScore, subRate, riskRate, carRate, copcRate }}
+            fallbackSummary={`${campusName} maintains an overall EOMS compliance score of ${campusEomsScore}% (${sc.label}) with ${campusProgramsTotal} active programs.`}
+          />
+        </div>
+
+        {/* 5-Dimension Radar */}
+        <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col justify-between min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-1">
+            Campus 5-Dimension Performance
+          </p>
+          <div className="flex-1 flex flex-col justify-around min-h-0">
+            {radarData.map((d, i) => (
+              <div key={i} className="flex flex-col gap-1">
+                <div className="flex justify-between text-xs font-bold">
+                  <span className="text-white/90">{d.subject}</span>
+                  <span className="text-yellow-300 font-black tabular-nums">{d.value}%</span>
+                </div>
+                <div className="h-2 bg-white/20 rounded-full overflow-hidden shadow-inner">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${d.value}%`, background: d.color }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Submissions Velocity & Status */}
+        <div className="col-span-5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-1">
+            Campus Monthly Submission Velocity
+          </p>
+          <div className="flex-1 min-h-0">
+            <TrendLine data={trendData} dataKey="value" strokeColor={P.greenLight} areaColor={P.greenLight} />
+          </div>
+          <div className="h-28 pt-2 border-t border-white/10 mt-1">
+            <p className="text-[10px] font-black uppercase tracking-wider text-white/70 mb-0.5 text-center">
+              Submissions Status
+            </p>
+            <GreenDonut
+              data={subDist}
+              dataKey="value"
+              nameKey="name"
+              showDataSummary={false}
+              innerRadius="35%"
+              outerRadius="65%"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Campus Director 2: Academic Programs & CHED COPC on this Campus ──────────
+function ViewCampusDirectorAcademic({
+  campusName,
+  programsList,
+  copcDist,
+  totalPrograms,
+  withCopc,
+  inProg,
+  noCopc,
+  periodLabel,
+}: {
+  campusName: string;
+  programsList: { name: string; level: string; copcStatus: string; accredLevel?: string }[];
+  copcDist: { name: string; value: number; color: string }[];
+  totalPrograms: number;
+  withCopc: number;
+  inProg: number;
+  noCopc: number;
+  periodLabel: string;
+}) {
+  const copcRate = totalPrograms > 0 ? Math.round((withCopc / totalPrograms) * 100) : 0;
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={BookOpen}
+        title={`${campusName.toUpperCase()} · ACADEMIC PROGRAMS & CHED COPC`}
+        subtitle="Campus Program Offerings · CHED Certification · Accreditation Status"
+        color={P.gold}
+        period={periodLabel}
+        badgeText="Campus Academics"
+      />
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
+        <div className="col-span-3 flex flex-col gap-2 min-h-0">
+          <KpiTile label="Campus Programs" value={totalPrograms} suffix="" icon={BookOpen} color={P.green} />
+          <KpiTile
+            label="CHED COPC Rate"
+            value={copcRate}
+            suffix="%"
+            icon={CheckCircle2}
+            color={statusColor(copcRate)}
+            sub={`${withCopc} of ${totalPrograms} Programs With COPC`}
+          />
+          <KpiTile label="COPC In Progress" value={inProg} suffix="" icon={Activity} color={P.gold} />
+          <KpiTile label="No COPC / Pending" value={noCopc} suffix="" icon={AlertTriangle} color={P.rose} />
+        </div>
+        <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-1">CHED COPC Certification</p>
+          <div className="flex-1 min-h-0">
+            <GreenDonut
+              data={copcDist}
+              dataKey="value"
+              nameKey="name"
+              centerLabel="Programs"
+              centerValue={String(totalPrograms)}
+            />
+          </div>
+          <LegendRow items={copcDist} total={totalPrograms} />
+        </div>
+        <div className="col-span-5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-2">
+            Campus Program Catalog & Status
+          </p>
+          <AutoScrollContainer className="flex-1">
+            <div className="flex flex-col gap-1.5">
+              {programsList.map((p, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/10 text-xs"
+                >
+                  <div className="min-w-0 pr-2">
+                    <p className="font-bold text-white truncate">{p.name}</p>
+                    <p className="text-[9px] text-white/50 uppercase">
+                      {p.level} &middot; {p.accredLevel || 'Candidate / Unaccredited'}
+                    </p>
+                  </div>
+                  <span
+                    className="font-black tabular-nums px-2 py-0.5 rounded text-[10px] shrink-0"
+                    style={{
+                      background:
+                        p.copcStatus === 'With COPC'
+                          ? `${P.green}25`
+                          : p.copcStatus === 'In Progress'
+                            ? `${P.gold}25`
+                            : `${P.rose}25`,
+                      color: p.copcStatus === 'With COPC' ? P.green : p.copcStatus === 'In Progress' ? P.gold : P.rose,
+                    }}
+                  >
+                    {p.copcStatus}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </AutoScrollContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Campus Director 3: Department Submissions & Units in this Campus ─────────
+function ViewCampusDirectorUnits({
+  campusName,
+  unitsList,
+  totalUnits,
+  participatingUnits,
+  nonReportingUnits,
+  periodLabel,
+}: {
+  campusName: string;
+  unitsList: { name: string; rate: number; total: number; approved: number; pending: number }[];
+  totalUnits: number;
+  participatingUnits: number;
+  nonReportingUnits: number;
+  periodLabel: string;
+}) {
+  const partRate = totalUnits > 0 ? Math.round((participatingUnits / totalUnits) * 100) : 0;
+
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={Building2}
+        title={`${campusName.toUpperCase()} · DEPARTMENTAL & UNIT EOMS COMPLIANCE`}
+        subtitle="Unit Participation · Submissions Velocity · Missing Reports Follow-up"
+        color={P.greenLight}
+        period={periodLabel}
+        badgeText="Campus Units"
+      />
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
+        <div className="col-span-3 flex flex-col gap-2 min-h-0">
+          <KpiTile label="Campus Units / Depts" value={totalUnits} suffix="" icon={Building2} color={P.green} />
+          <KpiTile
+            label="Reporting Participation"
+            value={partRate}
+            suffix="%"
+            icon={CheckCircle2}
+            color={statusColor(partRate)}
+          />
+          <KpiTile
+            label="Active Reporting Units"
+            value={participatingUnits}
+            suffix=""
+            icon={FileText}
+            color={P.greenLight}
+          />
+          <KpiTile
+            label="Non-Reporting / Missing"
+            value={nonReportingUnits}
+            suffix=""
+            icon={AlertTriangle}
+            color={P.rose}
+          />
+        </div>
+        <div className="col-span-9 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-2">
+            Campus Departmental Performance Leaderboard
+          </p>
+          <AutoScrollContainer className="flex-1">
+            <div className="flex flex-col gap-1.5">
+              {unitsList.map((u, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-white/5 border border-white/10 text-xs"
+                >
+                  <div className="min-w-0 pr-2">
+                    <p className="font-bold text-white truncate">{u.name}</p>
+                    <p className="text-[9.5px] text-white/60 uppercase">
+                      Approved: {u.approved} &middot; Pending: {u.pending} &middot; Total: {u.total}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="w-24 h-2 bg-white/20 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${u.rate}%`,
+                          background: u.rate >= 80 ? P.green : u.rate >= 50 ? P.gold : P.rose,
+                        }}
+                      />
+                    </div>
+                    <span
+                      className="font-black tabular-nums px-2 py-0.5 rounded text-[10px]"
+                      style={{
+                        background: u.rate >= 80 ? `${P.green}25` : `${P.gold}25`,
+                        color: u.rate >= 80 ? P.green : P.gold,
+                      }}
+                    >
+                      {u.rate}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </AutoScrollContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Campus Director 4: Campus Risks & Audit CARs ──────────────────────────────
+function ViewCampusDirectorRisksAndCars({
+  campusName,
+  campusRisks,
+  campusCars,
+  severityDist,
+  carStatusDist,
+  periodLabel,
+}: {
+  campusName: string;
+  campusRisks: { total: number; high: number; closed: number; rate: number };
+  campusCars: { total: number; closed: number; open: number; rate: number };
+  severityDist: { name: string; value: number; color: string }[];
+  carStatusDist: { name: string; value: number; color: string }[];
+  periodLabel: string;
+}) {
+  return (
+    <div className="h-full flex flex-col gap-3">
+      <SectionHeader
+        icon={AlertTriangle}
+        title={`${campusName.toUpperCase()} · RISK REGISTER & AUDIT CAR RESOLUTION`}
+        subtitle="Local Risk Mitigation · Audit Non-Conformances & Opportunities for Improvement"
+        color={P.rose}
+        period={periodLabel}
+        badgeText="Campus Risks & CARs"
+      />
+      <div className="flex-1 grid grid-cols-12 auto-rows-fr gap-3 min-h-0 overflow-hidden">
+        <div className="col-span-3 flex flex-col gap-2 min-h-0">
+          <KpiTile
+            label="Campus Risks Identified"
+            value={campusRisks.total}
+            suffix=""
+            icon={AlertTriangle}
+            color={P.gold}
+          />
+          <KpiTile
+            label="Risk Mitigation Rate"
+            value={campusRisks.rate}
+            suffix="%"
+            icon={ShieldCheck}
+            color={statusColor(campusRisks.rate)}
+          />
+          <KpiTile label="Audit CARs Issued" value={campusCars.total} suffix="" icon={FileText} color={P.rose} />
+          <KpiTile
+            label="CAR Resolution Rate"
+            value={campusCars.rate}
+            suffix="%"
+            icon={CheckCircle2}
+            color={statusColor(campusCars.rate)}
+          />
+        </div>
+        <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-1">Campus Risk Severity</p>
+          <div className="flex-1 min-h-0">
+            <GreenDonut
+              data={severityDist}
+              dataKey="value"
+              nameKey="name"
+              centerLabel="Risks"
+              centerValue={String(campusRisks.total)}
+            />
+          </div>
+          <LegendRow items={severityDist} total={campusRisks.total} />
+        </div>
+        <div className="col-span-5 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col min-h-0">
+          <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-1">Campus Audit CAR Status</p>
+          <div className="flex-1 min-h-0">
+            <GreenDonut
+              data={carStatusDist}
+              dataKey="value"
+              nameKey="name"
+              centerLabel="CARs"
+              centerValue={String(campusCars.total)}
+            />
+          </div>
+          <LegendRow items={carStatusDist} total={campusCars.total} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // MAIN EXECUTIVE DISPLAY PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function ExecutiveDisplayPage() {
@@ -2199,6 +2597,7 @@ export default function ExecutiveDisplayPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [now, setNow] = useState(new Date());
   const [selectedVpFilter, setSelectedVpFilter] = useState<'all' | 'vpaa' | 'vpredi' | 'vpaf' | 'vsas'>('all');
+  const [selectedCampusFilter, setSelectedCampusFilter] = useState<'all' | string>('all');
   const [isPlaying4D, setIsPlaying4D] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewCountRef = useRef(1);
@@ -2223,14 +2622,14 @@ export default function ExecutiveDisplayPage() {
   // Reset cardPhase on view change
   useEffect(() => {
     setCardPhase(0);
-  }, [currentView, selectedVpFilter]);
+  }, [currentView, selectedVpFilter, selectedCampusFilter]);
 
   // Continuous auto-rotation
   useEffect(() => {
     if (!isPlaying4D) return;
     const t = setTimeout(() => setAnimPhase('hide'), VIEW_INTERVAL_MS);
     return () => clearTimeout(t);
-  }, [currentView, animPhase, isPlaying4D, selectedVpFilter]);
+  }, [currentView, animPhase, isPlaying4D, selectedVpFilter, selectedCampusFilter]);
 
   useEffect(() => {
     if (animPhase === 'hide') {
@@ -2335,18 +2734,36 @@ export default function ExecutiveDisplayPage() {
     return null;
   }, [isVp, allUnits, userProfile]);
 
-  // Initialize selectedVpFilter based on user's VP role
+  // Auto-detect Campus Director from user profile
+  const isCampusDirector = useMemo(() => {
+    if (isAdmin || isVp) return false;
+    const role = (userProfile?.role || '').toLowerCase();
+    return (
+      !!userProfile?.campusId &&
+      (role.includes('director') || role.includes('campus') || role.includes('head') || !userProfile?.unitId)
+    );
+  }, [isAdmin, isVp, userProfile]);
+
+  // Lock Campus Director to their campus
   useEffect(() => {
-    if (autoVpKind) {
+    if (userProfile?.campusId && !isAdmin && !isVp) {
+      setSelectedCampusFilter(userProfile.campusId);
+    } else if (autoVpKind) {
       setSelectedVpFilter(autoVpKind);
     }
-  }, [autoVpKind]);
+  }, [userProfile, isAdmin, isVp, autoVpKind]);
 
   // Current active VP view mode
   const activeVpMode = selectedVpFilter !== 'all' ? selectedVpFilter : autoVpKind;
+  const isCampusMode = selectedCampusFilter !== 'all';
+  const currentCampusObj = (allCampuses || []).find((c) => c.id === selectedCampusFilter);
+  const currentCampusName = currentCampusObj?.name || 'Main Campus';
 
   // Viewing scope
   const scope = useMemo<DisplayScope>(() => {
+    if (isCampusMode && selectedCampusFilter !== 'all') {
+      return { kind: 'campus', campusId: selectedCampusFilter };
+    }
     if (isAdmin && selectedVpFilter === 'all') return { kind: 'system' };
     if (activeVpMode) {
       const vpUnitIds = new Set<string>();
@@ -2401,11 +2818,12 @@ export default function ExecutiveDisplayPage() {
       return { kind: 'vp', vpUnitIds };
     }
     return { kind: 'system' };
-  }, [isAdmin, selectedVpFilter, activeVpMode, allUnits]);
+  }, [isAdmin, selectedVpFilter, activeVpMode, allUnits, isCampusMode, selectedCampusFilter]);
 
   const inScope = useCallback(
     (campusId?: string, unitId?: string): boolean => {
       if (scope.kind === 'system') return true;
+      if (scope.kind === 'campus') return campusId === scope.campusId;
       if (scope.kind === 'vp') return !!unitId && scope.vpUnitIds.has(unitId);
       return true;
     },
@@ -2415,6 +2833,7 @@ export default function ExecutiveDisplayPage() {
   const programInScope = useCallback(
     (p: AcademicProgram): boolean => {
       if (scope.kind === 'system') return true;
+      if (scope.kind === 'campus') return p.campusId === scope.campusId;
       if (activeVpMode === 'vpaa') return true;
       const unit = (allUnits || []).find((x) => x.id === p.collegeId || x.name === p.collegeId);
       if (scope.kind === 'vp') return !!unit && scope.vpUnitIds.has(unit.id);
@@ -2457,18 +2876,6 @@ export default function ExecutiveDisplayPage() {
     });
   }, [rawCars, selectedYear, inScope, scope.kind]);
 
-  const yearSch = useMemo(() => {
-    let all = rawSchedules || [];
-    if (scope.kind !== 'system') {
-      all = all.filter((s) => inScope(s.campusId, s.targetType === 'Unit' ? s.targetId : undefined));
-    }
-    return all.filter((s) => {
-      if (!s.scheduledDate) return false;
-      const d = s.scheduledDate instanceof Timestamp ? s.scheduledDate.toDate() : new Date(s.scheduledDate as any);
-      return d.getFullYear() === Number(selectedYear);
-    });
-  }, [rawSchedules, selectedYear, inScope, scope.kind]);
-
   const campusMap = useMemo(() => new Map((allCampuses || []).map((c) => [c.id, c.name])), [allCampuses]);
 
   // Campus Performance Aggregation
@@ -2501,26 +2908,30 @@ export default function ExecutiveDisplayPage() {
       });
     });
 
-    yearSubs.forEach((s) => {
-      const c = map.get(s.campusId);
-      if (!c) return;
-      c.subsTotal++;
-      if (s.statusId === 'approved') c.subsApproved++;
-      else if (s.statusId === 'rejected') c.subsRejected++;
-      else c.subsPending++;
-    });
+    (rawSubs || [])
+      .filter((s) => Number(s.year) === Number(selectedYear))
+      .forEach((s) => {
+        const c = map.get(s.campusId);
+        if (!c) return;
+        c.subsTotal++;
+        if (s.statusId === 'approved') c.subsApproved++;
+        else if (s.statusId === 'rejected') c.subsRejected++;
+        else c.subsPending++;
+      });
 
-    yearRisks.forEach((r) => {
-      const c = map.get(r.campusId);
-      if (!c) return;
-      c.risksTotal++;
-      if (r.status === 'Closed') c.risksClosed++;
-      if (r.preTreatment?.rating?.toLowerCase() === 'high' || r.preTreatment?.rating?.toLowerCase() === 'very high') {
-        c.risksHigh++;
-      }
-    });
+    (rawRisks || [])
+      .filter((r) => Number(r.year) === Number(selectedYear))
+      .forEach((r) => {
+        const c = map.get(r.campusId);
+        if (!c) return;
+        c.risksTotal++;
+        if (r.status === 'Closed') c.risksClosed++;
+        if (r.preTreatment?.rating?.toLowerCase() === 'high' || r.preTreatment?.rating?.toLowerCase() === 'very high') {
+          c.risksHigh++;
+        }
+      });
 
-    yearCars.forEach((car) => {
+    (rawCars || []).forEach((car) => {
       const c = map.get(car.campusId);
       if (!c) return;
       c.carsTotal++;
@@ -2548,7 +2959,7 @@ export default function ExecutiveDisplayPage() {
     });
 
     return Array.from(map.values());
-  }, [yearSubs, yearRisks, yearCars, rawPrograms, rawCompliances, allCampuses]);
+  }, [rawSubs, rawRisks, rawCars, rawPrograms, rawCompliances, allCampuses, selectedYear]);
 
   // University-wide Totals
   const totals = useMemo(() => {
@@ -3008,8 +3419,191 @@ export default function ExecutiveDisplayPage() {
     };
   }, []);
 
-  // Views definition per active VP Mode
+  // Campus Director View Data (for selected campus)
+  const campusDirectorData = useMemo(() => {
+    if (!isCampusMode) return null;
+    const campusId = selectedCampusFilter;
+    const targetCampus = campusData.find((c) => c.id === campusId) || {
+      name: currentCampusName,
+      compositeScore: 85,
+      subsTotal: yearSubs.length,
+      subsApproved: yearSubs.filter((s) => s.statusId === 'approved').length,
+      subsPending: yearSubs.filter((s) => s.statusId === 'pending').length,
+      subsRejected: yearSubs.filter((s) => s.statusId === 'rejected').length,
+      subsRate: 85,
+      risksTotal: yearRisks.length,
+      risksClosed: yearRisks.filter((r) => r.status === 'Closed').length,
+      riskRate: 80,
+      carsTotal: yearCars.length,
+      carsClosed: yearCars.filter((c) => c.status === 'Closed').length,
+      carsOpen: yearCars.filter((c) => c.status !== 'Closed').length,
+      carRate: 88,
+      programsTotal: 0,
+      programsWithCopc: 0,
+      programsInProg: 0,
+      programsNoCopc: 0,
+    };
+
+    // Campus specific programs
+    const cPrograms = (rawPrograms || []).filter((p) => p.isActive && p.campusId === campusId);
+    let withCopc = 0,
+      inProg = 0,
+      noCopc = 0;
+    const programsList = cPrograms.map((p) => {
+      const comp = (rawCompliances || []).find((c) => c.programId === p.id);
+      const copcStatus = comp?.ched?.copcStatus || 'No COPC';
+      if (copcStatus === 'With COPC') withCopc++;
+      else if (copcStatus === 'In Progress') inProg++;
+      else noCopc++;
+      const records = comp?.accreditationRecords || [];
+      const cur = records.find((r) => r.lifecycleStatus === 'Current') || records[records.length - 1];
+      return {
+        name: p.name,
+        level: p.level || 'Undergraduate',
+        copcStatus,
+        accredLevel: cur?.level,
+      };
+    });
+
+    const cCopcDist = [
+      { name: 'With COPC', value: withCopc, color: P.green },
+      { name: 'In Progress', value: inProg, color: P.gold },
+      { name: 'No COPC', value: noCopc, color: P.rose },
+    ].filter((d) => d.value > 0);
+
+    // Units in this campus
+    const cUnits = (allUnits || []).filter((u) => u.campusIds?.includes(campusId) || (u as any).campusId === campusId);
+    const unitsList = cUnits
+      .map((u) => {
+        const uSubs = yearSubs.filter((s) => s.unitId === u.id);
+        const app = uSubs.filter((s) => s.statusId === 'approved').length;
+        const pend = uSubs.filter((s) => s.statusId === 'pending').length;
+        const rate = uSubs.length > 0 ? Math.round((app / uSubs.length) * 100) : 0;
+        return { name: u.name, rate, total: uSubs.length, approved: app, pending: pend };
+      })
+      .sort((a, b) => b.rate - a.rate);
+
+    const participatingUnits = unitsList.filter((u) => u.total > 0).length;
+    const nonReportingUnits = unitsList.length - participatingUnits;
+
+    // Campus Radar
+    const cRadar = [
+      { subject: 'Submissions', value: targetCampus.subsRate, color: P.greenLight },
+      { subject: 'Risk Mgmt', value: targetCampus.riskRate, color: P.gold },
+      { subject: 'CAR Closure', value: targetCampus.carRate, color: P.greenLight },
+      {
+        subject: 'COPC Cert',
+        value: cPrograms.length > 0 ? Math.round((withCopc / cPrograms.length) * 100) : 100,
+        color: P.gold,
+      },
+      {
+        subject: 'Participation',
+        value: cUnits.length > 0 ? Math.round((participatingUnits / cUnits.length) * 100) : 100,
+        color: P.green,
+      },
+    ];
+
+    return {
+      targetCampus,
+      cPrograms,
+      programsList,
+      cCopcDist,
+      totalPrograms: cPrograms.length,
+      withCopc,
+      inProg,
+      noCopc,
+      unitsList,
+      totalUnits: cUnits.length,
+      participatingUnits,
+      nonReportingUnits,
+      cRadar,
+    };
+  }, [
+    isCampusMode,
+    selectedCampusFilter,
+    campusData,
+    currentCampusName,
+    yearSubs,
+    yearRisks,
+    yearCars,
+    rawPrograms,
+    rawCompliances,
+    allUnits,
+  ]);
+
+  // Views definition per active Mode (Campus Director Mode vs Multi-VP Mode vs System)
   const { viewMeta, views } = useMemo(() => {
+    // ── 1. CAMPUS DIRECTOR / SPECIFIC CAMPUS VIEW ──
+    if (isCampusMode && campusDirectorData) {
+      const meta = [
+        { label: 'Campus Overview', icon: MapPin, color: P.green },
+        { label: 'Academic & CHED', icon: BookOpen, color: P.gold },
+        { label: 'Units Compliance', icon: Building2, color: P.greenLight },
+        { label: 'Risks & CARs', icon: AlertTriangle, color: P.rose },
+      ];
+      const vs = [
+        <ViewCampusDirectorOverview
+          key="campus-overview"
+          campusName={currentCampusName}
+          campusEomsScore={campusDirectorData.targetCampus.compositeScore || 85}
+          campusSubsTotal={campusDirectorData.targetCampus.subsTotal}
+          campusSubsApproved={campusDirectorData.targetCampus.subsApproved}
+          campusSubsPending={campusDirectorData.targetCampus.subsPending}
+          campusSubsRejected={campusDirectorData.targetCampus.subsRejected}
+          campusRisksTotal={campusDirectorData.targetCampus.risksTotal}
+          campusRisksClosed={campusDirectorData.targetCampus.risksClosed}
+          campusCarsTotal={campusDirectorData.targetCampus.carsTotal}
+          campusCarsClosed={campusDirectorData.targetCampus.carsClosed}
+          campusProgramsTotal={campusDirectorData.totalPrograms}
+          campusProgramsWithCopc={campusDirectorData.withCopc}
+          radarData={campusDirectorData.cRadar}
+          trendData={submissionTrend}
+          periodLabel={periodLabel}
+        />,
+        <ViewCampusDirectorAcademic
+          key="campus-academic"
+          campusName={currentCampusName}
+          programsList={campusDirectorData.programsList}
+          copcDist={campusDirectorData.cCopcDist}
+          totalPrograms={campusDirectorData.totalPrograms}
+          withCopc={campusDirectorData.withCopc}
+          inProg={campusDirectorData.inProg}
+          noCopc={campusDirectorData.noCopc}
+          periodLabel={periodLabel}
+        />,
+        <ViewCampusDirectorUnits
+          key="campus-units"
+          campusName={currentCampusName}
+          unitsList={campusDirectorData.unitsList}
+          totalUnits={campusDirectorData.totalUnits}
+          participatingUnits={campusDirectorData.participatingUnits}
+          nonReportingUnits={campusDirectorData.nonReportingUnits}
+          periodLabel={periodLabel}
+        />,
+        <ViewCampusDirectorRisksAndCars
+          key="campus-risks"
+          campusName={currentCampusName}
+          campusRisks={{
+            total: campusDirectorData.targetCampus.risksTotal,
+            high: campusDirectorData.targetCampus.risksHigh,
+            closed: campusDirectorData.targetCampus.risksClosed,
+            rate: campusDirectorData.targetCampus.riskRate,
+          }}
+          campusCars={{
+            total: campusDirectorData.targetCampus.carsTotal,
+            closed: campusDirectorData.targetCampus.carsClosed,
+            open: campusDirectorData.targetCampus.carsOpen,
+            rate: campusDirectorData.targetCampus.carRate,
+          }}
+          severityDist={riskSeverityDist}
+          carStatusDist={carStatusDist}
+          periodLabel={periodLabel}
+        />,
+      ];
+      return { viewMeta: meta, views: vs };
+    }
+
+    // ── 2. VPAA ACADEMIC AFFAIRS VIEW ──
     if (activeVpMode === 'vpaa') {
       const meta = [
         { label: 'CHED Program Monitoring', icon: GraduationCap, color: P.green },
@@ -3098,6 +3692,7 @@ export default function ExecutiveDisplayPage() {
       return { viewMeta: meta, views: vs };
     }
 
+    // ── 3. VPREDI RESEARCH & EXTENSION VIEW ──
     if (activeVpMode === 'vpredi') {
       const meta = [
         { label: 'R&D & Extension Overview', icon: FlaskConical, color: P.purple },
@@ -3138,6 +3733,7 @@ export default function ExecutiveDisplayPage() {
       return { viewMeta: meta, views: vs };
     }
 
+    // ── 4. VPAF ADMINISTRATION & FINANCE VIEW ──
     if (activeVpMode === 'vpaf') {
       const meta = [
         { label: 'Admin & Finance Overview', icon: Wrench, color: P.sky },
@@ -3179,6 +3775,7 @@ export default function ExecutiveDisplayPage() {
       return { viewMeta: meta, views: vs };
     }
 
+    // ── 5. VSAS STUDENT AFFAIRS & SERVICES VIEW ──
     if (activeVpMode === 'vsas') {
       const meta = [
         { label: 'Student Affairs Overview', icon: Smile, color: P.emerald },
@@ -3218,7 +3815,7 @@ export default function ExecutiveDisplayPage() {
       return { viewMeta: meta, views: vs };
     }
 
-    // Default System / University-wide views
+    // ── 6. DEFAULT SYSTEM / UNIVERSITY-WIDE OVERVIEW ──
     const meta = [
       { label: 'Institutional Overview', icon: ShieldCheck, color: P.green },
       { label: 'Submissions Velocity', icon: ClipboardCheck, color: P.greenLight },
@@ -3299,23 +3896,25 @@ export default function ExecutiveDisplayPage() {
     ];
     return { viewMeta: meta, views: vs };
   }, [
+    isCampusMode,
+    campusDirectorData,
+    currentCampusName,
+    submissionTrend,
+    periodLabel,
+    riskSeverityDist,
+    carStatusDist,
     activeVpMode,
     totals,
     copcDist,
     progLevelDist,
     vpaaData,
-    periodLabel,
     campusData,
     accredLevelDist,
     cardPhase,
     yearSubs,
     vprediData,
     subStatusDist,
-    submissionTrend,
-    riskSeverityDist,
-    riskStatusDist,
     vpafData,
-    carStatusDist,
     carNatureDist,
     vsasData,
     eomsScore,
@@ -3380,10 +3979,11 @@ export default function ExecutiveDisplayPage() {
               <Maximize2 className="h-8 w-8 text-yellow-400" />
             </div>
             <p className="text-xl font-black uppercase tracking-[0.15em] text-white text-center">
-              RSU 4D Multi-VP Executive Display
+              RSU 4D Executive & Campus Display
             </p>
             <p className="text-sm text-white/65 text-center max-w-md">
-              Wall-mounted 4D executive dashboard with tailored views for VPAA, VPREDI, VPAF, and VSAS.
+              Wall-mounted 4D executive dashboard with tailored views for Campus Directors, VPAA, VPREDI, VPAF, and
+              VSAS.
             </p>
             <button
               onClick={toggleFullscreen}
@@ -3409,15 +4009,17 @@ export default function ExecutiveDisplayPage() {
               <div className="flex-1 min-w-0">
                 <ScrollableTitle
                   text={
-                    activeVpMode === 'vpaa'
-                      ? 'RSU Office of the Vice President for Academic Affairs (VPAA)'
-                      : activeVpMode === 'vpredi'
-                        ? 'RSU Office of the VP for Research, Extension & Innovation (VPREDI)'
-                        : activeVpMode === 'vpaf'
-                          ? 'RSU Office of the VP for Administration & Finance (VPAF)'
-                          : activeVpMode === 'vsas'
-                            ? 'RSU Office of the VP for Student Affairs & Services (VSAS)'
-                            : 'Romblon State University · Institutional Executive Display'
+                    isCampusMode
+                      ? `RSU ${currentCampusName} · Campus Director Executive Display`
+                      : activeVpMode === 'vpaa'
+                        ? 'RSU Office of the Vice President for Academic Affairs (VPAA)'
+                        : activeVpMode === 'vpredi'
+                          ? 'RSU Office of the VP for Research, Extension & Innovation (VPREDI)'
+                          : activeVpMode === 'vpaf'
+                            ? 'RSU Office of the VP for Administration & Finance (VPAF)'
+                            : activeVpMode === 'vsas'
+                              ? 'RSU Office of the VP for Student Affairs & Services (VSAS)'
+                              : 'Romblon State University · Institutional Executive Display'
                   }
                   className="text-xs font-black uppercase tracking-[0.15em] text-white"
                 />
@@ -3428,47 +4030,83 @@ export default function ExecutiveDisplayPage() {
                       {periodLabel}
                     </span>
                   </div>
-                  <span className="text-[9.5px] font-bold text-white/50 uppercase tracking-widest">4D Motion Live</span>
+                  <span className="text-[9.5px] font-bold text-white/50 uppercase tracking-widest">
+                    {isCampusMode ? 'Campus Live' : '4D Motion Live'}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Center: Multi-VP Interactive Selector */}
+            {/* Center: Multi-VP & Campus Selector */}
             <div className="flex-1 flex justify-center items-center gap-1.5 px-2 shrink-0">
-              {[
-                { key: 'all', label: 'RSU System', color: P.green },
-                { key: 'vpaa', label: 'VPAA Academic', color: P.gold },
-                { key: 'vpredi', label: 'VPREDI Research', color: P.purple },
-                { key: 'vpaf', label: 'VPAF Admin/Finance', color: P.sky },
-                { key: 'vsas', label: 'VSAS Student Services', color: P.emerald },
-              ].map((vp) => (
-                <button
-                  key={vp.key}
-                  onClick={() => {
-                    setSelectedVpFilter(vp.key as any);
-                    setCurrentView(0);
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 border flex items-center gap-1.5 cursor-pointer hover:scale-105 shadow-md ${
-                    selectedVpFilter === vp.key
-                      ? 'text-white shadow-lg'
-                      : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/15'
-                  }`}
-                  style={
-                    selectedVpFilter === vp.key
-                      ? {
-                          background: `linear-gradient(135deg, ${vp.color}99, ${vp.color})`,
-                          borderColor: 'rgba(255,255,255,0.4)',
-                        }
-                      : {}
-                  }
-                >
-                  <div
-                    className="h-2 w-2 rounded-full"
-                    style={{ background: selectedVpFilter === vp.key ? '#ffffff' : vp.color }}
-                  />
-                  {vp.label}
-                </button>
-              ))}
+              {/* Campus Selector (Only for Admin / Non-Director, or active campus pill) */}
+              {!isCampusDirector ? (
+                <div className="flex items-center gap-1.5 mr-2 pr-2 border-r border-white/20">
+                  <select
+                    value={selectedCampusFilter}
+                    onChange={(e) => {
+                      setSelectedCampusFilter(e.target.value);
+                      if (e.target.value !== 'all') {
+                        setSelectedVpFilter('all');
+                      }
+                      setCurrentView(0);
+                    }}
+                    className="px-2.5 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider bg-white/10 border border-white/20 text-white focus:outline-none focus:border-yellow-400 cursor-pointer shadow-md"
+                  >
+                    <option value="all" className="bg-slate-900 text-white font-bold">
+                      Institutional (All Campuses)
+                    </option>
+                    {(allCampuses || []).map((c) => (
+                      <option key={c.id} value={c.id} className="bg-slate-900 text-white font-bold">
+                        {c.name} Campus
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 mr-2 px-3 py-1 rounded-xl bg-green-500/20 border border-green-500/40 text-green-300 text-xs font-black uppercase">
+                  <MapPin className="h-3 w-3" />
+                  {currentCampusName} Campus
+                </div>
+              )}
+
+              {/* Multi-VP Pills (visible when in institutional view) */}
+              {!isCampusMode &&
+                [
+                  { key: 'all', label: 'RSU System', color: P.green },
+                  { key: 'vpaa', label: 'VPAA Academic', color: P.gold },
+                  { key: 'vpredi', label: 'VPREDI Research', color: P.purple },
+                  { key: 'vpaf', label: 'VPAF Admin/Finance', color: P.sky },
+                  { key: 'vsas', label: 'VSAS Student Services', color: P.emerald },
+                ].map((vp) => (
+                  <button
+                    key={vp.key}
+                    onClick={() => {
+                      setSelectedVpFilter(vp.key as any);
+                      setSelectedCampusFilter('all');
+                      setCurrentView(0);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 border flex items-center gap-1.5 cursor-pointer hover:scale-105 shadow-md ${
+                      selectedVpFilter === vp.key
+                        ? 'text-white shadow-lg'
+                        : 'bg-white/5 text-white/60 border-white/10 hover:bg-white/15'
+                    }`}
+                    style={
+                      selectedVpFilter === vp.key
+                        ? {
+                            background: `linear-gradient(135deg, ${vp.color}99, ${vp.color})`,
+                            borderColor: 'rgba(255,255,255,0.4)',
+                          }
+                        : {}
+                    }
+                  >
+                    <div
+                      className="h-2 w-2 rounded-full"
+                      style={{ background: selectedVpFilter === vp.key ? '#ffffff' : vp.color }}
+                    />
+                    {vp.label}
+                  </button>
+                ))}
             </div>
 
             {/* Right: 4D Temporal Flow Controls & View Indicator */}
@@ -3554,19 +4192,22 @@ export default function ExecutiveDisplayPage() {
           <NewsTicker
             items={[
               `EOMS Composite: ${eomsScore}%`,
+              isCampusMode
+                ? `${currentCampusName} Campus View Active`
+                : `Current Mode: ${selectedVpFilter.toUpperCase()}`,
               `Active Academic Programs: ${totals.programsTotal}`,
               `CHED COPC Compliance: ${totals.programsTotal > 0 ? Math.round((totals.programsWithCopc / totals.programsTotal) * 100) : 0}%`,
               `Total Submissions: ${totals.subsTotal} (${totals.subsApproved} Approved)`,
               `Identified Risks: ${totals.risksTotal} (${totals.risksClosed} Mitigated)`,
               `Audit CARs: ${totals.carsTotal} (${totals.carsClosed} Closed)`,
-              `Current VP Mode: ${selectedVpFilter.toUpperCase()}`,
             ]}
           />
 
           {/* Footer View Navigation */}
           <footer className="relative z-10 flex items-center justify-between px-6 py-1.5 border-t border-white/10 bg-green-950/60 backdrop-blur-md shrink-0">
             <p className="text-xs font-bold text-white/60 uppercase tracking-widest">
-              AY {selectedYear}–{selectedYear + 1} &middot; Real-time 4D Multi-VP Intelligence
+              AY {selectedYear}–{selectedYear + 1} &middot;{' '}
+              {isCampusMode ? `${currentCampusName} Campus Director View` : 'Real-time 4D Intelligence'}
             </p>
             <div className="flex items-center gap-2">
               {viewMeta.map((v, i) => (
