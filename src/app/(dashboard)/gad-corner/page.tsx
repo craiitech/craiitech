@@ -12,6 +12,7 @@ import type {
   GadSettings,
   GADPlan,
   GADActivity,
+  Cycle,
 } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -42,8 +43,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-const currentYear = new Date().getFullYear();
-const yearsList = Array.from({ length: 5 }, (_, i) => currentYear - i);
+const currentCalendarYear = new Date().getFullYear();
 
 export default function GadCornerPage() {
   const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
@@ -52,9 +52,60 @@ export default function GadCornerPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
+  // Query institutional cycles to resolve the active academic year
+  const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
+  const { data: cycles } = useCollection<Cycle>(cyclesQuery);
+
+  const activeAcademicYear = useMemo(() => {
+    if (!cycles || cycles.length === 0) return currentCalendarYear;
+    const now = new Date();
+    const activeCycle = cycles.find((c) => {
+      if (c.startDate && c.endDate) {
+        const s = c.startDate.toDate ? c.startDate.toDate() : new Date(c.startDate);
+        const e = c.endDate.toDate ? c.endDate.toDate() : new Date(c.endDate);
+        return now >= s && now <= e;
+      }
+      return false;
+    });
+    if (activeCycle && !isNaN(Number(activeCycle.year))) {
+      return Number(activeCycle.year);
+    }
+    const cycleYears = cycles.map((c) => Number(c.year)).filter((y) => !isNaN(y) && y > 2000);
+    if (cycleYears.length > 0) {
+      return Math.max(...cycleYears);
+    }
+    return currentCalendarYear;
+  }, [cycles]);
+
+  const yearsList = useMemo(() => {
+    const set = new Set<number>();
+    set.add(currentCalendarYear);
+    if (activeAcademicYear) set.add(activeAcademicYear);
+    cycles?.forEach((c) => {
+      const y = Number(c.year);
+      if (!isNaN(y) && y > 2000) set.add(y);
+    });
+    for (let i = -2; i <= 4; i++) {
+      set.add(currentCalendarYear - i);
+    }
+    return Array.from(set).sort((a, b) => b - a);
+  }, [cycles, activeAcademicYear]);
+
   const currentTab = searchParams.get('tab') || 'overview';
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedYear, setSelectedYear] = useState<number>(() => {
+    const urlYear = searchParams.get('year');
+    if (urlYear && !isNaN(Number(urlYear))) return Number(urlYear);
+    return currentCalendarYear;
+  });
   const [selectedUnitId, setSelectedUnitId] = useState<string>('all');
+
+  // Automatically default to the active institutional academic year when cycles load
+  useEffect(() => {
+    const urlYear = searchParams.get('year');
+    if (!urlYear && activeAcademicYear) {
+      setSelectedYear(activeAcademicYear);
+    }
+  }, [activeAcademicYear, searchParams]);
 
   const handleTabChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -201,16 +252,18 @@ export default function GadCornerPage() {
               )}
               <div className="flex flex-col items-start md:items-end w-full sm:w-auto">
                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block">
-                  Fiscal Year
+                  Academic / Fiscal Year
                 </label>
                 <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-                  <SelectTrigger className="w-full sm:w-[120px] h-9 font-bold bg-white shadow-sm">
+                  <SelectTrigger className="w-full sm:w-[155px] h-9 font-bold bg-white shadow-sm">
+                    <CalendarCheck className="h-3.5 w-3.5 mr-1 text-primary opacity-70" />
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {yearsList.map((y) => (
                       <SelectItem key={y} value={String(y)}>
-                        {y}
+                        AY {y}-{y + 1}
+                        {y === activeAcademicYear ? ' (Active)' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>

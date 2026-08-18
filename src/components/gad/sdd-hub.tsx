@@ -308,7 +308,8 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
             Sex-Disaggregated Data (SDD) Hub: {unitName}
           </CardTitle>
           <CardDescription className="text-xs">
-            Consolidated analysis of students, personnel, and activity participants for AY {selectedYear}.
+            Consolidated analysis of students, personnel, and activity participants for Academic Year {selectedYear}-
+            {selectedYear + 1} (AY {selectedYear}).
           </CardDescription>
         </CardHeader>
       </Card>
@@ -380,7 +381,7 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
                 <div className="flex flex-col items-center justify-center text-center opacity-20 py-20 space-y-3">
                   <PieIcon className="h-12 w-12" />
                   <p className="text-[10px] font-black uppercase tracking-widest">
-                    No enrollment data for {selectedYear}
+                    No enrollment data for AY {selectedYear}-{selectedYear + 1}
                   </p>
                 </div>
               )}
