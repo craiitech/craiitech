@@ -86,11 +86,13 @@ function CampusFindingsSection({
   schedules,
   findings,
   campusMap,
+  isFirst = false,
 }: {
   campusLabel: string;
   schedules: AuditSchedule[];
   findings: AuditFinding[];
   campusMap?: Map<string, string>;
+  isFirst?: boolean;
 }) {
   const commendableList = schedules.filter((s) => s.summaryCommendable);
   const ofiList = schedules.filter((s) => s.summaryOFI);
@@ -99,7 +101,7 @@ function CampusFindingsSection({
   );
 
   return (
-    <div className="space-y-4 break-before-page pt-8 first:pt-0">
+    <div className={`space-y-4 ${isFirst ? 'pt-0' : 'break-before-page pt-8'}`}>
       <h4 className="font-black text-[11pt] uppercase text-slate-800 dark:text-slate-200 tracking-widest border-b pb-1">
         AUDIT REPORT SITE - ({campusLabel.toUpperCase()})
       </h4>
@@ -285,11 +287,13 @@ function UnitFindingsSection({
   schedules,
   findings,
   campusMap,
+  isFirst = false,
 }: {
   unitName: string;
   schedules: AuditSchedule[];
   findings: AuditFinding[];
   campusMap: Map<string, string>;
+  isFirst?: boolean;
 }) {
   const commendableList = schedules.filter((s) => s.summaryCommendable);
   const ofiList = schedules.filter((s) => s.summaryOFI);
@@ -316,7 +320,7 @@ function UnitFindingsSection({
   });
 
   return (
-    <div className="space-y-4 break-before-page pt-8 first:pt-0">
+    <div className={`space-y-4 ${isFirst ? 'pt-0' : 'break-before-page pt-8'}`}>
       <h4 className="font-black text-[11pt] uppercase text-slate-800 dark:text-slate-200 tracking-widest border-b pb-1">
         IQA REPORT BY UNIT - ({unitName.toUpperCase()})
       </h4>
@@ -583,24 +587,26 @@ export function ConsolidatedAuditReportTemplate({
           </div>
 
           {byUnit ? (
-            unitSections.map(({ unitId, unitLabel, schedules: unitSchedules }) => (
+            unitSections.map(({ unitId, unitLabel, schedules: unitSchedules }, index) => (
               <UnitFindingsSection
                 key={unitId}
                 unitName={unitLabel}
                 schedules={unitSchedules}
                 findings={findings}
                 campusMap={campusMap}
+                isFirst={index === 0}
               />
             ))
           ) : perCampus ? (
             // Per-campus mode: render one section per campus, each starting on a new page, sorted by Site
-            campusSections.map(({ campusId, campusLabel, schedules: campusSchedules }) => (
+            campusSections.map(({ campusId, campusLabel, schedules: campusSchedules }, index) => (
               <CampusFindingsSection
                 key={campusId}
                 campusLabel={campusLabel}
                 schedules={campusSchedules}
                 findings={findings}
                 campusMap={campusMap}
+                isFirst={index === 0}
               />
             ))
           ) : (
@@ -610,6 +616,7 @@ export function ConsolidatedAuditReportTemplate({
               schedules={schedules}
               findings={findings}
               campusMap={campusMap}
+              isFirst={true}
             />
           )}
         </div>
