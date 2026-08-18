@@ -63,17 +63,22 @@ export function UserNav({
 
   const canViewSettings = userRole === 'Admin' || userRole === 'Campus Director';
 
+  const roleLower = (userRole || userProfile?.role || '').toLowerCase();
+  const unitLower = (userProfile?.unitName || '').toLowerCase();
+
+  const isPresident = roleLower.includes('president') || unitLower.includes('president');
+  const isVicePresident = isVp || roleLower.includes('vice president') || roleLower.includes('vp');
+  const isCampusDirector =
+    userRole === 'Campus Director' || roleLower.includes('campus director') || roleLower.includes('director');
+
   const canAccessExecutiveDisplay =
     isAdmin ||
-    isVp ||
     userRole === 'Admin' ||
     userRole === 'Super Admin' ||
-    userRole === 'Campus Director' ||
-    (userProfile?.role || '').toLowerCase().includes('director') ||
-    (userProfile?.role || '').toLowerCase().includes('president') ||
-    (userProfile?.role || '').toLowerCase().includes('vp') ||
-    (userProfile?.role || '').toLowerCase().includes('vice president') ||
-    !!userProfile?.campusId;
+    roleLower.includes('admin') ||
+    isPresident ||
+    isVicePresident ||
+    isCampusDirector;
 
   if (!user || !userProfile) {
     return null;

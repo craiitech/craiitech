@@ -24,6 +24,7 @@ import {
   GraduationCap,
   Sparkles,
   Bot,
+  Tv,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNetworkStatus } from '@/hooks/use-network-status';
@@ -54,10 +55,27 @@ export function Header({
   const firebaseState = useFirebase();
   const pathname = usePathname();
   const isOnline = useNetworkStatus();
-  const { user, userProfile, userRole } = useUser();
+  const { user, userProfile, userRole, isAdmin, isVp } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { selectedYear, setSelectedYear } = useYear();
+
+  const roleLower = (userRole || userProfile?.role || '').toLowerCase();
+  const unitLower = (userProfile?.unitName || '').toLowerCase();
+
+  const isPresident = roleLower.includes('president') || unitLower.includes('president');
+  const isVicePresident = isVp || roleLower.includes('vice president') || roleLower.includes('vp');
+  const isCampusDirector =
+    userRole === 'Campus Director' || roleLower.includes('campus director') || roleLower.includes('director');
+
+  const canAccessExecutiveDisplay =
+    isAdmin ||
+    userRole === 'Admin' ||
+    userRole === 'Super Admin' ||
+    roleLower.includes('admin') ||
+    isPresident ||
+    isVicePresident ||
+    isCampusDirector;
 
   const isAuditor = userRole === 'Auditor';
   const { enabled: voiceEnabled, setEnabled: setVoiceEnabled } = useVoice();
@@ -123,6 +141,24 @@ export function Header({
             <span className="hidden md:inline">EOMS Academy</span>
           </Link>
         </Button>
+
+        {canAccessExecutiveDisplay && (
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className={cn(
+              'flex items-center gap-2 font-black uppercase text-xs tracking-wider transition-all px-2 md:px-3 h-9',
+              'text-emerald-700 hover:text-emerald-800 bg-emerald-500/10 hover:bg-emerald-500/20 dark:text-emerald-300 dark:bg-emerald-500/20 dark:hover:bg-emerald-500/30 border border-emerald-500/30 shadow-sm',
+            )}
+            title="Launch Executive Display"
+          >
+            <a href="/executive-display" target="_blank" rel="noopener noreferrer">
+              <Tv className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="hidden md:inline">Executive Display</span>
+            </a>
+          </Button>
+        )}
 
         {pathname === '/dashboard' && availableYears.length > 0 && (
           <div className="hidden sm:flex items-center gap-2 mr-2">
