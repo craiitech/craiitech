@@ -17,23 +17,88 @@ interface GADMainstreamingProps {
   selectedYear: number;
 }
 
-const PCW_MAINSTREAMING_CRITERIA = [
+export const CMO_2015_MAINSTREAMING_CRITERIA = [
+  // 1. Policy & Governance (Art. V & VI)
   {
     id: 'policy-1',
-    category: 'Policy',
-    label: 'Gender-responsive institutional policies are adopted and communicated.',
+    category: 'Policy & Governance',
+    cmoRef: 'CMO 1 s. 2015 Art. V',
+    label: 'GAD Focal Point System (GFPS) / designated unit coordinators are active with defined terms of reference.',
   },
-  { id: 'policy-2', category: 'Policy', label: 'Presence of an active GAD focal point system or committee.' },
-  { id: 'program-1', category: 'Program', label: 'Curriculum or procedures have undergone gender-sensitivity review.' },
-  { id: 'program-2', category: 'Program', label: 'Specific programs target identified gender issues in the SDD Hub.' },
+  {
+    id: 'policy-2',
+    category: 'Policy & Governance',
+    cmoRef: 'CMO 1 s. 2015 Art. VI',
+    label:
+      'Gender-responsive unit policies and gender-fair language standards are formally implemented and communicated.',
+  },
+  {
+    id: 'policy-3',
+    category: 'Policy & Governance',
+    cmoRef: 'CMO 1 s. 2015 Art. VI (CODI)',
+    label:
+      'Functional Committee on Decorum and Investigation (CODI) or referral mechanism against sexual harassment (RA 7877 / RA 11313).',
+  },
+
+  // 2. Instruction & Curriculum (Art. VII Sec. A)
+  {
+    id: 'instruction-1',
+    category: 'Instruction & Curriculum',
+    cmoRef: 'CMO 1 s. 2015 Art. VII.A',
+    label:
+      'Curricula, syllabi, and instructional materials undergo gender-sensitivity review to eliminate sexist stereotypes.',
+  },
+  {
+    id: 'instruction-2',
+    category: 'Instruction & Curriculum',
+    cmoRef: 'CMO 1 s. 2015 Art. VII.A',
+    label: 'Integration of gender equality, human rights, and women empowerment concepts into academic course modules.',
+  },
+
+  // 3. Research & Extension (Art. VII Sec. B & C)
+  {
+    id: 'research-1',
+    category: 'Research & Extension',
+    cmoRef: 'CMO 1 s. 2015 Art. VII.B',
+    label: 'Production and dissemination of gender-focused or sex-differentiated research studies.',
+  },
+  {
+    id: 'extension-1',
+    category: 'Research & Extension',
+    cmoRef: 'CMO 1 s. 2015 Art. VII.C',
+    label:
+      'Community extension programs designed to address gender issues of marginalized sectors (solo parents, PWDs, IP, women).',
+  },
+
+  // 4. Enabling Facilities & Work-Life Support (Art. VIII)
   {
     id: 'facility-1',
-    category: 'Facility',
-    label: 'Presence of functional lactation rooms or gender-neutral restrooms.',
+    category: 'Enabling Facilities',
+    cmoRef: 'CMO 1 s. 2015 Art. VIII & RA 10028',
+    label: 'Presence of functional lactation stations, child-minding areas, or gender-responsive restrooms.',
   },
-  { id: 'facility-2', category: 'Facility', label: 'Campus environment meets safety standards for all genders.' },
-  { id: 'data-1', category: 'Data', label: 'Unit maintains an active and updated SDD database.' },
-  { id: 'data-2', category: 'Data', label: 'Data is used to drive the annual GAD Plan and Budget (GPB).' },
+  {
+    id: 'facility-2',
+    category: 'Enabling Facilities',
+    cmoRef: 'CMO 1 s. 2015 Art. VIII',
+    label: 'Safe, well-lit, and accessible physical environment adhering to gender-sensitive campus safety guidelines.',
+  },
+
+  // 5. Sex-Disaggregated Data & Budgeting (Art. IX & X)
+  {
+    id: 'data-1',
+    category: 'SDD & Planning',
+    cmoRef: 'CMO 1 s. 2015 Art. IX',
+    label:
+      'Active collection, maintenance, and analysis of Sex-Disaggregated Data (SDD) in student and personnel registries.',
+  },
+  {
+    id: 'data-2',
+    category: 'SDD & Planning',
+    cmoRef: 'CMO 1 s. 2015 Art. X',
+    label:
+      'Annual GAD Plan and Budget (GPB) is formulated with at least 5% budget allocation and verified against the SDD baseline.',
+  },
 ];
 
 export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps) {
@@ -63,7 +128,9 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
 
   const currentScores = checklist?.scores || {};
   const completedCount = Object.values(currentScores).filter(Boolean).length;
-  const maturityScore = Math.round((completedCount / PCW_MAINSTREAMING_CRITERIA.length) * 100);
+  const maturityScore = Math.round((completedCount / CMO_2015_MAINSTREAMING_CRITERIA.length) * 100);
+
+  const categories = useMemo(() => Array.from(new Set(CMO_2015_MAINSTREAMING_CRITERIA.map((c) => c.category))), []);
 
   const handleToggle = async (itemId: string) => {
     if (!firestore || !userProfile || isSubmitting) return;
@@ -151,7 +218,7 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
             <div className="space-y-1">
               <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-primary" />
-                Mainstreaming Maturity Assessment
+                CHED CMO 1 s. 2015 Mainstreaming Maturity Assessment
               </CardTitle>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                 Evaluating: {units.find((u) => u.id === activeUnitId)?.name || 'Select Unit'} &bull; AY {selectedYear}
@@ -165,25 +232,26 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
         </CardHeader>
         <CardContent className="flex-1 p-0 overflow-hidden bg-white">
           <ScrollArea className="h-full">
-            <div className="p-8 space-y-10">
+            <div className="p-8 space-y-8">
               <div className="p-4 bg-muted/20 rounded-xl border border-dashed flex gap-4">
                 <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                 <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-                  This checklist follows the <strong>Harmonized Gender and Development Guidelines (HGDG)</strong>{' '}
-                  framework. Use this to track the qualitative progress of your unit's mainstreaming efforts beyond
-                  documentation logs.
+                  This assessment benchmark is aligned with{' '}
+                  <strong>CHED Memorandum Order (CMO) No. 01, Series of 2015</strong> (
+                  <em>Policies and Guidelines on Gender and Development in CHED and HEIs</em>) and the{' '}
+                  <strong>Harmonized Gender and Development Guidelines (HGDG)</strong>.
                 </p>
               </div>
 
               <div className="space-y-6">
-                {['Policy', 'Program', 'Facility', 'Data'].map((category) => (
+                {categories.map((category) => (
                   <div key={category} className="space-y-3">
                     <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary border-b pb-1 flex items-center gap-2">
                       <Target className="h-3 w-3" />
                       {category} Mainstreaming Elements
                     </h4>
                     <div className="space-y-2">
-                      {PCW_MAINSTREAMING_CRITERIA.filter((c) => c.category === category).map((item) => (
+                      {CMO_2015_MAINSTREAMING_CRITERIA.filter((c) => c.category === category).map((item) => (
                         <div
                           key={item.id}
                           className={cn(
@@ -211,6 +279,22 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
                             )}
                           </div>
                           <div className="flex-1 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              <Badge
+                                variant="outline"
+                                className="text-[8px] font-black uppercase bg-primary/5 text-primary border-primary/20"
+                              >
+                                {item.cmoRef}
+                              </Badge>
+                              {currentScores[item.id] && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[8px] font-black uppercase bg-emerald-100 text-emerald-800 border-emerald-200 flex items-center gap-1"
+                                >
+                                  <ShieldCheck className="h-2.5 w-2.5" /> Verified Operational
+                                </Badge>
+                              )}
+                            </div>
                             <p
                               className={cn(
                                 'text-sm font-bold leading-snug',
@@ -219,11 +303,6 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
                             >
                               {item.label}
                             </p>
-                            {currentScores[item.id] && (
-                              <p className="text-[9px] font-black uppercase text-emerald-600/70 tracking-tighter flex items-center gap-1">
-                                <ShieldCheck className="h-2.5 w-2.5" /> Verified Operational
-                              </p>
-                            )}
                           </div>
                           <ChevronRight
                             className={cn(
