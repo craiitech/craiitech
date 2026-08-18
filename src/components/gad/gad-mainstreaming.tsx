@@ -1,16 +1,30 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import type { Unit, GADMainstreamingChecklist } from '@/lib/types';
+import type { Unit, Campus, GADMainstreamingChecklist, Signatories, GadSettings } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ShieldCheck, ChevronRight, CheckCircle2, Target, Info, History, Loader2 } from 'lucide-react';
-import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
+import {
+  ShieldCheck,
+  ChevronRight,
+  CheckCircle2,
+  Target,
+  Info,
+  History,
+  Loader2,
+  Printer,
+  FileText,
+  FileBarChart,
+} from 'lucide-react';
+import { useFirestore, useUser, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, setDoc, serverTimestamp, collection, query, where } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { GADUnitMainstreamingReportTemplate, GADInstitutionalMainstreamingReportTemplate } from './gad-print-templates';
 
 interface GADMainstreamingProps {
   units: Unit[];
@@ -126,6 +140,30 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
   );
   const { data: checklist, isLoading } = useDoc<GADMainstreamingChecklist>(checklistRef);
 
+  // Query all checklists across the university for the selected year
+  const allChecklistsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'gadMainstreaming'), where('year', '==', selectedYear)) : null),
+    [firestore, selectedYear],
+  );
+  const { data: allChecklists } = useCollection<GADMainstreamingChecklist>(allChecklistsQuery);
+
+  // Query campuses for institutional context
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: campuses } = useCollection<Campus>(campusesQuery);
+
+  // Query signatories and GAD settings for official print templates
+  const signatoriesRef = useMemoFirebase(
+    () => (firestore && userProfile ? doc(firestore, 'system', 'signatories') : null),
+    [firestore, userProfile],
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoriesRef);
+
+  const gadSettingsRef = useMemoFirebase(
+    () => (firestore && userProfile ? doc(firestore, 'system', 'gadSettings') : null),
+    [firestore, userProfile],
+  );
+  const { data: gadSettings } = useDoc<GadSettings>(gadSettingsRef);
+
   const currentScores = checklist?.scores || {};
   const completedCount = Object.values(currentScores).filter(Boolean).length;
   const maturityScore = Math.round((completedCount / CMO_2015_MAINSTREAMING_CRITERIA.length) * 100);
@@ -165,6 +203,112 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
       toast({ title: 'Update Failed', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handlePrintUnitAssessment = () => {
+    const activeUnit = units.find((u) => u.id === activeUnitId) || { id: activeUnitId, name: 'Current Unit' };
+    const campus = campuses?.find((c) => activeUnit.campusIds?.includes(c.id));
+    const campusName = campus?.name || 'Institutional';
+
+    try {
+      const reportHtml = renderToStaticMarkup(
+        <GADUnitMainstreamingReportTemplate
+          unit={activeUnit}
+          campusName={campusName}
+          year={selectedYear}
+          scores={currentScores}
+          criteria={CMO_2015_MAINSTREAMING_CRITERIA}
+          signatories={signatories || undefined}
+          gadSettings={gadSettings || undefined}
+        />,
+      );
+
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(`
+          <html>
+          <head>
+            <title>GAD Mainstreaming Evaluation - ${activeUnit.name} (AY ${selectedYear})</title>
+            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+            <style>
+              @media print { 
+                @page { size: portrait; margin: 0.4in; }
+                body { margin: 0; padding: 0; background: white; } 
+                .no-print { display: none !important; }
+              }
+              body { font-family: sans-serif; background: #f9fafb; padding: 20px; color: black; }
+            </style>
+          </head>
+          <body>
+            <div class="no-print mb-8 flex justify-center">
+              <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print Unit Mainstreaming Report</button>
+            </div>
+            <div id="print-content">
+              ${reportHtml}
+            </div>
+          </body>
+          </html>
+        `);
+        printWindow.document.close();
+      }
+    } catch (e) {
+      console.error('Print Error:', e);
+      toast({ title: 'Print Failed', description: 'Failed to generate unit report.', variant: 'destructive' });
+    }
+  };
+
+  const handlePrintInstitutionalAudit = () => {
+    try {
+      const reportHtml = renderToStaticMarkup(
+        <GADInstitutionalMainstreamingReportTemplate
+          units={units}
+          campuses={campuses || []}
+          year={selectedYear}
+          allChecklists={allChecklists || []}
+          criteria={CMO_2015_MAINSTREAMING_CRITERIA}
+          signatories={signatories || undefined}
+          gadSettings={gadSettings || undefined}
+        />,
+      );
+
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(`
+          <html>
+          <head>
+            <title>Institutional GAD Mainstreaming Audit - AY ${selectedYear}</title>
+            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+            <style>
+              @media print { 
+                @page { size: landscape; margin: 0.4in; }
+                body { margin: 0; padding: 0; background: white; } 
+                .no-print { display: none !important; }
+              }
+              body { font-family: sans-serif; background: #f9fafb; padding: 20px; color: black; }
+            </style>
+          </head>
+          <body>
+            <div class="no-print mb-8 flex justify-center">
+              <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print University-Wide Audit & Gap Analysis</button>
+            </div>
+            <div id="print-content">
+              ${reportHtml}
+            </div>
+          </body>
+          </html>
+        `);
+        printWindow.document.close();
+      }
+    } catch (e) {
+      console.error('Institutional Print Error:', e);
+      toast({
+        title: 'Print Failed',
+        description: 'Failed to generate institutional audit report.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -213,8 +357,8 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
           isGadCoordinator ? 'lg:col-span-3' : 'lg:col-span-2',
         )}
       >
-        <CardHeader className="bg-primary/5 border-b py-6 shrink-0">
-          <div className="flex items-center justify-between">
+        <CardHeader className="bg-primary/5 border-b py-5 shrink-0">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
               <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-primary" />
@@ -224,9 +368,33 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
                 Evaluating: {units.find((u) => u.id === activeUnitId)?.name || 'Select Unit'} &bull; AY {selectedYear}
               </p>
             </div>
-            <div className="text-right">
-              <span className="text-3xl font-black text-primary tabular-nums">{maturityScore}%</span>
-              <p className="text-[9px] font-black uppercase text-emerald-600 tracking-tighter">Compliance Index</p>
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePrintUnitAssessment}
+                  className="h-8 text-[9px] font-black uppercase bg-white border-primary/20 hover:bg-primary/5 text-primary gap-1.5 shadow-sm"
+                  title="Print Unit-Level Mainstreaming Evaluation & Gaps Report"
+                >
+                  <Printer className="h-3.5 w-3.5" /> Print Unit Report
+                </Button>
+                {(!isGadCoordinator || isAdmin) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrintInstitutionalAudit}
+                    className="h-8 text-[9px] font-black uppercase bg-indigo-50 border-indigo-200 hover:bg-indigo-100 text-indigo-800 gap-1.5 shadow-sm"
+                    title="Print University-Wide Audit & Gap Analysis across all units"
+                  >
+                    <FileBarChart className="h-3.5 w-3.5 text-indigo-600" /> Print University-Wide Audit
+                  </Button>
+                )}
+              </div>
+              <div className="text-right pl-3 border-l">
+                <span className="text-3xl font-black text-primary tabular-nums">{maturityScore}%</span>
+                <p className="text-[9px] font-black uppercase text-emerald-600 tracking-tighter">Compliance Index</p>
+              </div>
             </div>
           </div>
         </CardHeader>

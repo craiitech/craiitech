@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import type { GADPlan, GADActivity, Signatories, GadSettings } from '@/lib/types';
+import type { GADPlan, GADActivity, Signatories, GadSettings, Unit, Campus } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 
@@ -372,6 +372,414 @@ export function GADAccomplishmentReportTemplate({
 
       <div className="mt-8 text-[7.5px] text-slate-500 italic border-t pt-2 flex justify-between">
         <span>Official RSU GAD Mandate Submission Document | Reference: Endorsed GPB #{year}</span>
+        <span>Generated via CRAIITECH Quality EOMS Portal</span>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. UNIT-LEVEL GAD MAINSTREAMING EVALUATION & GAP ANALYSIS TEMPLATE
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface GADUnitMainstreamingReportTemplateProps {
+  unit: Unit;
+  campusName: string;
+  year: number;
+  scores: Record<string, boolean>;
+  criteria: Array<{ id: string; category: string; cmoRef: string; label: string }>;
+  signatories?: Signatories;
+  gadSettings?: GadSettings;
+}
+
+export function GADUnitMainstreamingReportTemplate({
+  unit,
+  campusName,
+  year,
+  scores,
+  criteria,
+  signatories,
+  gadSettings,
+}: GADUnitMainstreamingReportTemplateProps) {
+  const directorName =
+    gadSettings?.gadDirector || signatories?.gadDirector || signatories?.qaoDirector || 'Carolyn D. Fetalver';
+  const presidentName = signatories?.universityPresident || 'Merian P. Catajay-Mani, Ed.D., CESE';
+
+  const completedCount = Object.values(scores || {}).filter(Boolean).length;
+  const complianceIndex = Math.round((completedCount / criteria.length) * 100);
+
+  const categories = Array.from(new Set(criteria.map((c) => c.category)));
+  const gaps = criteria.filter((c) => !scores?.[c.id]);
+
+  return (
+    <div className="p-6 text-black bg-white max-w-[8.5in] mx-auto font-sans leading-tight">
+      <div className="text-center mb-6 border-b-2 border-black pb-4">
+        <h1 className="text-base font-bold uppercase">Romblon State University</h1>
+        <h2 className="text-sm font-semibold uppercase mt-0.5">
+          Gender and Development Office &bull; Quality Assurance Office
+        </h2>
+        <h3 className="text-sm font-black uppercase mt-2 text-indigo-900 tracking-wider">
+          CHED CMO No. 01, s. 2015 GAD Mainstreaming Evaluation & Gap Report
+        </h3>
+        <p className="text-xs font-bold mt-1">
+          ACADEMIC / FISCAL YEAR: AY {year}-{year + 1} ({year})
+        </p>
+        <p className="text-xs italic mt-1 font-semibold uppercase text-slate-700">
+          Unit: {unit.name} &bull; Campus: {campusName}
+        </p>
+      </div>
+
+      {/* Compliance Overview Card */}
+      <div className="mb-6 border-2 border-black p-4 bg-slate-50 grid grid-cols-3 text-center">
+        <div className="border-r border-black p-2">
+          <p className="text-[10px] font-bold uppercase text-slate-600">Compliance Index</p>
+          <p className="text-3xl font-black text-indigo-900 mt-1">{complianceIndex}%</p>
+          <p className="text-[8px] font-bold uppercase text-slate-500 mt-0.5">
+            {complianceIndex >= 80
+              ? 'High Compliance'
+              : complianceIndex >= 50
+                ? 'Moderate Compliance'
+                : 'Low Compliance / High Risk'}
+          </p>
+        </div>
+        <div className="border-r border-black p-2">
+          <p className="text-[10px] font-bold uppercase text-slate-600">Compliant Elements</p>
+          <p className="text-3xl font-black text-emerald-800 mt-1">
+            {completedCount} / {criteria.length}
+          </p>
+          <p className="text-[8px] font-bold uppercase text-emerald-700 mt-0.5">Operational Criteria</p>
+        </div>
+        <div className="p-2">
+          <p className="text-[10px] font-bold uppercase text-slate-600">Identified Gaps</p>
+          <p className="text-3xl font-black text-rose-700 mt-1">{gaps.length}</p>
+          <p className="text-[8px] font-bold uppercase text-rose-600 mt-0.5">Deficiencies Requiring Action</p>
+        </div>
+      </div>
+
+      {/* Criteria Breakdown Table */}
+      <table className="w-full border-collapse border-[1.5px] border-black text-[8.5px] mb-6">
+        <thead>
+          <tr className="bg-slate-200 text-center font-black uppercase">
+            <th className="border border-black p-2 w-[5%]">#</th>
+            <th className="border border-black p-2 w-[18%]">CHED / PCW Reference</th>
+            <th className="border border-black p-2 w-[60%] text-left">Mainstreaming Criteria & Guidelines</th>
+            <th className="border border-black p-2 w-[17%]">Status / Findings</th>
+          </tr>
+        </thead>
+        <tbody>
+          {categories.map((cat) => {
+            const catCriteria = criteria.filter((c) => c.category === cat);
+            return (
+              <React.Fragment key={cat}>
+                <tr className="bg-indigo-50 font-black uppercase text-[9px]">
+                  <td colSpan={4} className="border border-black p-1.5 text-left text-indigo-900">
+                    {cat}
+                  </td>
+                </tr>
+                {catCriteria.map((item, idx) => {
+                  const isMet = !!scores?.[item.id];
+                  return (
+                    <tr key={item.id} className={isMet ? 'bg-white' : 'bg-rose-50/30'}>
+                      <td className="border border-black p-1.5 text-center font-bold">{idx + 1}</td>
+                      <td className="border border-black p-1.5 font-bold uppercase text-slate-700 text-center">
+                        {item.cmoRef}
+                      </td>
+                      <td className="border border-black p-1.5 font-medium leading-relaxed">{item.label}</td>
+                      <td className="border border-black p-1.5 text-center font-black uppercase text-[8px]">
+                        {isMet ? (
+                          <span className="text-emerald-800 font-black">✓ OPERATIONAL</span>
+                        ) : (
+                          <span className="text-rose-700 font-black">✗ GAP / DEFICIENT</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* Summary of Deficiencies & Corrective Action */}
+      <div className="mb-6 border border-black p-4 bg-slate-50">
+        <h4 className="text-[10px] font-black uppercase tracking-wider text-rose-900 mb-2">
+          Summary of Identified Gaps & Deficiencies:
+        </h4>
+        {gaps.length > 0 ? (
+          <ul className="list-disc pl-5 space-y-1 text-[8.5px] text-slate-800">
+            {gaps.map((g) => (
+              <li key={g.id}>
+                <strong>[{g.cmoRef}]</strong> {g.label}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[9px] font-bold text-emerald-800 italic">
+            No critical mainstreaming deficiencies found. The unit meets 100% of the CMO No. 1, s. 2015 institutional
+            standards.
+          </p>
+        )}
+      </div>
+
+      {/* Signatories */}
+      <div className="mt-8 grid grid-cols-2 gap-16 px-8 text-[9px] font-bold">
+        <div className="text-center">
+          <p className="text-left mb-10 text-slate-600">Evaluated & Prepared By:</p>
+          <div className="border-b border-black pb-1 font-black uppercase">{directorName}</div>
+          <p className="mt-1 text-[8px] uppercase text-slate-500">Director, Gender and Development</p>
+        </div>
+        <div className="text-center">
+          <p className="text-left mb-10 text-slate-600">Approved By:</p>
+          <div className="border-b border-black pb-1 font-black uppercase text-indigo-900">{presidentName}</div>
+          <p className="mt-1 text-[8px] uppercase text-slate-500">University President</p>
+        </div>
+      </div>
+
+      <div className="mt-8 text-[7.5px] text-slate-500 italic border-t pt-2 flex justify-between">
+        <span>Official CMO No. 1 s. 2015 Audit Report &bull; Unit Assessment</span>
+        <span>Generated via CRAIITECH Quality EOMS Portal</span>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. UNIVERSITY-WIDE GAD MAINSTREAMING AUDIT & GAP ANALYSIS REPORT TEMPLATE
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface GADInstitutionalMainstreamingReportTemplateProps {
+  units: Unit[];
+  campuses: Campus[];
+  year: number;
+  allChecklists: Array<{ unitId: string; year: number; scores: Record<string, boolean> }>;
+  criteria: Array<{ id: string; category: string; cmoRef: string; label: string }>;
+  signatories?: Signatories;
+  gadSettings?: GadSettings;
+}
+
+export function GADInstitutionalMainstreamingReportTemplate({
+  units,
+  campuses,
+  year,
+  allChecklists,
+  criteria,
+  signatories,
+  gadSettings,
+}: GADInstitutionalMainstreamingReportTemplateProps) {
+  const directorName =
+    gadSettings?.gadDirector || signatories?.gadDirector || signatories?.qaoDirector || 'Carolyn D. Fetalver';
+  const presidentName = signatories?.universityPresident || 'Merian P. Catajay-Mani, Ed.D., CESE';
+
+  const campusMap = new Map(campuses.map((c) => [c.id, c.name]));
+  const checklistMap = new Map(allChecklists.map((c) => [c.unitId, c.scores || {}]));
+
+  // Compute unit scores
+  const unitStats = units.map((u) => {
+    const scores = checklistMap.get(u.id) || {};
+    const completed = Object.values(scores).filter(Boolean).length;
+    const scorePct = Math.round((completed / criteria.length) * 100);
+    const gaps = criteria.filter((c) => !scores[c.id]);
+    return {
+      unit: u,
+      scores,
+      completed,
+      scorePct,
+      gaps,
+    };
+  });
+
+  const totalPossible = units.length * criteria.length;
+  const totalCompleted = unitStats.reduce((acc, u) => acc + u.completed, 0);
+  const universityAvgIndex = totalPossible > 0 ? Math.round((totalCompleted / totalPossible) * 100) : 0;
+  const unitsEvaluated = unitStats.filter((u) => u.completed > 0).length;
+
+  // Compute criterion compliance rate across the entire university
+  const criteriaStats = criteria.map((crit) => {
+    const metUnits = unitStats.filter((u) => u.scores[crit.id]).length;
+    const rate = units.length > 0 ? Math.round((metUnits / units.length) * 100) : 0;
+    return {
+      ...crit,
+      metUnits,
+      rate,
+      deficientUnits: units.length - metUnits,
+    };
+  });
+
+  // Sort criteria from lowest compliance (biggest problems) to highest
+  const problematicCriteria = [...criteriaStats].sort((a, b) => a.rate - b.rate);
+
+  return (
+    <div className="p-6 text-black bg-white max-w-[11in] mx-auto font-sans leading-tight">
+      <div className="text-center mb-6 border-b-2 border-black pb-4">
+        <h1 className="text-base font-bold uppercase">Romblon State University</h1>
+        <h2 className="text-sm font-semibold uppercase mt-0.5">
+          Gender and Development Office &bull; Quality Assurance Office
+        </h2>
+        <h3 className="text-sm font-black uppercase mt-2 text-indigo-900 tracking-wider">
+          Institutional GAD Mainstreaming Audit & University-Wide Gap Analysis
+        </h3>
+        <p className="text-xs font-black mt-1">
+          ACADEMIC / FISCAL YEAR: AY {year}-{year + 1} ({year})
+        </p>
+        <p className="text-[10px] text-slate-600 uppercase font-bold mt-0.5">
+          Benchmark: CHED Memorandum Order No. 01, Series of 2015 & Harmonized GAD Guidelines (HGDG)
+        </p>
+      </div>
+
+      {/* University Executive Summary Cards */}
+      <div className="mb-6 border-2 border-black p-4 bg-slate-50 grid grid-cols-4 text-center">
+        <div className="border-r border-black p-2">
+          <p className="text-[9px] font-bold uppercase text-slate-600">University Compliance Index</p>
+          <p className="text-3xl font-black text-indigo-900 mt-1">{universityAvgIndex}%</p>
+          <p className="text-[7.5px] font-bold uppercase text-slate-500 mt-0.5">Overall Institutional Average</p>
+        </div>
+        <div className="border-r border-black p-2">
+          <p className="text-[9px] font-bold uppercase text-slate-600">Units Evaluated</p>
+          <p className="text-3xl font-black text-slate-900 mt-1">
+            {unitsEvaluated} / {units.length}
+          </p>
+          <p className="text-[7.5px] font-bold uppercase text-emerald-700 mt-0.5">Active Participating Units</p>
+        </div>
+        <div className="border-r border-black p-2">
+          <p className="text-[9px] font-bold uppercase text-slate-600">Top Problem Area</p>
+          <p className="text-sm font-black text-rose-700 mt-2 truncate" title={problematicCriteria[0]?.label}>
+            {problematicCriteria[0]?.cmoRef || 'N/A'}
+          </p>
+          <p className="text-[7.5px] font-bold uppercase text-rose-600 mt-0.5">
+            Only {problematicCriteria[0]?.rate || 0}% Compliant
+          </p>
+        </div>
+        <div className="p-2">
+          <p className="text-[9px] font-bold uppercase text-slate-600">Audit Status</p>
+          <p className="text-base font-black text-emerald-900 mt-2">
+            {universityAvgIndex >= 75 ? 'SATISFACTORY' : 'REQUIRES REMEDIATION'}
+          </p>
+          <p className="text-[7.5px] font-bold uppercase text-slate-500 mt-0.5">Official QA Determination</p>
+        </div>
+      </div>
+
+      {/* Section I: Pillar-by-Pillar Problem & Gap Ranking */}
+      <div className="mb-6">
+        <h4 className="text-xs font-black uppercase text-indigo-900 border-b border-black pb-1 mb-2">
+          Section I. University-Wide GAD Mainstreaming Criteria & Deficiencies Ranking (Lowest to Highest Compliance)
+        </h4>
+        <p className="text-[8px] text-slate-600 mb-2 italic">
+          This table reveals the exact systemic gaps across the university, ranked by deficiency rate to prioritize
+          institutional resources and policy interventions.
+        </p>
+        <table className="w-full border-collapse border-[1.5px] border-black text-[8px]">
+          <thead>
+            <tr className="bg-slate-200 text-center font-black uppercase">
+              <th className="border border-black p-1.5 w-[4%]">Rank</th>
+              <th className="border border-black p-1.5 w-[14%]">CHED / PCW Ref</th>
+              <th className="border border-black p-1.5 w-[18%]">Pillar Category</th>
+              <th className="border border-black p-1.5 w-[42%] text-left">Mainstreaming Element & Requirement</th>
+              <th className="border border-black p-1.5 w-[11%]">Compliant Units</th>
+              <th className="border border-black p-1.5 w-[11%]">Compliance Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            {problematicCriteria.map((crit, idx) => (
+              <tr
+                key={crit.id}
+                className={crit.rate < 50 ? 'bg-rose-50/40' : idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}
+              >
+                <td className="border border-black p-1 text-center font-bold">{idx + 1}</td>
+                <td className="border border-black p-1 text-center font-bold uppercase text-slate-700">
+                  {crit.cmoRef}
+                </td>
+                <td className="border border-black p-1 font-bold text-center uppercase">{crit.category}</td>
+                <td className="border border-black p-1 font-medium leading-tight">{crit.label}</td>
+                <td className="border border-black p-1 text-center font-bold">
+                  {crit.metUnits} of {units.length}
+                </td>
+                <td className="border border-black p-1 text-center font-black tabular-nums">
+                  <span className={crit.rate < 50 ? 'text-rose-700' : 'text-emerald-800'}>{crit.rate}%</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Section II: Unit-by-Unit Compliance & Specific Gaps Matrix */}
+      <div className="mb-6">
+        <h4 className="text-xs font-black uppercase text-indigo-900 border-b border-black pb-1 mb-2">
+          Section II. Unit-by-Unit Mainstreaming Performance & Identified Specific Gaps
+        </h4>
+        <table className="w-full border-collapse border-[1.5px] border-black text-[7.5px]">
+          <thead>
+            <tr className="bg-slate-200 text-center font-black uppercase">
+              <th className="border border-black p-1 w-[3%]">#</th>
+              <th className="border border-black p-1 w-[22%] text-left">Operating Unit</th>
+              <th className="border border-black p-1 w-[15%] text-left">Campus Site</th>
+              <th className="border border-black p-1 w-[10%]">Index (%)</th>
+              <th className="border border-black p-1 w-[10%]">Elements Met</th>
+              <th className="border border-black p-1 w-[40%] text-left">Specific Gaps / Deficiencies Identified</th>
+            </tr>
+          </thead>
+          <tbody>
+            {unitStats
+              .sort((a, b) => a.scorePct - b.scorePct)
+              .map((u, idx) => (
+                <tr
+                  key={u.unit.id}
+                  className={u.scorePct < 50 ? 'bg-rose-50/20' : idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}
+                >
+                  <td className="border border-black p-1 text-center font-bold">{idx + 1}</td>
+                  <td className="border border-black p-1 font-bold uppercase">{u.unit.name}</td>
+                  <td className="border border-black p-1 text-slate-600">
+                    {u.unit.campusIds
+                      ?.map((cId: string) => campusMap.get(cId))
+                      .filter(Boolean)
+                      .join(', ') || 'Institutional'}
+                  </td>
+                  <td className="border border-black p-1 text-center font-black tabular-nums">
+                    <span
+                      className={
+                        u.scorePct >= 80 ? 'text-emerald-800' : u.scorePct >= 50 ? 'text-amber-700' : 'text-rose-700'
+                      }
+                    >
+                      {u.scorePct}%
+                    </span>
+                  </td>
+                  <td className="border border-black p-1 text-center font-bold">
+                    {u.completed} / {criteria.length}
+                  </td>
+                  <td className="border border-black p-1 text-slate-700 leading-tight">
+                    {u.gaps.length > 0 ? (
+                      <span className="text-rose-900 font-medium">
+                        Missing: {u.gaps.map((g) => g.cmoRef).join('; ')}
+                      </span>
+                    ) : (
+                      <span className="text-emerald-800 font-bold">All 11 criteria verified operational.</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Signatories */}
+      <div className="mt-8 grid grid-cols-2 gap-16 px-8 text-[9px] font-bold">
+        <div className="text-center">
+          <p className="text-left mb-10 text-slate-600">Prepared & Audited By:</p>
+          <div className="border-b border-black pb-1 font-black uppercase">{directorName}</div>
+          <p className="mt-1 text-[8px] uppercase text-slate-500">Director, Gender and Development</p>
+        </div>
+        <div className="text-center">
+          <p className="text-left mb-10 text-slate-600">Noted & Approved By:</p>
+          <div className="border-b border-black pb-1 font-black uppercase text-indigo-900">{presidentName}</div>
+          <p className="mt-1 text-[8px] uppercase text-slate-500">University President</p>
+        </div>
+      </div>
+
+      <div className="mt-8 text-[7.5px] text-slate-500 italic border-t pt-2 flex justify-between">
+        <span>
+          Official CMO No. 1 s. 2015 Institutional Mainstreaming Audit Report &bull; AY {year}-{year + 1}
+        </span>
         <span>Generated via CRAIITECH Quality EOMS Portal</span>
       </div>
     </div>
