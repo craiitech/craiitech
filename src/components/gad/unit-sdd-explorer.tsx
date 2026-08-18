@@ -7,7 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Chart3DDefs, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 import { Badge } from '@/components/ui/badge';
-import { Users, LayoutGrid, ChevronDown, ChevronUp, Search, Info, ShieldCheck } from 'lucide-react';
+import { Users, LayoutGrid, ChevronDown, ChevronUp, Search, Info, ShieldCheck, CalendarRange } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -86,8 +86,14 @@ export function UnitSddExplorer({ compliances, units, selectedYear }: UnitSddExp
             <div className="flex items-center gap-3">
               <LayoutGrid className="h-5 w-5 text-primary" />
               <div className="text-left">
-                <CardTitle className="text-sm font-black uppercase tracking-tight">
+                <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2 flex-wrap">
                   Institutional Unit-Level SDD Explorer
+                  <Badge
+                    variant="outline"
+                    className="text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
+                  >
+                    <CalendarRange className="h-3 w-3" /> AY {selectedYear}&ndash;{selectedYear + 1}
+                  </Badge>
                 </CardTitle>
                 <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/60">
                   {isOpen ? 'Click to minimize view' : `Expand to view disaggregation for ${unitData.length} units`}

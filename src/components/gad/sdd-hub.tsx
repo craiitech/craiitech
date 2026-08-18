@@ -300,17 +300,35 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
     <div className="space-y-8 border-none pb-20">
       <Card className="border-primary/20 bg-primary/5 shadow-sm">
         <CardHeader className="py-4">
-          <div className="flex items-center gap-2 text-primary mb-1">
-            <Info className="h-4 w-4 text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Institutional SDD HUB</span>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2 text-primary mb-1">
+                <Info className="h-4 w-4 text-primary" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                  Institutional SDD HUB
+                </span>
+              </div>
+              <CardTitle className="text-lg font-black uppercase tracking-tight">
+                Sex-Disaggregated Data (SDD) Hub: {unitName}
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Consolidated analysis of students, personnel, and activity participants for Academic Year {selectedYear}
+                -{selectedYear + 1} (AY {selectedYear} Baseline).
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className="bg-primary hover:bg-primary/90 text-white font-black text-xs px-3.5 py-1 uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
+                <CalendarRange className="h-3.5 w-3.5" />
+                AY {selectedYear} &ndash; {selectedYear + 1}
+              </Badge>
+              <Badge
+                variant="outline"
+                className="bg-white border-primary/20 text-primary text-[10px] font-black uppercase px-2.5 py-1"
+              >
+                1st Semester Baseline
+              </Badge>
+            </div>
           </div>
-          <CardTitle className="text-lg font-black uppercase tracking-tight">
-            Sex-Disaggregated Data (SDD) Hub: {unitName}
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Consolidated analysis of students, personnel, and activity participants for Academic Year {selectedYear}-
-            {selectedYear + 1} (AY {selectedYear}).
-          </CardDescription>
         </CardHeader>
       </Card>
 
@@ -322,6 +340,14 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
         <div className="lg:col-span-1 space-y-6">
           <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden flex flex-col h-full bg-white dark:bg-slate-900">
             <CardHeader className="p-4 bg-primary/5 border-b text-center shrink-0">
+              <div className="flex items-center justify-between border-b pb-2 mb-2">
+                <span className="text-[9px] font-black uppercase text-primary tracking-wider flex items-center gap-1">
+                  <CalendarRange className="h-3 w-3" /> AY {selectedYear}&ndash;{selectedYear + 1}
+                </span>
+                <span className="text-[8px] font-bold uppercase text-muted-foreground bg-primary/5 px-2 py-0.5 rounded">
+                  1st Sem Baseline
+                </span>
+              </div>
               <div className="mx-auto h-10 w-10 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm">
                 <Users className="h-5 w-5 text-primary" />
               </div>
@@ -373,7 +399,7 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
                       {aggregatedData.totals.s1.toLocaleString()}
                     </p>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                      Total Enrolled Baseline
+                      Total Enrolled Baseline (AY {selectedYear}&ndash;{selectedYear + 1})
                     </p>
                   </div>
                 </>
@@ -393,14 +419,23 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
         <div className="lg:col-span-2">
           <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl h-full flex flex-col bg-white dark:bg-slate-900">
             <CardHeader className="bg-muted/10 border-b py-4">
-              <div className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                <CardTitle className="text-sm font-black uppercase tracking-tight">
-                  Student Sectoral Reach Analysis (3D)
-                </CardTitle>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-sm font-black uppercase tracking-tight">
+                    Student Sectoral Reach Analysis (3D)
+                  </CardTitle>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="w-fit text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
+                >
+                  <CalendarRange className="h-3 w-3" /> Timeline: AY {selectedYear}&ndash;{selectedYear + 1}
+                </Badge>
               </div>
               <CardDescription className="text-[10px]">
-                Headcount of students belonging to marginalized or prioritized GAD groups.
+                Consolidated headcount of students belonging to marginalized or prioritized GAD groups for AY{' '}
+                {selectedYear}&ndash;{selectedYear + 1}.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-8 flex-1">
@@ -471,12 +506,16 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
               <div className="space-y-1">
                 <div className="flex items-center gap-2 text-indigo-700">
                   <Briefcase className="h-5 w-5" />
-                  <CardTitle className="text-lg font-black uppercase tracking-tight">
+                  <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2 flex-wrap">
                     Unit Personnel Census Workspace
+                    <Badge className="bg-indigo-600 text-white font-black text-[9px] uppercase">
+                      AY {selectedYear}&ndash;{selectedYear + 1}
+                    </Badge>
                   </CardTitle>
                 </div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600/70">
-                  Update total employee headcount for your office for AY {selectedYear}.
+                  Update total employee headcount for your office for AY {selectedYear}&ndash;{selectedYear + 1} (Fiscal
+                  Year {selectedYear}).
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
