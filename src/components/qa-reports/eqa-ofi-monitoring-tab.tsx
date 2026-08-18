@@ -192,7 +192,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
     append({
       id: genId(),
       unitId: '',
-      campusId: '',
+      campusId: userProfile?.campusId || (campuses.length > 0 ? campuses[0].id : ''),
       actionTaken: '',
       status: 'Pending Action',
       targetDate: '',
@@ -745,7 +745,19 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                               <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
                                 Target Campus
                               </FormLabel>
-                              <Select onValueChange={cField.onChange} value={cField.value} disabled={!canEditUnitScope}>
+                              <Select
+                                onValueChange={(val) => {
+                                  cField.onChange(val);
+                                  // Clear unit if it does not belong to the newly selected campus
+                                  const currentUnitId = form.getValues(`targetUnits.${index}.unitId`);
+                                  const currentUnit = units.find((u) => u.id === currentUnitId);
+                                  if (currentUnit && currentUnit.campusIds && !currentUnit.campusIds.includes(val)) {
+                                    form.setValue(`targetUnits.${index}.unitId`, '');
+                                  }
+                                }}
+                                value={cField.value}
+                                disabled={!canEditUnitScope}
+                              >
                                 <FormControl>
                                   <SelectTrigger className="h-9 text-xs" disabled={!canEditUnitScope}>
                                     <SelectValue placeholder="Select Campus" />
@@ -767,34 +779,53 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                         <FormField
                           control={form.control}
                           name={`targetUnits.${index}.unitId`}
-                          render={({ field: uField }) => (
-                            <FormItem>
-                              <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
-                                Target Unit / Department
-                              </FormLabel>
-                              <Select
-                                onValueChange={(val) => {
-                                  if (canEditUnitScope) uField.onChange(val);
-                                }}
-                                value={uField.value}
-                                disabled={!canEditUnitScope}
-                              >
-                                <FormControl>
-                                  <SelectTrigger className="h-9 text-xs" disabled={!canEditUnitScope}>
-                                    <SelectValue placeholder="Select Unit" />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {units.map((u) => (
-                                    <SelectItem key={u.id} value={u.id} className="text-xs">
-                                      {u.name}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                          render={({ field: uField }) => {
+                            const selectedCampusId = form.watch(`targetUnits.${index}.campusId`);
+                            const filteredUnits = units.filter((u) => {
+                              if (!selectedCampusId) return true;
+                              return u.campusIds?.includes(selectedCampusId) || u.id === uField.value;
+                            });
+
+                            return (
+                              <FormItem>
+                                <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
+                                  Target Unit / Department
+                                </FormLabel>
+                                <Select
+                                  onValueChange={(val) => {
+                                    if (canEditUnitScope) uField.onChange(val);
+                                  }}
+                                  value={uField.value}
+                                  disabled={!canEditUnitScope || !selectedCampusId}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger
+                                      className="h-9 text-xs"
+                                      disabled={!canEditUnitScope || !selectedCampusId}
+                                    >
+                                      <SelectValue
+                                        placeholder={!selectedCampusId ? 'Select Campus First' : 'Select Unit'}
+                                      />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {filteredUnits.length > 0 ? (
+                                      filteredUnits.map((u) => (
+                                        <SelectItem key={u.id} value={u.id} className="text-xs">
+                                          {u.name}
+                                        </SelectItem>
+                                      ))
+                                    ) : (
+                                      <SelectItem value="__none__" disabled className="text-xs italic">
+                                        No units found for this campus
+                                      </SelectItem>
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            );
+                          }}
                         />
                       </div>
 
