@@ -249,6 +249,7 @@ export type GadSettings = {
   leadershipUnitId?: string;
   isPublicEntryEnabled?: boolean;
   institutionalTotalBudget?: number;
+  gadDirector?: string;
   updatedAt?: any;
   updatedBy?: string;
 };

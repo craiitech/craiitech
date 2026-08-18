@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import type { GADPlan, GADActivity, Signatories } from '@/lib/types';
+import type { GADPlan, GADActivity, Signatories, GadSettings } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 
@@ -15,6 +15,7 @@ interface GADPlanReportTemplateProps {
   campusName: string;
   year: number;
   signatories?: Signatories;
+  gadSettings?: GadSettings;
 }
 
 interface GADAccomplishmentReportTemplateProps {
@@ -23,6 +24,7 @@ interface GADAccomplishmentReportTemplateProps {
   campusName: string;
   year: number;
   signatories?: Signatories;
+  gadSettings?: GadSettings;
 }
 
 function groupByCategory(items: GADPlan[]): { label: string; items: GADPlan[] }[] {
@@ -36,8 +38,17 @@ function groupByCategory(items: GADPlan[]): { label: string; items: GADPlan[] }[
   return groups.length ? groups : [{ label: 'GAD PLAN ENTRIES', items }];
 }
 
-export function GADPlanReportTemplate({ data, unitName, campusName, year, signatories }: GADPlanReportTemplateProps) {
-  const directorName = signatories?.qaoDirector || '____________________';
+export function GADPlanReportTemplate({
+  data,
+  unitName,
+  campusName,
+  year,
+  signatories,
+  gadSettings,
+}: GADPlanReportTemplateProps) {
+  const directorName =
+    gadSettings?.gadDirector || signatories?.gadDirector || signatories?.qaoDirector || 'Carolyn D. Fetalver';
+  const presidentName = signatories?.universityPresident || 'Merian P. Catajay-Mani, Ed.D., CESE';
   const categoryGroups = groupByCategory(data);
 
   return (
@@ -155,13 +166,14 @@ export function GADPlanReportTemplate({ data, unitName, campusName, year, signat
           <p className="mt-1 text-[8px]">Unit Level</p>
         </div>
         <div className="text-center">
-          <p className="text-left mb-8 opacity-60">Reviewed by:</p>
-          <div className="border-b border-black pb-1">QAO / GAD DIRECTOR</div>
+          <p className="text-left mb-8 opacity-60">Reviewed / Certified by:</p>
+          <div className="border-b border-black pb-1 font-black text-primary">{directorName}</div>
+          <p className="mt-1 text-[8px]">GAD DIRECTOR</p>
         </div>
         <div className="text-center">
           <p className="text-left mb-8 opacity-60">Approved by:</p>
-          <div className="border-b border-black pb-1 font-black text-primary">{directorName}</div>
-          <p className="mt-1 text-[8px]">UNIVERSITY AUTHORITY</p>
+          <div className="border-b border-black pb-1 font-black text-primary">{presidentName}</div>
+          <p className="mt-1 text-[8px]">UNIVERSITY PRESIDENT</p>
         </div>
       </div>
 
@@ -183,9 +195,11 @@ export function GADAccomplishmentReportTemplate({
   campusName,
   year,
   signatories,
+  gadSettings,
 }: GADAccomplishmentReportTemplateProps) {
   const presidentName = signatories?.universityPresident || 'Merian P. Catajay-Mani, Ed.D., CESE';
-  const directorName = signatories?.gadDirector || signatories?.qaoDirector || 'Carolyn D. Fetalver';
+  const directorName =
+    gadSettings?.gadDirector || signatories?.gadDirector || signatories?.qaoDirector || 'Carolyn D. Fetalver';
 
   // Group data by PCW Category
   const clientFocused = data.filter((item) => !item.category || item.category === 'CLIENT-FOCUSED ACTIVITIES');

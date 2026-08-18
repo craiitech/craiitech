@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -9,23 +8,8 @@ import { useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldCheck, UserCheck, Award, Save } from 'lucide-react';
 import type { Signatories } from '@/lib/types';
@@ -34,6 +18,8 @@ const signatorySchema = z.object({
   qaoDirector: z.string().min(1, 'Director name is required.'),
   qmsHead: z.string().min(1, 'QMS Head name is required.'),
   accreditationHead: z.string().min(1, 'Accreditation Head name is required.'),
+  gadDirector: z.string().optional(),
+  universityPresident: z.string().optional(),
 });
 
 export function SignatoryManagement() {
@@ -41,10 +27,7 @@ export function SignatoryManagement() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const signatoryRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'system', 'signatories') : null),
-    [firestore]
-  );
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: currentSignatories, isLoading } = useDoc<Signatories>(signatoryRef);
 
   const form = useForm<z.infer<typeof signatorySchema>>({
@@ -53,6 +36,8 @@ export function SignatoryManagement() {
       qaoDirector: '',
       qmsHead: '',
       accreditationHead: '',
+      gadDirector: '',
+      universityPresident: '',
     },
   });
 
@@ -62,6 +47,8 @@ export function SignatoryManagement() {
         qaoDirector: currentSignatories.qaoDirector || '',
         qmsHead: currentSignatories.qmsHead || '',
         accreditationHead: currentSignatories.accreditationHead || '',
+        gadDirector: currentSignatories.gadDirector || '',
+        universityPresident: currentSignatories.universityPresident || '',
       });
     }
   }, [currentSignatories, form]);
@@ -70,11 +57,31 @@ export function SignatoryManagement() {
     if (!firestore) return;
     setIsSubmitting(true);
     try {
-      await setDoc(doc(firestore, 'system', 'signatories'), {
-        ...values,
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-      toast({ title: 'Signatories Updated', description: 'Institutional signatures have been successfully updated across all reports.' });
+      await setDoc(
+        doc(firestore, 'system', 'signatories'),
+        {
+          ...values,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true },
+      );
+
+      // Also sync GAD Director to GAD Settings
+      if (values.gadDirector?.trim()) {
+        await setDoc(
+          doc(firestore, 'system', 'gadSettings'),
+          {
+            gadDirector: values.gadDirector.trim(),
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
+
+      toast({
+        title: 'Signatories Updated',
+        description: 'Institutional signatures have been successfully updated across all reports.',
+      });
     } catch (error) {
       console.error('Error updating signatories:', error);
       toast({
@@ -99,12 +106,15 @@ export function SignatoryManagement() {
     <Card className="max-w-2xl border-primary/20 shadow-md">
       <CardHeader className="bg-primary/5 border-b">
         <div className="flex items-center gap-2 mb-1">
-            <UserCheck className="h-5 w-5 text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary">Institutional Authority Configuration</span>
+          <UserCheck className="h-5 w-5 text-primary" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+            Institutional Authority Configuration
+          </span>
         </div>
         <CardTitle>Institutional Signatories</CardTitle>
         <CardDescription>
-          Configure the authorized names that appear on official printed notices, audit logs, and compliance certificates.
+          Configure the authorized names that appear on official printed notices, audit logs, and compliance
+          certificates.
         </CardDescription>
       </CardHeader>
       <Form {...form}>
@@ -115,55 +125,106 @@ export function SignatoryManagement() {
               name="qaoDirector"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Director, Quality Assurance Office</FormLabel>
+                  <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                    Director, Quality Assurance Office
+                  </FormLabel>
                   <FormControl>
                     <div className="relative">
-                        <ShieldCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground opacity-50" />
-                        <Input placeholder="e.g., DR. MARVIN RICK G. FORCADO" {...field} className="pl-9 font-bold" />
+                      <ShieldCheck className="absolute left-3 top-3 h-4 w-4 text-muted-foreground opacity-50" />
+                      <Input placeholder="e.g., DR. MARVIN RICK G. FORCADO" {...field} className="pl-9 font-bold" />
                     </div>
                   </FormControl>
-                  <FormDescription className="text-[10px]">Primary signatory for Notices of Compliance and official QA directives.</FormDescription>
+                  <FormDescription className="text-[10px]">
+                    Primary signatory for Notices of Compliance and official QA directives.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
+              <FormField
                 control={form.control}
                 name="qmsHead"
                 render={({ field }) => (
-                    <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Head, QMS Unit</FormLabel>
+                  <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                      Head, QMS Unit
+                    </FormLabel>
                     <FormControl>
-                        <Input placeholder="Enter name" {...field} className="font-semibold" />
+                      <Input placeholder="Enter name" {...field} className="font-semibold" />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
-                <FormField
+              />
+              <FormField
                 control={form.control}
                 name="accreditationHead"
                 render={({ field }) => (
-                    <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Head, Accreditation Unit</FormLabel>
+                  <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                      Head, Accreditation Unit
+                    </FormLabel>
                     <FormControl>
-                        <Input placeholder="Enter name" {...field} className="font-semibold" />
+                      <Input placeholder="Enter name" {...field} className="font-semibold" />
                     </FormControl>
                     <FormMessage />
-                    </FormItem>
+                  </FormItem>
                 )}
-                />
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t">
+              <FormField
+                control={form.control}
+                name="gadDirector"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                      Director, GAD Office
+                    </FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Carolyn D. Fetalver, Ed.D." {...field} className="font-semibold" />
+                    </FormControl>
+                    <FormDescription className="text-[10px]">
+                      Signatory for GAD Plan &amp; Budget and Accomplishment Reports.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="universityPresident"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                      University President
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g., Merian P. Catajay-Mani, Ed.D., CESE"
+                        {...field}
+                        className="font-semibold"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-[10px]">
+                      Final approving authority for university-level reports.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
           </CardContent>
           <CardFooter className="bg-muted/10 border-t py-4">
-            <Button type="submit" disabled={isSubmitting} className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]">
-              {isSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]"
+            >
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
               Apply Changes Universally
             </Button>
           </CardFooter>

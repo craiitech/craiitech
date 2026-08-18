@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import type { GADPlan, GADActivity, Campus, Unit, Signatories } from '@/lib/types';
+import type { GADPlan, GADActivity, Campus, Unit, Signatories, GadSettings } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -59,6 +59,12 @@ export function GADAccomplishmentTab({
     [firestore, userProfile],
   );
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  const gadSettingsRef = useMemoFirebase(
+    () => (firestore && userProfile ? doc(firestore, 'system', 'gadSettings') : null),
+    [firestore, userProfile],
+  );
+  const { data: gadSettings } = useDoc<GadSettings>(gadSettingsRef);
 
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
@@ -167,6 +173,7 @@ export function GADAccomplishmentTab({
           campusName={campusName}
           year={selectedYear}
           signatories={signatories || undefined}
+          gadSettings={gadSettings || undefined}
         />,
       );
 

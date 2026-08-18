@@ -222,6 +222,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
           campusName={campusName}
           year={selectedYear}
           signatories={signatories || undefined}
+          gadSettings={gadSettings || undefined}
         />,
       );
 
