@@ -213,20 +213,27 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
         status: EqaOfiStatus;
         targetDate: ReturnType<typeof Timestamp.fromDate> | null;
         evidenceLink: string;
-        updatedAt: ReturnType<typeof serverTimestamp>;
+        updatedAt: ReturnType<typeof Timestamp.now>;
       }> = [];
       for (const t of values.targetUnits) {
         if (!t.unitId) continue;
+        let targetDateTimestamp: ReturnType<typeof Timestamp.fromDate> | null = null;
+        if (t.targetDate) {
+          const parsed = new Date(t.targetDate);
+          if (!isNaN(parsed.getTime())) {
+            targetDateTimestamp = Timestamp.fromDate(parsed);
+          }
+        }
         targetUnits.push({
-          id: t.id,
+          id: t.id || genId(),
           unitId: t.unitId,
           unitName: unitMap.get(t.unitId) || 'Unit',
           campusId: t.campusId,
           actionTaken: t.actionTaken?.trim() || '',
           status: (t.status as EqaOfiStatus) || 'Pending Action',
-          targetDate: t.targetDate ? Timestamp.fromDate(new Date(t.targetDate)) : null,
+          targetDate: targetDateTimestamp,
           evidenceLink: t.evidenceLink?.trim() || '',
-          updatedAt: serverTimestamp(),
+          updatedAt: Timestamp.now(),
         });
       }
 
@@ -236,10 +243,19 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
         return;
       }
 
+      let auditDateTimestamp: ReturnType<typeof Timestamp.fromDate> | ReturnType<typeof serverTimestamp> =
+        serverTimestamp();
+      if (values.auditDate) {
+        const parsed = new Date(values.auditDate);
+        if (!isNaN(parsed.getTime())) {
+          auditDateTimestamp = Timestamp.fromDate(parsed);
+        }
+      }
+
       const dataToSave = {
         certifyingBody: values.certifyingBody.trim(),
         standard: values.standard.trim(),
-        auditDate: values.auditDate ? Timestamp.fromDate(new Date(values.auditDate)) : serverTimestamp(),
+        auditDate: auditDateTimestamp,
         ofiStatement: values.ofiStatement.trim(),
         remarks: values.remarks?.trim() || '',
         targetUnits,
@@ -260,8 +276,8 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
       setIsDialogOpen(false);
       setEditingOfi(null);
       form.reset();
-    } catch {
-      console.error('Failed to save OFI monitoring record.');
+    } catch (err) {
+      console.error('Failed to save OFI monitoring record:', err);
       toast({ title: 'Error', description: 'Failed to save OFI monitoring record.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
@@ -292,24 +308,32 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
     setIsDialogOpen(true);
   };
 
-  // Unit-level action fields (plan/date/evidence) may ONLY be filled by the
-  // assigned unit — never by the admin/auditor who registered the OFI.
+  // Permissions:
+  // 1. Institutional Viewers / Admins / Managers can manage institutional OFI fields,
+  //    assign campuses/units, update action statuses, and set target compliance dates & action plans.
+  // 2. Assigned unit personnel can document and update their unit's action plan, status, target date, and evidence.
   const isMyAssignedRow = (index: number) => form.getValues(`targetUnits.${index}.unitId`) === userProfile?.unitId;
 
-  const canFillUnitAction = (index: number) => !isInstitutionalViewer && isMyAssignedRow(index);
+  const canEditUnitScope = isInstitutionalViewer || canManage;
 
-  // Monitoring status may be set by the assigned unit OR confirmed by QAO/admin.
-  const canSetStatus = (index: number) => isInstitutionalViewer || isMyAssignedRow(index);
+  const canEditActionFields = (index: number) => isInstitutionalViewer || canManage || isMyAssignedRow(index);
 
   // Row indices the current user may see/doc: units see only their own row.
-  const visibleFieldIndexes = fields
-    .map((_, i) => i)
-    .filter((i) => (isInstitutionalViewer ? true : isMyAssignedRow(i)));
+  const visibleFieldIndexes = fields.map((_, i) => i).filter((i) => (canEditUnitScope ? true : isMyAssignedRow(i)));
+
+  const safeDate = (d: any) => {
+    if (!d) return '';
+    try {
+      const dateObj = d?.toDate ? d.toDate() : new Date(d);
+      if (isNaN(dateObj.getTime())) return '';
+      return format(dateObj, 'yyyy-MM-dd');
+    } catch {
+      return '';
+    }
+  };
 
   const openEdit = (ofi: EqaOfiMonitoring) => {
     setEditingOfi(ofi);
-    const safeDate = (d: any) =>
-      d?.toDate ? format(d.toDate(), 'yyyy-MM-dd') : d ? format(new Date(d), 'yyyy-MM-dd') : '';
 
     const targets = (ofi.targetUnits || []).map((t) => ({
       id: t.id || genId(),
@@ -609,7 +633,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                         {...field}
                         placeholder="e.g. TÜV Rheinland"
                         className="h-9 text-xs"
-                        disabled={!isInstitutionalViewer}
+                        disabled={!canEditUnitScope}
                       />
                       <FormMessage />
                     </FormItem>
@@ -628,7 +652,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                         {...field}
                         placeholder="e.g. ISO 21001:2018"
                         className="h-9 text-xs"
-                        disabled={!isInstitutionalViewer}
+                        disabled={!canEditUnitScope}
                       />
                       <FormMessage />
                     </FormItem>
@@ -644,7 +668,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                         Audit Conduct Date
                       </FormLabel>
                       <FormControl>
-                        <Input {...field} type="date" className="h-9 text-xs" disabled={!isInstitutionalViewer} />
+                        <Input {...field} type="date" className="h-9 text-xs" disabled={!canEditUnitScope} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -665,7 +689,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                         {...field}
                         placeholder="Enter the exact recommendation or opportunity for improvement given by external auditors..."
                         className="min-h-16 text-xs"
-                        disabled={!isInstitutionalViewer}
+                        disabled={!canEditUnitScope}
                       />
                     </FormControl>
                     <FormMessage />
@@ -679,7 +703,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                   <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
                     Target Units (each unit responds with its own action plan)
                   </FormLabel>
-                  {(isInstitutionalViewer || !editingOfi) && (
+                  {(canEditUnitScope || !editingOfi) && (
                     <Button
                       type="button"
                       size="sm"
@@ -699,7 +723,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                         <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                           Target Unit #{index + 1}
                         </span>
-                        {isInstitutionalViewer && (
+                        {canEditUnitScope && (
                           <Button
                             type="button"
                             variant="ghost"
@@ -721,13 +745,9 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                               <FormLabel className="text-[10px] font-black uppercase text-muted-foreground">
                                 Target Campus
                               </FormLabel>
-                              <Select
-                                onValueChange={cField.onChange}
-                                value={cField.value}
-                                disabled={!isInstitutionalViewer}
-                              >
+                              <Select onValueChange={cField.onChange} value={cField.value} disabled={!canEditUnitScope}>
                                 <FormControl>
-                                  <SelectTrigger className="h-9 text-xs" disabled={!isInstitutionalViewer}>
+                                  <SelectTrigger className="h-9 text-xs" disabled={!canEditUnitScope}>
                                     <SelectValue placeholder="Select Campus" />
                                   </SelectTrigger>
                                 </FormControl>
@@ -754,13 +774,13 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                               </FormLabel>
                               <Select
                                 onValueChange={(val) => {
-                                  if (isInstitutionalViewer) uField.onChange(val);
+                                  if (canEditUnitScope) uField.onChange(val);
                                 }}
                                 value={uField.value}
-                                disabled={!isInstitutionalViewer}
+                                disabled={!canEditUnitScope}
                               >
                                 <FormControl>
-                                  <SelectTrigger className="h-9 text-xs" disabled={!isInstitutionalViewer}>
+                                  <SelectTrigger className="h-9 text-xs" disabled={!canEditUnitScope}>
                                     <SelectValue placeholder="Select Unit" />
                                   </SelectTrigger>
                                 </FormControl>
@@ -791,7 +811,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                                 {...aField}
                                 placeholder="Detail the corrective steps or improvements undertaken by the unit..."
                                 className="min-h-16 text-xs"
-                                disabled={!canFillUnitAction(index)}
+                                disabled={!canEditActionFields(index)}
                               />
                             </FormControl>
                             <FormMessage />
@@ -811,10 +831,10 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                               <Select
                                 onValueChange={sField.onChange}
                                 value={sField.value}
-                                disabled={!canSetStatus(index)}
+                                disabled={!canEditActionFields(index)}
                               >
                                 <FormControl>
-                                  <SelectTrigger className="h-9 text-xs" disabled={!canSetStatus(index)}>
+                                  <SelectTrigger className="h-9 text-xs" disabled={!canEditActionFields(index)}>
                                     <SelectValue placeholder="Select Status" />
                                   </SelectTrigger>
                                 </FormControl>
@@ -843,7 +863,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                                   {...dField}
                                   type="date"
                                   className="h-9 text-xs"
-                                  disabled={!canFillUnitAction(index)}
+                                  disabled={!canEditActionFields(index)}
                                 />
                               </FormControl>
                               <FormMessage />
@@ -865,12 +885,11 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
                                 {...eField}
                                 placeholder="https://drive.google.com/file/d/..."
                                 className="h-9 text-xs font-mono"
-                                disabled={!canFillUnitAction(index)}
+                                disabled={!canEditActionFields(index)}
                               />
                             </FormControl>
                             <FormDescription className="text-[9px]">
-                              Entered by the unit involved. Provide a public link to the verification proof or evidence
-                              document.
+                              Provide a public link to the verification proof or evidence document.
                             </FormDescription>
                             <FormMessage />
                           </FormItem>
