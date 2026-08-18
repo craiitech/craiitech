@@ -741,7 +741,7 @@ export function CorrectiveActionRequestTab({
               Unit Action Steps & Evidence Verification
             </span>
           </div>
-          {isInstitutionalViewer && (
+          {canManageVerification && (
             <Button
               type="button"
               variant="outline"
@@ -841,7 +841,7 @@ export function CorrectiveActionRequestTab({
                 )}
               </div>
 
-              {isInstitutionalViewer && (
+              {canManageVerification && (
                 <div className="flex items-center gap-2 shrink-0">
                   {sectionType === 'follow-up' ? (
                     <>
@@ -1026,12 +1026,14 @@ export function CorrectiveActionRequestTab({
   const isCampusSupervisor =
     userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
+  const canManageVerification = isAdmin || isAuditor || canManage;
+
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
-    if (fieldName.startsWith('assignedUnits')) return !isInstitutionalViewer;
+    if (fieldName.startsWith('assignedUnits')) return !canManageVerification;
     if (fieldName.startsWith('followUpLogs') || fieldName.startsWith('effectivenessAudits'))
-      return !isInstitutionalViewer;
-    if (fieldName === 'adminFeedback') return !isInstitutionalViewer;
+      return !canManageVerification;
+    if (fieldName === 'adminFeedback') return !canManageVerification;
 
     const activeAssigned = (form.getValues('assignedUnits') || [])[activeUnitIndex] as any;
     const isActiveMyUnit = activeAssigned?.unitId === userProfile?.unitId;
@@ -1042,9 +1044,9 @@ export function CorrectiveActionRequestTab({
 
     const responderFields = ['rootCauseAnalysis', 'actionSteps'];
     if (responderFields.some((f) => fieldName.startsWith(f))) {
-      return !isInstitutionalViewer && !isActiveMyUnit && !isMyCampusUnit;
+      return !canManageVerification && !isActiveMyUnit && !isMyCampusUnit;
     }
-    if (fieldName === 'status') return !isInstitutionalViewer;
+    if (fieldName === 'status') return !canManageVerification;
     return true;
   };
 
@@ -1062,7 +1064,7 @@ export function CorrectiveActionRequestTab({
         (values.assignedUnits || []).some((a) => a.unitId === userProfile.unitId) ||
         isMyCampusUnit) &&
       !isAdmin &&
-      (userRole !== 'Auditor' || !isInstitutionalViewer);
+      (userRole !== 'Auditor' || !canManageVerification);
 
     // ── Unit-side gate: require root cause + both action types + evidence links ──
     if (isUnitResponding) {
@@ -1111,7 +1113,7 @@ export function CorrectiveActionRequestTab({
     let needsVerification = liveCar?.needsVerification || false;
 
     const updatedComments = liveCar?.comments ? [...liveCar.comments] : [];
-    if (isInstitutionalViewer && values.adminFeedback?.trim()) {
+    if (canManageVerification && values.adminFeedback?.trim()) {
       updatedComments.push({
         text: `[QA OFFICE FEEDBACK]: ${values.adminFeedback.trim()}`,
         authorId: userProfile.id,
@@ -1122,7 +1124,11 @@ export function CorrectiveActionRequestTab({
       form.setValue('adminFeedback', '');
     }
 
-    if (isInstitutionalViewer && liveCar) {
+    if (isUnitResponding) {
+      // Units responding to a CAR can ONLY move it to In Progress for QA Admin verification
+      nextStatus = 'In Progress';
+      needsVerification = true;
+    } else if (canManageVerification && liveCar) {
       const hasVerificationData =
         (values.followUpLogs?.length || 0) > (liveCar.followUpLogs?.length || 0) ||
         (values.effectivenessAudits?.length || 0) > (liveCar.effectivenessAudits?.length || 0);
@@ -1130,18 +1136,35 @@ export function CorrectiveActionRequestTab({
       needsVerification = false;
       if (hasVerificationData) nextStatus = 'For Final Verification';
       if (values.adminFeedback?.trim()) nextStatus = 'Awaiting Response/Update';
+
+      // ONLY QA Admin / Auditor can transition CAR to Closed upon successful Final Verification
+      const finalAudit = values.effectivenessAudits?.[values.effectivenessAudits.length - 1];
+      if (finalAudit && (finalAudit.action === 'Close the NC' || finalAudit.action === 'Effective')) {
+        nextStatus = 'Closed';
+        needsVerification = false;
+      }
     }
 
-    if (isUnitResponding) {
-      nextStatus = 'In Progress';
-      needsVerification = true;
-    }
+    // Preserve official admin follow-up and effectiveness logs if submitted by a responding unit
+    const finalFollowUpLogs = isUnitResponding
+      ? (liveCar?.followUpLogs || []).map((log: any) => ({
+          ...log,
+          date: log.date?.toDate ? log.date : Timestamp.fromDate(new Date(log.date)),
+        }))
+      : (values.followUpLogs || []).map((log) => ({
+          ...log,
+          date: Timestamp.fromDate(new Date(log.date)),
+        }));
 
-    const finalAudit = values.effectivenessAudits?.[values.effectivenessAudits.length - 1];
-    if (finalAudit && (finalAudit.action === 'Close the NC' || finalAudit.action === 'Effective')) {
-      nextStatus = 'Closed';
-      needsVerification = false;
-    }
+    const finalEffectivenessAudits = isUnitResponding
+      ? (liveCar?.effectivenessAudits || []).map((audit: any) => ({
+          ...audit,
+          date: audit.date?.toDate ? audit.date : Timestamp.fromDate(new Date(audit.date)),
+        }))
+      : (values.effectivenessAudits || []).map((audit) => ({
+          ...audit,
+          date: Timestamp.fromDate(new Date(audit.date)),
+        }));
 
     // Stage the currently-edited assignment's response into its cache entry.
     const activeAssignment = (values.assignedUnits || [])[activeUnitIndex] as any;
@@ -1154,14 +1177,8 @@ export function CorrectiveActionRequestTab({
           ...step,
           completionDate: Timestamp.fromDate(new Date(step.completionDate)),
         })),
-        followUpLogs: (values.followUpLogs || []).map((log) => ({
-          ...log,
-          date: Timestamp.fromDate(new Date(log.date)),
-        })),
-        effectivenessAudits: (values.effectivenessAudits || []).map((audit) => ({
-          ...audit,
-          date: Timestamp.fromDate(new Date(audit.date)),
-        })),
+        followUpLogs: finalFollowUpLogs,
+        effectivenessAudits: finalEffectivenessAudits,
       };
     }
 
@@ -1175,14 +1192,26 @@ export function CorrectiveActionRequestTab({
           unitId: a.unitId,
           unitName: a.unitName || unitMap.get(a.unitId) || '',
           unitHead: a.unitHead || '',
-          status: cached?.status || 'Open',
-          needsVerification: !!cached?.needsVerification,
+          status: isUnitResponding
+            ? a.unitId === userProfile.unitId
+              ? 'In Progress'
+              : liveCar?.assignedUnits?.[i]?.status || 'Open'
+            : cached?.status || 'Open',
+          needsVerification: isUnitResponding
+            ? a.unitId === userProfile.unitId
+              ? true
+              : !!liveCar?.assignedUnits?.[i]?.needsVerification
+            : !!cached?.needsVerification,
           rootCauseAnalysis: cached?.rootCauseAnalysis || '',
           actionSteps: cached?.actionSteps || [],
-          followUpLogs: cached?.followUpLogs || [],
-          effectivenessAudits: cached?.effectivenessAudits || [],
+          followUpLogs: isUnitResponding
+            ? liveCar?.assignedUnits?.[i]?.followUpLogs || liveCar?.followUpLogs || []
+            : cached?.followUpLogs || [],
+          effectivenessAudits: isUnitResponding
+            ? liveCar?.assignedUnits?.[i]?.effectivenessAudits || liveCar?.effectivenessAudits || []
+            : cached?.effectivenessAudits || [],
           adminFeedback:
-            i === activeUnitIndex && isInstitutionalViewer
+            i === activeUnitIndex && canManageVerification
               ? values.adminFeedback || ''
               : liveCar?.assignedUnits?.[i]?.adminFeedback || '',
         };
@@ -2922,7 +2951,7 @@ export function CorrectiveActionRequestTab({
                             </h4>
                           </div>
                         </div>
-                        {isInstitutionalViewer && (
+                        {canManageVerification && (
                           <div className="flex gap-2">
                             <Button
                               type="button"
@@ -3045,7 +3074,7 @@ export function CorrectiveActionRequestTab({
                                 </FormItem>
                               )}
                             />
-                            {isInstitutionalViewer && (
+                            {canManageVerification && (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -3168,7 +3197,7 @@ export function CorrectiveActionRequestTab({
                                 </FormItem>
                               )}
                             />
-                            {isInstitutionalViewer && (
+                            {canManageVerification && (
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -3313,7 +3342,7 @@ export function CorrectiveActionRequestTab({
                     )}
                   </div>
                 </ScrollArea>
-                {isInstitutionalViewer && (
+                {canManageVerification && (
                   <div className="p-6 border-t bg-white space-y-4">
                     <FormField
                       control={form.control}
