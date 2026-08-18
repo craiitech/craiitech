@@ -67,6 +67,7 @@ import {
   Info,
   School,
   Bell,
+  CalendarClock,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -166,6 +167,8 @@ const carSchema = z.object({
         verifiedBy: z.string().min(1, 'Required'),
         date: z.string().min(1, 'Required'),
         remarks: z.string().optional().or(z.literal('')),
+        nextAction: z.string().optional().or(z.literal('')),
+        nextActionDate: z.string().optional().or(z.literal('')),
       }),
     )
     .optional(),
@@ -443,6 +446,8 @@ export function CorrectiveActionRequestTab({
               ...log,
               date: safeDate(log.date),
               remarks: log.remarks || '',
+              nextAction: log.nextAction || 'For Verification',
+              nextActionDate: safeDate(log.nextActionDate),
             })),
             effectivenessAudits: (active?.effectivenessAudits || targetCar.effectivenessAudits || []).map((av) => ({
               ...av,
@@ -957,6 +962,8 @@ export function CorrectiveActionRequestTab({
           ...log,
           date: safeDate(log.date),
           remarks: log.remarks || '',
+          nextAction: log.nextAction || 'For Verification',
+          nextActionDate: safeDate(log.nextActionDate),
         })),
         effectivenessAudits: (a.effectivenessAudits || []).map((av) => ({
           ...av,
@@ -1013,6 +1020,8 @@ export function CorrectiveActionRequestTab({
         ...log,
         date: safeDate(log.date),
         remarks: log.remarks || '',
+        nextAction: log.nextAction || 'For Verification',
+        nextActionDate: safeDate(log.nextActionDate),
       })),
       effectivenessAudits: (active?.effectivenessAudits || car.effectivenessAudits || []).map((a) => ({
         ...a,
@@ -1150,10 +1159,16 @@ export function CorrectiveActionRequestTab({
       ? (liveCar?.followUpLogs || []).map((log: any) => ({
           ...log,
           date: log.date?.toDate ? log.date : Timestamp.fromDate(new Date(log.date)),
+          nextActionDate: log.nextActionDate?.toDate
+            ? log.nextActionDate
+            : log.nextActionDate
+              ? Timestamp.fromDate(new Date(log.nextActionDate))
+              : null,
         }))
       : (values.followUpLogs || []).map((log) => ({
           ...log,
           date: Timestamp.fromDate(new Date(log.date)),
+          nextActionDate: log.nextActionDate ? Timestamp.fromDate(new Date(log.nextActionDate)) : null,
         }));
 
     const finalEffectivenessAudits = isUnitResponding
@@ -1329,10 +1344,13 @@ export function CorrectiveActionRequestTab({
         ...step,
         completionDate: Timestamp.fromDate(new Date(step.completionDate)),
       })),
-      followUpLogs: (values.followUpLogs || []).map((log) => ({
-        ...log,
-        date: Timestamp.fromDate(new Date(log.date)),
-      })),
+      followUpLogs: finalFollowUpLogs,
+      nextVerificationDate:
+        values.followUpLogs &&
+        values.followUpLogs.length > 0 &&
+        values.followUpLogs[values.followUpLogs.length - 1]?.nextActionDate
+          ? Timestamp.fromDate(new Date(values.followUpLogs[values.followUpLogs.length - 1].nextActionDate!))
+          : liveCar?.nextVerificationDate || null,
       effectivenessAudits: (values.effectivenessAudits || []).map((audit) => ({
         ...audit,
         date: Timestamp.fromDate(new Date(audit.date)),
@@ -2964,6 +2982,8 @@ export function CorrectiveActionRequestTab({
                                   verifiedBy: userProfile ? `${userProfile.firstName} ${userProfile.lastName}` : '',
                                   date: format(new Date(), 'yyyy-MM-dd'),
                                   remarks: '',
+                                  nextAction: 'For Verification',
+                                  nextActionDate: format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd'),
                                 })
                               }
                             >
@@ -3040,7 +3060,7 @@ export function CorrectiveActionRequestTab({
                                 name={`followUpLogs.${index}.date`}
                                 render={({ field: iF }) => (
                                   <FormItem>
-                                    <FormLabel className="text-[9px] font-black uppercase">Date</FormLabel>
+                                    <FormLabel className="text-[9px] font-black uppercase">Date of Follow-up</FormLabel>
                                     <FormControl>
                                       <Input
                                         type="date"
@@ -3074,6 +3094,70 @@ export function CorrectiveActionRequestTab({
                                 </FormItem>
                               )}
                             />
+
+                            {/* Schedule of Next Action & Validation Date */}
+                            <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+                              <div className="flex items-center gap-2">
+                                <CalendarClock className="h-4 w-4 text-primary" />
+                                <span className="text-[10px] font-black uppercase tracking-wider text-primary">
+                                  Schedule of Next Action & Validation
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name={`followUpLogs.${index}.nextAction`}
+                                  render={({ field: iF }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-[9px] font-black uppercase">
+                                        Next Action / Schedule Status
+                                      </FormLabel>
+                                      <Select
+                                        value={iF.value || 'For Verification'}
+                                        onValueChange={iF.onChange}
+                                        disabled={isFieldReadOnly(`followUpLogs.${index}.nextAction`)}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger className="h-8 bg-white text-xs font-bold">
+                                            <SelectValue placeholder="Select Action" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          <SelectItem value="For Verification">1. For Verification</SelectItem>
+                                          <SelectItem value="For ReChecking">2. For ReChecking</SelectItem>
+                                          <SelectItem value="Add More Actions">3. Add More Actions</SelectItem>
+                                          <SelectItem value="For Closure Verification">
+                                            4. For Closure Verification
+                                          </SelectItem>
+                                          <SelectItem value="Continue Monitoring">5. Continue Monitoring</SelectItem>
+                                          <SelectItem value="Others">6. Others</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name={`followUpLogs.${index}.nextActionDate`}
+                                  render={({ field: iF }) => (
+                                    <FormItem>
+                                      <FormLabel className="text-[9px] font-black uppercase">
+                                        Validation / Scheduled Date
+                                      </FormLabel>
+                                      <FormControl>
+                                        <Input
+                                          type="date"
+                                          {...iF}
+                                          value={iF.value || ''}
+                                          className="h-8 text-xs bg-white font-medium"
+                                          disabled={isFieldReadOnly(`followUpLogs.${index}.nextActionDate`)}
+                                        />
+                                      </FormControl>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
                             {canManageVerification && (
                               <Button
                                 type="button"

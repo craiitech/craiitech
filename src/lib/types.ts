@@ -594,11 +594,21 @@ export type CAREvidence = {
   url: string;
 };
 
+export type CARFollowUpNextAction =
+  | 'For Verification'
+  | 'For ReChecking'
+  | 'Add More Actions'
+  | 'For Closure Verification'
+  | 'Continue Monitoring'
+  | 'Others';
+
 export type CARFollowUpLog = {
   result: string;
   verifiedBy: string;
   date: any; // Timestamp
   remarks?: string;
+  nextAction?: CARFollowUpNextAction | string;
+  nextActionDate?: any; // Timestamp or date for Validation of the selected action
 };
 
 export type CAREffectivenessAudit = {
