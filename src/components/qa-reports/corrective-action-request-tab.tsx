@@ -1664,65 +1664,65 @@ export function CorrectiveActionRequestTab({
           )}
         </TabsList>
 
-        <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
-          <Card className="border-primary/10 shadow-sm bg-muted/10">
-            <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 items-end">
-              <div className="sm:col-span-2 md:col-span-4 space-y-1.5">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Search Registry</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search by CAR number or Unit..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 h-10 text-xs bg-white"
-                  />
-                </div>
+        <Card className="border-primary/10 shadow-sm bg-muted/10">
+          <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 items-end">
+            <div className="sm:col-span-2 md:col-span-4 space-y-1.5">
+              <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Search Registry</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by CAR number or Unit..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-10 text-xs bg-white"
+                />
               </div>
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Year Filter</label>
-                <Select value={yearFilter} onValueChange={setYearFilter}>
-                  <SelectTrigger className="h-10 bg-white text-xs font-bold">
-                    <SelectValue placeholder="All Years" />
-                  </SelectTrigger>
-                  <SelectContent modal={false}>
-                    <SelectItem value="all">All Years</SelectItem>
-                    {availableYears.map((yr) => (
-                      <SelectItem key={yr} value={String(yr)}>
-                        {yr}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5 md:col-span-3">
-                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Filter</label>
-                <Select value={campusFilter} onValueChange={setCampusFilter}>
-                  <SelectTrigger className="h-10 bg-white text-xs font-bold">
-                    <SelectValue placeholder="All Sites" />
-                  </SelectTrigger>
-                  <SelectContent modal={false}>
-                    <SelectItem value="all">All Sites</SelectItem>
-                    {campuses.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="sm:col-span-2 md:col-span-3">
-                <Button
-                  variant="outline"
-                  className="w-full h-10 bg-white border-primary/20 text-primary font-black text-[10px] uppercase gap-2"
-                  onClick={handlePrintRegistry}
-                >
-                  <Printer className="h-4 w-4" /> Print Control Register
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Year Filter</label>
+              <Select value={yearFilter} onValueChange={setYearFilter}>
+                <SelectTrigger className="h-10 bg-white text-xs font-bold">
+                  <SelectValue placeholder="All Years" />
+                </SelectTrigger>
+                <SelectContent modal={false}>
+                  <SelectItem value="all">All Years</SelectItem>
+                  {availableYears.map((yr) => (
+                    <SelectItem key={yr} value={String(yr)}>
+                      {yr}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5 md:col-span-3">
+              <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Filter</label>
+              <Select value={campusFilter} onValueChange={setCampusFilter}>
+                <SelectTrigger className="h-10 bg-white text-xs font-bold">
+                  <SelectValue placeholder="All Sites" />
+                </SelectTrigger>
+                <SelectContent modal={false}>
+                  <SelectItem value="all">All Sites</SelectItem>
+                  {campuses.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="sm:col-span-2 md:col-span-3">
+              <Button
+                variant="outline"
+                className="w-full h-10 bg-white border-primary/20 text-primary font-black text-[10px] uppercase gap-2"
+                onClick={handlePrintRegistry}
+              >
+                <Printer className="h-4 w-4" /> Print Control Register
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
+        <TabsContent value="registry" className="space-y-6 animate-in fade-in duration-500">
           <Card className="shadow-md border-primary/10 overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
