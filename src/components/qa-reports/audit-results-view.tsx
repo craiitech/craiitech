@@ -143,11 +143,23 @@ export function AuditResultsView({
    * DATA PROCESSING PIPELINE WITH FILTERS
    */
   const kpis = useMemo(() => {
-    const yearPlans = plans.filter((p) => p.year === selectedYear);
+    const yearPlans = plans.filter((p) => Number(p.year) === Number(selectedYear));
     const planIds = new Set(yearPlans.map((p) => p.id));
+    let filteredSchedules = schedules.filter((s) => {
+      if (planIds.size > 0 && s.auditPlanId) {
+        return planIds.has(s.auditPlanId);
+      }
+      if (s.scheduledDate) {
+        try {
+          const d = parseDate(s.scheduledDate);
+          return d.getFullYear() === Number(selectedYear);
+        } catch {
+          return true;
+        }
+      }
+      return true;
+    });
 
-    // Filter schedules by Campus/VP/Unit/Search
-    let filteredSchedules = schedules.filter((s) => planIds.has(s.auditPlanId));
     if (campusFilter !== 'all') filteredSchedules = filteredSchedules.filter((s) => s.campusId === campusFilter);
 
     if (vpFilter !== 'all') {
@@ -210,13 +222,28 @@ export function AuditResultsView({
           )
         : 0;
 
+    const activePlan = yearPlans[0] ||
+      plans.find((p) => Number(p.year) === Number(selectedYear)) ||
+      plans[0] || {
+        id: `plan_${selectedYear}`,
+        year: Number(selectedYear) || new Date().getFullYear(),
+        auditNumber: `RSU-IQA-${selectedYear}-01`,
+        campusId: campusFilter !== 'all' ? campusFilter : 'all',
+        status: 'In Progress',
+        title: `Annual IQA Plan AY ${selectedYear}`,
+        objective: 'Evaluate organizational management system compliance and performance.',
+        scope: 'All academic, administrative, and support units.',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
     return {
       totalFindings,
       ncCount,
       ofiCount,
       complianceRate,
       closureRate,
-      activePlan: yearPlans[0],
+      activePlan,
       yearSchedules: filteredSchedules,
       yearFindings: filteredFindings,
     };
@@ -269,9 +296,23 @@ export function AuditResultsView({
   };
 
   const handlePrintConsolidated = () => {
-    if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
+      const activePlan = kpis?.activePlan ||
+        plans.find((p) => Number(p.year) === Number(selectedYear)) ||
+        plans[0] || {
+          id: `plan_${selectedYear}`,
+          year: Number(selectedYear) || new Date().getFullYear(),
+          auditNumber: `RSU-IQA-${selectedYear}-01`,
+          campusId: campusFilter !== 'all' ? campusFilter : 'all',
+          status: 'In Progress',
+          title: `Annual IQA Plan AY ${selectedYear}`,
+          objective: 'Evaluate organizational management system compliance and performance.',
+          scope: 'All academic, administrative, and support units.',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
       const isAllCampuses = campusFilter === 'all' && unitFilter === 'all';
       const vpOfficeName =
         vpFilter !== 'all'
@@ -290,10 +331,10 @@ export function AuditResultsView({
 
       const reportHtml = renderToStaticMarkup(
         <ConsolidatedAuditReportTemplate
-          plan={kpis.activePlan}
+          plan={activePlan}
           schedules={kpis.yearSchedules}
           findings={kpis.yearFindings}
-          clauses={isoClauses}
+          clauses={isoClauses || []}
           units={units}
           campuses={campuses}
           signatories={signatories || undefined}
@@ -326,22 +367,61 @@ export function AuditResultsView({
                 </html>
             `);
         printWindow.document.close();
+      } else {
+        toast({
+          title: 'Pop-up Blocked',
+          description: 'Please allow pop-ups in your browser to view the printable audit report.',
+          variant: 'destructive',
+        });
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Error generating report:', err);
+      toast({
+        title: 'Report Generation Failed',
+        description: err?.message || 'Unable to open print preview.',
+        variant: 'destructive',
+      });
     } finally {
       setIsProcessingReport(false);
     }
   };
 
   const handlePrintByUnit = () => {
-    if (!kpis?.activePlan || !isoClauses) return;
     setIsProcessingReport(true);
     try {
-      const yearPlans = plans.filter((p) => p.year === selectedYear);
+      const yearPlans = plans.filter((p) => Number(p.year) === Number(selectedYear));
       const planIds = new Set(yearPlans.map((p) => p.id));
+      const activePlan = kpis?.activePlan ||
+        yearPlans[0] ||
+        plans.find((p) => Number(p.year) === Number(selectedYear)) ||
+        plans[0] || {
+          id: `plan_${selectedYear}`,
+          year: Number(selectedYear) || new Date().getFullYear(),
+          auditNumber: `RSU-IQA-${selectedYear}-01`,
+          campusId: campusFilter !== 'all' ? campusFilter : 'all',
+          status: 'In Progress',
+          title: `Annual IQA Plan AY ${selectedYear}`,
+          objective: 'Evaluate compliance and institutional effectiveness.',
+          scope: 'All academic and administrative units.',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
 
-      let printSchedules = schedules.filter((s) => planIds.has(s.auditPlanId));
+      let printSchedules = schedules.filter((s) => {
+        if (planIds.size > 0 && s.auditPlanId) {
+          return planIds.has(s.auditPlanId);
+        }
+        if (s.scheduledDate) {
+          try {
+            const d = parseDate(s.scheduledDate);
+            return d.getFullYear() === Number(selectedYear);
+          } catch {
+            return true;
+          }
+        }
+        return true;
+      });
+
       if (!isAdmin) {
         printSchedules = printSchedules.filter((s) => s.auditorId === user?.uid);
       }
@@ -410,10 +490,10 @@ export function AuditResultsView({
 
       const reportHtml = renderToStaticMarkup(
         <ConsolidatedAuditReportTemplate
-          plan={kpis.activePlan}
+          plan={activePlan}
           schedules={printSchedules}
           findings={printFindings}
-          clauses={isoClauses}
+          clauses={isoClauses || []}
           units={units}
           campuses={campuses}
           signatories={signatories || undefined}
@@ -447,9 +527,20 @@ export function AuditResultsView({
                 </html>
             `);
         printWindow.document.close();
+      } else {
+        toast({
+          title: 'Pop-up Blocked',
+          description: 'Please allow pop-ups in your browser to view the printable audit report.',
+          variant: 'destructive',
+        });
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Error generating report by unit:', err);
+      toast({
+        title: 'Report Generation Failed',
+        description: err?.message || 'Unable to open print preview.',
+        variant: 'destructive',
+      });
     } finally {
       setIsProcessingReport(false);
     }
