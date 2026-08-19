@@ -498,7 +498,9 @@ export function CorrectiveActionRequestTab({
         (u) => u.id === targetUnitId || u.name.toLowerCase() === (schedule?.targetName || '').toLowerCase(),
       );
       const targetUnitName = targetUnit?.name || unitMap.get(targetUnitId) || '';
-      const defaultConcerning = targetUnit ? getSupervisingUnitDisplay(targetUnit, units) : 'VPAF';
+      const defaultConcerning = targetUnit
+        ? getSupervisingUnitDisplay(targetUnit, units)
+        : 'Office of the Vice President for Administration and Finance';
 
       setEditingCar(null);
       unitResponseCacheRef.current = {};
@@ -2716,13 +2718,13 @@ export function CorrectiveActionRequestTab({
                             <FormControl>
                               <Input
                                 {...field}
-                                placeholder="e.g. VPAF, VPAA, VPREDI, Office of the President"
+                                placeholder="e.g. Office of the Vice President for Administration and Finance"
                                 className="bg-slate-50 dark:bg-slate-800/50 font-bold"
                                 disabled={isFieldReadOnly('concerningTopManagementName')}
                               />
                             </FormControl>
                             <FormDescription className="text-[10px]">
-                              Supervising office overseeing the receiving unit (e.g. VPAF, VPAA, VPREDI, OP).
+                              Complete name of the supervising office overseeing the receiving unit.
                             </FormDescription>
                           </FormItem>
                         )}

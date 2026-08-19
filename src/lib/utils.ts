@@ -89,8 +89,8 @@ export const UNIT_CODES: Record<string, string> = {
 };
 
 /**
- * Resolves the Supervising Unit / Vice President abbreviation or title for a given unit.
- * Used for CAR "Concerning" field and audit reporting.
+ * Resolves the complete full name of the Supervising Unit / Office for a given unit (un-abbreviated).
+ * Used for CAR "Concerning" field and official audit reporting.
  */
 export function getSupervisingUnitDisplay(
   unitOrNameOrVp: { vicePresidentId?: string; name?: string; id?: string } | string | undefined | null,
@@ -132,13 +132,21 @@ export function getSupervisingUnitDisplay(
   const trimmed = nameToInspect.trim();
   const lower = trimmed.toLowerCase();
 
-  // If already an acronym like VPAF, VPAA, VPREDI, OVPAF, OVPAA, OVPREDI, OVSAS, OP, return clean standard code
-  if (/^(vpaa|vpaf|vpredi|vsas|ovpaa|ovpaf|ovpredi|ovsas|op)$/i.test(trimmed)) {
-    if (/^ovpaf$/i.test(trimmed)) return 'VPAF';
-    if (/^ovpaa$/i.test(trimmed)) return 'VPAA';
-    if (/^ovpredi$/i.test(trimmed)) return 'VPREDI';
-    if (/^ovsas$/i.test(trimmed)) return 'OVSAS';
-    return trimmed.toUpperCase();
+  // If acronym was given, expand to complete official office name
+  if (/^(vpaf|ovpaf)$/i.test(trimmed)) {
+    return 'Office of the Vice President for Administration and Finance';
+  }
+  if (/^(vpaa|ovpaa)$/i.test(trimmed)) {
+    return 'Office of the Vice President for Academic Affairs';
+  }
+  if (/^(vpredi|ovpredi|vpre|ovpre)$/i.test(trimmed)) {
+    return 'Office of the Vice President for Research, Extension, Development, and Innovation';
+  }
+  if (/^(vsas|ovsas)$/i.test(trimmed)) {
+    return 'Office of the Vice President for Student Affairs and Services';
+  }
+  if (/^op$/i.test(trimmed)) {
+    return 'Office of the President';
   }
 
   // Vice President for Administration and Finance
@@ -146,12 +154,12 @@ export function getSupervisingUnitDisplay(
     lower.includes('administration') &&
     (lower.includes('finance') || lower.includes('vpaf') || lower.includes('ovpaf'))
   ) {
-    return 'VPAF';
+    return 'Office of the Vice President for Administration and Finance';
   }
 
   // Vice President for Academic Affairs
   if (lower.includes('academic') && (lower.includes('affair') || lower.includes('vpaa') || lower.includes('ovpaa'))) {
-    return 'VPAA';
+    return 'Office of the Vice President for Academic Affairs';
   }
 
   // Vice President for Research, Extension, Development, and Innovation
@@ -166,7 +174,7 @@ export function getSupervisingUnitDisplay(
       lower.includes('vpre') ||
       lower.includes('ovpre'))
   ) {
-    return 'VPREDI';
+    return 'Office of the Vice President for Research, Extension, Development, and Innovation';
   }
 
   // Vice President for Student Affairs and Services
@@ -174,20 +182,12 @@ export function getSupervisingUnitDisplay(
     lower.includes('student') &&
     (lower.includes('affair') || lower.includes('service') || lower.includes('vsas') || lower.includes('ovsas'))
   ) {
-    return 'OVSAS';
+    return 'Office of the Vice President for Student Affairs and Services';
   }
 
   // Office of the President
   if (lower.includes('president') && !lower.includes('vice')) {
-    return 'OP';
-  }
-
-  // Standard Unit Code check
-  if (UNIT_CODES[trimmed]) {
-    const code = UNIT_CODES[trimmed];
-    if (code === 'OVPAF') return 'VPAF';
-    if (code === 'OVPAA') return 'VPAA';
-    return code;
+    return 'Office of the President';
   }
 
   return trimmed;
