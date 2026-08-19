@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import {
   collection,
   query,
@@ -13,7 +13,7 @@ import {
   arrayUnion,
   addDoc,
 } from '@/firebase/firestore-wrapper';
-import type { ManagementReviewOutput, Campus, Unit, ManagementReview, ActionEntry } from '@/lib/types';
+import type { ManagementReviewOutput, Campus, Unit, ManagementReview, ActionEntry, Signatories } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +48,7 @@ import {
   CheckCircle2,
   XCircle,
   Bell,
+  Printer,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -72,6 +73,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DecisionAnalytics } from './decision-analytics';
+import { ActionableDecisionPrintPreviewDialog } from './actionable-decision-print-preview-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -130,6 +132,15 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'followUpDate', direction: 'asc' });
   const [notifyingId, setNotifyingId] = useState<string | null>(null);
+
+  // Print Preview States
+  const [isPrintPreviewOpen, setIsPrintPreviewOpen] = useState(false);
+  const [printTargetOutput, setPrintTargetOutput] = useState<ManagementReviewOutput | null>(null);
+
+  const handleOpenPrintPreview = (output?: ManagementReviewOutput) => {
+    setPrintTargetOutput(output || null);
+    setIsPrintPreviewOpen(true);
+  };
 
   const handleNotify = async (output: ManagementReviewOutput) => {
     if (!firestore) return;
@@ -192,6 +203,9 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     [firestore],
   );
   const { data: reviews, isLoading: isLoadingReviews } = useCollection<ManagementReview>(reviewsQuery);
+
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
   const myUnit = useMemo(() => {
     if (!userProfile?.unitId || !units) return null;
@@ -549,6 +563,15 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => handleOpenPrintPreview()}
+            className="h-9 gap-1.5 text-xs font-black uppercase tracking-wider bg-white shadow-sm border-slate-300 text-slate-800 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+            title="Print Actionable Decisions Reports & Register"
+          >
+            <Printer className="h-3.5 w-3.5 text-primary" />
+            Print Report / Register
+          </Button>
           <div className="flex flex-col items-end">
             <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
               <Filter className="h-2.5 w-2.5" /> Review Year Filter
@@ -784,6 +807,18 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                   NOTIFY
                                 </Button>
                               )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenPrintPreview(output);
+                                }}
+                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm text-slate-700 border-slate-300 hover:bg-slate-50"
+                                title="Print Decision Report"
+                              >
+                                <Printer className="h-3.5 w-3.5 mr-1 text-primary" /> PRINT
+                              </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1105,16 +1140,28 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                   >
                     Close Preview
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setPreviewOutput(null);
-                      handleOpenUpdate(previewOutput);
-                    }}
-                    className="shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest px-6"
-                  >
-                    <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> UPDATE STATUS
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        handleOpenPrintPreview(previewOutput);
+                      }}
+                      className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm text-slate-800 border-slate-300 hover:bg-slate-50"
+                    >
+                      <Printer className="h-3.5 w-3.5 mr-1.5 text-primary" /> PRINT REPORT
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setPreviewOutput(null);
+                        handleOpenUpdate(previewOutput);
+                      }}
+                      className="shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest px-6"
+                    >
+                      <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> UPDATE STATUS
+                    </Button>
+                  </div>
                 </div>
               </DialogFooter>
             </>
@@ -1539,6 +1586,19 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* --- Print Preview Dialog --- */}
+      <ActionableDecisionPrintPreviewDialog
+        isOpen={isPrintPreviewOpen}
+        onOpenChange={setIsPrintPreviewOpen}
+        output={printTargetOutput}
+        outputs={processedOutputs}
+        reviewMap={reviewMap}
+        unitMap={unitMap}
+        campusMap={campusMap}
+        signatories={signatories || undefined}
+        selectedYear={selectedYear}
+      />
     </div>
   );
 }
