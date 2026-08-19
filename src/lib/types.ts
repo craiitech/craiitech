@@ -1427,6 +1427,8 @@ export type ActivityAttendanceLog = {
   userName: string;
   unitId: string;
   unitName: string;
+  campusId?: string;
+  campusName?: string;
   deviceFingerprint: string;
   scannedAt: any; // Login Timestamp
   logoutAt?: any; // Logout Timestamp (only when requiresLogout=true)
@@ -1437,6 +1439,7 @@ export type ActivityAttendanceLog = {
   sessionId?: string;
   sessionLabel?: string;
   synced?: boolean;
+  _sig?: string;
 };
 
 export type ActivityEvaluation = {
