@@ -125,7 +125,7 @@ export function AuditorNCManager({
 
     try {
       const reportHtml = renderToStaticMarkup(
-        <CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={signatories} />,
+        <CARPrintTemplate car={car} unitName={uName} campusName={cName} signatories={signatories} units={units} />,
       );
 
       const printWindow = window.open('', '_blank');

@@ -89,7 +89,7 @@ import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
+import { cn, getSupervisingUnitDisplay } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -415,11 +415,21 @@ export function CorrectiveActionRequestTab({
           );
           setActiveUnitIndex(defaultActiveIndex);
           const active = targetCar.assignedUnits?.[defaultActiveIndex];
+          const primaryUnitId = active?.unitId || targetCar.unitId || '';
+          const primaryUnit = units.find((u) => u.id === primaryUnitId);
+          const computedSupervising = primaryUnit ? getSupervisingUnitDisplay(primaryUnit, units) : '';
+          const concerningValue =
+            !targetCar.concerningTopManagementName ||
+            targetCar.concerningTopManagementName.toLowerCase() === 'unit head'
+              ? computedSupervising || 'Top Management'
+              : targetCar.concerningTopManagementName;
+
           form.reset({
             ...targetCar,
             unitId: active?.unitId || targetCar.unitId || '',
             campusId: active?.campusId || targetCar.campusId || '',
             unitHead: active?.unitHead || targetCar.unitHead || '',
+            concerningTopManagementName: concerningValue,
             assignedUnits:
               assignedUnits.length > 0
                 ? assignedUnits
@@ -484,7 +494,11 @@ export function CorrectiveActionRequestTab({
 
       const targetUnitId = schedule?.targetId || units[0]?.id || '';
       const targetCampusId = schedule?.campusId || campuses[0]?.id || '';
-      const targetUnitName = unitMap.get(targetUnitId) || '';
+      const targetUnit = units.find(
+        (u) => u.id === targetUnitId || u.name.toLowerCase() === (schedule?.targetName || '').toLowerCase(),
+      );
+      const targetUnitName = targetUnit?.name || unitMap.get(targetUnitId) || '';
+      const defaultConcerning = targetUnit ? getSupervisingUnitDisplay(targetUnit, units) : 'VPAF';
 
       setEditingCar(null);
       unitResponseCacheRef.current = {};
@@ -498,7 +512,7 @@ export function CorrectiveActionRequestTab({
           : 'Quality Assurance Office',
         natureOfFinding: 'NC',
         concerningClause: finding.isoClause || '4.1',
-        concerningTopManagementName: 'Unit Head',
+        concerningTopManagementName: defaultConcerning || 'Top Management',
         timeLimitForReply: defaultReplyDate,
         unitId: targetUnitId,
         campusId: targetCampusId,
@@ -989,11 +1003,20 @@ export function CorrectiveActionRequestTab({
 
     // Load the active assignment's saved response into the flat response form.
     const active = car.assignedUnits?.[defaultActiveIndex];
+    const primaryUnitId = active?.unitId || car.unitId || '';
+    const primaryUnit = units.find((u) => u.id === primaryUnitId);
+    const computedSupervising = primaryUnit ? getSupervisingUnitDisplay(primaryUnit, units) : '';
+    const concerningValue =
+      !car.concerningTopManagementName || car.concerningTopManagementName.toLowerCase() === 'unit head'
+        ? computedSupervising || 'Top Management'
+        : car.concerningTopManagementName;
+
     form.reset({
       ...car,
       unitId: active?.unitId || car.unitId || '',
       campusId: active?.campusId || car.campusId || '',
       unitHead: active?.unitHead || car.unitHead || '',
+      concerningTopManagementName: concerningValue,
       assignedUnits:
         assignedUnits.length > 0
           ? assignedUnits
@@ -1376,16 +1399,64 @@ export function CorrectiveActionRequestTab({
   };
 
   const handlePrint = (car: CorrectiveActionRequest) => {
-    const cName = campusMap.get(car.campusId) || 'Unknown Campus';
-    const uName = unitMap.get(car.unitId) || 'Unknown Unit';
     try {
+      const assignedUnits =
+        car.assignedUnits && car.assignedUnits.length > 0
+          ? car.assignedUnits
+          : [
+              {
+                id: car.id,
+                campusId: car.campusId,
+                unitId: car.unitId,
+                unitName: unitMap.get(car.unitId) || 'Unknown Unit',
+                unitHead: car.unitHead,
+                actionSteps: car.actionSteps,
+                rootCauseAnalysis: car.rootCauseAnalysis,
+                followUpLogs: car.followUpLogs,
+                effectivenessAudits: car.effectivenessAudits,
+              },
+            ];
+
       const reportHtml = renderToStaticMarkup(
-        <CARPrintTemplate
-          car={car}
-          unitName={uName}
-          campusName={cName}
-          signatories={currentSignatories || undefined}
-        />,
+        <div>
+          {assignedUnits.map((assigned, idx) => {
+            const cName = campusMap.get(assigned.campusId) || campusMap.get(car.campusId) || 'Unknown Campus';
+            const uName =
+              unitMap.get(assigned.unitId) || assigned.unitName || unitMap.get(car.unitId) || 'Unknown Unit';
+            const targetUnit = units.find((u) => u.id === assigned.unitId);
+            const supName = targetUnit
+              ? getSupervisingUnitDisplay(targetUnit, units)
+              : getSupervisingUnitDisplay(car.concerningTopManagementName || '', units);
+
+            return (
+              <div
+                key={assigned.id || idx}
+                style={{
+                  pageBreakBefore: idx > 0 ? 'always' : 'auto',
+                  marginBottom: idx < assignedUnits.length - 1 ? '40px' : '0',
+                }}
+              >
+                <CARPrintTemplate
+                  car={{
+                    ...car,
+                    campusId: assigned.campusId || car.campusId,
+                    unitId: assigned.unitId || car.unitId,
+                    unitHead: assigned.unitHead || car.unitHead,
+                    actionSteps: assigned.actionSteps || car.actionSteps,
+                    rootCauseAnalysis: assigned.rootCauseAnalysis || car.rootCauseAnalysis,
+                    followUpLogs: assigned.followUpLogs || car.followUpLogs,
+                    effectivenessAudits: assigned.effectivenessAudits || car.effectivenessAudits,
+                  }}
+                  unitName={uName}
+                  campusName={cName}
+                  supervisingUnitName={supName}
+                  signatories={currentSignatories || undefined}
+                  units={units}
+                />
+              </div>
+            );
+          })}
+        </div>,
       );
       const printWindow = window.open('', '_blank');
       if (printWindow) {
@@ -1407,6 +1478,9 @@ export function CorrectiveActionRequestTab({
       effectiveTypeFilter === 'EQA' ? getNextCarNumber(rawCars, yr, 'EQA-CAR') : getNextCarNumber(rawCars, yr, 'CAR');
     const defaultReplyDate = format(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
     const defaultRequestDate = format(new Date(), 'yyyy-MM-dd');
+    const firstUnitId = units[0]?.id || '';
+    const firstUnit = units.find((u) => u.id === firstUnitId);
+    const defaultConcerning = firstUnit ? getSupervisingUnitDisplay(firstUnit, units) : 'Top Management';
 
     form.reset({
       carNumber: autoCarNumber,
@@ -1418,17 +1492,17 @@ export function CorrectiveActionRequestTab({
         : 'Quality Assurance Office',
       natureOfFinding: 'NC',
       concerningClause: '4.1',
-      concerningTopManagementName: 'Top Management',
+      concerningTopManagementName: defaultConcerning || 'Top Management',
       timeLimitForReply: defaultReplyDate,
-      unitId: units[0]?.id || '',
+      unitId: firstUnitId,
       campusId: campuses[0]?.id || '',
       unitHead: '',
       assignedUnits: [
         {
           id: genCarId(),
           campusId: campuses[0]?.id || '',
-          unitId: units[0]?.id || '',
-          unitName: unitMap.get(units[0]?.id || '') || '',
+          unitId: firstUnitId,
+          unitName: unitMap.get(firstUnitId) || '',
           unitHead: '',
         },
       ],
@@ -2537,6 +2611,16 @@ export function CorrectiveActionRequestTab({
                                         onValueChange={(v) => {
                                           field.onChange(v);
                                           form.setValue(`assignedUnits.${aindex}.unitName`, unitMap.get(v) || '');
+                                          if (aindex === 0) {
+                                            form.setValue('unitId', v);
+                                            const targetUnit = units.find((u) => u.id === v);
+                                            const supName = targetUnit
+                                              ? getSupervisingUnitDisplay(targetUnit, units)
+                                              : '';
+                                            if (supName) {
+                                              form.setValue('concerningTopManagementName', supName);
+                                            }
+                                          }
                                         }}
                                         value={field.value}
                                         disabled={isFieldReadOnly('assignedUnits')}
@@ -2618,6 +2702,28 @@ export function CorrectiveActionRequestTab({
                                 disabled={isFieldReadOnly('concerningClause')}
                               />
                             </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="concerningTopManagementName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs font-bold uppercase">
+                              Concerning (Supervising Unit / Office)
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="e.g. VPAF, VPAA, VPREDI, Office of the President"
+                                className="bg-slate-50 dark:bg-slate-800/50 font-bold"
+                                disabled={isFieldReadOnly('concerningTopManagementName')}
+                              />
+                            </FormControl>
+                            <FormDescription className="text-[10px]">
+                              Supervising office overseeing the receiving unit (e.g. VPAF, VPAA, VPREDI, OP).
+                            </FormDescription>
                           </FormItem>
                         )}
                       />

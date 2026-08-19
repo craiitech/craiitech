@@ -1,9 +1,9 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 import { Cycle } from './types';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 const REPORT_TYPE_CODES: Record<string, string> = {
@@ -36,21 +36,19 @@ export function getDirectDriveLink(url: string | undefined): string {
 export const normalizeReportType = (type: string): string => {
   const t = type?.toLowerCase() || '';
   if (t.includes('swot')) return 'SWOT Analysis';
-  if (t.includes('needs') || t.includes('expectation') || t.includes('interested parties')) return 'Needs and Expectation of Interested Parties';
+  if (t.includes('needs') || t.includes('expectation') || t.includes('interested parties'))
+    return 'Needs and Expectation of Interested Parties';
   if (t.includes('operational plan')) return 'Operational Plan';
   if (t.includes('objectives monitoring') || t.includes('quality objectives')) return 'Quality Objectives Monitoring';
-  
+
   // Specificity order: Action Plan first to avoid mis-categorizing as Registry
   if (t.includes('action plan') && t.includes('risk')) return 'Risk and Opportunity Action Plan';
   if (t.includes('registry') && t.includes('risk')) return 'Risk and Opportunity Registry';
-  
+
   return type;
 };
 
-/**
- * Official Unit Mapping based on the RSU directory.
- */
-const UNIT_CODES: Record<string, string> = {
+export const UNIT_CODES: Record<string, string> = {
   'Office of the President': 'OP',
   'Office of the University and Board Secretary': 'OUBS',
   'Quality Assurance Office': 'QAO',
@@ -91,40 +89,147 @@ const UNIT_CODES: Record<string, string> = {
 };
 
 /**
+ * Resolves the Supervising Unit / Vice President abbreviation or title for a given unit.
+ * Used for CAR "Concerning" field and audit reporting.
+ */
+export function getSupervisingUnitDisplay(
+  unitOrNameOrVp: { vicePresidentId?: string; name?: string; id?: string } | string | undefined | null,
+  allUnits?: Array<{ id: string; name: string; vicePresidentId?: string }>,
+): string {
+  if (!unitOrNameOrVp) return '';
+
+  let nameToInspect = '';
+
+  if (typeof unitOrNameOrVp === 'object') {
+    const unit = unitOrNameOrVp;
+    if (unit.vicePresidentId && allUnits && allUnits.length > 0) {
+      const supUnit = allUnits.find((u) => u.id === unit.vicePresidentId);
+      if (supUnit?.name) {
+        nameToInspect = supUnit.name;
+      }
+    }
+    if (!nameToInspect) {
+      nameToInspect = unit.name || '';
+    }
+  } else {
+    nameToInspect = unitOrNameOrVp;
+    // If unit ID or name was passed and we have allUnits
+    if (allUnits && allUnits.length > 0) {
+      const matchedUnit = allUnits.find(
+        (u) => u.id === unitOrNameOrVp || u.name.toLowerCase() === unitOrNameOrVp.toLowerCase(),
+      );
+      if (matchedUnit?.vicePresidentId) {
+        const supUnit = allUnits.find((u) => u.id === matchedUnit.vicePresidentId);
+        if (supUnit?.name) {
+          nameToInspect = supUnit.name;
+        }
+      } else if (matchedUnit?.name) {
+        nameToInspect = matchedUnit.name;
+      }
+    }
+  }
+
+  const trimmed = nameToInspect.trim();
+  const lower = trimmed.toLowerCase();
+
+  // If already an acronym like VPAF, VPAA, VPREDI, OVPAF, OVPAA, OVPREDI, OVSAS, OP, return clean standard code
+  if (/^(vpaa|vpaf|vpredi|vsas|ovpaa|ovpaf|ovpredi|ovsas|op)$/i.test(trimmed)) {
+    if (/^ovpaf$/i.test(trimmed)) return 'VPAF';
+    if (/^ovpaa$/i.test(trimmed)) return 'VPAA';
+    if (/^ovpredi$/i.test(trimmed)) return 'VPREDI';
+    if (/^ovsas$/i.test(trimmed)) return 'OVSAS';
+    return trimmed.toUpperCase();
+  }
+
+  // Vice President for Administration and Finance
+  if (
+    lower.includes('administration') &&
+    (lower.includes('finance') || lower.includes('vpaf') || lower.includes('ovpaf'))
+  ) {
+    return 'VPAF';
+  }
+
+  // Vice President for Academic Affairs
+  if (lower.includes('academic') && (lower.includes('affair') || lower.includes('vpaa') || lower.includes('ovpaa'))) {
+    return 'VPAA';
+  }
+
+  // Vice President for Research, Extension, Development, and Innovation
+  if (
+    (lower.includes('research') ||
+      lower.includes('extension') ||
+      lower.includes('innovation') ||
+      lower.includes('development')) &&
+    (lower.includes('vice president') ||
+      lower.includes('vpredi') ||
+      lower.includes('ovpredi') ||
+      lower.includes('vpre') ||
+      lower.includes('ovpre'))
+  ) {
+    return 'VPREDI';
+  }
+
+  // Vice President for Student Affairs and Services
+  if (
+    lower.includes('student') &&
+    (lower.includes('affair') || lower.includes('service') || lower.includes('vsas') || lower.includes('ovsas'))
+  ) {
+    return 'OVSAS';
+  }
+
+  // Office of the President
+  if (lower.includes('president') && !lower.includes('vice')) {
+    return 'OP';
+  }
+
+  // Standard Unit Code check
+  if (UNIT_CODES[trimmed]) {
+    const code = UNIT_CODES[trimmed];
+    if (code === 'OVPAF') return 'VPAF';
+    if (code === 'OVPAA') return 'VPAA';
+    return code;
+  }
+
+  return trimmed;
+}
+
+/**
  * Generates a standardized QA Document Control Number.
  * Format: UNIVERSITY CODE - UNIT PREFIX - REVISION NO. - DOCUMENT CONTROL - DOCUMENT PREFIX - YYYY-MM-DD
  * e.g. RSU-CAJ-00-0001-OPE-2026-02-03
  */
-export function generateControlNumber(
-  unitName: string,
-  revision: number,
-  reportType: string,
-  date: Date
-): string {
+export function generateControlNumber(unitName: string, revision: number, reportType: string, date: Date): string {
   const universityCode = 'RSU';
-  
+
   // Try to get official abbreviation first
   let unitPrefix = UNIT_CODES[unitName];
 
   if (!unitPrefix) {
     // Fallback extraction if not in list
-    const words = unitName.trim().split(/\s+/).filter(w => !['of', 'and', 'the', '&', 'for'].includes(w.toLowerCase()));
+    const words = unitName
+      .trim()
+      .split(/\s+/)
+      .filter((w) => !['of', 'and', 'the', '&', 'for'].includes(w.toLowerCase()));
     if (words.length >= 3) {
-      unitPrefix = words.slice(0, 3).map(w => w[0]).join('').toUpperCase();
+      unitPrefix = words
+        .slice(0, 3)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase();
     } else if (words.length === 2) {
       unitPrefix = (words[0].slice(0, 2) + words[1][0]).toUpperCase();
     } else {
       unitPrefix = words[0].slice(0, 3).toUpperCase();
     }
   }
-  
+
   const revPadded = String(revision).padStart(2, '0');
   const docControl = '0001';
   const reportCode = REPORT_TYPE_CODES[normalizeReportType(reportType)] || 'DOC';
-  
+
   // Format date as YYYY-MM-DD
   const dateStr = date.toISOString().split('T')[0];
-  
+
   return `${universityCode}-${unitPrefix}-${revPadded}-${docControl}-${reportCode}-${dateStr}`;
 }
 
@@ -161,12 +266,10 @@ export function parseDate(d: unknown): Date {
 export function isCycleActive(
   cycleName: 'first' | 'final',
   year: number | string,
-  allCycles: Cycle[] | null | undefined
+  allCycles: Cycle[] | null | undefined,
 ): boolean {
   if (!allCycles) return true;
-  const cycle = allCycles.find(
-    c => c.name === cycleName && Number(c.year) === Number(year)
-  );
+  const cycle = allCycles.find((c) => c.name === cycleName && Number(c.year) === Number(year));
   if (!cycle) return true;
   try {
     const start = parseDate(cycle.startDate);
@@ -175,5 +278,3 @@ export function isCycleActive(
     return true;
   }
 }
-
-

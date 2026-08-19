@@ -1,24 +1,67 @@
 'use client';
 
-import React from 'react';
-import type { CorrectiveActionRequest, Signatories } from '@/lib/types';
+import React, { useMemo } from 'react';
+import type { CorrectiveActionRequest, Signatories, Unit } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
-import { cn } from '@/lib/utils';
+import { cn, getSupervisingUnitDisplay } from '@/lib/utils';
 
 interface CARPrintTemplateProps {
   car: CorrectiveActionRequest;
   unitName: string;
   campusName: string;
   signatories?: Signatories;
+  supervisingUnitName?: string;
+  units?: Unit[];
 }
 
-export function CARPrintTemplate({ car, unitName, campusName, signatories }: CARPrintTemplateProps) {
+export function CARPrintTemplate({
+  car,
+  unitName,
+  campusName,
+  signatories,
+  supervisingUnitName,
+  units,
+}: CARPrintTemplateProps) {
   const safeDate = (d: any) => {
     if (!d) return '';
     const date = d instanceof Timestamp ? d.toDate() : new Date(d);
     return isNaN(date.getTime()) ? '' : format(date, 'MM/dd/yyyy');
   };
+
+  const displayConcerning = useMemo(() => {
+    // 1. Explicit supervising unit passed
+    if (supervisingUnitName && supervisingUnitName.trim()) {
+      return getSupervisingUnitDisplay(supervisingUnitName, units);
+    }
+
+    // 2. Resolve via unitId or unitName in units collection
+    if (units && units.length > 0) {
+      const u = units.find(
+        (unit) =>
+          unit.id === car.unitId ||
+          unit.name.toLowerCase() === (unitName || '').toLowerCase() ||
+          unitName.toLowerCase().startsWith(unit.name.toLowerCase()),
+      );
+      if (u?.vicePresidentId) {
+        const supUnit = units.find((su) => su.id === u.vicePresidentId);
+        if (supUnit?.name) {
+          return getSupervisingUnitDisplay(supUnit.name, units);
+        }
+      }
+    }
+
+    // 3. From car.concerningTopManagementName if not the legacy placeholder 'unit head'
+    if (
+      car.concerningTopManagementName &&
+      car.concerningTopManagementName.trim() &&
+      car.concerningTopManagementName.toLowerCase() !== 'unit head'
+    ) {
+      return getSupervisingUnitDisplay(car.concerningTopManagementName, units);
+    }
+
+    return 'Not Assigned';
+  }, [car.concerningTopManagementName, car.unitId, supervisingUnitName, unitName, units]);
 
   const immediateActions = (car.actionSteps || []).filter((s) => s.type === 'Immediate Correction');
   const longTermActions = (car.actionSteps || []).filter((s) => s.type === 'Long-term Corrective Action');
@@ -147,7 +190,7 @@ export function CARPrintTemplate({ car, unitName, campusName, signatories }: CAR
               Concerning:
             </p>
             <p className="font-bold uppercase" style={{ fontSize: '11pt' }}>
-              {car.concerningTopManagementName || 'Not Assigned'}
+              {displayConcerning}
             </p>
           </div>
           <div className="col-span-6 p-2">
