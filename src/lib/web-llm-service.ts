@@ -480,3 +480,300 @@ export function fallbackDiscussionGenerator(prompt: string, contextData?: Record
 
   return `Executive analysis confirms steady progress in institutional quality management. Operational metrics demonstrate high compliance alignment with RSU EOMS policies. Priority focus remains on timely submissions, risk mitigation, and root-cause resolution for corrective actions.`;
 }
+
+/**
+ * Generates an institutional executive risk analysis & top management attention briefing using WebLLM.
+ * Evaluates current academic year risk profiles, highlights unmitigated/high-magnitude risks,
+ * and synthesizes university-wide risk implications for top executive management.
+ */
+export async function generateWebLlmRiskIntelligence(
+  prompt: string,
+  contextData?: Record<string, unknown>,
+  maxTokens = 850,
+): Promise<string> {
+  if (globalEngine) {
+    try {
+      const systemPrompt =
+        'You are an expert Institutional Risk Analyst & Executive Quality Assurance Officer for Romblon State University (RSU) under ISO 21001:2018 Educational Organizations Management Systems (EOMS). ' +
+        'Analyze the risk registry data for the current academic year, identify critical risks demanding top management intervention, and synthesize an executive university risk analysis. ' +
+        'Structure your output clearly into:\n' +
+        '1. EXECUTIVE RISK VERDICT & POSTURE: Overall risk posture of the university for the academic year.\n' +
+        '2. TOP MANAGEMENT ATTENTION REQUIRED: Specific high-magnitude, unmitigated, or escalated risks that require executive direction, resource authorization, or institutional policy.\n' +
+        '3. INSTITUTIONAL THREAT PATTERNS & CROSS-CAMPUS VULNERABILITIES: Systemic patterns across academic, operational, infrastructural, and compliance domains.\n' +
+        '4. STRATEGIC MITIGATION DIRECTIVES: Numbered, actionable, prioritized directives for the University President, Executive Council, Campus Directors, and Quality Assurance Office.\n' +
+        'Maintain an authoritative, objective executive tone with precise numbers and actionable recommendations.';
+
+      const contextStr = contextData ? `\n\nLive Risk Registry Data: ${JSON.stringify(contextData)}` : '';
+
+      const completion = await globalEngine.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `${prompt}${contextStr}` },
+        ],
+        temperature: 0.4,
+        max_tokens: maxTokens,
+      });
+
+      return completion.choices[0]?.message?.content || fallbackRiskIntelligenceGenerator(prompt, contextData);
+    } catch (e) {
+      console.warn('WebLLM risk intelligence error, using fallback:', e);
+    }
+  }
+
+  return fallbackRiskIntelligenceGenerator(prompt, contextData);
+}
+
+/**
+ * Rule-based risk intelligence fallback when WebGPU/engine is unavailable.
+ */
+export function fallbackRiskIntelligenceGenerator(prompt: string, contextData?: Record<string, unknown>): string {
+  const year = (contextData?.year as number) || new Date().getFullYear();
+  const totalRisks = (contextData?.totalRisks as number) || 0;
+  const highRisks = (contextData?.highRisks as number) || 0;
+  const mediumRisks = (contextData?.mediumRisks as number) || 0;
+  const lowRisks = (contextData?.lowRisks as number) || 0;
+  const openCount = (contextData?.openCount as number) || 0;
+  const inProgressCount = (contextData?.inProgressCount as number) || 0;
+  const closedCount = (contextData?.closedCount as number) || 0;
+  const opportunitiesCount = (contextData?.opportunitiesCount as number) || 0;
+  const attentionRisks =
+    (contextData?.attentionRisks as Array<{
+      id: string;
+      description: string;
+      unitName: string;
+      campusName: string;
+      magnitude: number;
+      rating: string;
+      status: string;
+      objective: string;
+      treatment: string;
+      targetDate?: string;
+    }>) || [];
+  const topObjectives = (contextData?.topObjectives as Array<{ name: string; count: number }>) || [];
+  const overdueCount = (contextData?.overdueCount as number) || 0;
+
+  const resolutionRate = totalRisks > 0 ? Math.round((closedCount / totalRisks) * 100) : 0;
+  const activeHighCount = attentionRisks.filter((r) => r.rating === 'High' && r.status !== 'Closed').length;
+
+  const lines: string[] = [];
+
+  // Section 1: Executive Verdict
+  lines.push(`=== EXECUTIVE RISK POSTURE — AY ${year} ===`);
+  if (activeHighCount > 3 || overdueCount > 5) {
+    lines.push(
+      `University Risk Status: ELEVATED THREAT LEVEL. The university currently tracks ${totalRisks} registered risks for AY ${year}, with ${activeHighCount} active high-magnitude risks and ${overdueCount} overdue treatment actions requiring urgent leadership intervention.`,
+    );
+  } else if (activeHighCount > 0 || resolutionRate < 60) {
+    lines.push(
+      `University Risk Status: MODERATE EXPOSURE — MANAGED WITH MONITORING. The active risk registry contains ${totalRisks} items (${highRisks} High, ${mediumRisks} Medium, ${lowRisks} Low). Treatment resolution rate stands at ${resolutionRate}%, with ${closedCount} risks successfully treated and closed.`,
+    );
+  } else {
+    lines.push(
+      `University Risk Status: CONTROLLED & LOW RESIDUAL EXPOSURE. The risk control framework is operating effectively with a ${resolutionRate}% mitigation closure rate across monitored operating units.`,
+    );
+  }
+
+  // Section 2: Top Management Attention Items
+  lines.push('\n=== TOP MANAGEMENT ATTENTION REQUIRED ===');
+  if (attentionRisks.length > 0) {
+    lines.push(
+      `Top management must immediately review and authorize mitigation resources for the following ${attentionRisks.length} prioritized risk items:`,
+    );
+    attentionRisks.slice(0, 5).forEach((r, idx) => {
+      lines.push(
+        `${idx + 1}. [${r.rating.toUpperCase()} RISK • Mag: ${r.magnitude}] ${r.unitName} (${r.campusName}): "${r.description}"`,
+      );
+      lines.push(`   • Impacted Objective: ${r.objective || 'General Institutional Operations'}`);
+      lines.push(
+        `   • Status: ${r.status} ${r.targetDate ? `| Target: ${r.targetDate}` : ''} | Planned Action: ${r.treatment || 'Treatment under formulation'}`,
+      );
+    });
+  } else {
+    lines.push(
+      '• No active High-severity risks are currently unmitigated. Continue monitoring Medium and Low risk registers.',
+    );
+  }
+
+  // Section 3: Strategic Threat Patterns
+  lines.push('\n=== INSTITUTIONAL THREAT PATTERNS & VULNERABILITIES ===');
+  if (topObjectives.length > 0) {
+    lines.push(
+      `1. Strategic Objective Vulnerability: Risks are most densely concentrated in: ${topObjectives
+        .slice(0, 3)
+        .map((o) => `"${o.name}" (${o.count} items)`)
+        .join(', ')}.`,
+    );
+  }
+  lines.push(
+    `2. Risk-to-Opportunity Ratio: The university records ${totalRisks} risks alongside ${opportunitiesCount} identified opportunities (${totalRisks > 0 ? (opportunitiesCount / totalRisks).toFixed(2) : 0} ratio), indicating a strategic imperative to translate defensive controls into positive quality innovations.`,
+  );
+  lines.push(
+    `3. Control Cadence: ${openCount} items remain in Open status and ${inProgressCount} in Progress, necessitating reinforced accountability for designated risk owners.`,
+  );
+
+  // Section 4: Strategic Recommendations
+  lines.push('\n=== TOP MANAGEMENT STRATEGIC ACTION DIRECTIVES ===');
+  lines.push(
+    '1. Resource Allocation: Direct the Budget and Planning Office to expedite funding releases for the critical high-magnitude treatments identified above.',
+  );
+  lines.push(
+    '2. Executive Risk Oversight: Mandate monthly progress reporting from unit heads on the top attention watchlist during Administrative Council meetings.',
+  );
+  lines.push(
+    '3. Cross-Campus Standardization: Harmonize preventive controls across satellite campuses to eliminate recurrent infrastructure and operational gaps.',
+  );
+  lines.push(
+    '4. Preventive Opportunity Leveraging: Institutionalize treatments as permanent QMS Standard Operating Procedures (SOPs) for ISO 21001:2018 compliance.',
+  );
+
+  return lines.join('\n');
+}
+
+/**
+ * Generates an institutional multi-site system-wide audit analysis using WebLLM.
+ * Evaluates cross-campus common NCs, systemic OFIs, satellite disparities, and ISO 19011 root cause directives.
+ */
+export async function generateWebLlmSystemAuditAnalysis(
+  prompt: string,
+  contextData?: Record<string, unknown>,
+  maxTokens = 950,
+): Promise<string> {
+  if (globalEngine) {
+    try {
+      const systemPrompt =
+        'You are the Lead Quality Assurance Auditor & Chief Management Systems Evaluator for Romblon State University (RSU) under ISO 19011:2018 (Guidelines for Auditing Management Systems) and ISO 21001:2018 (Educational Organizations Management Systems). ' +
+        'You are conducting an institutional multi-site audit intelligence analysis across the entire RSU system (Main Campus Odiongan and satellite campuses: Romblon, Cajidiocan, San Fernando, San Agustin, Santa Maria, Calatrava, Santa Fe, Sawang). ' +
+        'Analyze the Firestore audit dataset to identify systemic, cross-campus Non-Conformances (NCs) and Observations for Improvement (OFIs), evaluate geographic quality disparities, detect root cause clusters, and formulate prioritized corrective directives for University Top Management.\n\n' +
+        'Structure your analysis clearly into:\n' +
+        '1. EXECUTIVE AUDIT VERDICT & SYSTEM INTEGRITY POSTURE: Overall quality health of the university network.\n' +
+        '2. SYSTEMIC CROSS-CAMPUS NON-CONFORMANCES (SAME NC CLUSTERS): Specific clauses and operational breakdowns observed across multiple campuses/satellites demanding centralized corrective intervention.\n' +
+        '3. SYSTEMIC OBSERVATIONS FOR IMPROVEMENT (OFI) & LATENT VULNERABILITIES: Recurring areas for improvement across the satellite network before they escalate into non-conformances.\n' +
+        '4. MAIN VS. SATELLITE DISPARITY & QUALITY RESILIENCE: Analysis of geographic, procedural, or infrastructural gaps between the Main Campus and remote satellite branches.\n' +
+        '5. SYSTEMIC ROOT CAUSE THEMES & TOP MANAGEMENT ACTION DIRECTIVES: Actionable, numbered strategic directives for the Board of Regents, University President, Vice Presidents (VPAA, VPAF, VPREDI), Campus Directors, and Quality Assurance Office.\n' +
+        'Maintain an authoritative, precise, and constructive ISO 19011 audit tone with specific metric citations.';
+
+      const contextStr = contextData ? `\n\nLive System Audit Dataset: ${JSON.stringify(contextData)}` : '';
+
+      const completion = await globalEngine.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `${prompt}${contextStr}` },
+        ],
+        temperature: 0.4,
+        max_tokens: maxTokens,
+      });
+
+      return completion.choices[0]?.message?.content || fallbackSystemAuditAnalysisGenerator(prompt, contextData);
+    } catch (e) {
+      console.warn('WebLLM system audit analysis error, using fallback:', e);
+    }
+  }
+
+  return fallbackSystemAuditAnalysisGenerator(prompt, contextData);
+}
+
+/**
+ * Rule-based system audit analysis fallback when WebGPU/engine is unavailable.
+ */
+export function fallbackSystemAuditAnalysisGenerator(prompt: string, contextData?: Record<string, unknown>): string {
+  const year = (contextData?.year as number) || new Date().getFullYear();
+  const totalFindings = (contextData?.totalFindings as number) || 0;
+  const totalNC = (contextData?.totalNC as number) || 0;
+  const totalOFI = (contextData?.totalOFI as number) || 0;
+  const totalCompliance = (contextData?.totalCompliance as number) || 0;
+  const affectedCampusesCount = (contextData?.affectedCampusesCount as number) || 0;
+  const systemicNCs =
+    (contextData?.systemicNCs as Array<{
+      clause: string;
+      clauseTitle?: string;
+      occurrences: number;
+      campuses: string[];
+      sampleDescription: string;
+    }>) || [];
+  const systemicOFIs =
+    (contextData?.systemicOFIs as Array<{
+      clause: string;
+      clauseTitle?: string;
+      occurrences: number;
+      campuses: string[];
+      sampleDescription: string;
+    }>) || [];
+  const satelliteDisparities =
+    (contextData?.satelliteDisparities as Array<{
+      campus: string;
+      ncCount: number;
+      ofiCount: number;
+    }>) || [];
+
+  const lines: string[] = [];
+
+  // Section 1: Executive Verdict
+  lines.push(`=== RSU SYSTEM-WIDE AUDIT INTELLIGENCE SYNTHESIS — AY ${year} ===`);
+  lines.push(
+    `Institutional Compliance Verdict: Multi-site audit analysis across ${affectedCampusesCount} campuses captured ${totalFindings} total findings (${totalNC} Non-Conformances, ${totalOFI} Observations for Improvement, and ${totalCompliance} Compliances). Under ISO 19011:2018 guidelines, multiple recurrent non-conformances across satellite branches signify systemic procedural gaps rather than isolated unit lapses.`,
+  );
+
+  // Section 2: Systemic NCs
+  lines.push('\n=== SYSTEMIC CROSS-CAMPUS NON-CONFORMANCES (SAME NC CLUSTERS) ===');
+  if (systemicNCs.length > 0) {
+    lines.push(`The following Non-Conformances recur across multiple campuses in the university network:`);
+    systemicNCs.forEach((item, idx) => {
+      lines.push(
+        `${idx + 1}. [ISO Clause ${item.clause}${item.clauseTitle ? `: ${item.clauseTitle}` : ''}] • ${item.occurrences} Occurrences across ${item.campuses.length} Campuses (${item.campuses.join(', ')})`,
+      );
+      lines.push(`   • Audit Observation: "${item.sampleDescription}"`);
+      lines.push(
+        `   • Systemic Risk: Centralized procedural standard is inconsistently implemented across satellite campuses.`,
+      );
+    });
+  } else {
+    lines.push(
+      '• No recurrent Non-Conformances detected spanning multiple campuses. Non-conformances remain localized.',
+    );
+  }
+
+  // Section 3: Systemic OFIs
+  lines.push('\n=== SYSTEMIC OBSERVATIONS FOR IMPROVEMENT (OFI) & LATENT GAPS ===');
+  if (systemicOFIs.length > 0) {
+    lines.push(`Common improvement opportunities observed across satellite locations:`);
+    systemicOFIs.forEach((item, idx) => {
+      lines.push(
+        `${idx + 1}. [ISO Clause ${item.clause}${item.clauseTitle ? `: ${item.clauseTitle}` : ''}] • ${item.occurrences} OFIs in ${item.campuses.join(', ')}`,
+      );
+      lines.push(`   • Advisory Note: "${item.sampleDescription}"`);
+    });
+  } else {
+    lines.push('• Opportunities for improvement are balanced across operational units.');
+  }
+
+  // Section 4: Main vs Satellite Disparities
+  lines.push('\n=== MAIN VS. SATELLITE CAMPUS QUALITY DISPARITY ANALYSIS ===');
+  if (satelliteDisparities.length > 0) {
+    lines.push('Finding distribution across university branches:');
+    satelliteDisparities.slice(0, 5).forEach((d) => {
+      lines.push(`• ${d.campus}: ${d.ncCount} NC(s), ${d.ofiCount} OFI(s)`);
+    });
+    lines.push(
+      'Satellite branches exhibit higher variance in documented information control (Clause 7.5) and measurement traceability (Clause 7.1.5) due to geographic isolation and decentralized recordkeeping.',
+    );
+  } else {
+    lines.push('Quality compliance metrics remain evenly distributed across all university campuses.');
+  }
+
+  // Section 5: Strategic Directives
+  lines.push('\n=== SYSTEMIC ROOT CAUSES & TOP MANAGEMENT ACTION DIRECTIVES ===');
+  lines.push(
+    '1. Centralized QMS Policy Harmonization: VPAA and Quality Assurance Office must issue unified procedural templates and syllabus verification checklists to all satellite directors.',
+  );
+  lines.push(
+    '2. Satellite Resource & Calibration Support: VPAF must prioritize procurement of standardized calibration and laboratory safety equipment for remote campuses.',
+  );
+  lines.push(
+    '3. Mandatory CAR Root Cause Verification: Require campus directors to submit verified objective evidence of systemic corrective action before closing repeat audit findings.',
+  );
+  lines.push(
+    '4. Cross-Campus Peer Audits: Institutionalize cross-campus auditor assignments to foster inter-campus bench-learning and eliminate localized compliance blindspots.',
+  );
+
+  return lines.join('\n');
+}

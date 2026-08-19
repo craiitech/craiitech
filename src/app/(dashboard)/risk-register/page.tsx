@@ -47,6 +47,7 @@ import { collection, query, where, doc, deleteDoc, serverTimestamp } from '@/fir
 import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
 import { RiskDashboard } from '@/components/risk/risk-dashboard';
+import { AiRiskIntelligenceCard } from '@/components/risk/ai-risk-intelligence-card';
 import { useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -602,6 +603,15 @@ export default function RiskRegisterPage() {
         )}
 
         <TabsContent value="visual-insights" className="animate-in fade-in duration-500 space-y-6">
+          {/* Local AI Executive Risk Intelligence & Top Management Directives */}
+          <AiRiskIntelligenceCard
+            risks={filteredRisks}
+            selectedYear={selectedYear}
+            unitMap={unitMap}
+            campusMap={campusMap}
+            onSelectRisk={handleEditRisk}
+          />
+
           {/* Year-by-Year Summary Card */}
           <Card className="shadow-md border-primary/10 overflow-hidden bg-card">
             <CardHeader className="bg-primary/5 border-b py-3 px-6">

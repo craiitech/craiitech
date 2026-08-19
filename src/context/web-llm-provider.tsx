@@ -10,9 +10,13 @@ import {
   generateWebLlmDiscussion,
   generateWebLlmResearchDiscussion,
   generateWebLlmExecutiveBriefing,
+  generateWebLlmRiskIntelligence,
+  generateWebLlmSystemAuditAnalysis,
   fallbackDiscussionGenerator,
   fallbackSoftwareQualityDiscussionGenerator,
   fallbackExecutiveBriefingGenerator,
+  fallbackRiskIntelligenceGenerator,
+  fallbackSystemAuditAnalysisGenerator,
 } from '@/lib/web-llm-service';
 
 export type WebLlmStatus = 'disabled' | 'uninitialized' | 'checking_cache' | 'downloading' | 'ready' | 'error';
@@ -32,6 +36,8 @@ interface WebLlmContextType {
   generateDiscussion: (prompt: string, contextData?: Record<string, unknown>) => Promise<string>;
   generateResearchDiscussion: (prompt: string, contextData?: Record<string, unknown>) => Promise<string>;
   generateExecutiveBriefing: (prompt: string, contextData?: Record<string, unknown>) => Promise<string>;
+  generateRiskIntelligence: (prompt: string, contextData?: Record<string, unknown>) => Promise<string>;
+  generateSystemAuditAnalysis: (prompt: string, contextData?: Record<string, unknown>) => Promise<string>;
 }
 
 const WebLlmContext = createContext<WebLlmContextType>({
@@ -49,6 +55,8 @@ const WebLlmContext = createContext<WebLlmContextType>({
   generateDiscussion: async () => '',
   generateResearchDiscussion: async () => '',
   generateExecutiveBriefing: async () => '',
+  generateRiskIntelligence: async () => '',
+  generateSystemAuditAnalysis: async () => '',
 });
 
 export function WebLlmProvider({ children }: { children: React.ReactNode }) {
@@ -194,6 +202,26 @@ export function WebLlmProvider({ children }: { children: React.ReactNode }) {
     [isAdminUser, isAiEnabled],
   );
 
+  const generateRiskIntelligence = useCallback(
+    async (prompt: string, contextData?: Record<string, unknown>): Promise<string> => {
+      if (!isAdminUser || !isAiEnabled) {
+        return fallbackRiskIntelligenceGenerator(prompt, contextData);
+      }
+      return generateWebLlmRiskIntelligence(prompt, contextData);
+    },
+    [isAdminUser, isAiEnabled],
+  );
+
+  const generateSystemAuditAnalysis = useCallback(
+    async (prompt: string, contextData?: Record<string, unknown>): Promise<string> => {
+      if (!isAdminUser || !isAiEnabled) {
+        return fallbackSystemAuditAnalysisGenerator(prompt, contextData);
+      }
+      return generateWebLlmSystemAuditAnalysis(prompt, contextData);
+    },
+    [isAdminUser, isAiEnabled],
+  );
+
   return (
     <WebLlmContext.Provider
       value={{
@@ -211,6 +239,8 @@ export function WebLlmProvider({ children }: { children: React.ReactNode }) {
         generateDiscussion,
         generateResearchDiscussion,
         generateExecutiveBriefing,
+        generateRiskIntelligence,
+        generateSystemAuditAnalysis,
       }}
     >
       {children}

@@ -1,7 +1,18 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AuditPlan, AuditSchedule, AuditFinding, ISOClause, Unit, Campus, User, Signatories } from '@/lib/types';
+import type {
+  AuditPlan,
+  AuditSchedule,
+  AuditFinding,
+  ISOClause,
+  Unit,
+  Campus,
+  User,
+  Signatories,
+  CorrectiveActionRequest,
+} from '@/lib/types';
+import { SystemAuditIntelligenceAnalysis } from './system-audit-intelligence-analysis';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '@/components/ui/button';
@@ -62,6 +73,14 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { renderToStaticMarkup } from 'react-dom/server';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { AuditorAssignmentsPrintTemplate } from './auditor-assignments-print-template';
 import { AuditorSchedulePrintTemplate } from './auditor-schedule-print-template';
 import { UnitSchedulePrintTemplate } from './unit-schedule-print-template';
@@ -81,6 +100,7 @@ interface AuditAnalyticsProps {
   units: Unit[];
   campuses: Campus[];
   users: User[];
+  cars?: CorrectiveActionRequest[];
   isLoading: boolean;
   selectedYear: number;
 }
@@ -100,12 +120,14 @@ export function AuditAnalytics({
   units,
   campuses,
   users,
+  cars = [],
   isLoading,
   selectedYear,
 }: AuditAnalyticsProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const [hotspotTab, setHotspotTab] = useState<'hotspots' | 'campus'>('hotspots');
+  const [hotspotTab, setHotspotTab] = useState<'hotspots' | 'campus' | 'graph'>('hotspots');
+  const [showCampusChartDialog, setShowCampusChartDialog] = useState(false);
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
@@ -724,6 +746,56 @@ export function AuditAnalytics({
     return null;
   };
 
+  const CustomCampusTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      const compRate = data.totalAudited > 0 ? Math.round((data.completedAudited / data.totalAudited) * 100) : 0;
+      return (
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-3.5 rounded-xl shadow-xl text-xs space-y-2.5 min-w-[240px]">
+          <p className="font-black uppercase tracking-wider text-slate-800 dark:text-slate-100 border-b pb-1.5 flex items-center justify-between gap-2">
+            <span>{data.campusName || label}</span>
+            <Badge variant="outline" className="text-[8px] font-black uppercase">
+              AY {selectedYear}
+            </Badge>
+          </p>
+          <div className="space-y-1.5 font-semibold text-slate-600 dark:text-slate-300">
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-1.5 text-[10px] uppercase text-indigo-600 dark:text-indigo-400 font-bold">
+                <span className="w-2 h-2 rounded-full bg-indigo-500" /> Audited Sessions:
+              </span>
+              <span className="font-black text-slate-900 dark:text-white">{data.totalAudited}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-1.5 text-[10px] uppercase text-emerald-600 dark:text-emerald-400 font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" /> Completed:
+              </span>
+              <span className="font-black text-emerald-600 dark:text-emerald-400">{data.completedAudited}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-1.5 text-[10px] uppercase text-amber-600 dark:text-amber-400 font-bold">
+                <span className="w-2 h-2 rounded-full bg-amber-500" /> OFI (Observation):
+              </span>
+              <span className="font-black text-amber-600 dark:text-amber-400">{data.ofiCount}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+              <span className="flex items-center gap-1.5 text-[10px] uppercase text-rose-600 dark:text-rose-400 font-bold">
+                <span className="w-2 h-2 rounded-full bg-rose-500" /> NC (Non-Conformance):
+              </span>
+              <span className="font-black text-rose-600 dark:text-rose-400">{data.ncCount}</span>
+            </div>
+            {data.totalAudited > 0 && (
+              <div className="border-t border-slate-100 dark:border-slate-800 pt-2 flex justify-between items-center text-[10px]">
+                <span className="uppercase text-muted-foreground font-bold">Completion Rate:</span>
+                <span className="font-black text-indigo-600 dark:text-indigo-400">{compRate}%</span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
@@ -1291,7 +1363,27 @@ export function AuditAnalytics({
                 >
                   Campus Summary
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setHotspotTab('graph')}
+                  className={cn(
+                    'px-2.5 py-1 text-[10px] font-black uppercase rounded transition-colors',
+                    hotspotTab === 'graph'
+                      ? 'bg-destructive text-white'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  Campus Graph
+                </button>
               </div>
+              <Button
+                onClick={() => setShowCampusChartDialog(true)}
+                size="sm"
+                variant="outline"
+                className="h-8 px-3 font-black uppercase text-[10px] tracking-widest bg-white border-primary/20 text-primary hover:bg-primary/10 gap-1.5 shadow-sm"
+              >
+                <BarChart3 className="h-3.5 w-3.5" /> Display Chart
+              </Button>
               <Button
                 onClick={handlePrintCampusStats}
                 size="sm"
@@ -1303,7 +1395,7 @@ export function AuditAnalytics({
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-1">
-            {hotspotTab === 'hotspots' ? (
+            {hotspotTab === 'hotspots' && (
               <ScrollArea className="h-[300px]">
                 <Table>
                   <TableHeader className="bg-muted/30">
@@ -1330,13 +1422,16 @@ export function AuditAnalytics({
                   </TableBody>
                 </Table>
               </ScrollArea>
-            ) : (
+            )}
+
+            {hotspotTab === 'campus' && (
               <ScrollArea className="h-[300px]">
                 <Table>
                   <TableHeader className="bg-muted/30">
                     <TableRow>
                       <TableHead className="pl-6 text-[10px] font-black uppercase">Campus / Site</TableHead>
                       <TableHead className="text-center text-[10px] font-black uppercase">Audited Sessions</TableHead>
+                      <TableHead className="text-center text-[10px] font-black uppercase">Completed</TableHead>
                       <TableHead className="text-center text-[10px] font-black uppercase">OFI</TableHead>
                       <TableHead className="text-center text-[10px] font-black uppercase">NC</TableHead>
                     </TableRow>
@@ -1346,10 +1441,13 @@ export function AuditAnalytics({
                       <TableRow key={i}>
                         <TableCell className="pl-6 font-bold text-xs uppercase">{cs.campusName}</TableCell>
                         <TableCell className="text-center font-bold text-xs">{cs.totalAudited}</TableCell>
+                        <TableCell className="text-center font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                          {cs.completedAudited}
+                        </TableCell>
                         <TableCell className="text-center">
                           <Badge
                             variant="outline"
-                            className="h-5 font-black border-amber-300 text-amber-800 bg-amber-50"
+                            className="h-5 font-black border-amber-300 text-amber-800 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
                           >
                             {cs.ofiCount} OFI
                           </Badge>
@@ -1364,6 +1462,82 @@ export function AuditAnalytics({
                   </TableBody>
                 </Table>
               </ScrollArea>
+            )}
+
+            {hotspotTab === 'graph' && (
+              <div className="p-4 pt-2 flex flex-col h-[300px]">
+                <ChartContainer config={{}} className="h-[255px] w-full">
+                  <ResponsiveContainer>
+                    <BarChart data={analytics.campusStats} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                      <XAxis
+                        dataKey="campusName"
+                        tick={{ fontSize: 9, fontWeight: 700 }}
+                        interval={0}
+                        angle={-15}
+                        textAnchor="end"
+                        height={40}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700 }} />
+                      <RechartsTooltip content={<CustomCampusTooltip />} />
+                      <Legend
+                        verticalAlign="top"
+                        align="right"
+                        wrapperStyle={{
+                          paddingBottom: '8px',
+                          fontSize: '9px',
+                          textTransform: 'uppercase',
+                          fontWeight: '900',
+                        }}
+                      />
+                      <Bar
+                        dataKey="totalAudited"
+                        name="Audited Sessions"
+                        fill="url(#audit3d-grad-indigo)"
+                        radius={[3, 3, 0, 0]}
+                        barSize={12}
+                        filter="url(#audit3d-soft-depth)"
+                      />
+                      <Bar
+                        dataKey="completedAudited"
+                        name="Completed"
+                        fill="url(#audit3d-grad-emerald)"
+                        radius={[3, 3, 0, 0]}
+                        barSize={12}
+                        filter="url(#audit3d-soft-depth)"
+                      />
+                      <Bar
+                        dataKey="ofiCount"
+                        name="OFI"
+                        fill="url(#audit3d-grad-amber)"
+                        radius={[3, 3, 0, 0]}
+                        barSize={12}
+                        filter="url(#audit3d-soft-depth)"
+                      />
+                      <Bar
+                        dataKey="ncCount"
+                        name="NC"
+                        fill="url(#audit3d-grad-rose)"
+                        radius={[3, 3, 0, 0]}
+                        barSize={12}
+                        filter="url(#audit3d-soft-depth)"
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+                <div className="flex justify-end pt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowCampusChartDialog(true)}
+                    className="h-6 text-[9px] font-black uppercase text-primary tracking-widest gap-1 p-0 hover:bg-transparent"
+                  >
+                    Expand Full Graph <ChevronRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -1440,6 +1614,18 @@ export function AuditAnalytics({
         </Card>
       </div>
 
+      {/* ─── SYSTEM-WIDE AUDIT ANALYSIS & CROSS-CAMPUS SATELLITE INTELLIGENCE ─── */}
+      <SystemAuditIntelligenceAnalysis
+        findings={findings}
+        schedules={schedules}
+        plans={plans}
+        isoClauses={isoClauses}
+        units={units}
+        campuses={campuses}
+        cars={cars}
+        selectedYear={selectedYear}
+      />
+
       <div className="p-4 bg-muted/5 border rounded-xl">
         <div className="flex items-start gap-4">
           <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
@@ -1451,6 +1637,220 @@ export function AuditAnalytics({
           </p>
         </div>
       </div>
+
+      {/* Expanded Campus Audit Statistics & Findings Chart Modal */}
+      <Dialog open={showCampusChartDialog} onOpenChange={setShowCampusChartDialog}>
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[92vh] flex flex-col p-0 overflow-hidden shadow-2xl border bg-background">
+          <DialogHeader className="p-5 border-b bg-muted/10 shrink-0 flex flex-row items-center justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-destructive" />
+                <DialogTitle className="text-base font-black uppercase tracking-tight text-destructive">
+                  Campus Audit Statistics & Findings Graph
+                </DialogTitle>
+              </div>
+              <DialogDescription className="text-xs text-muted-foreground">
+                Academic Year {selectedYear} • Multi-metric analysis per Campus / Site comparing Audited Sessions,
+                Completed Audits, Observations for Improvement (OFI), and Non-Conformances (NC).
+              </DialogDescription>
+            </div>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 p-6 overflow-y-auto">
+            {/* KPI Metric Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+              <Card className="p-3 bg-muted/20 border-border/60 text-center shadow-sm">
+                <p className="text-lg font-black text-foreground">{analytics.campusStats.length}</p>
+                <p className="text-[10px] font-bold uppercase text-muted-foreground mt-0.5">Campuses / Sites</p>
+              </Card>
+              <Card className="p-3 bg-indigo-500/10 border-indigo-200 dark:border-indigo-900/50 text-center shadow-sm">
+                <p className="text-lg font-black text-indigo-600 dark:text-indigo-400">
+                  {analytics.campusStats.reduce((acc, c) => acc + c.totalAudited, 0)}
+                </p>
+                <p className="text-[10px] font-bold uppercase text-indigo-600/80 dark:text-indigo-400 mt-0.5">
+                  Audited Sessions
+                </p>
+              </Card>
+              <Card className="p-3 bg-emerald-500/10 border-emerald-200 dark:border-emerald-900/50 text-center shadow-sm">
+                <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                  {analytics.campusStats.reduce((acc, c) => acc + c.completedAudited, 0)}
+                </p>
+                <p className="text-[10px] font-bold uppercase text-emerald-600/80 dark:text-emerald-400 mt-0.5">
+                  Completed
+                </p>
+              </Card>
+              <Card className="p-3 bg-amber-500/10 border-amber-200 dark:border-amber-900/50 text-center shadow-sm">
+                <p className="text-lg font-black text-amber-600 dark:text-amber-400">
+                  {analytics.campusStats.reduce((acc, c) => acc + c.ofiCount, 0)}
+                </p>
+                <p className="text-[10px] font-bold uppercase text-amber-600/80 dark:text-amber-400 mt-0.5">
+                  Total OFI
+                </p>
+              </Card>
+              <Card className="p-3 bg-rose-500/10 border-rose-200 dark:border-rose-900/50 text-center shadow-sm col-span-2 sm:col-span-1">
+                <p className="text-lg font-black text-rose-600 dark:text-rose-400">
+                  {analytics.campusStats.reduce((acc, c) => acc + c.ncCount, 0)}
+                </p>
+                <p className="text-[10px] font-bold uppercase text-rose-600/80 dark:text-rose-400 mt-0.5">Total NC</p>
+              </Card>
+            </div>
+
+            {/* Main Interactive 3D Chart */}
+            <Card className="p-4 border-primary/10 shadow-sm mb-6 bg-card">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                  Campus Comparison Overview (3D Graph)
+                </h4>
+                <Badge variant="outline" className="text-[9px] font-black uppercase">
+                  AY {selectedYear}
+                </Badge>
+              </div>
+              <ChartContainer config={{}} className="h-[360px] w-full">
+                <ResponsiveContainer>
+                  <BarChart data={analytics.campusStats} margin={{ top: 25, right: 20, left: -10, bottom: 40 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                    <XAxis
+                      dataKey="campusName"
+                      tick={{ fontSize: 10, fontWeight: 700 }}
+                      interval={0}
+                      angle={-20}
+                      textAnchor="end"
+                      height={60}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700 }} />
+                    <RechartsTooltip content={<CustomCampusTooltip />} />
+                    <Legend
+                      verticalAlign="top"
+                      align="right"
+                      wrapperStyle={{
+                        paddingBottom: '20px',
+                        fontSize: '10px',
+                        textTransform: 'uppercase',
+                        fontWeight: '900',
+                      }}
+                    />
+                    <Bar
+                      dataKey="totalAudited"
+                      name="Audited Sessions"
+                      fill="url(#audit3d-grad-indigo)"
+                      radius={[4, 4, 0, 0]}
+                      barSize={18}
+                      filter="url(#audit3d-soft-depth)"
+                    >
+                      <LabelList content={<RenderBar3DLabel />} />
+                    </Bar>
+                    <Bar
+                      dataKey="completedAudited"
+                      name="Completed"
+                      fill="url(#audit3d-grad-emerald)"
+                      radius={[4, 4, 0, 0]}
+                      barSize={18}
+                      filter="url(#audit3d-soft-depth)"
+                    >
+                      <LabelList content={<RenderBar3DLabel />} />
+                    </Bar>
+                    <Bar
+                      dataKey="ofiCount"
+                      name="OFI"
+                      fill="url(#audit3d-grad-amber)"
+                      radius={[4, 4, 0, 0]}
+                      barSize={18}
+                      filter="url(#audit3d-soft-depth)"
+                    >
+                      <LabelList content={<RenderBar3DLabel />} />
+                    </Bar>
+                    <Bar
+                      dataKey="ncCount"
+                      name="NC"
+                      fill="url(#audit3d-grad-rose)"
+                      radius={[4, 4, 0, 0]}
+                      barSize={18}
+                      filter="url(#audit3d-soft-depth)"
+                    >
+                      <LabelList content={<RenderBar3DLabel />} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartContainer>
+            </Card>
+
+            {/* Detailed Table in Dialog */}
+            <Card className="border-primary/10 overflow-hidden shadow-sm">
+              <div className="p-3 bg-muted/20 border-b flex items-center justify-between">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                  Campus Statistics Breakdown Table
+                </h4>
+              </div>
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead className="pl-6 text-[10px] font-black uppercase">Campus / Site</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Audited Sessions</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Completed</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">OFI</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">NC</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Completion %</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {analytics.campusStats.map((cs, i) => {
+                    const compRate =
+                      cs.totalAudited > 0 ? Math.round((cs.completedAudited / cs.totalAudited) * 100) : 0;
+                    return (
+                      <TableRow key={i}>
+                        <TableCell className="pl-6 font-bold text-xs uppercase">{cs.campusName}</TableCell>
+                        <TableCell className="text-center font-bold text-xs">{cs.totalAudited}</TableCell>
+                        <TableCell className="text-center font-bold text-xs text-emerald-600 dark:text-emerald-400">
+                          {cs.completedAudited}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge
+                            variant="outline"
+                            className="h-5 font-black border-amber-300 text-amber-800 bg-amber-50 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
+                          >
+                            {cs.ofiCount} OFI
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="destructive" className="h-5 font-black">
+                            {cs.ncCount} NC
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="secondary" className="h-5 font-black">
+                            {compRate}%
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Card>
+          </ScrollArea>
+
+          <DialogFooter className="p-4 border-t bg-muted/10 shrink-0 flex flex-row items-center justify-between sm:justify-between">
+            <Button
+              onClick={handlePrintCampusStats}
+              size="sm"
+              variant="outline"
+              className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-destructive/20 text-destructive hover:bg-destructive/10 gap-1.5 shadow-sm"
+            >
+              <Printer className="h-3.5 w-3.5" /> Print Campus Stats
+            </Button>
+            <Button
+              onClick={() => setShowCampusChartDialog(false)}
+              size="sm"
+              variant="default"
+              className="h-9 px-5 font-black uppercase text-[10px] tracking-widest"
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
