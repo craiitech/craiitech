@@ -95,14 +95,16 @@ export default function UnitActivityPage() {
   // Active sub-tab state
   const [activeTab, setActiveTab] = useState('activities');
 
-  // Manual Attendee Add Dialog State (Typing Name, Mobile & Sex)
+  // Manual Attendee Add Dialog State (Typing Name, Mobile, Sex, Campus & Unit)
   const [isManualAddDialogOpen, setIsManualAddDialogOpen] = useState(false);
   const [manualAddActivityId, setManualAddActivityId] = useState('');
   const [manualAddSessionId, setManualAddSessionId] = useState('');
   const [manualAddName, setManualAddName] = useState('');
   const [manualAddContact, setManualAddContact] = useState('');
   const [manualAddSex, setManualAddSex] = useState('');
-  const [manualAddUnit, setManualAddUnit] = useState('');
+  const [manualAddCampusId, setManualAddCampusId] = useState('');
+  const [manualAddUnitId, setManualAddUnitId] = useState('');
+  const [manualAddUnitCustom, setManualAddUnitCustom] = useState('');
   const [manualAddStatus, setManualAddStatus] = useState<'AUTO' | 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW'>('AUTO');
   const [isSubmittingManualAdd, setIsSubmittingManualAdd] = useState(false);
 
@@ -112,6 +114,16 @@ export default function UnitActivityPage() {
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
+
+  const filteredManualAddUnits = useMemo(() => {
+    if (!units || !manualAddCampusId || manualAddCampusId === 'OTHERS') return [];
+    return units.filter((u) => {
+      if (u.campusIds && u.campusIds.length > 0) {
+        return u.campusIds.includes(manualAddCampusId);
+      }
+      return true;
+    });
+  }, [units, manualAddCampusId]);
 
   // Activities queries - Sort in memory to bypass composite index constraints for non-admin filters
   const activitiesQuery = useMemoFirebase(() => {
@@ -1242,19 +1254,40 @@ export default function UnitActivityPage() {
       const pseudoUserId = `manual_${nameKey}_${phoneDigits.slice(-4) || 'user'}`;
       const logId = `${targetActivity.id}_${session.id}_${pseudoUserId}`;
 
-      const unitName = (
-        manualAddUnit.trim() ||
-        units?.find((u) => u.id === targetActivity.unitId)?.name ||
-        'GENERAL ATTENDEE'
-      ).toUpperCase();
+      const targetCampusId = manualAddCampusId || targetActivity.campusId || userProfile?.campusId || 'MAIN';
+      const resolvedCampusName =
+        targetCampusId === 'OTHERS'
+          ? 'NOT PART OF RSU (EXTERNAL)'
+          : campuses?.find((c) => c.id === targetCampusId)?.name || 'MAIN CAMPUS';
+
+      const resolvedUnitName =
+        targetCampusId === 'OTHERS'
+          ? manualAddUnitCustom.trim().toUpperCase()
+          : manualAddUnitId === 'OTHER_UNIT'
+            ? (manualAddUnitCustom.trim() || 'OTHER OFFICE').toUpperCase()
+            : (
+                units?.find((u) => u.id === manualAddUnitId)?.name ||
+                manualAddUnitCustom.trim() ||
+                units?.find((u) => u.id === targetActivity.unitId)?.name ||
+                'GENERAL ATTENDEE'
+              ).toUpperCase();
+
+      const unitName = resolvedUnitName;
 
       const newLog: ActivityAttendanceLog = {
         id: logId,
         activityId: targetActivity.id,
         userId: pseudoUserId,
         userName: cleanName,
-        unitId: targetActivity.unitId,
+        unitId:
+          targetCampusId === 'OTHERS'
+            ? 'external'
+            : manualAddUnitId === 'OTHER_UNIT'
+              ? ''
+              : manualAddUnitId || targetActivity.unitId,
         unitName,
+        campusId: targetCampusId === 'OTHERS' ? 'external' : targetCampusId,
+        campusName: resolvedCampusName,
         deviceFingerprint: 'DASHBOARD-MANUAL-LOG',
         scannedAt: now,
         status: logStatus,
@@ -1274,7 +1307,9 @@ export default function UnitActivityPage() {
       setManualAddName('');
       setManualAddContact('');
       setManualAddSex('');
-      setManualAddUnit('');
+      setManualAddCampusId('');
+      setManualAddUnitId('');
+      setManualAddUnitCustom('');
       setManualAddStatus('AUTO');
     } catch (err: any) {
       console.error(err);
@@ -4185,16 +4220,93 @@ export default function UnitActivityPage() {
               </div>
             </div>
 
-            {/* Office / Department */}
+            {/* Campus / Site */}
             <div className="space-y-1">
-              <Label className="text-[10px] font-black uppercase text-slate-500">Office / Unit / Affiliation</Label>
-              <Input
-                placeholder="e.g. College of Education / Guest"
-                value={manualAddUnit}
-                onChange={(e) => setManualAddUnit(e.target.value)}
-                className="h-9 font-bold text-xs uppercase"
-              />
+              <Label className="text-[10px] font-black uppercase text-slate-500">Campus / Site *</Label>
+              <Select
+                value={manualAddCampusId}
+                onValueChange={(val) => {
+                  setManualAddCampusId(val);
+                  setManualAddUnitId('');
+                  setManualAddUnitCustom('');
+                }}
+              >
+                <SelectTrigger className="h-9 text-xs font-bold">
+                  <SelectValue placeholder="Select Campus / Site" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {campuses?.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem
+                    value="OTHERS"
+                    className="font-bold text-amber-600 dark:text-amber-400 border-t mt-1 pt-1"
+                  >
+                    ✨ Others (Not part of RSU / External Guest / Visitor)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Office / Department / Affiliation */}
+            {manualAddCampusId === 'OTHERS' ? (
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-slate-500">
+                  Agency / Institution / Affiliation *
+                </Label>
+                <Input
+                  placeholder="e.g. CHED, DepEd, LGU Romblon, DOH, Guest"
+                  value={manualAddUnitCustom}
+                  onChange={(e) => setManualAddUnitCustom(e.target.value)}
+                  className="h-9 font-bold text-xs uppercase"
+                  required
+                />
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Label className="text-[10px] font-black uppercase text-slate-500">
+                  Office / Department / College *
+                </Label>
+                <Select
+                  value={manualAddUnitId}
+                  onValueChange={(val) => {
+                    setManualAddUnitId(val);
+                    if (val !== 'OTHER_UNIT') setManualAddUnitCustom('');
+                  }}
+                  disabled={!manualAddCampusId}
+                >
+                  <SelectTrigger className="h-9 text-xs font-bold">
+                    <SelectValue
+                      placeholder={manualAddCampusId ? 'Select Office / Department' : 'Select Campus first'}
+                    />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {filteredManualAddUnits.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                    <SelectItem
+                      value="OTHER_UNIT"
+                      className="font-bold text-amber-600 dark:text-amber-400 border-t mt-1 pt-1"
+                    >
+                      -- Other Office / Specific Sub-unit (Type Below) --
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                {(manualAddUnitId === 'OTHER_UNIT' || filteredManualAddUnits.length === 0) && (
+                  <Input
+                    placeholder="Type Specific Office / Department"
+                    value={manualAddUnitCustom}
+                    onChange={(e) => setManualAddUnitCustom(e.target.value)}
+                    className="h-9 font-bold text-xs uppercase mt-1.5"
+                    required
+                  />
+                )}
+              </div>
+            )}
 
             {/* Attendance Status Override */}
             <div className="space-y-1">
@@ -4222,7 +4334,15 @@ export default function UnitActivityPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={isSubmittingManualAdd || !manualAddName.trim() || !manualAddContact.trim() || !manualAddSex}
+                disabled={
+                  isSubmittingManualAdd ||
+                  !manualAddName.trim() ||
+                  !manualAddContact.trim() ||
+                  !manualAddSex ||
+                  !manualAddCampusId ||
+                  (manualAddCampusId === 'OTHERS' && !manualAddUnitCustom.trim()) ||
+                  (manualAddCampusId !== 'OTHERS' && !manualAddUnitId && !manualAddUnitCustom.trim())
+                }
                 className="h-9 text-xs font-black uppercase tracking-wider bg-emerald-700 hover:bg-emerald-800 text-white"
               >
                 {isSubmittingManualAdd ? (

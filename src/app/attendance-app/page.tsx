@@ -63,6 +63,7 @@ import {
   UserCheck,
   Sparkles,
   ArrowLeft,
+  School,
 } from 'lucide-react';
 
 export default function RsuAttendanceApp() {
@@ -127,6 +128,16 @@ export default function RsuAttendanceApp() {
     status: 'ON_TIME' | 'LATE' | 'OUTSIDE_WINDOW' | 'REJECTED';
     action: 'login' | 'logout';
   } | null>(null);
+
+  const filteredManualUnits = useMemo(() => {
+    if (!units || !manualCampusId || manualCampusId === 'OTHERS') return [];
+    return units.filter((u) => {
+      if (u.campusIds && u.campusIds.length > 0) {
+        return u.campusIds.includes(manualCampusId);
+      }
+      return true;
+    });
+  }, [units, manualCampusId]);
 
   // Employee login/account state
   const [authEmail, setAuthEmail] = useState('');
@@ -975,17 +986,19 @@ export default function RsuAttendanceApp() {
       const pseudoUserId = `manual_${nameKey}_${phoneDigits.slice(-4) || 'user'}`;
       const logId = `${actId}_${sessionId}_${pseudoUserId}`;
 
-      const selectedUnitObj = units?.find((u) => u.id === manualUnitId);
       const selectedCampusObj = campuses?.find((c) => c.id === manualCampusId);
-      const unitName = (
-        selectedUnitObj
-          ? selectedUnitObj.name
-          : manualAffiliation.trim()
-            ? manualAffiliation.trim()
-            : selectedCampusObj
-              ? selectedCampusObj.name
-              : 'PARTICIPANT'
-      ).toUpperCase();
+      const resolvedCampusName =
+        manualCampusId === 'OTHERS' ? 'NOT PART OF RSU (EXTERNAL)' : selectedCampusObj?.name || 'MAIN CAMPUS';
+
+      const selectedUnitObj = units?.find((u) => u.id === manualUnitId);
+      const resolvedUnitName =
+        manualCampusId === 'OTHERS'
+          ? (manualAffiliation.trim() || 'EXTERNAL GUEST').toUpperCase()
+          : manualUnitId === 'OTHER_UNIT'
+            ? (manualAffiliation.trim() || 'OTHER OFFICE').toUpperCase()
+            : (selectedUnitObj?.name || manualAffiliation.trim() || 'GENERAL ATTENDEE').toUpperCase();
+
+      const unitName = `${resolvedUnitName} • ${resolvedCampusName}`;
 
       const now = new Date();
       const requiresLogout = sessionDetails.requiresLogout;
@@ -1044,13 +1057,16 @@ export default function RsuAttendanceApp() {
             activityId: actId,
             userId: pseudoUserId,
             userName: cleanName,
-            unitId: manualUnitId || 'manual',
-            unitName,
+            unitId:
+              manualCampusId === 'OTHERS' ? 'external' : manualUnitId === 'OTHER_UNIT' ? '' : manualUnitId || 'manual',
+            unitName: resolvedUnitName,
+            campusId: manualCampusId === 'OTHERS' ? 'external' : manualCampusId,
+            campusName: resolvedCampusName,
             deviceFingerprint: deviceFingerprint || 'MANUAL-INPUT',
             scannedAt: now,
             status: logStatus,
             contactNumber: cleanPhone,
-            sex: manualSex,
+            sex: cleanSex,
             sessionId: sessionDetails.id,
             sessionLabel: sessionDetails.label,
           };
@@ -1750,19 +1766,101 @@ export default function RsuAttendanceApp() {
                     </div>
                   </div>
 
-                  {/* Campus & Unit or Affiliation */}
+                  {/* Campus / Site */}
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
-                      <Building2 className="h-3 w-3 text-[#D4AF37]" /> Office / Unit / Affiliation
+                      <School className="h-3 w-3 text-[#D4AF37]" /> Campus / Site{' '}
+                      <span className="text-rose-400">*</span>
                     </label>
-                    <Input
-                      placeholder="e.g. College of Education / Visitor / Guest"
-                      value={manualAffiliation}
-                      onChange={(e) => setManualAffiliation(e.target.value)}
-                      className="bg-slate-950 border-slate-800 text-xs font-bold h-10 text-white rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50 uppercase"
+                    <Select
+                      value={manualCampusId}
+                      onValueChange={(val) => {
+                        setManualCampusId(val);
+                        setManualUnitId('');
+                        setManualAffiliation('');
+                      }}
                       disabled={isSubmittingManual}
-                    />
+                    >
+                      <SelectTrigger className="bg-slate-950 border-slate-800 text-xs font-bold h-10 rounded-xl text-white">
+                        <SelectValue placeholder="Select Campus / Site" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-slate-800 text-white text-xs font-semibold max-h-60">
+                        {campuses?.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.name}
+                          </SelectItem>
+                        ))}
+                        <SelectItem
+                          value="OTHERS"
+                          className="text-amber-400 font-bold border-t border-slate-800 mt-1 pt-1"
+                        >
+                          ✨ Others (Not part of RSU / External Guest / Visitor)
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+
+                  {/* Office / Department / Affiliation */}
+                  {manualCampusId === 'OTHERS' ? (
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
+                        <Building2 className="h-3 w-3 text-[#D4AF37]" /> Agency / Institution / Affiliation{' '}
+                        <span className="text-rose-400">*</span>
+                      </label>
+                      <Input
+                        placeholder="e.g. CHED, DepEd, LGU Romblon, DOH, Guest"
+                        value={manualAffiliation}
+                        onChange={(e) => setManualAffiliation(e.target.value)}
+                        className="bg-slate-950 border-slate-800 text-xs font-bold h-10 text-white rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50 uppercase"
+                        disabled={isSubmittingManual}
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider pl-1 flex items-center gap-1">
+                        <Building2 className="h-3 w-3 text-[#D4AF37]" /> Office / Department / College{' '}
+                        <span className="text-rose-400">*</span>
+                      </label>
+                      <Select
+                        value={manualUnitId}
+                        onValueChange={(val) => {
+                          setManualUnitId(val);
+                          if (val !== 'OTHER_UNIT') setManualAffiliation('');
+                        }}
+                        disabled={isSubmittingManual || !manualCampusId}
+                      >
+                        <SelectTrigger className="bg-slate-950 border-slate-800 text-xs font-bold h-10 rounded-xl text-white">
+                          <SelectValue
+                            placeholder={manualCampusId ? 'Select Department / Office' : 'Select Campus first'}
+                          />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-slate-800 text-white text-xs font-semibold max-h-60">
+                          {filteredManualUnits.map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.name}
+                            </SelectItem>
+                          ))}
+                          <SelectItem
+                            value="OTHER_UNIT"
+                            className="text-amber-400 font-bold border-t border-slate-800 mt-1 pt-1"
+                          >
+                            -- Other Office / Specific Sub-unit (Type Below) --
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {(manualUnitId === 'OTHER_UNIT' || filteredManualUnits.length === 0) && (
+                        <Input
+                          placeholder="Type Specific Office / Department"
+                          value={manualAffiliation}
+                          onChange={(e) => setManualAffiliation(e.target.value)}
+                          className="bg-slate-950 border-slate-800 text-xs font-bold h-10 text-white rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50 uppercase mt-1"
+                          disabled={isSubmittingManual}
+                          required
+                        />
+                      )}
+                    </div>
+                  )}
 
                   <Button
                     type="submit"
@@ -1771,7 +1869,10 @@ export default function RsuAttendanceApp() {
                       (!paramActivityId && !chosenActivityId) ||
                       !manualFullName.trim() ||
                       !manualContactNumber.trim() ||
-                      !manualSex
+                      !manualSex ||
+                      !manualCampusId ||
+                      (manualCampusId === 'OTHERS' && !manualAffiliation.trim()) ||
+                      (manualCampusId !== 'OTHERS' && !manualUnitId && !manualAffiliation.trim())
                     }
                     className="w-full h-11 mt-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-none text-slate-950 dark:text-white font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
                   >

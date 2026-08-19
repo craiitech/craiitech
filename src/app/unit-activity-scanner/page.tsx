@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase, useGetCollection } from '@/firebase';
 import { collection, doc, getDoc, setDoc, query, where, updateDoc, orderBy, limit } from '@/firebase/firestore-wrapper';
-import type { Unit, AttendanceActivity, DeviceBinding, ActivityAttendanceLog } from '@/lib/types';
+import type { Unit, Campus, AttendanceActivity, DeviceBinding, ActivityAttendanceLog } from '@/lib/types';
 import {
   verifyPayloadSignature,
   generateActivityCode,
@@ -41,6 +41,7 @@ import {
   Phone,
   Building2,
   ClipboardCheck,
+  School,
 } from 'lucide-react';
 
 function UnitActivityScannerTerminal() {
@@ -57,7 +58,9 @@ function UnitActivityScannerTerminal() {
   const [manualName, setManualName] = useState('');
   const [manualContact, setManualContact] = useState('');
   const [manualSex, setManualSex] = useState('');
-  const [manualUnit, setManualUnit] = useState('');
+  const [manualCampus, setManualCampus] = useState('');
+  const [manualUnitId, setManualUnitId] = useState('');
+  const [manualUnitCustom, setManualUnitCustom] = useState('');
   const [manualSubmitting, setManualSubmitting] = useState(false);
   const [manualError, setManualError] = useState('');
 
@@ -256,9 +259,36 @@ function UnitActivityScannerTerminal() {
     return sessions.find((s) => s.id === selectedSessionId) || sessions[0];
   }, [sessions, selectedSessionId]);
 
-  // Fetch unit list to resolve active activity unit name (static, fetched once)
+  // Fetch unit list and campuses list to resolve active activity unit name and manual sign-in dropdowns
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useGetCollection<Unit>(unitsQuery);
+
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
+  const { data: campuses } = useGetCollection<Campus>(campusesQuery);
+
+  // Set default manual campus when activity or campuses load
+  useEffect(() => {
+    if (!manualCampus) {
+      if (activeActivity?.campusId && activeActivity.campusId !== 'all') {
+        setManualCampus(activeActivity.campusId);
+      } else if (userProfile?.campusId) {
+        setManualCampus(userProfile.campusId);
+      } else if (campuses && campuses.length > 0) {
+        setManualCampus(campuses[0].id);
+      }
+    }
+  }, [activeActivity, userProfile, campuses, manualCampus]);
+
+  // Filter units for the selected manual campus
+  const filteredManualUnits = useMemo(() => {
+    if (!units || !manualCampus || manualCampus === 'OTHERS') return [];
+    return units.filter((u) => {
+      if (u.campusIds && u.campusIds.length > 0) {
+        return u.campusIds.includes(manualCampus);
+      }
+      return true;
+    });
+  }, [units, manualCampus]);
 
   // Fetch real-time logs for this activity (ordered by time and limited to top 50 to prevent huge reads)
   const logsQuery = useMemoFirebase(() => {
@@ -757,7 +787,7 @@ function UnitActivityScannerTerminal() {
     }
   };
 
-  // Manual Attendee Entry Submit Handler (Typing Name, Mobile & Sex)
+  // Manual Attendee Entry Submit Handler (Typing Name, Mobile, Sex, Campus & Unit)
   const handleManualLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setManualError('');
@@ -776,6 +806,18 @@ function UnitActivityScannerTerminal() {
     }
     if (!manualSex) {
       setManualError('Please select sex identification (Male / Female / Others).');
+      return;
+    }
+    if (!manualCampus) {
+      setManualError('Please select Campus / Site.');
+      return;
+    }
+    if (manualCampus === 'OTHERS' && !manualUnitCustom.trim()) {
+      setManualError('Please enter Agency / Institution / Organization / Affiliation.');
+      return;
+    }
+    if (manualCampus !== 'OTHERS' && !manualUnitId && !manualUnitCustom.trim()) {
+      setManualError('Please select or specify Office / Department.');
       return;
     }
 
@@ -809,7 +851,25 @@ function UnitActivityScannerTerminal() {
       const phoneDigits = cleanContact.replace(/[^0-9]/g, '');
       const pseudoUserId = `walkin_${nameKey}_${phoneDigits.slice(-4) || 'user'}`;
       const logId = `${activeActivity.id}_${selectedSession.id}_${pseudoUserId}`;
-      const unitName = (manualUnit.trim() || activeActivityUnit || 'GENERAL ATTENDEE').toUpperCase();
+
+      const resolvedCampusName =
+        manualCampus === 'OTHERS'
+          ? 'NOT PART OF RSU (EXTERNAL)'
+          : campuses?.find((c) => c.id === manualCampus)?.name || 'MAIN CAMPUS';
+
+      const resolvedUnitName =
+        manualCampus === 'OTHERS'
+          ? manualUnitCustom.trim().toUpperCase()
+          : manualUnitId === 'OTHER_UNIT'
+            ? (manualUnitCustom.trim() || 'OTHER OFFICE').toUpperCase()
+            : (
+                units?.find((u) => u.id === manualUnitId)?.name ||
+                manualUnitCustom.trim() ||
+                activeActivityUnit ||
+                'GENERAL ATTENDEE'
+              ).toUpperCase();
+
+      const unitName = resolvedUnitName;
 
       const requiresLogout = selectedSession.requiresLogout ?? activeActivity.requiresLogout ?? false;
       const logRef = firestore ? doc(firestore, 'unitActivityAttendanceLogs', logId) : null;
@@ -844,7 +904,7 @@ function UnitActivityScannerTerminal() {
                 message: `Logout registered for ${cleanName} (${selectedSession.label}).`,
                 details: {
                   name: cleanName,
-                  office: unitName,
+                  office: `${unitName} • ${resolvedCampusName}`,
                   time: format(logoutTime, 'hh:mm a'),
                   status: 'LOGOUT',
                 },
@@ -852,8 +912,8 @@ function UnitActivityScannerTerminal() {
               setManualName('');
               setManualContact('');
               setManualSex('');
-              setManualUnit('');
-              setTimeout(() => manualNameInputRef.current?.focus(), 100);
+              setManualUnitId('');
+              setManualUnitCustom('');
               return;
             } catch (err) {
               console.warn('Online logout update failed, falling back to offline:', err);
@@ -874,7 +934,7 @@ function UnitActivityScannerTerminal() {
             message: `Logout registered for ${cleanName} (Saved Offline).`,
             details: {
               name: cleanName,
-              office: unitName,
+              office: `${unitName} • ${resolvedCampusName}`,
               time: format(logoutTime, 'hh:mm a'),
               status: 'LOGOUT (OFFLINE)',
             },
@@ -882,24 +942,32 @@ function UnitActivityScannerTerminal() {
           setManualName('');
           setManualContact('');
           setManualSex('');
-          setManualUnit('');
-          setTimeout(() => manualNameInputRef.current?.focus(), 100);
+          setManualUnitId('');
+          setManualUnitCustom('');
           return;
         } else if (requiresLogout && existingLogData.logoutAt) {
           showScanResult({
             status: 'warning',
             message: `${cleanName} has already completed login and logout for ${selectedSession.label}. Duplicate ignored.`,
-            details: { name: cleanName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' },
+            details: {
+              name: cleanName,
+              office: `${unitName} • ${resolvedCampusName}`,
+              time: format(new Date(), 'hh:mm a'),
+              status: 'DUPLICATE',
+            },
           });
-          setTimeout(() => manualNameInputRef.current?.focus(), 100);
           return;
         } else {
           showScanResult({
             status: 'warning',
             message: `${cleanName} has already signed in for ${selectedSession.label}. Duplicate ignored.`,
-            details: { name: cleanName, office: unitName, time: format(new Date(), 'hh:mm a'), status: 'DUPLICATE' },
+            details: {
+              name: cleanName,
+              office: `${unitName} • ${resolvedCampusName}`,
+              time: format(new Date(), 'hh:mm a'),
+              status: 'DUPLICATE',
+            },
           });
-          setTimeout(() => manualNameInputRef.current?.focus(), 100);
           return;
         }
       }
@@ -910,10 +978,12 @@ function UnitActivityScannerTerminal() {
         activityId: activeActivity.id,
         userId: pseudoUserId,
         userName: cleanName,
-        unitId: 'manual',
+        unitId: manualCampus === 'OTHERS' ? 'external' : manualUnitId === 'OTHER_UNIT' ? '' : manualUnitId,
         unitName,
+        campusId: manualCampus === 'OTHERS' ? 'external' : manualCampus,
+        campusName: resolvedCampusName,
         deviceFingerprint: 'WALK-IN-TERMINAL',
-        scannedAt: new Date(),
+        scannedAt: new Date(scanTime),
         status: logStatus,
         contactNumber: cleanContact,
         sex: cleanSex,
@@ -934,8 +1004,8 @@ function UnitActivityScannerTerminal() {
                   : `Recorded outside session window.`,
             details: {
               name: cleanName,
-              office: unitName,
-              time: format(new Date(), 'hh:mm a'),
+              office: `${unitName} • ${resolvedCampusName}`,
+              time: format(new Date(scanTime), 'hh:mm a'),
               status:
                 logStatus === 'ON_TIME' ? 'LOGIN ON TIME' : logStatus === 'LATE' ? 'LOGIN LATE' : 'OUTSIDE WINDOW',
             },
@@ -943,8 +1013,8 @@ function UnitActivityScannerTerminal() {
           setManualName('');
           setManualContact('');
           setManualSex('');
-          setManualUnit('');
-          setTimeout(() => manualNameInputRef.current?.focus(), 100);
+          setManualUnitId('');
+          setManualUnitCustom('');
           return;
         } catch (err: any) {
           console.warn('Online manual setDoc failed, saving offline:', err);
@@ -962,8 +1032,8 @@ function UnitActivityScannerTerminal() {
         message: `Attendance Recorded (Saved Offline). Syncs automatically.`,
         details: {
           name: cleanName,
-          office: unitName,
-          time: format(new Date(), 'hh:mm a'),
+          office: `${unitName} • ${resolvedCampusName}`,
+          time: format(new Date(scanTime), 'hh:mm a'),
           status:
             logStatus === 'ON_TIME'
               ? 'LOGIN ON TIME (OFFLINE)'
@@ -975,8 +1045,8 @@ function UnitActivityScannerTerminal() {
       setManualName('');
       setManualContact('');
       setManualSex('');
-      setManualUnit('');
-      setTimeout(() => manualNameInputRef.current?.focus(), 100);
+      setManualUnitId('');
+      setManualUnitCustom('');
     } catch (err: any) {
       console.error(err);
       setManualError(err.message || 'Failed to record attendance.');
@@ -1025,10 +1095,11 @@ function UnitActivityScannerTerminal() {
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, []);
 
-  // Support for physical USB/HID QR/Barcode scanners (keyboard emulation)
+  // Support for physical USB/Bluetooth HID QR/Barcode scanners (keyboard emulation)
   useEffect(() => {
     let buffer = '';
     let lastKeyTime = Date.now();
+    let isScannerStream = false;
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // Ignore modifier keys
@@ -1037,26 +1108,51 @@ function UnitActivityScannerTerminal() {
       }
 
       const currentTime = Date.now();
-      // If the time between keypresses is too long (> 150ms), reset the buffer (likely human typing)
-      if (currentTime - lastKeyTime > 150) {
-        buffer = '';
-      }
+      const delta = currentTime - lastKeyTime;
       lastKeyTime = currentTime;
+
+      // Scanners send keystrokes in rapid succession (< 80ms interval)
+      if (delta < 80 || (buffer.length > 0 && delta < 120)) {
+        isScannerStream = true;
+      } else if (delta > 180) {
+        buffer = '';
+        isScannerStream = false;
+      }
 
       if (e.key === 'Enter') {
         if (buffer.length > 0) {
           const trimmed = buffer.trim();
-          // Check if buffer looks like a valid JSON QR code payload
-          if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          // Check if buffer looks like a valid JSON QR code payload or scan payload
+          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || trimmed.length >= 10) {
             e.preventDefault();
             e.stopPropagation();
+
+            // If an input was active and received stray scanner characters, blur and clean it
+            const activeEl = document.activeElement as HTMLElement | null;
+            if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+              activeEl.blur();
+            }
+            setManualName((prev) => (prev.includes('{') || prev.length > 25 ? '' : prev));
+
             handleScanSuccess(trimmed);
           }
           buffer = '';
+          isScannerStream = false;
         }
       } else {
         if (e.key.length === 1) {
           buffer += e.key;
+
+          // If scanner keystroke burst is detected or buffer begins with JSON payload signature,
+          // prevent keystroke from polluting whichever input element is currently focused!
+          if (isScannerStream || buffer.startsWith('{') || buffer.startsWith('{"')) {
+            const activeEl = document.activeElement;
+            const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+            if (isInput) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }
         }
       }
     };
@@ -1255,7 +1351,6 @@ function UnitActivityScannerTerminal() {
             <button
               onClick={() => {
                 setActiveConsoleTab((prev) => (prev === 'camera' ? 'both' : prev));
-                setTimeout(() => manualNameInputRef.current?.focus(), 100);
               }}
               className="inline-flex items-center gap-1 text-[7.5px] font-black uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-0.5 rounded-full transition-all shadow-sm"
             >
@@ -1378,7 +1473,6 @@ function UnitActivityScannerTerminal() {
                     <button
                       onClick={() => {
                         setActiveConsoleTab((prev) => (prev === 'camera' ? 'both' : prev));
-                        setTimeout(() => manualNameInputRef.current?.focus(), 100);
                       }}
                       className="text-[8px] sm:text-[9px] text-[#D4AF37] hover:text-white uppercase tracking-widest font-black px-3 py-1 rounded-full flex items-center gap-1 transition-all cursor-pointer"
                       style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.3)' }}
@@ -1728,7 +1822,6 @@ function UnitActivityScannerTerminal() {
               type="button"
               onClick={() => {
                 setActiveConsoleTab('manual');
-                setTimeout(() => manualNameInputRef.current?.focus(), 100);
               }}
               className={`flex-1 py-1.5 px-2 rounded-lg text-[8px] sm:text-[8.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${
                 activeConsoleTab === 'manual'
@@ -1994,24 +2087,114 @@ function UnitActivityScannerTerminal() {
                   </div>
                 </div>
 
-                {/* Office / Unit */}
+                {/* Campus / Site Selection */}
                 <div className="space-y-1">
                   <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider pl-0.5 flex items-center gap-1">
-                    <Building2 className="h-2.5 w-2.5 text-[#D4AF37]" /> Office / Department / Unit
+                    <School className="h-2.5 w-2.5 text-[#D4AF37]" /> Campus / Site{' '}
+                    <span className="text-rose-400">*</span>
                   </label>
-                  <Input
-                    placeholder="e.g. College of Engineering / Guest"
-                    value={manualUnit}
-                    onChange={(e) => setManualUnit(e.target.value)}
-                    className="bg-slate-950/80 border-slate-700/80 text-[11px] font-bold text-white h-8 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50 uppercase"
+                  <Select
+                    value={manualCampus}
+                    onValueChange={(val) => {
+                      setManualCampus(val);
+                      setManualUnitId('');
+                      setManualUnitCustom('');
+                    }}
                     disabled={manualSubmitting}
-                  />
+                  >
+                    <SelectTrigger className="bg-slate-950/80 border-slate-700/80 text-[10.5px] font-bold text-white h-8 rounded-xl">
+                      <SelectValue placeholder="Select Campus / Site" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-800 text-white text-xs font-semibold max-h-60">
+                      {campuses?.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem
+                        value="OTHERS"
+                        className="text-amber-400 font-bold border-t border-slate-800 mt-1 pt-1"
+                      >
+                        ✨ Others (Not part of RSU / External Guest / Visitor)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
+                {/* Office / Department / Affiliation Selection */}
+                {manualCampus === 'OTHERS' ? (
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider pl-0.5 flex items-center gap-1">
+                      <Building2 className="h-2.5 w-2.5 text-[#D4AF37]" /> Agency / Institution / Affiliation{' '}
+                      <span className="text-rose-400">*</span>
+                    </label>
+                    <Input
+                      placeholder="e.g. CHED, DepEd, LGU Romblon, DOH, Guest"
+                      value={manualUnitCustom}
+                      onChange={(e) => setManualUnitCustom(e.target.value)}
+                      className="bg-slate-950/80 border-slate-700/80 text-[11px] font-bold text-white h-8 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50 uppercase"
+                      disabled={manualSubmitting}
+                      required
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-wider pl-0.5 flex items-center gap-1">
+                      <Building2 className="h-2.5 w-2.5 text-[#D4AF37]" /> Office / Department / College{' '}
+                      <span className="text-rose-400">*</span>
+                    </label>
+                    <Select
+                      value={manualUnitId}
+                      onValueChange={(val) => {
+                        setManualUnitId(val);
+                        if (val !== 'OTHER_UNIT') setManualUnitCustom('');
+                      }}
+                      disabled={manualSubmitting || !manualCampus}
+                    >
+                      <SelectTrigger className="bg-slate-950/80 border-slate-700/80 text-[10.5px] font-bold text-white h-8 rounded-xl">
+                        <SelectValue
+                          placeholder={manualCampus ? 'Select Department / Office' : 'Select Campus first'}
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="bg-slate-900 border-slate-800 text-white text-xs font-semibold max-h-60">
+                        {filteredManualUnits.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>
+                            {u.name}
+                          </SelectItem>
+                        ))}
+                        <SelectItem
+                          value="OTHER_UNIT"
+                          className="text-amber-400 font-bold border-t border-slate-800 mt-1 pt-1"
+                        >
+                          -- Other Office / Specific Sub-unit (Type Below) --
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {(manualUnitId === 'OTHER_UNIT' || filteredManualUnits.length === 0) && (
+                      <Input
+                        placeholder="Type Specific Office / Department"
+                        value={manualUnitCustom}
+                        onChange={(e) => setManualUnitCustom(e.target.value)}
+                        className="bg-slate-950/80 border-slate-700/80 text-[11px] font-bold text-white h-8 rounded-xl focus-visible:ring-offset-0 focus-visible:ring-[#D4AF37]/50 uppercase mt-1"
+                        disabled={manualSubmitting}
+                        required
+                      />
+                    )}
+                  </div>
+                )}
 
                 {/* Submit button */}
                 <Button
                   type="submit"
-                  disabled={manualSubmitting || !manualName.trim() || !manualContact.trim() || !manualSex}
+                  disabled={
+                    manualSubmitting ||
+                    !manualName.trim() ||
+                    !manualContact.trim() ||
+                    !manualSex ||
+                    !manualCampus ||
+                    (manualCampus === 'OTHERS' && !manualUnitCustom.trim()) ||
+                    (manualCampus !== 'OTHERS' && !manualUnitId && !manualUnitCustom.trim())
+                  }
                   className="w-full h-8.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-slate-950 font-black text-[10px] uppercase tracking-wider rounded-xl shadow-lg border-none active:scale-95 transition-all mt-1"
                 >
                   {manualSubmitting ? (
