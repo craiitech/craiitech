@@ -485,17 +485,17 @@ export default function RsuAttendanceApp() {
     const timestamp = Date.now();
     const signature = await generatePayloadSignature(binding.userId, timestamp, binding.id);
 
-    const payloadObj = {
+    const payloadObj: Record<string, any> = {
       u: binding.userId,
       f: binding.id,
       t: timestamp,
       s: signature,
       n: binding.userName,
       o: binding.unitName,
-      i: binding.unitId,
-      c: binding.contactNumber || '',
-      x: binding.sex || '',
     };
+    if (binding.unitId) payloadObj.i = binding.unitId;
+    if (binding.contactNumber) payloadObj.c = binding.contactNumber;
+    if (binding.sex) payloadObj.x = binding.sex;
 
     const payloadString = JSON.stringify(payloadObj);
     setQrPayload(payloadString);

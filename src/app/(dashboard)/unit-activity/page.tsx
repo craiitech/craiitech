@@ -915,10 +915,20 @@ export default function UnitActivityPage() {
     }
   }, [activeTab]);
 
-  // Support for physical USB/HID QR/Barcode scanners (keyboard emulation)
+  // Support for high-speed physical USB/Bluetooth HID QR/Barcode scanners (keyboard emulation)
   useEffect(() => {
     let buffer = '';
-    let lastKeyTime = Date.now();
+    let clearTimer: NodeJS.Timeout | null = null;
+    let isScannerStream = false;
+
+    const resetBuffer = () => {
+      buffer = '';
+      isScannerStream = false;
+      if (clearTimer) {
+        clearTimeout(clearTimer);
+        clearTimer = null;
+      }
+    };
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // Ignore modifier keys
@@ -926,33 +936,79 @@ export default function UnitActivityPage() {
         return;
       }
 
-      const currentTime = Date.now();
-      // If the time between keypresses is too long (> 150ms), reset the buffer (likely human typing)
-      if (currentTime - lastKeyTime > 150) {
-        buffer = '';
-      }
-      lastKeyTime = currentTime;
+      // Reset inactive buffer after 1500ms of complete silence
+      if (clearTimer) clearTimeout(clearTimer);
+      clearTimer = setTimeout(resetBuffer, 1500);
 
-      if (e.key === 'Enter') {
+      // Suffix keys / Enter or Tab
+      if (e.key === 'Enter' || e.key === 'Tab') {
         if (buffer.length > 0) {
           const trimmed = buffer.trim();
-          // Check if buffer looks like a valid JSON QR code payload
           if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
             e.preventDefault();
             e.stopPropagation();
+
+            const activeEl = document.activeElement as HTMLElement | null;
+            if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+              activeEl.blur();
+            }
+
+            resetBuffer();
             handleScanSuccess(trimmed);
+            return;
+          } else if (trimmed.length >= 10) {
+            e.preventDefault();
+            e.stopPropagation();
+            resetBuffer();
+            handleScanSuccess(trimmed);
+            return;
           }
-          buffer = '';
+          resetBuffer();
         }
-      } else {
-        if (e.key.length === 1) {
-          buffer += e.key;
+        return;
+      }
+
+      if (e.key.length === 1) {
+        buffer += e.key;
+
+        // If buffer begins with JSON payload signature '{', mark as scanner stream and protect input
+        if (buffer.startsWith('{') || isScannerStream) {
+          isScannerStream = true;
+          const activeEl = document.activeElement;
+          const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+          if (isInput) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+
+        // INSTANT TRIGGER: Check if buffer formed a complete valid JSON payload
+        if (buffer.startsWith('{') && buffer.endsWith('}')) {
+          try {
+            const parsed = JSON.parse(buffer);
+            if (parsed && (parsed.u || parsed.userId || parsed.t || parsed.s)) {
+              e.preventDefault();
+              e.stopPropagation();
+
+              const activeEl = document.activeElement as HTMLElement | null;
+              if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+                activeEl.blur();
+              }
+
+              const completedPayload = buffer;
+              resetBuffer();
+              handleScanSuccess(completedPayload);
+            }
+          } catch {
+            // Buffer is not yet complete JSON, continue accumulating
+          }
         }
       }
     };
 
     window.addEventListener('keydown', handleGlobalKeyDown, { capture: true });
     return () => {
+      if (clearTimer) clearTimeout(clearTimer);
       window.removeEventListener('keydown', handleGlobalKeyDown, { capture: true });
     };
   }, [activeActivity]);

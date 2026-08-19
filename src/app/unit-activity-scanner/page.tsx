@@ -1095,11 +1095,20 @@ function UnitActivityScannerTerminal() {
     return () => window.removeEventListener('keydown', handleKeyDown, { capture: true });
   }, []);
 
-  // Support for physical USB/Bluetooth HID QR/Barcode scanners (keyboard emulation)
+  // Support for high-speed physical USB/Bluetooth HID QR/Barcode scanners (keyboard emulation)
   useEffect(() => {
     let buffer = '';
-    let lastKeyTime = Date.now();
+    let clearTimer: NodeJS.Timeout | null = null;
     let isScannerStream = false;
+
+    const resetBuffer = () => {
+      buffer = '';
+      isScannerStream = false;
+      if (clearTimer) {
+        clearTimeout(clearTimer);
+        clearTimer = null;
+      }
+    };
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       // Ignore modifier keys
@@ -1107,51 +1116,75 @@ function UnitActivityScannerTerminal() {
         return;
       }
 
-      const currentTime = Date.now();
-      const delta = currentTime - lastKeyTime;
-      lastKeyTime = currentTime;
+      // Reset inactive buffer after 1500ms of complete silence
+      if (clearTimer) clearTimeout(clearTimer);
+      clearTimer = setTimeout(resetBuffer, 1500);
 
-      // Scanners send keystrokes in rapid succession (< 80ms interval)
-      if (delta < 80 || (buffer.length > 0 && delta < 120)) {
-        isScannerStream = true;
-      } else if (delta > 180) {
-        buffer = '';
-        isScannerStream = false;
-      }
-
-      if (e.key === 'Enter') {
+      // Suffix keys / Enter or Tab
+      if (e.key === 'Enter' || e.key === 'Tab') {
         if (buffer.length > 0) {
           const trimmed = buffer.trim();
-          // Check if buffer looks like a valid JSON QR code payload or scan payload
-          if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || trimmed.length >= 10) {
+          if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
             e.preventDefault();
             e.stopPropagation();
 
-            // If an input was active and received stray scanner characters, blur and clean it
             const activeEl = document.activeElement as HTMLElement | null;
             if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
               activeEl.blur();
             }
             setManualName((prev) => (prev.includes('{') || prev.length > 25 ? '' : prev));
 
+            resetBuffer();
             handleScanSuccess(trimmed);
+            return;
+          } else if (trimmed.length >= 10) {
+            // Non-JSON token format
+            e.preventDefault();
+            e.stopPropagation();
+            resetBuffer();
+            handleScanSuccess(trimmed);
+            return;
           }
-          buffer = '';
-          isScannerStream = false;
+          resetBuffer();
         }
-      } else {
-        if (e.key.length === 1) {
-          buffer += e.key;
+        return;
+      }
 
-          // If scanner keystroke burst is detected or buffer begins with JSON payload signature,
-          // prevent keystroke from polluting whichever input element is currently focused!
-          if (isScannerStream || buffer.startsWith('{') || buffer.startsWith('{"')) {
-            const activeEl = document.activeElement;
-            const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
-            if (isInput) {
+      if (e.key.length === 1) {
+        buffer += e.key;
+
+        // If buffer begins with JSON payload signature '{', mark as scanner stream and protect input
+        if (buffer.startsWith('{') || isScannerStream) {
+          isScannerStream = true;
+          const activeEl = document.activeElement;
+          const isInput = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+          if (isInput) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+        }
+
+        // INSTANT TRIGGER: Check if buffer just formed a complete, valid JSON payload
+        // This eliminates any waiting time for scanner suffix delays or Enter key!
+        if (buffer.startsWith('{') && buffer.endsWith('}')) {
+          try {
+            const parsed = JSON.parse(buffer);
+            if (parsed && (parsed.u || parsed.userId || parsed.t || parsed.s)) {
               e.preventDefault();
               e.stopPropagation();
+
+              const activeEl = document.activeElement as HTMLElement | null;
+              if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA')) {
+                activeEl.blur();
+              }
+              setManualName((prev) => (prev.includes('{') || prev.length > 25 ? '' : prev));
+
+              const completedPayload = buffer;
+              resetBuffer();
+              handleScanSuccess(completedPayload);
             }
+          } catch {
+            // Buffer is not yet complete JSON, continue accumulating
           }
         }
       }
@@ -1159,6 +1192,7 @@ function UnitActivityScannerTerminal() {
 
     window.addEventListener('keydown', handleGlobalKeyDown, { capture: true });
     return () => {
+      if (clearTimer) clearTimeout(clearTimer);
       window.removeEventListener('keydown', handleGlobalKeyDown, { capture: true });
     };
   }, [activeActivity, selectedSession, offlineLogs]);
