@@ -20,7 +20,6 @@ import {
   Sparkles,
   Bot,
   RotateCcw,
-  ShieldAlert,
   AlertTriangle,
   CheckCircle2,
   TrendingUp,
@@ -28,28 +27,22 @@ import {
   Copy,
   Check,
   Printer,
-  ChevronRight,
   Target,
-  Clock,
-  Building,
   School,
-  UserCheck,
   Cpu,
-  Layers,
-  FileText,
-  AlertCircle,
   Network,
   GitMerge,
   Search,
-  SlidersHorizontal,
   ChevronDown,
   Info,
   ShieldCheck,
   Globe2,
-  FileSpreadsheet,
+  Quote,
+  Lightbulb,
+  Eye,
+  FileCode,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { copyToClipboard } from '@/lib/evaluation-export';
 
@@ -82,6 +75,234 @@ export interface SystemicCluster {
   resolvedCarsCount: number;
 }
 
+// Structured data models for formatted AI report
+interface ParsedFindingItem {
+  index: number;
+  clause: string;
+  occurrencesText: string;
+  campuses: string[];
+  observationText: string;
+  riskText?: string;
+  advisoryText?: string;
+}
+
+interface ParsedDisparityItem {
+  campus: string;
+  ncCount: string;
+  ofiCount: string;
+}
+
+interface ParsedDirectiveItem {
+  number: number;
+  title: string;
+  description: string;
+}
+
+interface ParsedSystemAuditReport {
+  title: string;
+  verdict: string;
+  systemicNCs: ParsedFindingItem[];
+  systemicOFIs: ParsedFindingItem[];
+  disparities: ParsedDisparityItem[];
+  disparityAnalysisText: string;
+  directives: ParsedDirectiveItem[];
+  hasParsedSections: boolean;
+}
+
+/**
+ * Intelligent parser that transforms raw AI/rule-engine text output
+ * into rich structured sections for executive dashboard rendering.
+ */
+function parseSystemAuditReport(rawText: string): ParsedSystemAuditReport {
+  if (!rawText || !rawText.trim()) {
+    return {
+      title: '',
+      verdict: '',
+      systemicNCs: [],
+      systemicOFIs: [],
+      disparities: [],
+      disparityAnalysisText: '',
+      directives: [],
+      hasParsedSections: false,
+    };
+  }
+
+  const sections = rawText.split(/(?:===|\n#{2,3}\s*)/);
+  const result: ParsedSystemAuditReport = {
+    title: 'RSU System-Wide Audit Intelligence Synthesis',
+    verdict: '',
+    systemicNCs: [],
+    systemicOFIs: [],
+    disparities: [],
+    disparityAnalysisText: '',
+    directives: [],
+    hasParsedSections: false,
+  };
+
+  for (let i = 0; i < sections.length; i++) {
+    const sec = sections[i].trim();
+    if (!sec) continue;
+
+    // Header / Verdict
+    if (
+      sec.includes('RSU SYSTEM-WIDE AUDIT INTELLIGENCE SYNTHESIS') ||
+      sec.includes('Institutional Compliance Verdict')
+    ) {
+      result.hasParsedSections = true;
+      const verdictMatch = sec.match(/Institutional Compliance Verdict:\s*([\s\S]+)/i);
+      if (verdictMatch) {
+        result.verdict = verdictMatch[1].trim();
+      } else {
+        const lines = sec.split('\n').filter((l) => !l.includes('==='));
+        result.verdict = lines.join('\n').trim();
+      }
+    }
+
+    // Systemic NCs
+    else if (sec.includes('SYSTEMIC CROSS-CAMPUS NON-CONFORMANCES') || sec.includes('SAME NC CLUSTERS')) {
+      result.hasParsedSections = true;
+      const items = sec.split(/(?=\n\d+\.\s*\[ISO Clause|\n\d+\.\s*Clause)/);
+      for (const item of items) {
+        const itemTrim = item.trim();
+        const headerMatch = itemTrim.match(
+          /^(\d+)\.\s*(\[ISO Clause [^\]]+\]|Clause [^•\n]+)\s*•\s*([^(]+)\(([^)]+)\)/i,
+        );
+        if (headerMatch) {
+          const index = parseInt(headerMatch[1], 10);
+          const clause = headerMatch[2].replace(/^\[|\]$/g, '').trim();
+          const occurrencesText = headerMatch[3].trim();
+          const campuses = headerMatch[4]
+            .split(',')
+            .map((c) => c.trim())
+            .filter(Boolean);
+
+          let observationText = '';
+          const obsMatch = itemTrim.match(/•\s*Audit Observation:\s*"([\s\S]*?)"(?=\s*•\s*Systemic Risk|$)/i);
+          if (obsMatch) {
+            observationText = obsMatch[1].trim();
+          } else {
+            const rawObsMatch = itemTrim.match(/•\s*Audit Observation:\s*([\s\S]*?)(?=\s*•\s*Systemic Risk|$)/i);
+            if (rawObsMatch) observationText = rawObsMatch[1].trim().replace(/^"|"$/g, '');
+          }
+
+          let riskText = '';
+          const riskMatch = itemTrim.match(/•\s*Systemic Risk:\s*([^\n]+)/i);
+          if (riskMatch) {
+            riskText = riskMatch[1].trim();
+          }
+
+          result.systemicNCs.push({
+            index,
+            clause,
+            occurrencesText,
+            campuses,
+            observationText,
+            riskText,
+          });
+        }
+      }
+    }
+
+    // Systemic OFIs
+    else if (
+      sec.includes('SYSTEMIC OBSERVATIONS FOR IMPROVEMENT') ||
+      sec.includes('LATENT GAPS') ||
+      sec.includes('LATENT VULNERABILITIES')
+    ) {
+      result.hasParsedSections = true;
+      const items = sec.split(/(?=\n\d+\.\s*\[ISO Clause|\n\d+\.\s*Clause)/);
+      for (const item of items) {
+        const itemTrim = item.trim();
+        const headerMatch = itemTrim.match(
+          /^(\d+)\.\s*(\[ISO Clause [^\]]+\]|Clause [^•\n]+)\s*•\s*([^(\n]+?)(?:\s*in\s*|\s*across\s*)([^\n•]+)/i,
+        );
+        if (headerMatch) {
+          const index = parseInt(headerMatch[1], 10);
+          const clause = headerMatch[2].replace(/^\[|\]$/g, '').trim();
+          const occurrencesText = headerMatch[3].trim();
+          const campuses = headerMatch[4]
+            .split(',')
+            .map((c) => c.trim())
+            .filter(Boolean);
+
+          let advisoryText = '';
+          const advMatch = itemTrim.match(/•\s*Advisory Note:\s*"([\s\S]*?)"(?=\n\d+\.|$)/i);
+          if (advMatch) {
+            advisoryText = advMatch[1].trim();
+          } else {
+            const rawAdvMatch = itemTrim.match(/•\s*Advisory Note:\s*([\s\S]*?)(?=\n\d+\.|$)/i);
+            if (rawAdvMatch) advisoryText = rawAdvMatch[1].trim().replace(/^"|"$/g, '');
+          }
+
+          result.systemicOFIs.push({
+            index,
+            clause,
+            occurrencesText,
+            campuses,
+            observationText: advisoryText,
+            advisoryText,
+          });
+        }
+      }
+    }
+
+    // Main vs Satellite Disparities
+    else if (sec.includes('MAIN VS. SATELLITE') || sec.includes('DISPARITY ANALYSIS')) {
+      result.hasParsedSections = true;
+      const lines = sec
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
+      for (const line of lines) {
+        const dMatch = line.match(/^[•\-*]\s*([^:]+):\s*(\d+)\s*NC\(s\),\s*(\d+)\s*OFI\(s\)/i);
+        if (dMatch) {
+          result.disparities.push({
+            campus: dMatch[1].trim(),
+            ncCount: dMatch[2].trim(),
+            ofiCount: dMatch[3].trim(),
+          });
+        } else if (!line.includes('===') && !line.toLowerCase().includes('finding distribution') && line.length > 20) {
+          result.disparityAnalysisText += (result.disparityAnalysisText ? ' ' : '') + line;
+        }
+      }
+    }
+
+    // Directives
+    else if (
+      sec.includes('SYSTEMIC ROOT CAUSES') ||
+      sec.includes('TOP MANAGEMENT ACTION DIRECTIVES') ||
+      sec.includes('STRATEGIC DIRECTIVES')
+    ) {
+      result.hasParsedSections = true;
+      const lines = sec
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
+      for (const line of lines) {
+        const dirMatch = line.match(/^(\d+)\.\s*([^:]+):\s*(.+)$/);
+        if (dirMatch) {
+          result.directives.push({
+            number: parseInt(dirMatch[1], 10),
+            title: dirMatch[2].trim(),
+            description: dirMatch[3].trim(),
+          });
+        } else {
+          const simpleMatch = line.match(/^(\d+)\.\s*(.+)$/);
+          if (simpleMatch) {
+            result.directives.push({
+              number: parseInt(simpleMatch[1], 10),
+              title: `Action Directive ${simpleMatch[1]}`,
+              description: simpleMatch[2].trim(),
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 export function SystemAuditIntelligenceAnalysis({
   findings,
   schedules,
@@ -102,6 +323,7 @@ export function SystemAuditIntelligenceAnalysis({
   const [activeTab, setActiveTab] = useState<'all-systemic' | 'common-nc' | 'common-ofi' | 'campus-disparity'>(
     'all-systemic',
   );
+  const [viewMode, setViewMode] = useState<'formatted' | 'raw'>('formatted');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [expandedClusterKey, setExpandedClusterKey] = useState<string | null>(null);
 
@@ -349,6 +571,10 @@ export function SystemAuditIntelligenceAnalysis({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedYear, yearFindings.length]);
 
+  const parsedReport = useMemo(() => {
+    return parseSystemAuditReport(aiReportText);
+  }, [aiReportText]);
+
   const handleCopy = async () => {
     const success = await copyToClipboard(aiReportText);
     if (success) {
@@ -370,37 +596,48 @@ export function SystemAuditIntelligenceAnalysis({
           <head>
             <title>RSU_SystemWide_Audit_Intelligence_AY${selectedYear}</title>
             <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #0f172a; line-height: 1.6; }
-              h1 { font-size: 18pt; text-transform: uppercase; margin-bottom: 4px; text-align: center; }
-              h2 { font-size: 13pt; text-transform: uppercase; margin-top: 0; color: #475569; text-align: center; }
-              .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 24px; }
-              .kri-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-              .kri-card { border: 1px solid #cbd5e1; padding: 12px; border-radius: 6px; text-align: center; background: #f8fafc; }
-              .kri-value { font-size: 16pt; font-weight: bold; }
-              .kri-label { font-size: 8pt; text-transform: uppercase; color: #64748b; font-weight: bold; margin-top: 4px; }
-              .content { white-space: pre-wrap; font-size: 10pt; line-height: 1.7; }
-              .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 8pt; color: #94a3b8; text-align: center; font-style: italic; }
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 36px; color: #0f172a; line-height: 1.55; }
+              h1 { font-size: 17pt; text-transform: uppercase; margin-bottom: 4px; text-align: center; font-weight: 900; }
+              h2 { font-size: 12pt; text-transform: uppercase; margin-top: 0; color: #475569; text-align: center; }
+              .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 14px; margin-bottom: 20px; }
+              .kri-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+              .kri-card { border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; text-align: center; background: #f8fafc; }
+              .kri-value { font-size: 15pt; font-weight: bold; }
+              .kri-label { font-size: 7.5pt; text-transform: uppercase; color: #64748b; font-weight: bold; margin-top: 2px; }
+              .section-heading { font-size: 11pt; font-weight: 900; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-top: 22px; margin-bottom: 12px; color: #1e293b; }
+              .nc-box { border: 1px solid #fca5a5; background: #fff5f5; border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+              .nc-header { font-size: 9.5pt; font-weight: bold; color: #991b1b; }
+              .ofi-box { border: 1px solid #fde68a; background: #fffbeb; border-radius: 6px; padding: 12px; margin-bottom: 12px; }
+              .ofi-header { font-size: 9.5pt; font-weight: bold; color: #92400e; }
+              .quote-box { background: #ffffff; border-left: 3px solid #94a3b8; padding: 8px 12px; margin: 6px 0; font-size: 8.5pt; font-style: italic; color: #334155; }
+              .risk-pill { display: inline-block; background: #fee2e2; color: #991b1b; padding: 2px 6px; border-radius: 4px; font-size: 8pt; font-weight: bold; margin-top: 4px; }
+              .campus-chip { display: inline-block; background: #e2e8f0; color: #334155; padding: 1px 6px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; margin: 2px; }
+              .disparity-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+              .disparity-card { border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 4px; background: #fafafa; font-size: 8.5pt; }
+              .directive-item { border-left: 3px solid #10b981; background: #f0fdf4; padding: 8px 12px; margin-bottom: 8px; border-radius: 0 4px 4px 0; font-size: 8.5pt; }
+              .directive-title { font-weight: bold; color: #065f46; }
+              .footer { margin-top: 36px; border-top: 1px solid #e2e8f0; padding-top: 12px; font-size: 7.5pt; color: #94a3b8; text-align: center; font-style: italic; }
             </style>
           </head>
           <body>
             <div class="header">
               <h1>Romblon State University</h1>
-              <h2>Quality Assurance Office • System-Wide Audit Intelligence Analysis</h2>
-              <p style="font-size: 10pt; font-weight: bold; margin-top: 8px;">ACADEMIC YEAR ${selectedYear} • ISO 19011:2018 & ISO 21001:2018</p>
+              <h2>Quality Assurance Office • System-Wide Multi-Site Audit Intelligence Synthesis</h2>
+              <p style="font-size: 9.5pt; font-weight: bold; margin-top: 6px;">ACADEMIC YEAR ${selectedYear} • ISO 19011:2018 & ISO 21001:2018</p>
             </div>
             
             <div class="kri-grid">
               <div class="kri-card">
                 <div class="kri-value">${systemicAnalytics.totalFindings}</div>
-                <div class="kri-label">Total System Findings</div>
+                <div class="kri-label">Total Findings</div>
               </div>
               <div class="kri-card">
                 <div class="kri-value" style="color: #b91c1c;">${systemicAnalytics.systemicNCs.length}</div>
-                <div class="kri-label">Systemic NC Clusters</div>
+                <div class="kri-label">Systemic NCs</div>
               </div>
               <div class="kri-card">
                 <div class="kri-value" style="color: #d97706;">${systemicAnalytics.systemicOFIs.length}</div>
-                <div class="kri-label">Systemic OFI Clusters</div>
+                <div class="kri-label">Systemic OFIs</div>
               </div>
               <div class="kri-card">
                 <div class="kri-value" style="color: #4f46e5;">${systemicAnalytics.affectedCampusesCount}</div>
@@ -408,10 +645,81 @@ export function SystemAuditIntelligenceAnalysis({
               </div>
             </div>
 
-            <div class="content">${aiReportText}</div>
+            ${
+              parsedReport.verdict
+                ? `<div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-bottom: 16px; font-size: 9pt;">
+                    <strong style="text-transform: uppercase; color: #0f172a; display: block; margin-bottom: 4px;">Institutional Compliance Verdict:</strong>
+                    ${parsedReport.verdict}
+                  </div>`
+                : ''
+            }
+
+            <div class="section-heading">1. Systemic Cross-Campus Non-Conformances (Recurrent NCs)</div>
+            ${
+              parsedReport.systemicNCs.length > 0
+                ? parsedReport.systemicNCs
+                    .map(
+                      (nc) => `
+                <div class="nc-box">
+                  <div class="nc-header">${nc.index}. ${nc.clause} • ${nc.occurrencesText}</div>
+                  <div style="margin: 4px 0;">
+                    ${nc.campuses.map((c) => `<span class="campus-chip">${c}</span>`).join('')}
+                  </div>
+                  <div class="quote-box">"${nc.observationText}"</div>
+                  ${nc.riskText ? `<div class="risk-pill">Systemic Risk: ${nc.riskText}</div>` : ''}
+                </div>
+              `,
+                    )
+                    .join('')
+                : '<p style="font-size: 8.5pt; color: #64748b;">No recurrent Non-Conformances spanning multiple campuses detected.</p>'
+            }
+
+            <div class="section-heading">2. Systemic Observations for Improvement (OFIs) & Latent Gaps</div>
+            ${
+              parsedReport.systemicOFIs.length > 0
+                ? parsedReport.systemicOFIs
+                    .map(
+                      (ofi) => `
+                <div class="ofi-box">
+                  <div class="ofi-header">${ofi.index}. ${ofi.clause} • ${ofi.occurrencesText}</div>
+                  <div style="margin: 4px 0;">
+                    ${ofi.campuses.map((c) => `<span class="campus-chip">${c}</span>`).join('')}
+                  </div>
+                  <div class="quote-box">"${ofi.advisoryText || ofi.observationText}"</div>
+                </div>
+              `,
+                    )
+                    .join('')
+                : '<p style="font-size: 8.5pt; color: #64748b;">Observations for improvement are balanced across operating units.</p>'
+            }
+
+            <div class="section-heading">3. Main vs. Satellite Quality Disparity Breakdown</div>
+            <div class="disparity-grid">
+              ${parsedReport.disparities
+                .map(
+                  (d) => `
+                <div class="disparity-card">
+                  <strong>${d.campus}</strong>: <span style="color: #b91c1c; font-weight: bold;">${d.ncCount} NC(s)</span>, <span style="color: #d97706; font-weight: bold;">${d.ofiCount} OFI(s)</span>
+                </div>
+              `,
+                )
+                .join('')}
+            </div>
+            ${parsedReport.disparityAnalysisText ? `<p style="font-size: 8.5pt; color: #475569; font-style: italic;">${parsedReport.disparityAnalysisText}</p>` : ''}
+
+            <div class="section-heading">4. Systemic Root Causes & Top Management Strategic Directives</div>
+            ${parsedReport.directives
+              .map(
+                (dir) => `
+              <div class="directive-item">
+                <span class="directive-title">${dir.number}. ${dir.title}:</span> ${dir.description}
+              </div>
+            `,
+              )
+              .join('')}
 
             <div class="footer">
-              Generated via Local On-Device AI Engine • Romblon State University EOMS Portal
+              Generated via Local On-Device AI Engine • Romblon State University EOMS Portal • ISO 19011:2018 & ISO 21001:2018
             </div>
           </body>
         </html>
@@ -869,17 +1177,39 @@ export function SystemAuditIntelligenceAnalysis({
 
         {/* ─── 3. SYNTHESIZED LOCAL AI SYSTEM AUDIT REPORT ────────────── */}
         <div className="space-y-3 pt-2">
-          <div className="flex items-center justify-between gap-2 border-b pb-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-indigo-600" />
               <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
                 Autonomous Local AI System-Wide Audit Synthesis (ISO 19011:2018 & ISO 21001:2018)
               </h3>
             </div>
-            <span className="text-[9px] font-bold uppercase text-muted-foreground">Multi-Site Intelligence Engine</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-bold uppercase text-muted-foreground mr-1">
+                Multi-Site Intelligence Engine
+              </span>
+              <div className="flex items-center border rounded-md p-0.5 bg-background">
+                <Button
+                  variant={viewMode === 'formatted' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('formatted')}
+                  className="h-6 text-[8px] font-black uppercase px-2 gap-1"
+                >
+                  <Eye className="h-3 w-3" /> Formatted
+                </Button>
+                <Button
+                  variant={viewMode === 'raw' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setViewMode('raw')}
+                  className="h-6 text-[8px] font-black uppercase px-2 gap-1"
+                >
+                  <FileCode className="h-3 w-3" /> Raw Text
+                </Button>
+              </div>
+            </div>
           </div>
 
-          <div className="p-5 rounded-xl border bg-muted/10 space-y-3 relative">
+          <div className="p-4 sm:p-5 rounded-xl border bg-muted/10 space-y-4 relative">
             {isGenerating ? (
               <div className="py-10 flex flex-col items-center justify-center gap-3 text-center">
                 <Bot className="h-8 w-8 text-indigo-600 animate-bounce" />
@@ -893,9 +1223,269 @@ export function SystemAuditIntelligenceAnalysis({
                 </div>
               </div>
             ) : aiReportText ? (
-              <div className="text-xs text-foreground leading-relaxed font-sans space-y-3 whitespace-pre-wrap">
-                {aiReportText}
-              </div>
+              viewMode === 'raw' || !parsedReport.hasParsedSections ? (
+                <div className="text-xs text-foreground leading-relaxed font-mono space-y-3 whitespace-pre-wrap bg-background p-4 rounded-lg border">
+                  {aiReportText}
+                </div>
+              ) : (
+                /* ─── RICH EXECUTIVE FORMATTED DASHBOARD VIEW ─────────── */
+                <div className="space-y-5">
+                  {/* 1. Executive Verdict Hero Card */}
+                  {parsedReport.verdict && (
+                    <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/80 via-background to-blue-50/40 dark:from-indigo-950/20 dark:via-background dark:to-blue-950/10 p-4 shadow-sm space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                          <h4 className="text-xs font-black uppercase tracking-wider text-indigo-950 dark:text-indigo-200">
+                            Institutional Compliance Verdict & System Posture
+                          </h4>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className="text-[8px] font-black uppercase border-indigo-300 text-indigo-700 bg-white dark:bg-indigo-950"
+                        >
+                          AY {selectedYear} System Audit
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                        {parsedReport.verdict}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* 2. Systemic Cross-Campus NCs Section */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 border-b border-border/60 pb-1.5">
+                      <div className="h-5 w-5 rounded bg-destructive/10 text-destructive flex items-center justify-center">
+                        <Flame className="h-3.5 w-3.5" />
+                      </div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                        1. Systemic Cross-Campus Non-Conformances ({parsedReport.systemicNCs.length} Recurrent Clusters)
+                      </h4>
+                    </div>
+
+                    {parsedReport.systemicNCs.length > 0 ? (
+                      <div className="space-y-3">
+                        {parsedReport.systemicNCs.map((nc) => (
+                          <div
+                            key={nc.index}
+                            className="p-4 rounded-xl border border-destructive/30 bg-destructive/[0.02] shadow-sm space-y-3"
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="destructive" className="h-5 text-[9px] font-black uppercase px-2">
+                                  {nc.clause}
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="h-5 text-[8px] font-black uppercase border-destructive/40 text-destructive bg-destructive/5"
+                                >
+                                  {nc.occurrencesText}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            {/* Impacted Campuses List */}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase">
+                                Observed across {nc.campuses.length} Campuses:
+                              </span>
+                              {nc.campuses.map((camp, cIdx) => (
+                                <Badge
+                                  key={cIdx}
+                                  variant="secondary"
+                                  className="h-4 text-[7.5px] font-bold uppercase px-1.5 bg-background border"
+                                >
+                                  <School className="h-2.5 w-2.5 mr-1 text-primary shrink-0" />
+                                  {camp}
+                                </Badge>
+                              ))}
+                            </div>
+
+                            {/* Audit Observation Quote */}
+                            <div className="rounded-lg bg-background p-3 border border-border/80 relative space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                                <Quote className="h-3 w-3 text-destructive shrink-0" />
+                                <span>Audit Observation:</span>
+                              </div>
+                              <div className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed italic whitespace-pre-wrap pl-3 border-l-2 border-destructive/40">
+                                "{nc.observationText}"
+                              </div>
+                            </div>
+
+                            {/* Systemic Risk */}
+                            {nc.riskText && (
+                              <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-300 dark:border-amber-900/40 text-[10px] text-amber-800 dark:text-amber-300">
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                                <span>
+                                  <strong>Systemic Risk:</strong> {nc.riskText}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic pl-2">
+                        No recurrent Non-Conformances spanning multiple campuses detected.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 3. Systemic OFIs Section */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-2 border-b border-border/60 pb-1.5">
+                      <div className="h-5 w-5 rounded bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                        <TrendingUp className="h-3.5 w-3.5" />
+                      </div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                        2. Systemic Observations for Improvement (OFIs) & Latent Gaps (
+                        {parsedReport.systemicOFIs.length} Clusters)
+                      </h4>
+                    </div>
+
+                    {parsedReport.systemicOFIs.length > 0 ? (
+                      <div className="space-y-3">
+                        {parsedReport.systemicOFIs.map((ofi) => (
+                          <div
+                            key={ofi.index}
+                            className="p-4 rounded-xl border border-amber-400/40 bg-amber-500/[0.02] shadow-sm space-y-3"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Badge
+                                variant="outline"
+                                className="h-5 text-[9px] font-black uppercase px-2 border-amber-500 text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950"
+                              >
+                                {ofi.clause}
+                              </Badge>
+                              <Badge variant="secondary" className="h-5 text-[8px] font-black uppercase">
+                                {ofi.occurrencesText}
+                              </Badge>
+                            </div>
+
+                            {/* Impacted Campuses List */}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase">
+                                Common in {ofi.campuses.length} Campuses:
+                              </span>
+                              {ofi.campuses.map((camp, cIdx) => (
+                                <Badge
+                                  key={cIdx}
+                                  variant="secondary"
+                                  className="h-4 text-[7.5px] font-bold uppercase px-1.5 bg-background border"
+                                >
+                                  <School className="h-2.5 w-2.5 mr-1 text-amber-600 shrink-0" />
+                                  {camp}
+                                </Badge>
+                              ))}
+                            </div>
+
+                            {/* Advisory Note Quote */}
+                            <div className="rounded-lg bg-background p-3 border border-border/80 relative space-y-1.5">
+                              <div className="flex items-center gap-1.5 text-[9px] font-black uppercase text-amber-700 dark:text-amber-400 tracking-wider">
+                                <Lightbulb className="h-3 w-3 text-amber-500 shrink-0" />
+                                <span>Advisory Note for Quality Improvement:</span>
+                              </div>
+                              <div className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed italic whitespace-pre-wrap pl-3 border-l-2 border-amber-400">
+                                "{ofi.advisoryText || ofi.observationText}"
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic pl-2">
+                        Observations for improvement are balanced across operational units.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* 4. Main vs Satellite Disparity Matrix */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-2 border-b border-border/60 pb-1.5">
+                      <div className="h-5 w-5 rounded bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
+                        <Globe2 className="h-3.5 w-3.5" />
+                      </div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                        3. Main vs. Satellite Campus Quality Disparity Breakdown
+                      </h4>
+                    </div>
+
+                    {parsedReport.disparities.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                        {parsedReport.disparities.map((d, dIdx) => (
+                          <div
+                            key={dIdx}
+                            className="p-3 rounded-lg border bg-background flex items-center justify-between gap-2 shadow-sm hover:border-primary/30 transition-colors"
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              <School className="h-3.5 w-3.5 text-primary shrink-0" />
+                              <span className="text-xs font-black uppercase truncate text-foreground">{d.campus}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Badge variant="destructive" className="h-5 text-[8px] font-black uppercase px-1.5">
+                                {d.ncCount} NC
+                              </Badge>
+                              <Badge
+                                variant="secondary"
+                                className="h-5 text-[8px] font-black uppercase px-1.5 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+                              >
+                                {d.ofiCount} OFI
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {parsedReport.disparityAnalysisText && (
+                      <div className="p-3 rounded-lg bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-900/40 text-xs text-slate-700 dark:text-slate-300 leading-relaxed italic flex items-start gap-2.5">
+                        <Info className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                        <span>{parsedReport.disparityAnalysisText}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 5. Top Management Strategic Action Directives */}
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center gap-2 border-b border-border/60 pb-1.5">
+                      <div className="h-5 w-5 rounded bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                        <Target className="h-3.5 w-3.5" />
+                      </div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-foreground">
+                        4. Systemic Root Causes & Top Management Strategic Action Directives
+                      </h4>
+                    </div>
+
+                    {parsedReport.directives.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {parsedReport.directives.map((dir) => (
+                          <div
+                            key={dir.number}
+                            className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.02] shadow-sm flex items-start gap-3 hover:shadow-md transition-all"
+                          >
+                            <div className="h-7 w-7 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-black text-xs flex items-center justify-center shrink-0 border border-emerald-500/20 shadow-sm">
+                              0{dir.number}
+                            </div>
+                            <div className="space-y-1 flex-1">
+                              <h5 className="text-xs font-black uppercase text-emerald-950 dark:text-emerald-200 tracking-tight">
+                                {dir.title}
+                              </h5>
+                              <p className="text-[11px] text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                                {dir.description}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground italic pl-2">
+                        Directives will be generated automatically upon full audit completion.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
             ) : (
               <div className="py-6 text-center text-muted-foreground text-xs italic">
                 Click "Re-Analyze" above to generate a comprehensive Local AI audit intelligence analysis for Academic
