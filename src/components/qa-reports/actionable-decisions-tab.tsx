@@ -691,6 +691,11 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                             Deadline {getSortIcon('followUpDate')}
                           </Button>
                         </TableHead>
+                        <TableHead className="text-center font-bold text-[10px] uppercase">
+                          <span className="flex items-center justify-center gap-1">
+                            <Link2 className="h-3 w-3 text-primary" /> Evidence Link
+                          </span>
+                        </TableHead>
                         <TableHead className="text-right">
                           <Button
                             variant="ghost"
@@ -769,6 +774,31 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                               {safeFormatDateLocal(output.followUpDate)}
                             </div>
                           </TableCell>
+                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                            {(() => {
+                              const driveEntries = (output.actionEntries || []).filter((e) => e.googleDriveLink);
+                              if (driveEntries.length === 0) {
+                                return <span className="text-[10px] text-muted-foreground italic">None</span>;
+                              }
+                              return (
+                                <div className="flex flex-col items-center gap-1">
+                                  {driveEntries.map((e, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={e.googleDriveLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800 transition-colors"
+                                      title={e.googleDriveLink}
+                                    >
+                                      <Link2 className="h-2.5 w-2.5" />
+                                      Drive File {driveEntries.length > 1 ? `#${idx + 1}` : ''}
+                                    </a>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+                          </TableCell>
                           <TableCell className="text-right">
                             <Badge
                               className={cn(
@@ -842,7 +872,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                       ))}
                       {!isLoadingOutputs && processedOutputs.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="h-40 text-center text-muted-foreground">
+                          <TableCell colSpan={7} className="h-40 text-center text-muted-foreground">
                             <div className="flex flex-col items-center gap-2 opacity-20">
                               <ListChecks className="h-10 w-10" />
                               <p className="text-xs font-bold uppercase tracking-widest">

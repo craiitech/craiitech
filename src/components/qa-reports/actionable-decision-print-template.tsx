@@ -229,9 +229,14 @@ export function ActionableDecisionPrintTemplate({
                     <th className="p-1.5 border-r border-black font-bold uppercase text-[7.5pt]">
                       Action Taken &amp; Details
                     </th>
-                    <th className="p-1.5 border-r border-black font-bold uppercase text-[7.5pt] w-24">Implemented</th>
-                    <th className="p-1.5 border-r border-black font-bold uppercase text-[7.5pt] w-28">Submitted By</th>
-                    <th className="p-1.5 font-bold uppercase text-[7.5pt] w-28">Admin Status</th>
+                    <th className="p-1.5 border-r border-black font-bold uppercase text-[7.5pt] w-20 text-center">
+                      Implemented
+                    </th>
+                    <th className="p-1.5 border-r border-black font-bold uppercase text-[7.5pt] w-24">Submitted By</th>
+                    <th className="p-1.5 border-r border-black font-bold uppercase text-[7.5pt] w-36">
+                      Google Drive Link / Evidence
+                    </th>
+                    <th className="p-1.5 font-bold uppercase text-[7.5pt] w-24">Admin Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -240,23 +245,32 @@ export function ActionableDecisionPrintTemplate({
                       <td className="p-1.5 border-r border-black text-center font-bold">{idx + 1}</td>
                       <td className="p-1.5 border-r border-black">
                         <p className="font-semibold text-black leading-snug">{entry.description}</p>
-                        {entry.googleDriveLink && (
-                          <p className="text-[7.5pt] text-blue-800 font-mono mt-0.5 truncate max-w-[260px]">
-                            Attachment: {entry.googleDriveLink}
-                          </p>
-                        )}
                         {entry.confirmationRemarks && (
                           <div className="mt-1 pt-1 border-t border-gray-200 text-[8pt] text-emerald-900 bg-emerald-50/50 p-1 rounded">
                             <span className="font-bold">QA Feedback:</span> {entry.confirmationRemarks}
                           </div>
                         )}
                       </td>
-                      <td className="p-1.5 border-r border-black whitespace-nowrap font-medium">
+                      <td className="p-1.5 border-r border-black whitespace-nowrap font-medium text-center">
                         {safeDate(entry.implementationDate)}
                       </td>
                       <td className="p-1.5 border-r border-black">
                         <p className="font-bold leading-tight">{entry.submittedBy}</p>
                         <p className="text-[7pt] text-gray-500">{safeDate(entry.submittedAt)}</p>
+                      </td>
+                      <td className="p-1.5 border-r border-black">
+                        {entry.googleDriveLink ? (
+                          <a
+                            href={entry.googleDriveLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-700 underline font-mono text-[7.5pt] break-all block leading-tight hover:text-blue-900"
+                          >
+                            {entry.googleDriveLink}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 italic text-[7.5pt]">None Attached</span>
+                        )}
                       </td>
                       <td className="p-1.5 font-semibold">
                         {entry.isConfirmed ? (
@@ -382,7 +396,10 @@ export function ActionableDecisionsRegisterPrintTemplate({
   const qmsHeadName = signatories?.qmsHead || 'Head, Quality Management System Unit';
 
   return (
-    <div className="p-0 text-black bg-white mx-auto font-sans leading-tight" style={{ width: '12in', fontSize: '9pt' }}>
+    <div
+      className="p-0 text-black bg-white mx-auto font-sans leading-tight"
+      style={{ width: '13in', fontSize: '8.5pt' }}
+    >
       {/* Header */}
       <div className="text-center mb-3">
         <h1 className="font-bold uppercase tracking-tight text-[13pt]">Romblon State University</h1>
@@ -435,89 +452,113 @@ export function ActionableDecisionsRegisterPrintTemplate({
           <tr className="bg-gray-100 border-b-2 border-black text-left font-bold uppercase text-[7.5pt]">
             <th className="p-1.5 border-r border-black text-center w-8">#</th>
             <th className="p-1.5 border-r border-black w-14 text-center">Line No.</th>
-            <th className="p-1.5 border-r border-black w-[280px]">Management Directive / Decision</th>
-            <th className="p-1.5 border-r border-black w-[160px]">Assigned Responsibility</th>
+            <th className="p-1.5 border-r border-black w-[240px]">Management Directive / Decision</th>
+            <th className="p-1.5 border-r border-black w-[150px]">Assigned Responsibility</th>
             <th className="p-1.5 border-r border-black w-24">Initiator</th>
             <th className="p-1.5 border-r border-black w-20 text-center">Deadline</th>
-            <th className="p-1.5 border-r border-black">Unit Actions Taken / Latest Progress</th>
+            <th className="p-1.5 border-r border-black w-[220px]">Unit Actions Taken / Latest Progress</th>
+            <th className="p-1.5 border-r border-black w-[140px]">Google Drive Link / Evidence</th>
             <th className="p-1.5 border-r border-black w-24 text-center">Status</th>
-            <th className="p-1.5 w-28">Verification</th>
+            <th className="p-1.5 w-24">Verification</th>
           </tr>
         </thead>
         <tbody>
-          {outputs.map((item, index) => (
-            <tr key={item.id || index} className="border-b border-black align-top hover:bg-gray-50">
-              <td className="p-1.5 border-r border-black text-center font-bold">{index + 1}</td>
-              <td className="p-1.5 border-r border-black text-center font-mono font-semibold">
-                {item.lineNumber || '--'}
-              </td>
-              <td className="p-1.5 border-r border-black">
-                <p className="font-semibold leading-snug">{item.description}</p>
-                {item.actionPlan && (
-                  <p className="text-[7pt] text-gray-600 mt-1 italic leading-tight">Plan: {item.actionPlan}</p>
-                )}
-              </td>
-              <td className="p-1.5 border-r border-black">
-                {(item.assignments || []).map((a, i) => (
-                  <div key={i} className="mb-0.5 leading-tight">
-                    <span className="font-bold text-[7.5pt] block text-primary">
-                      {campusMap.get(a.campusId) || a.campusId}
-                    </span>
-                    <span className="text-[7pt] text-gray-700">{unitMap.get(a.unitId) || a.unitId}</span>
-                  </div>
-                ))}
-              </td>
-              <td className="p-1.5 border-r border-black font-medium">{item.initiator}</td>
-              <td className="p-1.5 border-r border-black text-center whitespace-nowrap font-bold">
-                {safeDate(item.followUpDate)}
-              </td>
-              <td className="p-1.5 border-r border-black">
-                {item.followUpRemarks ? (
-                  <div>
-                    <p className="leading-snug">{item.followUpRemarks}</p>
-                    {item.actionTakenBy && (
-                      <p className="text-[7pt] text-gray-500 mt-0.5">
-                        By: {item.actionTakenBy} ({safeDate(item.actionDate)})
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <span className="text-gray-400 italic">No progress logged</span>
-                )}
-                {item.actionEntries && item.actionEntries.length > 0 && (
-                  <p className="text-[7pt] font-bold text-blue-700 mt-1">
-                    {item.actionEntries.length} itemized action record(s)
-                  </p>
-                )}
-              </td>
-              <td className="p-1.5 border-r border-black text-center font-bold uppercase text-[7.5pt]">
-                <span
-                  className={cn(
-                    'px-1.5 py-0.5 rounded text-[7pt] block whitespace-nowrap',
-                    item.status === 'Open'
-                      ? 'bg-rose-100 text-rose-800'
-                      : item.status === 'On-going'
-                        ? 'bg-amber-100 text-amber-900'
-                        : item.status === 'Submit for Closure Verification'
-                          ? 'bg-blue-100 text-blue-900'
-                          : 'bg-emerald-100 text-emerald-900',
+          {outputs.map((item, index) => {
+            const driveEntries = (item.actionEntries || []).filter((e) => e.googleDriveLink);
+            return (
+              <tr key={item.id || index} className="border-b border-black align-top hover:bg-gray-50">
+                <td className="p-1.5 border-r border-black text-center font-bold">{index + 1}</td>
+                <td className="p-1.5 border-r border-black text-center font-mono font-semibold">
+                  {item.lineNumber || '--'}
+                </td>
+                <td className="p-1.5 border-r border-black">
+                  <p className="font-semibold leading-snug">{item.description}</p>
+                  {item.actionPlan && (
+                    <p className="text-[7pt] text-gray-600 mt-1 italic leading-tight">Plan: {item.actionPlan}</p>
                   )}
-                >
-                  {item.status}
-                </span>
-              </td>
-              <td className="p-1.5 text-[7.5pt]">
-                {item.verifiedBy ? (
-                  <div>
-                    <p className="font-bold leading-tight">{item.verifiedBy}</p>
-                    <p className="text-[7pt] text-gray-500">{safeDate(item.verificationDate)}</p>
-                  </div>
-                ) : (
-                  <span className="text-gray-400 italic">Pending</span>
-                )}
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td className="p-1.5 border-r border-black">
+                  {(item.assignments || []).map((a, i) => (
+                    <div key={i} className="mb-0.5 leading-tight">
+                      <span className="font-bold text-[7.5pt] block text-primary">
+                        {campusMap.get(a.campusId) || a.campusId}
+                      </span>
+                      <span className="text-[7pt] text-gray-700">{unitMap.get(a.unitId) || a.unitId}</span>
+                    </div>
+                  ))}
+                </td>
+                <td className="p-1.5 border-r border-black font-medium">{item.initiator}</td>
+                <td className="p-1.5 border-r border-black text-center whitespace-nowrap font-bold">
+                  {safeDate(item.followUpDate)}
+                </td>
+                <td className="p-1.5 border-r border-black">
+                  {item.followUpRemarks ? (
+                    <div>
+                      <p className="leading-snug">{item.followUpRemarks}</p>
+                      {item.actionTakenBy && (
+                        <p className="text-[7pt] text-gray-500 mt-0.5">
+                          By: {item.actionTakenBy} ({safeDate(item.actionDate)})
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 italic">No progress logged</span>
+                  )}
+                  {item.actionEntries && item.actionEntries.length > 0 && (
+                    <p className="text-[7pt] font-bold text-blue-700 mt-1">
+                      {item.actionEntries.length} itemized action record(s)
+                    </p>
+                  )}
+                </td>
+                <td className="p-1.5 border-r border-black">
+                  {driveEntries.length > 0 ? (
+                    <div className="space-y-1">
+                      {driveEntries.map((e, lIdx) => (
+                        <a
+                          key={lIdx}
+                          href={e.googleDriveLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-700 underline font-mono text-[7pt] block truncate max-w-[130px] leading-tight hover:text-blue-900"
+                          title={e.googleDriveLink}
+                        >
+                          Drive File {driveEntries.length > 1 ? `#${lIdx + 1}` : ''}
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 italic text-[7pt]">None</span>
+                  )}
+                </td>
+                <td className="p-1.5 border-r border-black text-center font-bold uppercase text-[7.5pt]">
+                  <span
+                    className={cn(
+                      'px-1.5 py-0.5 rounded text-[7pt] block whitespace-nowrap',
+                      item.status === 'Open'
+                        ? 'bg-rose-100 text-rose-800'
+                        : item.status === 'On-going'
+                          ? 'bg-amber-100 text-amber-900'
+                          : item.status === 'Submit for Closure Verification'
+                            ? 'bg-blue-100 text-blue-900'
+                            : 'bg-emerald-100 text-emerald-900',
+                    )}
+                  >
+                    {item.status}
+                  </span>
+                </td>
+                <td className="p-1.5 text-[7.5pt]">
+                  {item.verifiedBy ? (
+                    <div>
+                      <p className="font-bold leading-tight">{item.verifiedBy}</p>
+                      <p className="text-[7pt] text-gray-500">{safeDate(item.verificationDate)}</p>
+                    </div>
+                  ) : (
+                    <span className="text-gray-400 italic">Pending</span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
           {outputs.length === 0 && (
             <tr>
               <td colSpan={9} className="p-4 text-center text-gray-500 italic">
