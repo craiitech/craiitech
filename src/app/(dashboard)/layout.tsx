@@ -279,8 +279,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isEvaluationComplete = useMemo(() => {
     if (isAdmin) return true;
-    if (isLoadingEval) return true;
-    return userEvaluations && userEvaluations.length > 0;
+    if (isLoadingEval) return false;
+    return !!(userEvaluations && userEvaluations.length > 0);
   }, [userEvaluations, isLoadingEval, isAdmin]);
 
   const accountAgeDays = useMemo(() => {
@@ -290,16 +290,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return (now - created) / (1000 * 60 * 60 * 24);
   }, [user]);
 
-  const showEvalGate = !isEvaluationComplete && !isLoadingEval && !isEvalSkipped;
+  const showEvalGate = !isAdmin && !isLoadingEval && !isEvaluationComplete && !isEvalSkipped;
+  const isEvalPending = !isAdmin && (isLoadingEval || (!isEvaluationComplete && !isEvalSkipped));
 
   useEffect(() => {
-    if (!isUserLoading && userProfile && userProfile.verified && !showEvalGate) {
+    if (!isUserLoading && userProfile && userProfile.verified && !isEvalPending) {
       if (userProfile.lastSeenVersion !== CURRENT_SYSTEM_VERSION) {
         const timer = setTimeout(() => setIsWhatsNewOpen(true), 1500);
         return () => clearTimeout(timer);
       }
     }
-  }, [isUserLoading, userProfile, showEvalGate]);
+  }, [isUserLoading, userProfile, isEvalPending]);
 
   const getSubmissionsNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
@@ -831,7 +832,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       !isUserLoading &&
       userProfile &&
       userProfile.verified &&
-      !showEvalGate &&
+      !isEvalPending &&
       !isWhatsNewOpen &&
       !hasTriggeredDigestRef.current
     ) {
@@ -848,7 +849,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return () => clearTimeout(timer);
       }
     }
-  }, [isUserLoading, userProfile, showEvalGate, isWhatsNewOpen, notificationsList]);
+  }, [isUserLoading, userProfile, isEvalPending, isWhatsNewOpen, notificationsList]);
 
   const notificationCount = subNotificationsCount;
 
@@ -1056,7 +1057,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </SidebarProvider>
           </div>
 
-          {!showEvalGate && <InstallPwaDialog />}
+          {!isEvalPending && <InstallPwaDialog />}
           <WhatsNewDialog
             isOpen={isWhatsNewOpen}
             onOpenChange={setIsWhatsNewOpen}
