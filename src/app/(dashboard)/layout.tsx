@@ -1032,7 +1032,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </SidebarContent>
               </Sidebar>
               <SidebarInset className="overflow-hidden h-dvh max-h-dvh flex flex-col">
-                <VoiceProvider>
+                <VoiceProvider suppressPrompt={isEvalPending}>
                   <Header
                     notificationCount={notificationCount}
                     totalNotificationsCount={totalNotificationsCount}
