@@ -34,6 +34,7 @@ import {
   Bookmark,
   FileText,
   CalendarCheck,
+  UserCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -217,17 +218,26 @@ export default function ProcedureManualsPage() {
     });
   }, [allRequests]);
 
+  const myUnit = useMemo(() => {
+    return allUnits?.find((u) => u.id === userProfile?.unitId) || null;
+  }, [allUnits, userProfile]);
+
+  const isAcademicUser = useMemo(() => {
+    return myUnit?.category === 'Academic';
+  }, [myUnit]);
+
+  const isViewingOwnUnit = useMemo(() => {
+    if (!userProfile || !selectedUnitId) return false;
+    if (selectedUnitId === SHARED_ACADEMIC_ID) {
+      return isAcademicUser;
+    }
+    return selectedUnitId === userProfile.unitId;
+  }, [userProfile, selectedUnitId, isAcademicUser]);
+
   const sidebarItems = useMemo(() => {
     if (!allUnits || !userProfile || isUserLoading) return [];
 
     let filtered = allUnits.filter((u) => u.category !== 'Academic');
-
-    if (!isAdmin && userRole !== 'Auditor') {
-      filtered = filtered.filter((u) => u.campusIds?.includes(userProfile.campusId));
-      if (!isSupervisor || userRole === 'Unit ODIMO') {
-        filtered = filtered.filter((u) => u.id === userProfile.unitId);
-      }
-    }
 
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
@@ -238,32 +248,40 @@ export default function ProcedureManualsPage() {
       id: u.id,
       name: u.name,
       isShared: false,
+      isOwnUnit: u.id === userProfile.unitId,
     }));
 
     const hasAcademic = allUnits.some((u) => u.category === 'Academic');
     if (hasAcademic) {
-      const myUnit = allUnits.find((u) => u.id === userProfile.unitId);
-      const canSeeAcademic = isAdmin || isSupervisor || userRole === 'Auditor' || myUnit?.category === 'Academic';
+      const matchesSearch =
+        !searchTerm ||
+        'academic units (shared manual)'.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        'academic'.includes(searchTerm.toLowerCase());
 
-      if (canSeeAcademic) {
+      if (matchesSearch) {
         items.unshift({
           id: SHARED_ACADEMIC_ID,
           name: 'Academic Units (Shared Manual)',
           isShared: true,
+          isOwnUnit: isAcademicUser,
         });
       }
     }
 
     return items.sort((a, b) => (a.isShared ? -1 : b.isShared ? 1 : a.name.localeCompare(b.name)));
-  }, [allUnits, userProfile, isAdmin, isSupervisor, userRole, isUserLoading, searchTerm]);
+  }, [allUnits, userProfile, isAcademicUser, isUserLoading, searchTerm]);
 
   useEffect(() => {
     if (userProfile && !selectedUnitId && !isUserLoading && allUnits && allUnits.length > 0) {
-      const myUnit = allUnits.find((u) => u.id === userProfile.unitId);
-      if (myUnit?.category === 'Academic') {
+      const unit = allUnits.find((u) => u.id === userProfile.unitId);
+      if (unit?.category === 'Academic') {
+        setSelectedUnitId(SHARED_ACADEMIC_ID);
+      } else if (userProfile.unitId && allUnits.some((u) => u.id === userProfile.unitId)) {
+        setSelectedUnitId(userProfile.unitId);
+      } else if (allUnits.some((u) => u.category === 'Academic')) {
         setSelectedUnitId(SHARED_ACADEMIC_ID);
       } else {
-        setSelectedUnitId(userProfile.unitId || null);
+        setSelectedUnitId(allUnits[0]?.id || null);
       }
     }
   }, [userProfile, allUnits, selectedUnitId, isUserLoading]);
@@ -418,20 +436,41 @@ export default function ProcedureManualsPage() {
                         key={item.id}
                         onClick={() => setSelectedUnitId(item.id)}
                         className={cn(
-                          'w-full text-left py-2.5 px-4 text-xs border-l-2 transition-all flex items-center',
+                          'w-full text-left py-2.5 px-3.5 text-xs border-l-2 transition-all flex items-center justify-between gap-2 group',
                           selectedUnitId === item.id
-                            ? 'bg-primary/5 text-primary border-primary font-bold shadow-inner'
-                            : 'border-transparent text-muted-foreground hover:bg-muted/30',
+                            ? item.isOwnUnit
+                              ? 'bg-amber-500/10 text-amber-900 dark:text-amber-200 border-amber-500 font-bold shadow-inner'
+                              : 'bg-primary/5 text-primary border-primary font-bold shadow-inner'
+                            : item.isOwnUnit
+                              ? 'border-amber-400/60 bg-amber-500/5 hover:bg-amber-500/10 text-slate-900 dark:text-slate-100 font-medium'
+                              : 'border-transparent text-muted-foreground hover:bg-muted/30',
                         )}
                       >
-                        {item.isShared ? (
-                          <Layers className="mr-3 h-3.5 w-3.5 flex-shrink-0 text-primary" />
-                        ) : (
-                          <Building className="mr-3 h-3.5 w-3.5 flex-shrink-0 opacity-40" />
+                        <div className="flex items-center min-w-0 pr-1">
+                          {item.isShared ? (
+                            <Layers
+                              className={cn(
+                                'mr-2.5 h-3.5 w-3.5 flex-shrink-0',
+                                item.isOwnUnit ? 'text-amber-600 dark:text-amber-400' : 'text-primary',
+                              )}
+                            />
+                          ) : item.isOwnUnit ? (
+                            <Building className="mr-2.5 h-3.5 w-3.5 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                          ) : (
+                            <Building className="mr-2.5 h-3.5 w-3.5 flex-shrink-0 opacity-40 group-hover:opacity-70" />
+                          )}
+                          <span className={cn('truncate', item.isShared && 'font-black uppercase tracking-tighter')}>
+                            {item.name}
+                          </span>
+                        </div>
+                        {item.isOwnUnit && (
+                          <Badge
+                            variant="outline"
+                            className="text-[8px] font-black uppercase px-1.5 py-0 h-4 border-amber-400/70 bg-amber-100/80 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 shrink-0"
+                          >
+                            Your Unit
+                          </Badge>
                         )}
-                        <span className={cn('truncate', item.isShared && 'font-black uppercase tracking-tighter')}>
-                          {item.name}
-                        </span>
                       </button>
                     ))}
                   </div>
@@ -456,12 +495,25 @@ export default function ProcedureManualsPage() {
           {selectedUnit ? (
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center justify-between border-b pb-2 shrink-0 px-1">
-                <Badge
-                  variant="outline"
-                  className="h-6 font-black text-[10px] uppercase border-primary/20 bg-primary/5 text-primary max-w-full truncate"
-                >
-                  Active Context: {selectedUnit.name}
-                </Badge>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      'h-6 font-black text-[10px] uppercase max-w-full truncate',
+                      isViewingOwnUnit
+                        ? 'border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300'
+                        : 'border-primary/20 bg-primary/5 text-primary',
+                    )}
+                  >
+                    Active Context: {selectedUnit.name}
+                  </Badge>
+                  {isViewingOwnUnit && (
+                    <Badge className="h-6 font-black text-[9px] uppercase px-2 bg-amber-500 hover:bg-amber-600 text-white border-none shadow-xs flex items-center gap-1">
+                      <UserCheck className="h-3 w-3" />
+                      Your Unit Manual
+                    </Badge>
+                  )}
+                </div>
               </div>
 
               <div className="flex-1 overflow-hidden pt-4">
@@ -480,6 +532,12 @@ export default function ProcedureManualsPage() {
                                     ? 'Academic Procedure Manual'
                                     : 'Procedure Manual')}
                               </CardTitle>
+                              {isViewingOwnUnit && (
+                                <Badge className="bg-amber-500 text-white font-black text-[9px] uppercase px-2 py-0.5 border-none shadow-xs flex items-center gap-1">
+                                  <UserCheck className="h-2.5 w-2.5" />
+                                  Your Unit
+                                </Badge>
+                              )}
                               {selectedManual?.procedureNumber && (
                                 <Badge
                                   variant="outline"

@@ -355,6 +355,9 @@ export default function GadCornerPage() {
           <GADOverview
             initiatives={initiatives || []}
             compliances={compliances || []}
+            gadPlans={gadPlans || []}
+            gadActivities={gadActivities || []}
+            gadSettings={gadSettings || undefined}
             selectedYear={selectedYear}
             unitName={selectedUnitId === 'all' ? 'Institutional' : units?.find((u) => u.id === selectedUnitId)?.name}
           />
