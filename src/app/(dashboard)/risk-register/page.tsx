@@ -338,6 +338,8 @@ export default function RiskRegisterPage() {
                 year={selectedYear}
                 signatories={signatories || undefined}
                 cycle={printCycle}
+                unitMap={unitMap}
+                campusMap={campusMap}
               />
             </div>,
           );

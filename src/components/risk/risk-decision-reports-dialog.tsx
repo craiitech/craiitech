@@ -271,6 +271,8 @@ export function RiskDecisionReportsDialog({
                   campusName={campusName}
                   year={selectedYear}
                   signatories={signatories}
+                  unitMap={unitMap}
+                  campusMap={campusMap}
                 />
               );
               break;
@@ -283,6 +285,8 @@ export function RiskDecisionReportsDialog({
                   year={selectedYear}
                   signatories={signatories}
                   cycle={cycle}
+                  unitMap={unitMap}
+                  campusMap={campusMap}
                 />
               );
               break;
@@ -294,6 +298,8 @@ export function RiskDecisionReportsDialog({
                   campusName={campusName}
                   year={selectedYear}
                   signatories={signatories}
+                  unitMap={unitMap}
+                  campusMap={campusMap}
                 />
               );
               break;
@@ -305,6 +311,8 @@ export function RiskDecisionReportsDialog({
                   campusName={campusName}
                   year={selectedYear}
                   signatories={signatories}
+                  unitMap={unitMap}
+                  campusMap={campusMap}
                 />
               );
               break;
@@ -316,6 +324,8 @@ export function RiskDecisionReportsDialog({
                   campusName={campusName}
                   year={selectedYear}
                   signatories={signatories}
+                  unitMap={unitMap}
+                  campusMap={campusMap}
                 />
               );
               break;
@@ -327,6 +337,8 @@ export function RiskDecisionReportsDialog({
                   campusName={campusName}
                   year={selectedYear}
                   signatories={signatories}
+                  unitMap={unitMap}
+                  campusMap={campusMap}
                 />
               );
               break;
@@ -340,6 +352,8 @@ export function RiskDecisionReportsDialog({
                   year={selectedYear}
                   signatories={signatories}
                   cycle={cycle}
+                  unitMap={unitMap}
+                  campusMap={campusMap}
                 />
               );
               break;

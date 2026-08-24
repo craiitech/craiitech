@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { Risk, Signatories, Unit, Campus } from '@/lib/types';
+import type { Risk, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 
@@ -29,15 +29,42 @@ const getRatingColor = (rating: string) => {
   }
 };
 
-/* =========================================================================
-   1. EXECUTIVE RISK PROFILE & STRATEGIC DECISION BRIEFING
-   ========================================================================= */
-interface ExecutiveBriefingProps {
+interface BasePrintProps {
   risks: Risk[];
   unitName: string;
   campusName: string;
   year: number;
   signatories?: Signatories;
+  unitMap?: Map<string, string>;
+  campusMap?: Map<string, string>;
+}
+
+// Origin badge helper for rows
+const renderOriginBadge = (r: Risk, campusMap?: Map<string, string>, unitMap?: Map<string, string>) => {
+  const rowCampus = campusMap?.get(r.campusId) || '';
+  const rowUnit = unitMap?.get(r.unitId) || '';
+  if (!rowCampus && !rowUnit) return null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1 mb-1">
+      {rowCampus && (
+        <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-slate-100 text-slate-800 text-[6.5pt] font-black uppercase tracking-tight border border-slate-300">
+          🏛️ {rowCampus}
+        </span>
+      )}
+      {rowUnit && (
+        <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-blue-50 text-blue-900 text-[6.5pt] font-black uppercase tracking-tight border border-blue-200">
+          🏢 {rowUnit}
+        </span>
+      )}
+    </div>
+  );
+};
+
+/* =========================================================================
+   1. EXECUTIVE RISK PROFILE & STRATEGIC DECISION BRIEFING
+   ========================================================================= */
+interface ExecutiveBriefingProps extends BasePrintProps {
   cycle?: 'first' | 'final';
 }
 
@@ -48,6 +75,8 @@ export function ExecutiveRiskBriefingTemplate({
   year,
   signatories,
   cycle = 'final',
+  unitMap,
+  campusMap,
 }: ExecutiveBriefingProps) {
   const today = new Date();
   const totalRisks = risks.filter((r) => r.type === 'Risk');
@@ -165,8 +194,8 @@ export function ExecutiveRiskBriefingTemplate({
         <table className="w-full border-collapse border-2 border-black text-[8pt]">
           <thead>
             <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-              <th className="border border-black p-1.5 text-center w-[20%]">Objective</th>
-              <th className="border border-black p-1.5 text-center w-[28%]">Risk Description & Causes</th>
+              <th className="border border-black p-1.5 text-center w-[22%]">Objective & Origin</th>
+              <th className="border border-black p-1.5 text-center w-[26%]">Risk Description & Causes</th>
               <th className="border border-black p-1.5 text-center w-[10%]">Pre-Rating</th>
               <th className="border border-black p-1.5 text-center w-[24%]">Mitigation Strategy</th>
               <th className="border border-black p-1.5 text-center w-[8%]">Post-Rating</th>
@@ -176,23 +205,27 @@ export function ExecutiveRiskBriefingTemplate({
           <tbody>
             {topVulnerabilities.map((r, i) => (
               <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                <td className="border border-black p-1.5 font-bold align-top">{r.objective}</td>
-                <td className="border border-black p-1.5 align-top">{r.description}</td>
+                <td className="border border-black p-1.5 font-bold align-top">
+                  {renderOriginBadge(r, campusMap, unitMap)}
+                  <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
+                </td>
+                <td className="border border-black p-1.5 align-top leading-snug">{r.description}</td>
                 <td
-                  className="border border-black p-1.5 text-center align-top font-bold"
+                  className="border border-black p-1.5 text-center font-black align-top"
                   style={{ color: getRatingColor(r.preTreatment?.rating) }}
                 >
-                  {r.preTreatment?.rating || '—'} ({r.preTreatment?.magnitude || 0})
+                  {r.preTreatment?.rating} ({r.preTreatment?.magnitude})
                 </td>
-                <td className="border border-black p-1.5 align-top">{r.treatmentAction || '—'}</td>
+                <td className="border border-black p-1.5 align-top font-medium leading-snug">
+                  {r.treatmentAction || '—'}
+                </td>
                 <td
-                  className="border border-black p-1.5 text-center align-top font-bold"
+                  className="border border-black p-1.5 text-center font-bold align-top"
                   style={{ color: getRatingColor(r.postTreatment?.rating || '') }}
                 >
-                  {r.postTreatment?.rating || 'Pending'}{' '}
-                  {r.postTreatment?.magnitude ? `(${r.postTreatment.magnitude})` : ''}
+                  {r.postTreatment?.rating ? `${r.postTreatment.rating} (${r.postTreatment.magnitude})` : '—'}
                 </td>
-                <td className="border border-black p-1.5 text-center align-top font-bold">
+                <td className="border border-black p-1.5 text-center align-top">
                   <span
                     className={`inline-block px-1.5 py-0.5 rounded text-[7pt] font-black ${
                       r.status === 'Closed'
@@ -252,15 +285,15 @@ export function ExecutiveRiskBriefingTemplate({
 /* =========================================================================
    2. RISK TREATMENT ACTION PLAN & RESOURCE ALLOCATION BLUEPRINT
    ========================================================================= */
-interface RAPBlueprintProps {
-  risks: Risk[];
-  unitName: string;
-  campusName: string;
-  year: number;
-  signatories?: Signatories;
-}
-
-export function RiskResourceAllocationTemplate({ risks, unitName, campusName, year, signatories }: RAPBlueprintProps) {
+export function RiskResourceAllocationTemplate({
+  risks,
+  unitName,
+  campusName,
+  year,
+  signatories,
+  unitMap,
+  campusMap,
+}: BasePrintProps) {
   const today = new Date();
   const treatmentPlans = risks.filter(
     (r) => r.treatmentAction || r.resourcesNeeded || r.preTreatment?.rating !== 'Low',
@@ -321,9 +354,9 @@ export function RiskResourceAllocationTemplate({ risks, unitName, campusName, ye
         <thead>
           <tr className="bg-slate-100 font-black text-slate-900 uppercase">
             <th className="border border-black p-1.5 text-center w-[4%]">#</th>
-            <th className="border border-black p-1.5 text-center w-[18%]">Objective & Risk Context</th>
+            <th className="border border-black p-1.5 text-center w-[20%]">Objective & Origin Context</th>
             <th className="border border-black p-1.5 text-center w-[8%]">Severity</th>
-            <th className="border border-black p-1.5 text-center w-[26%]">Treatment Action Required</th>
+            <th className="border border-black p-1.5 text-center w-[24%]">Treatment Action Required</th>
             <th className="border border-black p-1.5 text-center w-[24%]">Resources Needed (Budget / Tech / Staff)</th>
             <th className="border border-black p-1.5 text-center w-[12%]">Responsible Lead</th>
             <th className="border border-black p-1.5 text-center w-[8%]">Target Date</th>
@@ -334,7 +367,8 @@ export function RiskResourceAllocationTemplate({ risks, unitName, campusName, ye
             <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
               <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
               <td className="border border-black p-1.5 align-top">
-                <p className="font-bold text-slate-900">{r.objective}</p>
+                {renderOriginBadge(r, campusMap, unitMap)}
+                <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
                 <p className="text-[7.5pt] text-slate-600 mt-0.5 line-clamp-2">{r.description}</p>
               </td>
               <td
@@ -383,21 +417,15 @@ export function RiskResourceAllocationTemplate({ risks, unitName, campusName, ye
 /* =========================================================================
    3. TREATMENT ACCOUNTABILITY & OVERDUE MILESTONE TRACKER
    ========================================================================= */
-interface AccountabilityTrackerProps {
-  risks: Risk[];
-  unitName: string;
-  campusName: string;
-  year: number;
-  signatories?: Signatories;
-}
-
 export function RiskAccountabilityTrackerTemplate({
   risks,
   unitName,
   campusName,
   year,
   signatories,
-}: AccountabilityTrackerProps) {
+  unitMap,
+  campusMap,
+}: BasePrintProps) {
   const today = new Date();
   const activeRisks = risks.filter((r) => r.type === 'Risk');
 
@@ -475,8 +503,8 @@ export function RiskAccountabilityTrackerTemplate({
           <table className="w-full border-collapse border-2 border-rose-600 text-[8pt]">
             <thead>
               <tr className="bg-rose-100 font-black text-rose-900 uppercase">
-                <th className="border border-rose-600 p-1.5 text-center w-[22%]">Objective & Risk</th>
-                <th className="border border-rose-600 p-1.5 text-center w-[30%]">Committed Mitigation</th>
+                <th className="border border-rose-600 p-1.5 text-center w-[24%]">Objective & Origin</th>
+                <th className="border border-rose-600 p-1.5 text-center w-[28%]">Committed Mitigation</th>
                 <th className="border border-rose-600 p-1.5 text-center w-[18%]">Accountable Lead</th>
                 <th className="border border-rose-600 p-1.5 text-center w-[12%]">Target Due Date</th>
                 <th className="border border-rose-600 p-1.5 text-center w-[18%]">Reminders / Status</th>
@@ -486,8 +514,9 @@ export function RiskAccountabilityTrackerTemplate({
               {overdueRisks.map((r, i) => (
                 <tr key={r.id || i} className="bg-rose-50/40">
                   <td className="border border-rose-400 p-1.5 align-top">
-                    <p className="font-bold text-slate-900">{r.objective}</p>
-                    <p className="text-[7.5pt] text-slate-600">{r.description}</p>
+                    {renderOriginBadge(r, campusMap, unitMap)}
+                    <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
+                    <p className="text-[7.5pt] text-slate-600 mt-0.5">{r.description}</p>
                   </td>
                   <td className="border border-rose-400 p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
                   <td className="border border-rose-400 p-1.5 align-top font-bold text-slate-900">
@@ -519,8 +548,8 @@ export function RiskAccountabilityTrackerTemplate({
         <thead>
           <tr className="bg-slate-100 font-black text-slate-900 uppercase">
             <th className="border border-black p-1.5 text-center w-[4%]">#</th>
-            <th className="border border-black p-1.5 text-center w-[22%]">Objective & Risk</th>
-            <th className="border border-black p-1.5 text-center w-[30%]">Mitigation Strategy</th>
+            <th className="border border-black p-1.5 text-center w-[24%]">Objective & Origin</th>
+            <th className="border border-black p-1.5 text-center w-[28%]">Mitigation Strategy</th>
             <th className="border border-black p-1.5 text-center w-[16%]">Accountable Lead</th>
             <th className="border border-black p-1.5 text-center w-[12%]">Target Date</th>
             <th className="border border-black p-1.5 text-center w-[16%]">Current Milestone</th>
@@ -531,8 +560,9 @@ export function RiskAccountabilityTrackerTemplate({
             <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
               <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
               <td className="border border-black p-1.5 align-top">
-                <p className="font-bold text-slate-900">{r.objective}</p>
-                <p className="text-[7.5pt] text-slate-600 line-clamp-2">{r.description}</p>
+                {renderOriginBadge(r, campusMap, unitMap)}
+                <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
+                <p className="text-[7.5pt] text-slate-600 mt-0.5 line-clamp-2">{r.description}</p>
               </td>
               <td className="border border-black p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
               <td className="border border-black p-1.5 align-top font-bold text-slate-900">
@@ -581,21 +611,15 @@ export function RiskAccountabilityTrackerTemplate({
 /* =========================================================================
    4. RESIDUAL RISK & TREATMENT EFFECTIVENESS VERIFICATION DOSSIER
    ========================================================================= */
-interface EffectivenessAuditProps {
-  risks: Risk[];
-  unitName: string;
-  campusName: string;
-  year: number;
-  signatories?: Signatories;
-}
-
 export function RiskEffectivenessAuditTemplate({
   risks,
   unitName,
   campusName,
   year,
   signatories,
-}: EffectivenessAuditProps) {
+  unitMap,
+  campusMap,
+}: BasePrintProps) {
   const today = new Date();
   const verifiedRisks = risks.filter(
     (r) => r.postTreatment || r.verification || r.status === 'Closed' || (r.type === 'Risk' && r.treatmentAction),
@@ -655,9 +679,9 @@ export function RiskEffectivenessAuditTemplate({
       <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
         <thead>
           <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-            <th className="border border-black p-1.5 text-center w-[20%]">Objective & Risk</th>
+            <th className="border border-black p-1.5 text-center w-[22%]">Objective & Auditee Origin</th>
             <th className="border border-black p-1.5 text-center w-[7%]">Pre-Mag</th>
-            <th className="border border-black p-1.5 text-center w-[23%]">Implemented Treatment Action</th>
+            <th className="border border-black p-1.5 text-center w-[21%]">Implemented Treatment Action</th>
             <th className="border border-black p-1.5 text-center w-[7%]">Post-Mag</th>
             <th className="border border-black p-1.5 text-center w-[8%]">Delta Drop</th>
             <th className="border border-black p-1.5 text-center w-[23%]">Documentary Evidence / Verification</th>
@@ -674,8 +698,9 @@ export function RiskEffectivenessAuditTemplate({
             return (
               <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
                 <td className="border border-black p-1.5 align-top">
-                  <p className="font-bold text-slate-900">{r.objective}</p>
-                  <p className="text-[7.5pt] text-slate-600 line-clamp-2">{r.description}</p>
+                  {renderOriginBadge(r, campusMap, unitMap)}
+                  <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
+                  <p className="text-[7.5pt] text-slate-600 mt-0.5 line-clamp-2">{r.description}</p>
                 </td>
                 <td
                   className="border border-black p-1.5 text-center align-top font-bold"
@@ -744,21 +769,15 @@ export function RiskEffectivenessAuditTemplate({
 /* =========================================================================
    5. OPPORTUNITY CAPITALIZATION & STRATEGIC INNOVATION SCORECARD
    ========================================================================= */
-interface OpportunityScorecardProps {
-  risks: Risk[];
-  unitName: string;
-  campusName: string;
-  year: number;
-  signatories?: Signatories;
-}
-
 export function OpportunityInnovationTemplate({
   risks,
   unitName,
   campusName,
   year,
   signatories,
-}: OpportunityScorecardProps) {
+  unitMap,
+  campusMap,
+}: BasePrintProps) {
   const today = new Date();
   const opportunities = risks.filter((r) => r.type === 'Opportunity');
   const capturedCount = opportunities.filter(
@@ -826,8 +845,8 @@ export function OpportunityInnovationTemplate({
         <thead>
           <tr className="bg-slate-100 font-black text-slate-900 uppercase">
             <th className="border border-black p-1.5 text-center w-[5%]">#</th>
-            <th className="border border-black p-1.5 text-center w-[22%]">Strategic Objective</th>
-            <th className="border border-black p-1.5 text-center w-[28%]">Opportunity Description & Potential</th>
+            <th className="border border-black p-1.5 text-center w-[24%]">Strategic Objective & Origin</th>
+            <th className="border border-black p-1.5 text-center w-[26%]">Opportunity Description & Potential</th>
             <th className="border border-black p-1.5 text-center w-[25%]">Capitalization Plan / Enhancement Action</th>
             <th className="border border-black p-1.5 text-center w-[10%]">Target Date</th>
             <th className="border border-black p-1.5 text-center w-[10%]">Realization Status</th>
@@ -837,8 +856,11 @@ export function OpportunityInnovationTemplate({
           {opportunities.map((o, i) => (
             <tr key={o.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
               <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
-              <td className="border border-black p-1.5 font-bold align-top">{o.objective}</td>
-              <td className="border border-black p-1.5 align-top">{o.description}</td>
+              <td className="border border-black p-1.5 font-bold align-top">
+                {renderOriginBadge(o, campusMap, unitMap)}
+                <p className="font-bold text-slate-900 leading-snug">{o.objective}</p>
+              </td>
+              <td className="border border-black p-1.5 align-top leading-snug">{o.description}</td>
               <td className="border border-black p-1.5 align-top font-medium">{o.treatmentAction || '—'}</td>
               <td className="border border-black p-1.5 text-center align-top font-mono">
                 {safeFormatDate(o.targetDate)}
@@ -886,21 +908,15 @@ export function OpportunityInnovationTemplate({
 /* =========================================================================
    6. UNIT RISK TREATMENT STATUS & ACTION REMINDER NOTICE (MEMORANDUM)
    ========================================================================= */
-interface StatusReminderProps {
-  risks: Risk[];
-  unitName: string;
-  campusName: string;
-  year: number;
-  signatories?: Signatories;
-}
-
 export function RiskStatusReminderNoticeTemplate({
   risks,
   unitName,
   campusName,
   year,
   signatories,
-}: StatusReminderProps) {
+  unitMap,
+  campusMap,
+}: BasePrintProps) {
   const today = new Date();
   const activeRisks = risks.filter((r) => r.type === 'Risk');
 
@@ -1020,9 +1036,9 @@ export function RiskStatusReminderNoticeTemplate({
         <thead>
           <tr className="bg-slate-100 font-black text-slate-900 uppercase">
             <th className="border border-black p-1.5 text-center w-[4%]">#</th>
-            <th className="border border-black p-1.5 text-center w-[20%]">Objective & Risk Context</th>
+            <th className="border border-black p-1.5 text-center w-[22%]">Objective & Origin Context</th>
             <th className="border border-black p-1.5 text-center w-[8%]">Severity</th>
-            <th className="border border-black p-1.5 text-center w-[28%]">Committed Mitigation Strategy</th>
+            <th className="border border-black p-1.5 text-center w-[26%]">Committed Mitigation Strategy</th>
             <th className="border border-black p-1.5 text-center w-[16%]">Accountable Lead</th>
             <th className="border border-black p-1.5 text-center w-[10%]">Target Date</th>
             <th className="border border-black p-1.5 text-center w-[14%]">Current Status</th>
@@ -1048,8 +1064,9 @@ export function RiskStatusReminderNoticeTemplate({
               >
                 <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
                 <td className="border border-black p-1.5 align-top">
-                  <p className="font-bold text-slate-900">{r.objective}</p>
-                  <p className="text-[7.5pt] text-slate-600 line-clamp-2">{r.description}</p>
+                  {renderOriginBadge(r, campusMap, unitMap)}
+                  <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
+                  <p className="text-[7.5pt] text-slate-600 line-clamp-2 mt-0.5">{r.description}</p>
                 </td>
                 <td
                   className="border border-black p-1.5 text-center align-top font-bold"
