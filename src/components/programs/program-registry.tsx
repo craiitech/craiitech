@@ -1,12 +1,28 @@
 'use client';
 
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import type { AcademicProgram, Campus, Unit, ProgramComplianceRecord } from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Edit, School, Activity, ShieldCheck, ShieldAlert, BookOpen, Trash2, Clock, Users, Check, X, Hash, GraduationCap, Calculator, ExternalLink } from 'lucide-react';
+import {
+  Edit,
+  School,
+  Activity,
+  ShieldCheck,
+  ShieldAlert,
+  BookOpen,
+  Trash2,
+  Clock,
+  Users,
+  Check,
+  X,
+  Hash,
+  GraduationCap,
+  Calculator,
+  ExternalLink,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -20,25 +36,37 @@ interface ProgramRegistryProps {
   canManage: boolean;
 }
 
-export function ProgramRegistry({ programs, compliances, campuses, units, onEdit, onDelete, canManage }: ProgramRegistryProps) {
+export function ProgramRegistry({
+  programs,
+  compliances,
+  campuses,
+  units,
+  onEdit,
+  onDelete,
+  canManage,
+}: ProgramRegistryProps) {
   const router = useRouter();
-  const campusMap = useMemo(() => new Map(campuses.map(c => [c.id, c.name])), [campuses]);
-  const unitMap = useMemo(() => new Map(units.map(u => [u.id, u.name])), [units]);
+  const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
+  const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
 
   // Robustly determine if we are showing active or closed programs based on the input list
   const isShowingActive = useMemo(() => {
     if (programs.length === 0) return true;
-    return programs.every(p => p.isActive === true);
+    return programs.every((p) => p.isActive === true);
   }, [programs]);
 
   if (programs.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 border rounded-lg border-dashed bg-muted/30 p-8 text-center">
         <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mb-4">
-            <BookOpen className="h-8 w-8 text-muted-foreground opacity-40" />
+          <BookOpen className="h-8 w-8 text-muted-foreground opacity-40" />
         </div>
-        <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">No {isShowingActive ? 'Active' : 'Phased-Out'} Programs Found</p>
-        <p className="text-xs text-muted-foreground mt-1 max-w-xs">There are no programs currently listed in this category within your authorized scope.</p>
+        <p className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
+          No {isShowingActive ? 'Active' : 'Phased-Out'} Programs Found
+        </p>
+        <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+          There are no programs currently listed in this category within your authorized scope.
+        </p>
       </div>
     );
   }
@@ -52,7 +80,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
               <TableHead className="text-[10px] font-black uppercase pl-6 py-4">Program Name & Status</TableHead>
               <TableHead className="text-[10px] font-black uppercase py-4">Campus</TableHead>
               <TableHead className="text-[10px] font-black uppercase py-4">College / Unit</TableHead>
-              
+
               {isShowingActive ? (
                 <>
                   <TableHead className="text-center text-[10px] font-black uppercase py-4">Total Enrollment</TableHead>
@@ -65,7 +93,7 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
 
               <TableHead className="text-[10px] font-black uppercase py-4">COPC Award Date</TableHead>
               <TableHead className="text-[10px] font-black uppercase py-4">Next Visit (AACCUP)</TableHead>
-              
+
               <TableHead className="text-[10px] font-black uppercase py-4">Status</TableHead>
               <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-4">Actions</TableHead>
             </TableRow>
@@ -73,94 +101,113 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
           <TableBody>
             {programs.map((program) => {
               const pId = String(program.id).toLowerCase().trim();
-              const record = compliances.find(c => 
-                String(c.programId || '').toLowerCase().trim() === pId
+              const record = compliances.find(
+                (c) =>
+                  String(c.programId || '')
+                    .toLowerCase()
+                    .trim() === pId,
               );
-              
+
               const copcStatus = record?.ched?.copcStatus;
               const copcAwardDate = record?.ched?.copcAwardDate || 'N/A';
 
-              const specMap = new Map((program.specializations || []).map(s => [s.id, s.name]));
-              const evidenceRegistry: { title: string, url: string, category: string }[] = [];
+              const specMap = new Map((program.specializations || []).map((s) => [s.id, s.name]));
+              const evidenceRegistry: { title: string; url: string; category: string }[] = [];
               if (record) {
-                if (record.ched?.copcLink) evidenceRegistry.push({ title: 'COPC Cert', url: record.ched.copcLink, category: 'Regulatory' });
-                if (record.ched?.programCmoLink) evidenceRegistry.push({ title: 'CHED CMO', url: record.ched.programCmoLink, category: 'Regulatory' });
-                if (record.ched?.boardApprovalLink) evidenceRegistry.push({ title: 'BOR Res', url: record.ched.boardApprovalLink, category: 'Governance' });
-                
+                if (record.ched?.copcLink)
+                  evidenceRegistry.push({ title: 'COPC Cert', url: record.ched.copcLink, category: 'Regulatory' });
+                if (record.ched?.programCmoLink)
+                  evidenceRegistry.push({ title: 'CHED CMO', url: record.ched.programCmoLink, category: 'Regulatory' });
+                if (record.ched?.boardApprovalLink)
+                  evidenceRegistry.push({
+                    title: 'BOR Res',
+                    url: record.ched.boardApprovalLink,
+                    category: 'Governance',
+                  });
+
                 if (record.ched?.majorBoardApprovals) {
-                    record.ched.majorBoardApprovals.forEach(mba => {
-                        if (mba.link) {
-                            const majorName = specMap.get(mba.majorId) || mba.majorId;
-                            evidenceRegistry.push({
-                                title: `BOR Res - ${majorName}`,
-                                url: mba.link,
-                                category: 'Governance'
-                            });
-                        }
-                    });
+                  record.ched.majorBoardApprovals.forEach((mba) => {
+                    if (mba.link) {
+                      const majorName = specMap.get(mba.majorId) || mba.majorId;
+                      evidenceRegistry.push({
+                        title: `BOR Res - ${majorName}`,
+                        url: mba.link,
+                        category: 'Governance',
+                      });
+                    }
+                  });
                 }
 
                 const curriculumRecords = record.curriculumRecords || [];
-                curriculumRecords.forEach(cr => {
-                    if (cr.notationProofLink) {
-                        const majorName = cr.majorId === 'General' || cr.majorId === 'general'
-                            ? 'General'
-                            : (specMap.get(cr.majorId) || cr.majorId);
-                        evidenceRegistry.push({
-                            title: `Curriculum - ${majorName} (R${cr.revisionNumber})`,
-                            url: cr.notationProofLink,
-                            category: 'Regulatory'
-                        });
-                    }
+                curriculumRecords.forEach((cr) => {
+                  if (cr.notationProofLink) {
+                    const majorName =
+                      cr.majorId === 'General' || cr.majorId === 'general'
+                        ? 'General'
+                        : specMap.get(cr.majorId) || cr.majorId;
+                    evidenceRegistry.push({
+                      title: `Curriculum - ${majorName} (R${cr.revisionNumber})`,
+                      url: cr.notationProofLink,
+                      category: 'Regulatory',
+                    });
+                  }
                 });
 
                 const milestones = record.accreditationRecords || [];
-                milestones.forEach(m => {
-                    if (m.certificateLink) {
-                        evidenceRegistry.push({
-                            title: `${m.level} Cert`,
-                            url: m.certificateLink,
-                            category: 'Quality'
-                        });
-                    }
+                milestones.forEach((m) => {
+                  if (m.certificateLink) {
+                    evidenceRegistry.push({
+                      title: `${m.level} Cert`,
+                      url: m.certificateLink,
+                      category: 'Quality',
+                    });
+                  }
                 });
               }
 
               const enrollmentTotal = (() => {
-                  if (!record) return 0;
-                  const records = record.enrollmentRecords || [];
-                  const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
-                  
-                  if (records.length > 0) {
-                      return records.reduce((acc, rec) => {
-                          const s1 = rec.firstSemester;
-                          if (!s1) return acc;
-                          const termTotal = levels.reduce((lAcc, level) => lAcc + (Number(s1[level]?.male) || 0) + (Number(s1[level]?.female) || 0), 0);
-                          return acc + termTotal;
-                      }, 0);
-                  }
-                  
-                  const s1 = record.stats?.enrollment?.firstSemester;
-                  if (!s1) return 0;
-                  return levels.reduce((acc, level) => acc + (Number(s1[level]?.male) || 0) + (Number(s1[level]?.female) || 0), 0);
+                if (!record) return 0;
+                const records = record.enrollmentRecords || [];
+                const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
+
+                if (records.length > 0) {
+                  return records.reduce((acc, rec) => {
+                    const s1 = rec.firstSemester;
+                    if (!s1) return acc;
+                    const termTotal = levels.reduce(
+                      (lAcc, level) => lAcc + (Number(s1[level]?.male) || 0) + (Number(s1[level]?.female) || 0),
+                      0,
+                    );
+                    return acc + termTotal;
+                  }, 0);
+                }
+
+                const s1 = record.stats?.enrollment?.firstSemester;
+                if (!s1) return 0;
+                return levels.reduce(
+                  (acc, level) => acc + (Number(s1[level]?.male) || 0) + (Number(s1[level]?.female) || 0),
+                  0,
+                );
               })();
 
-              const gradsTotal = record?.graduationRecords?.reduce((acc, r) => acc + (r.maleCount || 0) + (r.femaleCount || 0), 0) || 0;
+              const gradsTotal =
+                record?.graduationRecords?.reduce((acc, r) => acc + (r.maleCount || 0) + (r.femaleCount || 0), 0) || 0;
 
               let accLabel = '';
               let nextVisit = 'TBA';
 
               if (program.isNewProgram) {
-                  accLabel = 'New Program Offering';
-                  nextVisit = 'NEW PROGRAM';
+                accLabel = 'New Program Offering';
+                nextVisit = 'NEW PROGRAM';
               } else if (record?.accreditationRecords && record.accreditationRecords.length > 0) {
-                  const milestones = record.accreditationRecords;
-                  const current = milestones.find(m => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
-                  accLabel = current?.level || 'Non-Accredited';
-                  nextVisit = current?.statusValidityDate || 'TBA';
+                const milestones = record.accreditationRecords;
+                const current =
+                  milestones.find((m) => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
+                accLabel = current?.level || 'Non-Accredited';
+                nextVisit = current?.statusValidityDate || 'TBA';
               } else {
-                  accLabel = 'Non-Accredited';
-                  nextVisit = 'TBA';
+                accLabel = 'Non-Accredited';
+                nextVisit = 'TBA';
               }
 
               const facultyStats = (() => {
@@ -172,135 +219,256 @@ export function ProgramRegistry({ programs, compliances, campuses, units, onEdit
                 if (programChair?.name) roster.push(programChair);
                 if (members) roster.push(...members);
 
-                const m = roster.filter(p => p.sex === 'Male').length;
-                const f = roster.filter(p => p.sex === 'Female').length;
+                const m = roster.filter((p) => p.sex === 'Male').length;
+                const f = roster.filter((p) => p.sex === 'Female').length;
                 return { m, f, total: m + f };
               })();
 
               return (
-                <TableRow 
-                    key={program.id} 
+                <React.Fragment key={program.id}>
+                  <TableRow
                     className={cn(
-                        "transition-colors group",
-                        program.isActive ? "hover:bg-muted/30" : "bg-slate-50/50 dark:bg-slate-800/50 opacity-70 grayscale-[0.5] hover:bg-slate-100/50 dark:hover:bg-slate-700/50"
+                      'transition-colors group',
+                      program.isActive
+                        ? 'hover:bg-muted/30'
+                        : 'bg-slate-50/50 dark:bg-slate-800/50 opacity-70 grayscale-[0.5] hover:bg-slate-100/50 dark:hover:bg-slate-700/50',
+                      evidenceRegistry.length > 0 && 'border-b-0',
                     )}
-                >
-                  <TableCell className="pl-6 py-4">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className={cn("font-bold text-sm leading-tight", program.isActive ? "text-slate-900 dark:text-slate-100" : "text-slate-500")}>
+                  >
+                    <TableCell className="pl-6 py-4">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={cn(
+                              'font-bold text-sm leading-tight',
+                              program.isActive ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500',
+                            )}
+                          >
                             {program.name}
+                          </span>
+                          {!program.isActive && (
+                            <Badge
+                              variant="destructive"
+                              className="h-3.5 text-[7px] font-black px-1 uppercase tracking-tighter"
+                            >
+                              CLOSED
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">
+                          {program.abbreviation} &bull; {program.level}
                         </span>
-                        {!program.isActive && (
-                            <Badge variant="destructive" className="h-3.5 text-[7px] font-black px-1 uppercase tracking-tighter">CLOSED</Badge>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">{program.abbreviation} &bull; {program.level}</span>
-                      
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          {copcStatus === 'With COPC' && <span className="text-[9px] font-black uppercase text-green-600">With COPC</span>}
-                          {copcStatus === 'No COPC' && <span className="text-[9px] font-black uppercase text-red-600">No COPC</span>}
-                          {(copcStatus === 'With COPC' || copcStatus === 'No COPC') && <span className="text-[9px] text-muted-foreground opacity-30">|</span>}
-                          <span className={cn("text-[9px] font-black uppercase", program.isNewProgram ? "text-amber-600" : "text-primary")}>{accLabel}</span>
-                      </div>
-                      
-                      {evidenceRegistry.length > 0 && (
-                          <div className="flex flex-wrap items-center gap-1.5 mt-2 animate-in fade-in duration-300">
-                              <span className="text-[7.5px] font-black uppercase tracking-wider text-muted-foreground/50 mr-0.5">Evidence:</span>
-                              {evidenceRegistry.map((evidence, idx) => (
-                                  <a
-                                      key={idx}
-                                      href={evidence.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase border border-primary/20 bg-primary/5 hover:bg-primary/10 text-primary transition-all duration-300 cursor-pointer shadow-sm"
-                                      title={evidence.title}
-                                  >
-                                      <ExternalLink className="h-2 w-2" />
-                                      {evidence.title}
-                                  </a>
-                              ))}
-                          </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-4">
-                    <div className="flex items-center gap-2">
-                      <School className="h-3.5 w-3.5 text-primary opacity-40" />
-                      <span className="text-xs font-medium">{campusMap.get(program.campusId) || '...'}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="py-4">
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">{unitMap.get(program.collegeId) || 'Unknown Unit'}</span>
-                      <Badge variant="outline" className="text-[8px] h-3.5 w-fit py-0 uppercase tracking-tighter opacity-60 font-mono border-muted-foreground/20">{program.collegeId}</Badge>
-                    </div>
-                  </TableCell>
 
-                  {isShowingActive ? (
-                    <>
-                      <TableCell className="py-4 text-center">
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          {copcStatus === 'With COPC' && (
+                            <span className="text-[9px] font-black uppercase text-green-600">With COPC</span>
+                          )}
+                          {copcStatus === 'No COPC' && (
+                            <span className="text-[9px] font-black uppercase text-red-600">No COPC</span>
+                          )}
+                          {(copcStatus === 'With COPC' || copcStatus === 'No COPC') && (
+                            <span className="text-[9px] text-muted-foreground opacity-30">|</span>
+                          )}
+                          <span
+                            className={cn(
+                              'text-[9px] font-black uppercase',
+                              program.isNewProgram ? 'text-amber-600' : 'text-primary',
+                            )}
+                          >
+                            {accLabel}
+                          </span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="flex items-center gap-2">
+                        <School className="h-3.5 w-3.5 text-primary opacity-40" />
+                        <span className="text-xs font-medium">{campusMap.get(program.campusId) || '...'}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="py-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
+                          {unitMap.get(program.collegeId) || 'Unknown Unit'}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-[8px] h-3.5 w-fit py-0 uppercase tracking-tighter opacity-60 font-mono border-muted-foreground/20"
+                        >
+                          {program.collegeId}
+                        </Badge>
+                      </div>
+                    </TableCell>
+
+                    {isShowingActive ? (
+                      <>
+                        <TableCell className="py-4 text-center">
                           <div className="flex flex-col items-center gap-1">
                             <span className="text-xs font-black tabular-nums">{enrollmentTotal.toLocaleString()}</span>
                             <div className="flex items-center gap-1 text-[8px] font-black text-muted-foreground uppercase opacity-40">
-                                <Users className="h-2 w-2" /> 1ST SEM
+                              <Users className="h-2 w-2" /> 1ST SEM
                             </div>
                           </div>
-                      </TableCell>
-                      <TableCell className="py-4 text-center">
+                        </TableCell>
+                        <TableCell className="py-4 text-center">
                           <div className="flex flex-col items-center gap-1">
-                            <span className="text-xs font-black tabular-nums text-emerald-600">{gradsTotal.toLocaleString()}</span>
+                            <span className="text-xs font-black tabular-nums text-emerald-600">
+                              {gradsTotal.toLocaleString()}
+                            </span>
                             <div className="flex items-center gap-1 text-[8px] font-black text-emerald-600/40 uppercase">
-                                <GraduationCap className="h-2 w-2" /> TOTAL
+                              <GraduationCap className="h-2 w-2" /> TOTAL
                             </div>
                           </div>
-                      </TableCell>
+                        </TableCell>
+                        <TableCell className="py-4">
+                          <div className="flex items-center gap-2">
+                            <Users className="h-3.5 w-3.5 text-primary/40" />
+                            <div className="flex flex-col">
+                              <span className="text-xs font-black tabular-nums text-slate-800 dark:text-slate-200">
+                                {facultyStats.m}M / {facultyStats.f}F
+                              </span>
+                              <span className="text-[10px] font-bold text-primary">({facultyStats.total} TOTAL)</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </>
+                    ) : (
                       <TableCell className="py-4">
                         <div className="flex items-center gap-2">
-                          <Users className="h-3.5 w-3.5 text-primary/40" />
-                          <div className="flex flex-col">
-                            <span className="text-xs font-black tabular-nums text-slate-800 dark:text-slate-200">{facultyStats.m}M / {facultyStats.f}F</span>
-                            <span className="text-[10px] font-bold text-primary">({facultyStats.total} TOTAL)</span>
-                          </div>
+                          <Hash className="h-3 w-3 text-primary opacity-40" />
+                          <span className="text-xs font-black font-mono text-slate-700 dark:text-slate-300">
+                            {record?.ched?.closureReferendumNumber || '--'}
+                          </span>
                         </div>
                       </TableCell>
-                    </>
-                  ) : (
-                    <TableCell className="py-4">
-                        <div className="flex items-center gap-2">
-                            <Hash className="h-3 w-3 text-primary opacity-40" />
-                            <span className="text-xs font-black font-mono text-slate-700 dark:text-slate-300">{record?.ched?.closureReferendumNumber || '--'}</span>
-                        </div>
-                    </TableCell>
-                  )}
-                  
-                  <TableCell className="py-4">
-                    <div className="flex flex-col gap-1">
-                        <span className={cn("text-xs font-black tabular-nums", copcAwardDate === 'N/A' ? "text-muted-foreground/40" : "text-emerald-600")}>{copcAwardDate}</span>
-                        {copcStatus === 'With COPC' && <Badge variant="outline" className="h-3 text-[7px] font-black border-emerald-200 text-emerald-600 bg-emerald-50 w-fit">VERIFIED</Badge>}
-                    </div>
-                  </TableCell>
-
-                  <TableCell className="py-4">
-                    <div className="flex flex-col gap-1">
-                        <span className={cn("text-xs font-black tabular-nums uppercase", nextVisit === 'NEW PROGRAM' ? "text-amber-600" : (nextVisit === 'TBA' ? "text-muted-foreground/40" : "text-primary"))}>{nextVisit}</span>
-                        {nextVisit !== 'TBA' && nextVisit !== 'NEW PROGRAM' && <div className="flex items-center gap-1 text-[8px] font-bold text-muted-foreground uppercase"><Clock className="h-2.5 w-2.5" /> Scheduled</div>}
-                    </div>
-                  </TableCell>
-
-                  <TableCell className="py-4">
-                    {program.isActive ? <Badge className="bg-emerald-600 hover:bg-emerald-700 gap-1 h-5 text-[9px] uppercase tracking-tighter font-black"><Activity className="h-2.5 w-2.5" /> Active</Badge> : <Badge variant="destructive" className="gap-1 h-5 text-[9px] uppercase tracking-tighter font-black"><ShieldAlert className="h-2.5 w-2.5" /> Closed</Badge>}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2 whitespace-nowrap pr-6 py-4">
-                    <Button size="sm" variant="default" className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm" onClick={() => router.push(`/academic-programs/${program.id}`)}>Workspace</Button>
-                    {canManage && (
-                      <div className="inline-flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5" onClick={() => onEdit(program)}><Edit className="h-4 w-4" /></Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5" onClick={() => onDelete(program)}><Trash2 className="h-4 w-4" /></Button>
-                      </div>
                     )}
-                  </TableCell>
-                </TableRow>
+
+                    <TableCell className="py-4">
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={cn(
+                            'text-xs font-black tabular-nums',
+                            copcAwardDate === 'N/A' ? 'text-muted-foreground/40' : 'text-emerald-600',
+                          )}
+                        >
+                          {copcAwardDate}
+                        </span>
+                        {copcStatus === 'With COPC' && (
+                          <Badge
+                            variant="outline"
+                            className="h-3 text-[7px] font-black border-emerald-200 text-emerald-600 bg-emerald-50 w-fit"
+                          >
+                            VERIFIED
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="py-4">
+                      <div className="flex flex-col gap-1">
+                        <span
+                          className={cn(
+                            'text-xs font-black tabular-nums uppercase',
+                            nextVisit === 'NEW PROGRAM'
+                              ? 'text-amber-600'
+                              : nextVisit === 'TBA'
+                                ? 'text-muted-foreground/40'
+                                : 'text-primary',
+                          )}
+                        >
+                          {nextVisit}
+                        </span>
+                        {nextVisit !== 'TBA' && nextVisit !== 'NEW PROGRAM' && (
+                          <div className="flex items-center gap-1 text-[8px] font-bold text-muted-foreground uppercase">
+                            <Clock className="h-2.5 w-2.5" /> Scheduled
+                          </div>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="py-4">
+                      {program.isActive ? (
+                        <Badge className="bg-emerald-600 hover:bg-emerald-700 gap-1 h-5 text-[9px] uppercase tracking-tighter font-black">
+                          <Activity className="h-2.5 w-2.5" /> Active
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="destructive"
+                          className="gap-1 h-5 text-[9px] uppercase tracking-tighter font-black"
+                        >
+                          <ShieldAlert className="h-2.5 w-2.5" /> Closed
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right space-x-2 whitespace-nowrap pr-6 py-4">
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-sm"
+                        onClick={() => router.push(`/academic-programs/${program.id}`)}
+                      >
+                        Workspace
+                      </Button>
+                      {canManage && (
+                        <div className="inline-flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5"
+                            onClick={() => onEdit(program)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/5"
+                            onClick={() => onDelete(program)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+
+                  {/* DEDICATED EVIDENCE SUB-ROW BELOW THE PROGRAM */}
+                  {evidenceRegistry.length > 0 && (
+                    <TableRow
+                      className={cn(
+                        'bg-slate-50/80 dark:bg-slate-900/40 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 transition-colors border-b',
+                        !program.isActive && 'opacity-70 grayscale-[0.5]',
+                      )}
+                    >
+                      <TableCell colSpan={isShowingActive ? 10 : 8} className="py-2 pl-6 pr-6">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex items-center gap-1.5 text-[8.5px] font-black uppercase tracking-wider text-muted-foreground bg-background px-2 py-0.5 rounded border border-muted-foreground/20 shadow-2xs">
+                            <ShieldCheck className="h-3 w-3 text-primary" />
+                            <span>Evidence Repository ({evidenceRegistry.length}):</span>
+                          </div>
+                          {evidenceRegistry.map((evidence, idx) => (
+                            <a
+                              key={idx}
+                              href={evidence.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8.5px] font-bold uppercase border border-primary/20 bg-background hover:bg-primary/10 text-primary transition-all duration-200 cursor-pointer shadow-2xs hover:border-primary/40 group"
+                              title={evidence.title}
+                            >
+                              <ExternalLink className="h-2.5 w-2.5 text-primary/70 group-hover:text-primary transition-colors" />
+                              <span>{evidence.title}</span>
+                              {evidence.category && (
+                                <span className="text-[7px] px-1 py-0.2 rounded bg-primary/10 text-primary font-black ml-0.5">
+                                  {evidence.category}
+                                </span>
+                              )}
+                            </a>
+                          ))}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
               );
             })}
           </TableBody>

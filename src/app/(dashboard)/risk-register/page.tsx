@@ -205,6 +205,16 @@ export default function RiskRegisterPage() {
     userProfile,
   ]);
 
+  const userAuthorizedYearRisks = useMemo(() => {
+    if (!allRisks) return [];
+    return allRisks.filter((risk) => {
+      if (risk.year !== selectedYear) return false;
+      if (!isAdmin && (!isSupervisor || isUnitOdimo) && risk.unitId !== userProfile?.unitId) return false;
+      if (isSupervisor && !isUnitOdimo && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
+      return true;
+    });
+  }, [allRisks, selectedYear, isAdmin, isSupervisor, isUnitOdimo, userProfile]);
+
   const risksOnly = useMemo(() => filteredRisks.filter((r) => r.type === 'Risk'), [filteredRisks]);
   const opportunitiesOnly = useMemo(() => filteredRisks.filter((r) => r.type === 'Opportunity'), [filteredRisks]);
 
@@ -1029,7 +1039,7 @@ export default function RiskRegisterPage() {
       <RiskDecisionReportsDialog
         isOpen={isReportsDialogOpen}
         onOpenChange={setIsReportsDialogOpen}
-        filteredRisks={filteredRisks}
+        filteredRisks={userAuthorizedYearRisks}
         selectedYear={selectedYear}
         unitMap={unitMap}
         campusMap={campusMap}

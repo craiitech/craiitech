@@ -225,13 +225,29 @@ export function RiskDecisionReportsDialog({
       if (!map.has(r.unitId)) map.set(r.unitId, []);
       map.get(r.unitId)!.push(r);
     });
-    return Array.from(map.entries()).map(([uId, rList]) => ({
-      unitId: uId,
-      unitName: unitMap.get(uId) || 'Unknown Unit',
-      campusName: campusMap.get(rList[0]?.campusId) || 'Institutional',
-      risks: rList,
-    }));
-  }, [processedRisks, unitMap, campusMap]);
+    return Array.from(map.entries()).map(([uId, rList]) => {
+      let resolvedCampusName = 'Institutional';
+      if (selectedCampusScope !== 'all') {
+        resolvedCampusName = campusMap.get(selectedCampusScope) || 'Institutional';
+      } else {
+        const uniqueCampusIds = Array.from(new Set(rList.map((r) => r.campusId).filter(Boolean)));
+        if (uniqueCampusIds.length === 1) {
+          resolvedCampusName = campusMap.get(uniqueCampusIds[0]) || 'Institutional';
+        } else if (uniqueCampusIds.length > 1) {
+          resolvedCampusName = 'All Campuses (University-Wide)';
+        } else {
+          resolvedCampusName = 'Institutional';
+        }
+      }
+
+      return {
+        unitId: uId,
+        unitName: unitMap.get(uId) || 'Unknown Unit',
+        campusName: resolvedCampusName,
+        risks: rList,
+      };
+    });
+  }, [processedRisks, unitMap, campusMap, selectedCampusScope]);
 
   const targetUnitGroups = useMemo(() => {
     if (selectedUnitScope === 'all') return unitsInFilter;
