@@ -1047,6 +1047,7 @@ export default function RiskRegisterPage() {
         campusMap={campusMap}
         allCampuses={allCampuses || []}
         allUnits={allUnits || []}
+        allSubmissions={harvestedSubmissions || []}
         signatories={signatories || undefined}
         currentCycle={printCycle}
       />

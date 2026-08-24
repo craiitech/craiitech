@@ -1,33 +1,30 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import type { Risk, Signatories, Unit, Campus } from '@/lib/types';
+import type { Risk, Signatories, Unit, Campus, Submission } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
-  FileText,
   Printer,
-  ShieldCheck,
-  Briefcase,
-  Clock,
-  CheckCircle2,
   Sparkles,
-  TrendingUp,
   SlidersHorizontal,
+  Briefcase,
+  BellRing,
+  Clock,
+  ShieldCheck,
   ChevronRight,
-  Eye,
   School,
   Building,
-  BellRing,
+  FileText,
   Filter,
+  AlertTriangle,
 } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RORPrintTemplate } from '@/components/risk/ror-print-template';
@@ -38,18 +35,22 @@ import {
   RiskEffectivenessAuditTemplate,
   OpportunityInnovationTemplate,
   RiskStatusReminderNoticeTemplate,
+  UnitNonSubmissionAuditTemplate,
+  type UnitComplianceAuditItem,
 } from '@/components/risk/risk-decision-print-templates';
-import { cn } from '@/lib/utils';
+import { cn, normalizeReportType } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { submissionTypes } from '@/lib/constants';
 
 export type DecisionReportType =
-  | 'ror-standard'
   | 'status-reminder'
+  | 'non-submission-audit'
   | 'executive-briefing'
   | 'resource-allocation'
   | 'accountability-tracker'
   | 'effectiveness-audit'
-  | 'opportunity-scorecard';
+  | 'opportunity-scorecard'
+  | 'ror-standard';
 
 interface RiskDecisionReportsDialogProps {
   isOpen: boolean;
@@ -60,8 +61,10 @@ interface RiskDecisionReportsDialogProps {
   campusMap: Map<string, string>;
   allCampuses?: Campus[];
   allUnits?: Unit[];
+  allSubmissions?: Submission[];
   signatories?: Signatories;
   currentCycle?: 'first' | 'final';
+  defaultReportId?: DecisionReportType;
 }
 
 interface ReportOption {
@@ -77,6 +80,18 @@ interface ReportOption {
 }
 
 const REPORT_OPTIONS: ReportOption[] = [
+  {
+    id: 'non-submission-audit',
+    title: 'EOMS & Risk Digital Registry Non-Submission & Deficiency Audit',
+    category: 'Institutional Governance',
+    badge: 'Decision Support: Compliance Gap',
+    badgeColor: 'bg-rose-100 text-rose-900 border-rose-300',
+    description:
+      'Executive decision-support tool cross-examining which units have NOT yet submitted their 6 required EOMS documents and Digital Risk Register entries across campuses.',
+    icon: AlertTriangle,
+    pageSize: '13in 8.5in',
+    orientation: 'landscape',
+  },
   {
     id: 'status-reminder',
     title: 'Unit Risk Treatment Status & Action Reminder Notice',
@@ -172,16 +187,16 @@ export function RiskDecisionReportsDialog({
   campusMap,
   allCampuses = [],
   allUnits = [],
+  allSubmissions = [],
   signatories,
   currentCycle = 'final',
+  defaultReportId = 'non-submission-audit',
 }: RiskDecisionReportsDialogProps) {
-  const [selectedReportId, setSelectedReportId] = useState<DecisionReportType>('status-reminder');
+  const [selectedReportId, setSelectedReportId] = useState<DecisionReportType>(defaultReportId);
   const [cycle, setCycle] = useState<'first' | 'final'>(currentCycle);
   const [selectedCampusScope, setSelectedCampusScope] = useState<string>('all');
   const [selectedUnitScope, setSelectedUnitScope] = useState<string>('all');
   const [selectedStatusScope, setSelectedStatusScope] = useState<string>('all');
-
-  const selectedReport = REPORT_OPTIONS.find((r) => r.id === selectedReportId) || REPORT_OPTIONS[0];
 
   // Filter available units based on selected campus
   const availableUnitsForCampus = useMemo(() => {
@@ -254,114 +269,215 @@ export function RiskDecisionReportsDialog({
     return unitsInFilter.filter((u) => u.unitId === selectedUnitScope);
   }, [unitsInFilter, selectedUnitScope]);
 
+  // Cross-reference all units with EOMS submissions and digital risks
+  const auditUnitsList = useMemo<UnitComplianceAuditItem[]>(() => {
+    const unitsToScan = availableUnitsForCampus;
+
+    return unitsToScan.map((u) => {
+      const uCampusId = u.campusIds?.[0] || (selectedCampusScope !== 'all' ? selectedCampusScope : '');
+      const uCampusName = campusMap.get(uCampusId) || 'Institutional';
+
+      // Submissions for this unit
+      const uSubmissions = (allSubmissions || []).filter(
+        (s) => s.unitId === u.id && Number(s.year) === Number(selectedYear),
+      );
+
+      const firstCycleDocs = new Set(
+        uSubmissions
+          .filter((s) => s.cycleId?.toLowerCase().includes('first') || s.cycleId === 'first')
+          .map((s) => normalizeReportType(s.reportType)),
+      );
+      const finalCycleDocs = new Set(
+        uSubmissions
+          .filter((s) => s.cycleId?.toLowerCase().includes('final') || s.cycleId === 'final')
+          .map((s) => normalizeReportType(s.reportType)),
+      );
+
+      const missingFirst = submissionTypes.filter((t) => !firstCycleDocs.has(t));
+      const missingFinal = submissionTypes.filter((t) => !finalCycleDocs.has(t));
+
+      // Risks for this unit
+      const uRisks = (filteredRisks || []).filter((r) => r.unitId === u.id && Number(r.year) === Number(selectedYear));
+
+      const closedRisks = uRisks.filter((r) => r.status === 'Closed').length;
+      const inProgressRisks = uRisks.filter((r) => r.status === 'In Progress').length;
+      const openRisks = uRisks.filter((r) => r.status === 'Open').length;
+      const overdueRisks = uRisks.filter((r) => {
+        if (r.status === 'Closed' || !r.targetDate) return false;
+        const target = r.targetDate?.toDate ? r.targetDate.toDate() : new Date(r.targetDate);
+        return target < new Date();
+      }).length;
+
+      const firstCount = submissionTypes.length - missingFirst.length;
+      const finalCount = submissionTypes.length - missingFinal.length;
+      const riskScore = uRisks.length > 0 ? (uRisks.length >= 3 ? 2 : 1) : 0;
+      const totalEarned = firstCount + finalCount + riskScore;
+      const totalPossible = submissionTypes.length * 2 + 2; // 14
+      const complianceScore = Math.round((totalEarned / totalPossible) * 100);
+
+      let complianceStatus: 'Fully Compliant' | 'Partial Submission' | 'Non-Compliant (No Submissions)' =
+        'Partial Submission';
+      if (complianceScore >= 95) {
+        complianceStatus = 'Fully Compliant';
+      } else if (uSubmissions.length === 0 && uRisks.length === 0) {
+        complianceStatus = 'Non-Compliant (No Submissions)';
+      }
+
+      return {
+        unitId: u.id,
+        unitName: u.name,
+        campusId: uCampusId,
+        campusName: uCampusName,
+        firstCycleSubmitted: Array.from(firstCycleDocs),
+        missingFirstCycle: missingFirst,
+        finalCycleSubmitted: Array.from(finalCycleDocs),
+        missingFinalCycle: missingFinal,
+        totalRisksLogged: uRisks.length,
+        openRisksCount: openRisks,
+        inProgressRisksCount: inProgressRisks,
+        closedRisksCount: closedRisks,
+        overdueRisksCount: overdueRisks,
+        complianceScore,
+        complianceStatus,
+      };
+    });
+  }, [availableUnitsForCampus, allSubmissions, selectedYear, campusMap, filteredRisks, selectedCampusScope]);
+
+  const targetAuditUnits = useMemo(() => {
+    if (selectedUnitScope === 'all') return auditUnitsList;
+    return auditUnitsList.filter((u) => u.unitId === selectedUnitScope);
+  }, [auditUnitsList, selectedUnitScope]);
+
   const handleExecutePrint = () => {
-    if (targetUnitGroups.length === 0) return;
-
     try {
-      const reportsHtml = targetUnitGroups
-        .map(({ unitName, campusName, risks: uRisks, unitId }) => {
-          let templateNode: React.ReactNode = null;
+      let reportsHtml = '';
 
-          switch (selectedReportId) {
-            case 'status-reminder':
-              templateNode = (
-                <RiskStatusReminderNoticeTemplate
-                  risks={uRisks}
-                  unitName={unitName}
-                  campusName={campusName}
-                  year={selectedYear}
-                  signatories={signatories}
-                  unitMap={unitMap}
-                  campusMap={campusMap}
-                />
-              );
-              break;
-            case 'executive-briefing':
-              templateNode = (
-                <ExecutiveRiskBriefingTemplate
-                  risks={uRisks}
-                  unitName={unitName}
-                  campusName={campusName}
-                  year={selectedYear}
-                  signatories={signatories}
-                  cycle={cycle}
-                  unitMap={unitMap}
-                  campusMap={campusMap}
-                />
-              );
-              break;
-            case 'resource-allocation':
-              templateNode = (
-                <RiskResourceAllocationTemplate
-                  risks={uRisks}
-                  unitName={unitName}
-                  campusName={campusName}
-                  year={selectedYear}
-                  signatories={signatories}
-                  unitMap={unitMap}
-                  campusMap={campusMap}
-                />
-              );
-              break;
-            case 'accountability-tracker':
-              templateNode = (
-                <RiskAccountabilityTrackerTemplate
-                  risks={uRisks}
-                  unitName={unitName}
-                  campusName={campusName}
-                  year={selectedYear}
-                  signatories={signatories}
-                  unitMap={unitMap}
-                  campusMap={campusMap}
-                />
-              );
-              break;
-            case 'effectiveness-audit':
-              templateNode = (
-                <RiskEffectivenessAuditTemplate
-                  risks={uRisks}
-                  unitName={unitName}
-                  campusName={campusName}
-                  year={selectedYear}
-                  signatories={signatories}
-                  unitMap={unitMap}
-                  campusMap={campusMap}
-                />
-              );
-              break;
-            case 'opportunity-scorecard':
-              templateNode = (
-                <OpportunityInnovationTemplate
-                  risks={uRisks}
-                  unitName={unitName}
-                  campusName={campusName}
-                  year={selectedYear}
-                  signatories={signatories}
-                  unitMap={unitMap}
-                  campusMap={campusMap}
-                />
-              );
-              break;
-            case 'ror-standard':
-            default:
-              templateNode = (
-                <RORPrintTemplate
-                  risks={uRisks}
-                  unitName={unitName}
-                  campusName={campusName}
-                  year={selectedYear}
-                  signatories={signatories}
-                  cycle={cycle}
-                  unitMap={unitMap}
-                  campusMap={campusMap}
-                />
-              );
-              break;
-          }
+      if (selectedReportId === 'non-submission-audit') {
+        if (targetAuditUnits.length === 0) return;
 
-          return `<div key="${unitId}" class="print-page-break">${renderToStaticMarkup(templateNode)}</div>`;
-        })
-        .join('');
+        const templateNode = (
+          <UnitNonSubmissionAuditTemplate
+            auditUnits={targetAuditUnits}
+            campusName={
+              selectedCampusScope === 'all'
+                ? 'All Campuses (University-Wide)'
+                : campusMap.get(selectedCampusScope) || 'Institutional'
+            }
+            year={selectedYear}
+            signatories={signatories}
+            currentCycle={cycle}
+          />
+        );
+
+        reportsHtml = `<div class="print-page-break">${renderToStaticMarkup(templateNode)}</div>`;
+      } else {
+        if (targetUnitGroups.length === 0) return;
+
+        reportsHtml = targetUnitGroups
+          .map(({ unitName, campusName, risks: uRisks, unitId }) => {
+            let templateNode: React.ReactNode = null;
+
+            switch (selectedReportId) {
+              case 'status-reminder':
+                templateNode = (
+                  <RiskStatusReminderNoticeTemplate
+                    risks={uRisks}
+                    unitName={unitName}
+                    campusName={campusName}
+                    year={selectedYear}
+                    signatories={signatories}
+                    unitMap={unitMap}
+                    campusMap={campusMap}
+                  />
+                );
+                break;
+              case 'executive-briefing':
+                templateNode = (
+                  <ExecutiveRiskBriefingTemplate
+                    risks={uRisks}
+                    unitName={unitName}
+                    campusName={campusName}
+                    year={selectedYear}
+                    signatories={signatories}
+                    cycle={cycle}
+                    unitMap={unitMap}
+                    campusMap={campusMap}
+                  />
+                );
+                break;
+              case 'resource-allocation':
+                templateNode = (
+                  <RiskResourceAllocationTemplate
+                    risks={uRisks}
+                    unitName={unitName}
+                    campusName={campusName}
+                    year={selectedYear}
+                    signatories={signatories}
+                    unitMap={unitMap}
+                    campusMap={campusMap}
+                  />
+                );
+                break;
+              case 'accountability-tracker':
+                templateNode = (
+                  <RiskAccountabilityTrackerTemplate
+                    risks={uRisks}
+                    unitName={unitName}
+                    campusName={campusName}
+                    year={selectedYear}
+                    signatories={signatories}
+                    unitMap={unitMap}
+                    campusMap={campusMap}
+                  />
+                );
+                break;
+              case 'effectiveness-audit':
+                templateNode = (
+                  <RiskEffectivenessAuditTemplate
+                    risks={uRisks}
+                    unitName={unitName}
+                    campusName={campusName}
+                    year={selectedYear}
+                    signatories={signatories}
+                    unitMap={unitMap}
+                    campusMap={campusMap}
+                  />
+                );
+                break;
+              case 'opportunity-scorecard':
+                templateNode = (
+                  <OpportunityInnovationTemplate
+                    risks={uRisks}
+                    unitName={unitName}
+                    campusName={campusName}
+                    year={selectedYear}
+                    signatories={signatories}
+                    unitMap={unitMap}
+                    campusMap={campusMap}
+                  />
+                );
+                break;
+              case 'ror-standard':
+              default:
+                templateNode = (
+                  <RORPrintTemplate
+                    risks={uRisks}
+                    unitName={unitName}
+                    campusName={campusName}
+                    year={selectedYear}
+                    signatories={signatories}
+                    cycle={cycle}
+                    unitMap={unitMap}
+                    campusMap={campusMap}
+                  />
+                );
+                break;
+            }
+
+            return `<div key="${unitId}" class="print-page-break">${renderToStaticMarkup(templateNode)}</div>`;
+          })
+          .join('');
+      }
 
       const printWindow = window.open('', '_blank');
       if (printWindow) {
@@ -370,89 +486,52 @@ export function RiskDecisionReportsDialog({
           <!DOCTYPE html>
           <html>
           <head>
-            <title>${selectedReport.title} - AY ${selectedYear}</title>
-            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-            <style>
-              @page {
-                size: ${selectedReport.pageSize};
-                margin: 0.3in;
-              }
-              @media print {
-                html, body {
-                  margin: 0;
-                  padding: 0;
-                  background: white;
-                  -webkit-print-color-adjust: exact;
-                  print-color-adjust: exact;
-                  overflow: visible;
-                }
-                .no-print {
-                  display: none !important;
-                }
-                .print-page-break {
-                  page-break-after: always;
-                  min-height: 100vh;
-                  padding: 0.1in;
-                  box-sizing: border-box;
-                  display: block;
-                  position: relative;
-                }
-              }
-              body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                background: #f8fafc;
-                padding: 0;
-                margin: 0;
-                color: #000;
-              }
-              table {
-                border-collapse: collapse !important;
-                table-layout: fixed !important;
-                width: 100% !important;
-                border: 1.5px solid #000 !important;
-                margin-top: 6px !important;
-                margin-bottom: 12px !important;
-              }
-              td, th {
-                border: 1px solid #000 !important;
-                overflow: hidden !important;
-                word-wrap: break-word !important;
-                padding: 4px 6px !important;
-              }
-              th {
-                text-align: center !important;
-                vertical-align: middle !important;
-                background-color: #f1f5f9 !important;
-                font-weight: 900 !important;
-                text-transform: uppercase !important;
-                color: #000 !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-              }
-              .header-center {
-                text-align: center !important;
-                display: flex !important;
-                flex-direction: column !important;
-                align-items: center !important;
-                justify-content: center !important;
-                margin: 0 auto !important;
-                width: 100% !important;
-              }
-            </style>
+              <title>${REPORT_OPTIONS.find((r) => r.id === selectedReportId)?.title || 'Decision Report'} - AY ${selectedYear}</title>
+              <script src="https://cdn.tailwindcss.com"></script>
+              <style>
+                  @page { 
+                      size: ${REPORT_OPTIONS.find((r) => r.id === selectedReportId)?.pageSize || '11in 8.5in'}; 
+                      margin: 0; 
+                  }
+                  @media print { 
+                      html, body { 
+                          margin: 0; 
+                          padding: 0; 
+                          background: white; 
+                          -webkit-print-color-adjust: exact; 
+                          print-color-adjust: exact;
+                          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                      } 
+                      .no-print { display: none !important; } 
+                      .print-page-break { 
+                          page-break-after: always; 
+                          padding: 0.35in; 
+                          box-sizing: border-box; 
+                          overflow: hidden; 
+                          display: block; 
+                          position: relative; 
+                          background: white;
+                      } 
+                  } 
+                  body { 
+                      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+                      background: #f8fafc; 
+                      padding: 0; 
+                      color: black; 
+                  }
+                  table { border-collapse: collapse !important; width: 100% !important; }
+                  td, th { overflow: hidden; word-wrap: break-word; }
+              </style>
           </head>
           <body>
-            <div class="no-print" style="padding: 16px 24px; background: #0f172a; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; position: sticky; top: 0; z-index: 1000;">
-              <div>
-                <h2 style="margin: 0; font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">${selectedReport.title}</h2>
-                <p style="margin: 2px 0 0 0; font-size: 11px; color: #94a3b8;">Fiscal Year ${selectedYear} • ${targetUnitGroups.length} Unit Document(s)</p>
-              </div>
-              <button onclick="window.print()" style="padding: 10px 24px; background: #1B6535; color: white; border: none; border-radius: 6px; font-weight: 900; font-size: 12px; text-transform: uppercase; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-                Print / Save as PDF
-              </button>
-            </div>
-            <div id="print-content">
               ${reportsHtml}
-            </div>
+              <script>
+                  window.onload = function() {
+                      setTimeout(function() {
+                          window.print();
+                      }, 500);
+                  };
+              </script>
           </body>
           </html>
         `);
@@ -463,6 +542,9 @@ export function RiskDecisionReportsDialog({
     }
   };
 
+  const isAuditReport = selectedReportId === 'non-submission-audit';
+  const readyCount = isAuditReport ? targetAuditUnits.length : targetUnitGroups.length;
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white dark:bg-slate-900">
@@ -470,12 +552,12 @@ export function RiskDecisionReportsDialog({
           <div className="flex items-center gap-2 text-primary mb-1">
             <Sparkles className="h-5 w-5" />
             <DialogTitle className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-slate-100">
-              Risk Decision-Support & Report Generator
+              Risk & EOMS Decision-Support Report Generator
             </DialogTitle>
           </div>
           <DialogDescription className="text-xs">
-            Generate executive briefings, budget blueprints, accountability logs, and ISO audit dossiers from digital
-            risk registry data.
+            Generate executive briefings, non-submission audits, budget blueprints, accountability logs, and ISO audit
+            dossiers from digital records.
           </DialogDescription>
         </DialogHeader>
 
@@ -518,12 +600,22 @@ export function RiskDecisionReportsDialog({
                   <SelectValue placeholder="All Units" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Filtered Units ({unitsInFilter.length} Units)</SelectItem>
-                  {unitsInFilter.map((u) => (
-                    <SelectItem key={u.unitId} value={u.unitId}>
-                      {u.unitName} ({u.risks.length} {u.risks.length === 1 ? 'entry' : 'entries'})
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">
+                    {isAuditReport
+                      ? `All Audited Units (${auditUnitsList.length} Units)`
+                      : `All Filtered Units (${unitsInFilter.length} Units)`}
+                  </SelectItem>
+                  {isAuditReport
+                    ? auditUnitsList.map((u) => (
+                        <SelectItem key={u.unitId} value={u.unitId}>
+                          {u.unitName} ({u.complianceStatus})
+                        </SelectItem>
+                      ))
+                    : unitsInFilter.map((u) => (
+                        <SelectItem key={u.unitId} value={u.unitId}>
+                          {u.unitName} ({u.risks.length} {u.risks.length === 1 ? 'entry' : 'entries'})
+                        </SelectItem>
+                      ))}
                 </SelectContent>
               </Select>
             </div>
@@ -582,40 +674,42 @@ export function RiskDecisionReportsDialog({
                     type="button"
                     onClick={() => setSelectedReportId(opt.id)}
                     className={cn(
-                      'text-left p-4 rounded-xl border transition-all flex flex-col justify-between select-none relative overflow-hidden group cursor-pointer',
+                      'text-left p-4 rounded-xl border-2 transition-all flex flex-col justify-between group cursor-pointer relative overflow-hidden',
                       isSelected
-                        ? 'bg-primary/5 border-primary shadow-md ring-2 ring-primary/20'
-                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-primary/40 hover:bg-slate-50/70',
+                        ? 'border-primary bg-primary/5 shadow-md ring-1 ring-primary/30'
+                        : 'border-slate-200/80 dark:border-slate-800 hover:border-primary/40 hover:bg-slate-50/50 dark:hover:bg-slate-800/40 bg-white dark:bg-slate-900',
                     )}
                   >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <Badge
-                          variant="outline"
-                          className={cn('text-[9px] font-black uppercase px-2 py-0.5', opt.badgeColor)}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span
+                          className={cn(
+                            'text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded border',
+                            opt.badgeColor,
+                          )}
                         >
                           {opt.badge}
-                        </Badge>
+                        </span>
                         <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
                           {opt.category}
                         </span>
                       </div>
 
-                      <div className="flex items-start gap-2.5">
+                      <div className="flex items-start gap-3 mt-1">
                         <div
                           className={cn(
                             'p-2 rounded-lg shrink-0 mt-0.5 transition-colors',
                             isSelected
-                              ? 'bg-primary text-white'
-                              : 'bg-muted text-muted-foreground group-hover:bg-primary group-hover:text-white',
+                              ? 'bg-primary text-primary-foreground'
+                              : 'bg-muted text-muted-foreground group-hover:text-primary group-hover:bg-primary/10',
                           )}
                         >
                           <IconComponent className="h-4 w-4" />
                         </div>
-                        <div className="min-w-0">
+                        <div>
                           <h4
                             className={cn(
-                              'text-xs font-black uppercase leading-snug',
+                              'text-xs font-black uppercase tracking-tight',
                               isSelected ? 'text-primary' : 'text-slate-900 dark:text-slate-100',
                             )}
                           >
@@ -643,8 +737,8 @@ export function RiskDecisionReportsDialog({
 
         <DialogFooter className="p-4 border-t bg-slate-50 dark:bg-slate-900/80 flex flex-row items-center justify-between sm:justify-between gap-2">
           <div className="text-xs text-muted-foreground font-medium">
-            <span className="font-bold text-slate-900 dark:text-slate-100">{targetUnitGroups.length} Unit(s)</span>{' '}
-            ready for generation
+            <span className="font-bold text-slate-900 dark:text-slate-100">{readyCount} Unit(s)</span>{' '}
+            {isAuditReport ? 'evaluated in deficiency audit' : 'ready for generation'}
           </div>
 
           <div className="flex items-center gap-2">
@@ -653,8 +747,8 @@ export function RiskDecisionReportsDialog({
             </Button>
             <Button
               onClick={handleExecutePrint}
-              disabled={targetUnitGroups.length === 0}
-              className="font-black uppercase text-xs tracking-wider gap-2 shadow-md shadow-primary/20"
+              disabled={readyCount === 0}
+              className="font-black uppercase text-xs tracking-wider gap-2 shadow-md shadow-primary/20 bg-primary"
             >
               <Printer className="h-4 w-4" />
               Generate & Print Report

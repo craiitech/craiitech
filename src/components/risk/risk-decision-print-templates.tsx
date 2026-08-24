@@ -4,6 +4,7 @@ import React from 'react';
 import type { Risk, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
+import { cn } from '@/lib/utils';
 
 const safeFormatDate = (d: any) => {
   if (!d) return '—';
@@ -1122,6 +1123,317 @@ export function RiskStatusReminderNoticeTemplate({
           <div className="border-b border-black w-48 ml-auto mb-1"></div>
           <p className="font-black uppercase">{signatories?.qaoDirector || 'Director, Quality Assurance'}</p>
           <p className="text-[7.5pt] text-slate-500">Director, Quality Assurance Office</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   7. EOMS & RISK DIGITAL REGISTRY SUBMISSION COMPLIANCE DEFICIENCY AUDIT
+   ========================================================================= */
+export interface UnitComplianceAuditItem {
+  unitId: string;
+  unitName: string;
+  campusId: string;
+  campusName: string;
+  firstCycleSubmitted: string[];
+  missingFirstCycle: string[];
+  finalCycleSubmitted: string[];
+  missingFinalCycle: string[];
+  totalRisksLogged: number;
+  openRisksCount: number;
+  inProgressRisksCount: number;
+  closedRisksCount: number;
+  overdueRisksCount: number;
+  complianceScore: number;
+  complianceStatus: 'Fully Compliant' | 'Partial Submission' | 'Non-Compliant (No Submissions)';
+}
+
+export interface UnitNonSubmissionAuditProps {
+  auditUnits: UnitComplianceAuditItem[];
+  campusName: string;
+  year: number;
+  signatories?: Signatories;
+  currentCycle?: 'first' | 'final';
+}
+
+export function UnitNonSubmissionAuditTemplate({
+  auditUnits,
+  campusName,
+  year,
+  signatories,
+  currentCycle = 'final',
+}: UnitNonSubmissionAuditProps) {
+  const today = new Date();
+  const totalUnits = auditUnits.length;
+  const compliantUnits = auditUnits.filter((u) => u.complianceStatus === 'Fully Compliant');
+  const partialUnits = auditUnits.filter((u) => u.complianceStatus === 'Partial Submission');
+  const nonCompliantUnits = auditUnits.filter((u) => u.complianceStatus === 'Non-Compliant (No Submissions)');
+
+  const avgScore =
+    totalUnits > 0 ? Math.round(auditUnits.reduce((acc, u) => acc + u.complianceScore, 0) / totalUnits) : 0;
+
+  return (
+    <div
+      className="p-8 text-black bg-white max-w-[13in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
+      style={{ fontSize: '8.5pt' }}
+    >
+      {/* 1. INSTITUTIONAL LETTERHEAD */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
+          Republic of the Philippines
+        </p>
+        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
+          ROMBLON STATE UNIVERSITY
+        </h1>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
+          Quality Assurance Office • Institutional Quality Management Council
+        </h2>
+        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
+      </div>
+
+      {/* 2. OFFICIAL MEMORANDUM STRIP */}
+      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
+        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
+          EXECUTIVE DECISION-SUPPORT: EOMS & RISK DIGITAL REGISTRY SUBMISSION DEFICIENCY AUDIT
+        </h2>
+        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
+          Auditing Unit Document Submissions in EOMS Submission Hub & Digital Risk & Opportunity Registry — Fiscal Year{' '}
+          {year}
+        </p>
+      </div>
+
+      {/* 3. METADATA TABLE */}
+      <table className="w-full border-collapse border border-black text-[8.5pt] mb-4">
+        <tbody>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
+            <td className="border border-black p-2 font-mono font-bold w-[35%]">
+              RSU-QAO-DEF-{year}-{format(today, 'MMdd')}
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE ISSUED:</td>
+            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
+          </tr>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">AUDITED SCOPE:</td>
+            <td className="border border-black p-2 font-black uppercase text-slate-900">{campusName}</td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">TARGET CYCLE:</td>
+            <td className="border border-black p-2 font-bold">
+              {currentCycle === 'first' ? '1st Monitoring Cycle' : 'Final / Annual Evaluation Cycle'} (FY {year})
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* 4. EXECUTIVE SUMMARY METRICS */}
+      <div className="grid grid-cols-4 gap-3 mb-4 text-center">
+        <div className="border border-black p-2.5 rounded bg-slate-50">
+          <p className="text-[7pt] font-black uppercase text-slate-600 tracking-wider">Total Audited Units</p>
+          <p className="text-xl font-black text-slate-900 my-0.5">{totalUnits}</p>
+          <p className="text-[7pt] text-slate-600 font-bold">Across Monitored Campus Scope</p>
+        </div>
+        <div className="border border-emerald-600 p-2.5 rounded bg-emerald-50/70">
+          <p className="text-[7pt] font-black uppercase text-emerald-800 tracking-wider">100% Fully Compliant</p>
+          <p className="text-xl font-black text-emerald-700 my-0.5">{compliantUnits.length}</p>
+          <p className="text-[7pt] text-emerald-700 font-bold">
+            {totalUnits > 0 ? Math.round((compliantUnits.length / totalUnits) * 100) : 0}% Compliance Rate
+          </p>
+        </div>
+        <div className="border border-amber-600 p-2.5 rounded bg-amber-50/70">
+          <p className="text-[7pt] font-black uppercase text-amber-800 tracking-wider">Partially Deficient Units</p>
+          <p className="text-xl font-black text-amber-700 my-0.5">{partialUnits.length}</p>
+          <p className="text-[7pt] text-amber-700 font-bold">Missing Select Docs or ROR</p>
+        </div>
+        <div className="border border-rose-600 p-2.5 rounded bg-rose-50/70">
+          <p className="text-[7pt] font-black uppercase text-rose-800 tracking-wider">
+            Critical Non-Submission (0 Docs)
+          </p>
+          <p className="text-xl font-black text-rose-700 my-0.5">{nonCompliantUnits.length}</p>
+          <p className="text-[7pt] text-rose-700 font-bold">Zero EOMS & Risk Records</p>
+        </div>
+      </div>
+
+      {/* 5. EXECUTIVE DIRECTIVE BOX */}
+      <div className="border-l-4 border-rose-600 bg-rose-50/50 p-2.5 rounded-r text-[8pt] mb-4 text-slate-800 border-y border-r border-slate-300">
+        <p className="font-bold text-rose-900 mb-0.5">EXECUTIVE COMPLIANCE DIRECTIVE:</p>
+        <p className="leading-snug">
+          Pursuant to ISO 21001:2018 Clause 6.1 and RSU Institutional Quality Mandates, all unit heads, deans,
+          directors, and QMS focal coordinators listed below with <strong>PARTIAL</strong> or{' '}
+          <strong>CRITICAL DEFICIENCIES</strong> are strictly directed to upload missing EOMS documents into the EOMS
+          Submission Hub and encode their complete digital risk registers immediately.
+        </p>
+      </div>
+
+      {/* 6. DETAILED AUDIT MATRIX TABLE */}
+      <h3 className="text-[8.5pt] font-black uppercase tracking-wider mb-1.5 border-b border-black pb-1 text-center">
+        Complete Unit Submission Deficiency & Risk Registry Matrix
+      </h3>
+      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
+        <thead>
+          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
+            <th className="border border-black p-1.5 text-center w-[3%]">#</th>
+            <th className="border border-black p-1.5 text-left w-[24%]">Unit / Department & Campus Origin</th>
+            <th className="border border-black p-1.5 text-center w-[22%]">EOMS 1st Cycle Docs (6 Total)</th>
+            <th className="border border-black p-1.5 text-center w-[22%]">EOMS Final Cycle Docs (6 Total)</th>
+            <th className="border border-black p-1.5 text-center w-[16%]">Digital Risk Registry (ROR)</th>
+            <th className="border border-black p-1.5 text-center w-[6%]">Health</th>
+            <th className="border border-black p-1.5 text-center w-[10%]">Status Verdict</th>
+          </tr>
+        </thead>
+        <tbody>
+          {auditUnits.map((u, i) => {
+            const isZero = u.complianceStatus === 'Non-Compliant (No Submissions)';
+            const isCompliant = u.complianceStatus === 'Fully Compliant';
+
+            return (
+              <tr
+                key={u.unitId || i}
+                className={
+                  isZero
+                    ? 'bg-rose-50/60 font-medium'
+                    : isCompliant
+                      ? 'bg-emerald-50/20'
+                      : i % 2 === 0
+                        ? 'bg-white'
+                        : 'bg-slate-50'
+                }
+              >
+                <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
+                <td className="border border-black p-1.5 align-top">
+                  <div className="flex flex-wrap items-center gap-1 mb-1">
+                    <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-slate-100 text-slate-800 text-[6.5pt] font-black uppercase tracking-tight border border-slate-300">
+                      🏛️ {u.campusName}
+                    </span>
+                    <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-blue-50 text-blue-900 text-[6.5pt] font-black uppercase tracking-tight border border-blue-200">
+                      🏢 {u.unitName}
+                    </span>
+                  </div>
+                  <p className="font-bold text-slate-900 leading-snug">{u.unitName}</p>
+                </td>
+
+                {/* 1ST CYCLE EOMS */}
+                <td className="border border-black p-1.5 align-top">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="font-bold text-slate-800">{u.firstCycleSubmitted.length} / 6 Submitted</span>
+                    <span
+                      className={cn(
+                        'text-[7pt] font-black',
+                        u.missingFirstCycle.length === 0 ? 'text-emerald-700' : 'text-rose-700',
+                      )}
+                    >
+                      {u.missingFirstCycle.length === 0 ? '✓ COMPLETE' : `⚠️ ${u.missingFirstCycle.length} MISSING`}
+                    </span>
+                  </div>
+                  {u.missingFirstCycle.length > 0 && (
+                    <div className="text-[7pt] text-rose-800 bg-rose-100/50 p-1 rounded mt-1 border border-rose-200">
+                      <span className="font-bold">Missing: </span>
+                      {u.missingFirstCycle.join(', ')}
+                    </div>
+                  )}
+                </td>
+
+                {/* FINAL CYCLE EOMS */}
+                <td className="border border-black p-1.5 align-top">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="font-bold text-slate-800">{u.finalCycleSubmitted.length} / 6 Submitted</span>
+                    <span
+                      className={cn(
+                        'text-[7pt] font-black',
+                        u.missingFinalCycle.length === 0 ? 'text-emerald-700' : 'text-rose-700',
+                      )}
+                    >
+                      {u.missingFinalCycle.length === 0 ? '✓ COMPLETE' : `⚠️ ${u.missingFinalCycle.length} MISSING`}
+                    </span>
+                  </div>
+                  {u.missingFinalCycle.length > 0 && (
+                    <div className="text-[7pt] text-rose-800 bg-rose-100/50 p-1 rounded mt-1 border border-rose-200">
+                      <span className="font-bold">Missing: </span>
+                      {u.missingFinalCycle.join(', ')}
+                    </div>
+                  )}
+                </td>
+
+                {/* DIGITAL RISK REGISTRY */}
+                <td className="border border-black p-1.5 align-top text-center">
+                  {u.totalRisksLogged > 0 ? (
+                    <div>
+                      <span className="font-black text-slate-900 text-[8pt] block">
+                        ✓ {u.totalRisksLogged} Risks Logged
+                      </span>
+                      <span className="text-[7pt] text-slate-600 font-bold block mt-0.5">
+                        {u.closedRisksCount} Closed | {u.inProgressRisksCount + u.openRisksCount} Active
+                      </span>
+                      {u.overdueRisksCount > 0 && (
+                        <span className="inline-block mt-0.5 text-[6.5pt] font-black text-rose-700 bg-rose-100 px-1 py-0.2 rounded">
+                          ⚠️ {u.overdueRisksCount} Overdue
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-rose-100/70 p-1 rounded border border-rose-300 text-rose-800 font-black text-[7pt]">
+                      🚨 0 RISKS REGISTERED
+                    </div>
+                  )}
+                </td>
+
+                {/* HEALTH SCORE */}
+                <td className="border border-black p-1.5 text-center align-top font-black tabular-nums">
+                  <span
+                    className={cn(
+                      'text-[9pt]',
+                      u.complianceScore >= 90
+                        ? 'text-emerald-700'
+                        : u.complianceScore >= 50
+                          ? 'text-amber-700'
+                          : 'text-rose-700',
+                    )}
+                  >
+                    {u.complianceScore}%
+                  </span>
+                </td>
+
+                {/* STATUS VERDICT */}
+                <td className="border border-black p-1.5 text-center align-top font-bold">
+                  {isCompliant ? (
+                    <span className="inline-block px-1.5 py-0.5 rounded text-[7pt] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      ✓ COMPLIANT
+                    </span>
+                  ) : isZero ? (
+                    <span className="inline-block px-1.5 py-0.5 rounded text-[7pt] font-black bg-rose-200 text-rose-900 border border-rose-300 shadow-2xs">
+                      🚨 NO SUBMISSION
+                    </span>
+                  ) : (
+                    <span className="inline-block px-1.5 py-0.5 rounded text-[7pt] font-black bg-amber-100 text-amber-800 border border-amber-300">
+                      ⚠️ DEFICIENT
+                    </span>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+
+      {/* 7. SIGNATORIES */}
+      <div className="grid grid-cols-3 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
+        <div>
+          <p className="font-bold text-slate-600 mb-5">Audit Conducted by:</p>
+          <div className="border-b border-black w-48 mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qmsHead || 'QMS Lead Auditor'}</p>
+          <p className="text-[7.5pt] text-slate-500">Quality Management Systems Division</p>
+        </div>
+        <div>
+          <p className="font-bold text-slate-600 mb-5">Noted & Endorsed by:</p>
+          <div className="border-b border-black w-48 mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qaoDirector || 'Director, Quality Assurance'}</p>
+          <p className="text-[7.5pt] text-slate-500">Quality Assurance Office</p>
+        </div>
+        <div className="text-right">
+          <p className="font-bold text-slate-600 mb-5">Confirmed for Executive Action:</p>
+          <div className="border-b border-black w-48 ml-auto mb-1"></div>
+          <p className="font-black uppercase">Office of the University President</p>
+          <p className="text-[7.5pt] text-slate-500">Executive Administration</p>
         </div>
       </div>
     </div>

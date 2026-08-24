@@ -21,18 +21,20 @@ import {
   ChevronRight,
   LayoutList,
   Info,
+  Sparkles,
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, deleteDoc, Timestamp } from '@/firebase/firestore-wrapper';
-import type { Submission, Campus, Unit, User as AppUser, Cycle, Risk } from '@/lib/types';
+import type { Submission, Campus, Unit, User as AppUser, Cycle, Risk, Signatories } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { useState, useMemo, useEffect } from 'react';
 import { FeedbackDialog } from '@/components/dashboard/feedback-dialog';
+import { RiskDecisionReportsDialog } from '@/components/risk/risk-decision-reports-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -119,10 +121,17 @@ export default function SubmissionsPage() {
 
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
+  const [isDecisionSupportOpen, setIsDecisionSupportOpen] = useState(false);
   const [deletingSubmission, setDeletingSubmission] = useState<Submission | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');
   const [challengeText, setChallengeText] = useState('');
+
+  const signatoriesDocRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system_settings', 'signatories') : null),
+    [firestore],
+  );
+  const { data: signatories } = useDoc<Signatories>(signatoriesDocRef);
 
   const isInstitutionalViewer =
     isAdmin ||
@@ -384,6 +393,13 @@ export default function SubmissionsPage() {
                 </div>
 
                 <div className="flex items-center gap-2 pt-5">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDecisionSupportOpen(true)}
+                    className="h-9 font-black uppercase text-[10px] tracking-widest border-primary/30 text-primary hover:bg-primary/10 bg-white dark:bg-slate-900 shadow-sm"
+                  >
+                    <Sparkles className="mr-2 h-4 w-4 text-primary" /> Decision Support Audit
+                  </Button>
                   <Button
                     variant="outline"
                     className="h-9 font-bold uppercase text-[10px] tracking-widest border-primary/20 text-primary hover:bg-primary/5 bg-white"
@@ -886,6 +902,19 @@ export default function SubmissionsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <RiskDecisionReportsDialog
+          isOpen={isDecisionSupportOpen}
+          onOpenChange={setIsDecisionSupportOpen}
+          filteredRisks={allRisks || []}
+          selectedYear={Number(reportSelectedYear)}
+          unitMap={new Map(allUnits?.map((u) => [u.id, u.name]))}
+          campusMap={campusMap}
+          allCampuses={campuses || []}
+          allUnits={allUnits || []}
+          allSubmissions={rawSubmissions || []}
+          signatories={signatories || undefined}
+          defaultReportId="non-submission-audit"
+        />
       </div>
     </TooltipProvider>
   );
