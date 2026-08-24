@@ -341,10 +341,11 @@ export function RiskDecisionReportsDialog({
           <html>
           <head>
             <title>${selectedReport.title} - AY ${selectedYear}</title>
+            <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
             <style>
               @page {
                 size: ${selectedReport.pageSize};
-                margin: 0;
+                margin: 0.3in;
               }
               @media print {
                 html, body {
@@ -352,6 +353,7 @@ export function RiskDecisionReportsDialog({
                   padding: 0;
                   background: white;
                   -webkit-print-color-adjust: exact;
+                  print-color-adjust: exact;
                   overflow: visible;
                 }
                 .no-print {
@@ -360,29 +362,32 @@ export function RiskDecisionReportsDialog({
                 .print-page-break {
                   page-break-after: always;
                   min-height: 100vh;
-                  padding: 0.3in;
+                  padding: 0.1in;
                   box-sizing: border-box;
                   display: block;
                   position: relative;
                 }
               }
               body {
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                 background: #f8fafc;
                 padding: 0;
+                margin: 0;
+                color: #000;
+              }
               table {
                 border-collapse: collapse !important;
                 table-layout: fixed !important;
                 width: 100% !important;
                 border: 1.5px solid #000 !important;
-                margin-top: 8px !important;
-                margin-bottom: 16px !important;
+                margin-top: 6px !important;
+                margin-bottom: 12px !important;
               }
               td, th {
                 border: 1px solid #000 !important;
                 overflow: hidden !important;
                 word-wrap: break-word !important;
-                padding: 5px 6px !important;
+                padding: 4px 6px !important;
               }
               th {
                 text-align: center !important;
@@ -392,6 +397,7 @@ export function RiskDecisionReportsDialog({
                 text-transform: uppercase !important;
                 color: #000 !important;
                 -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
               .header-center {
                 text-align: center !important;

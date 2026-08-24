@@ -49,6 +49,7 @@ export function ExecutiveRiskBriefingTemplate({
   signatories,
   cycle = 'final',
 }: ExecutiveBriefingProps) {
+  const today = new Date();
   const totalRisks = risks.filter((r) => r.type === 'Risk');
   const totalOpportunities = risks.filter((r) => r.type === 'Opportunity');
   const criticalCount = totalRisks.filter(
@@ -61,14 +62,12 @@ export function ExecutiveRiskBriefingTemplate({
   const inProgressCount = totalRisks.filter((r) => r.status === 'In Progress').length;
   const openCount = totalRisks.filter((r) => r.status === 'Open').length;
 
-  // Calculate pre vs post magnitude reduction
   const treatedRisks = totalRisks.filter((r) => r.postTreatment && r.postTreatment.magnitude);
   const totalPreMagnitude = treatedRisks.reduce((acc, r) => acc + (r.preTreatment?.magnitude || 0), 0);
   const totalPostMagnitude = treatedRisks.reduce((acc, r) => acc + (r.postTreatment?.magnitude || 0), 0);
   const reductionPercentage =
     totalPreMagnitude > 0 ? Math.round(((totalPreMagnitude - totalPostMagnitude) / totalPreMagnitude) * 100) : 0;
 
-  // Top 5 critical risks
   const topVulnerabilities = [...totalRisks]
     .sort((a, b) => (b.preTreatment?.magnitude || 0) - (a.preTreatment?.magnitude || 0))
     .slice(0, 6);
@@ -78,64 +77,81 @@ export function ExecutiveRiskBriefingTemplate({
       className="p-8 text-black bg-white max-w-[11in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
       style={{ fontSize: '9pt' }}
     >
-      {/* HEADER */}
-      <div className="text-center flex flex-col items-center justify-center border-b-2 border-black pb-3 mb-4 w-full">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+      {/* 1. INSTITUTIONAL LETTERHEAD */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
           Republic of the Philippines
         </p>
-        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700 text-center">
+        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
+          ROMBLON STATE UNIVERSITY
+        </h1>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
           Quality Assurance Office & Risk Management Council
+        </h2>
+        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
+      </div>
+
+      {/* 2. DOCUMENT TITLE STRIP */}
+      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
+        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
+          EXECUTIVE RISK PROFILE & DECISION-SUPPORT BRIEFING
+        </h2>
+        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
+          ISO 21001:2018 Clause 6.1 (Actions to Address Risks & Opportunities) & Institutional QMS Compliance
         </p>
-        <div className="mt-2 py-1 px-4 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
-          Executive Risk Profile & Decision-Support Briefing (FY {year})
-        </div>
       </div>
 
-      {/* METADATA BAR */}
-      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-black">
-        <div>
-          Scope:{' '}
-          <span className="underline">
-            {unitName} ({campusName})
-          </span>
-        </div>
-        <div>
-          Cycle:{' '}
-          <span className="underline">{cycle === 'first' ? '1st Monitoring Cycle' : 'Final / Annual Cycle'}</span>
-        </div>
-        <div>
-          Date Generated: <span className="underline">{format(new Date(), 'MMMM dd, yyyy')}</span>
-        </div>
-      </div>
+      {/* 3. METADATA TABLE */}
+      <table className="w-full border-collapse border border-black text-[8.5pt] mb-4">
+        <tbody>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
+            <td className="border border-black p-2 font-mono font-bold w-[35%]">
+              RSU-QAO-ERB-{year}-{format(today, 'MMdd')}
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE ISSUED:</td>
+            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
+          </tr>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">AUDITEE / UNIT:</td>
+            <td className="border border-black p-2 font-black uppercase text-slate-900">
+              {unitName} ({campusName})
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">MONITORING CYCLE:</td>
+            <td className="border border-black p-2 font-bold">
+              {cycle === 'first' ? '1st Monitoring Cycle' : 'Final / Annual Cycle'} (FY {year})
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-      {/* KEY DECISION METRICS GRID */}
+      {/* 4. KEY DECISION METRICS GRID */}
       <div className="grid grid-cols-4 gap-3 mb-4 text-center">
-        <div className="border border-black p-2 rounded bg-slate-50">
-          <p className="text-[7pt] font-black uppercase text-slate-500">Total Portfolio</p>
-          <p className="text-xl font-black text-slate-900">{risks.length}</p>
+        <div className="border border-black p-2.5 rounded bg-slate-50">
+          <p className="text-[7pt] font-black uppercase text-slate-600">Total Portfolio</p>
+          <p className="text-xl font-black text-slate-900 my-0.5">{risks.length}</p>
           <p className="text-[7pt] text-slate-600 font-bold">
             {totalRisks.length} Risks | {totalOpportunities.length} Opps
           </p>
         </div>
-        <div className="border border-rose-400 p-2 rounded bg-rose-50/50">
-          <p className="text-[7pt] font-black uppercase text-rose-700">High / Critical Vulnerabilities</p>
-          <p className="text-xl font-black text-rose-700">{criticalCount}</p>
-          <p className="text-[7pt] text-rose-600 font-bold">
+        <div className="border border-rose-600 p-2.5 rounded bg-rose-50/70">
+          <p className="text-[7pt] font-black uppercase text-rose-800">High / Critical Vulnerabilities</p>
+          <p className="text-xl font-black text-rose-700 my-0.5">{criticalCount}</p>
+          <p className="text-[7pt] text-rose-700 font-bold">
             {mediumCount} Medium | {lowCount} Low
           </p>
         </div>
-        <div className="border border-emerald-400 p-2 rounded bg-emerald-50/50">
-          <p className="text-[7pt] font-black uppercase text-emerald-700">Risk Reduction Achieved</p>
-          <p className="text-xl font-black text-emerald-700">{reductionPercentage}%</p>
-          <p className="text-[7pt] text-emerald-600 font-bold">{treatedRisks.length} Verified Treatments</p>
+        <div className="border border-emerald-600 p-2.5 rounded bg-emerald-50/70">
+          <p className="text-[7pt] font-black uppercase text-emerald-800">Risk Reduction Achieved</p>
+          <p className="text-xl font-black text-emerald-700 my-0.5">{reductionPercentage}%</p>
+          <p className="text-[7pt] text-emerald-700 font-bold">{treatedRisks.length} Verified Treatments</p>
         </div>
-        <div className="border border-indigo-400 p-2 rounded bg-indigo-50/50">
-          <p className="text-[7pt] font-black uppercase text-indigo-700">Closure / Execution Velocity</p>
-          <p className="text-xl font-black text-indigo-700">
+        <div className="border border-indigo-600 p-2.5 rounded bg-indigo-50/70">
+          <p className="text-[7pt] font-black uppercase text-indigo-800">Closure / Execution Velocity</p>
+          <p className="text-xl font-black text-indigo-700 my-0.5">
             {closedCount} / {totalRisks.length}
           </p>
-          <p className="text-[7pt] text-indigo-600 font-bold">
+          <p className="text-[7pt] text-indigo-700 font-bold">
             {inProgressCount} In Progress | {openCount} Open
           </p>
         </div>
@@ -143,12 +159,12 @@ export function ExecutiveRiskBriefingTemplate({
 
       {/* TOP CRITICAL RISKS TABLE */}
       <div className="mb-4">
-        <h3 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 text-center border-b border-black pb-1">
+        <h3 className="text-[8.5pt] font-black uppercase tracking-wider mb-1.5 text-center border-b border-black pb-1">
           Top Critical Vulnerabilities & Strategic Action Status
         </h3>
         <table className="w-full border-collapse border-2 border-black text-[8pt]">
           <thead>
-            <tr className="bg-slate-200 font-black text-slate-900 uppercase">
+            <tr className="bg-slate-100 font-black text-slate-900 uppercase">
               <th className="border border-black p-1.5 text-center w-[20%]">Objective</th>
               <th className="border border-black p-1.5 text-center w-[28%]">Risk Description & Causes</th>
               <th className="border border-black p-1.5 text-center w-[10%]">Pre-Rating</th>
@@ -245,6 +261,7 @@ interface RAPBlueprintProps {
 }
 
 export function RiskResourceAllocationTemplate({ risks, unitName, campusName, year, signatories }: RAPBlueprintProps) {
+  const today = new Date();
   const treatmentPlans = risks.filter(
     (r) => r.treatmentAction || r.resourcesNeeded || r.preTreatment?.rating !== 'Low',
   );
@@ -254,44 +271,60 @@ export function RiskResourceAllocationTemplate({ risks, unitName, campusName, ye
       className="p-8 text-black bg-white max-w-[12.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
       style={{ fontSize: '8.5pt' }}
     >
-      {/* HEADER */}
-      <div className="text-center flex flex-col items-center justify-center border-b-2 border-black pb-3 mb-4 w-full">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+      {/* 1. INSTITUTIONAL LETTERHEAD */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
           Republic of the Philippines
         </p>
-        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700 text-center">
+        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
+          ROMBLON STATE UNIVERSITY
+        </h1>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
           Financial Planning & Institutional Quality Assurance
-        </p>
-        <div className="mt-2 py-1 px-4 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
-          Risk Treatment Action Plan & Resource Allocation Blueprint (RAP) — FY {year}
-        </div>
+        </h2>
+        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
       </div>
 
-      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-3 border border-black">
-        <div>
-          Department / Unit:{' '}
-          <span className="underline">
-            {unitName} ({campusName})
-          </span>
-        </div>
-        <div>
-          Actionable Plans:{' '}
-          <span className="underline">{treatmentPlans.length} Entries Requiring Action/Resources</span>
-        </div>
-        <div>
-          Date: <span className="underline">{format(new Date(), 'MM/dd/yyyy')}</span>
-        </div>
+      {/* 2. DOCUMENT TITLE STRIP */}
+      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
+        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
+          RISK TREATMENT ACTION PLAN & RESOURCE ALLOCATION BLUEPRINT (RAP)
+        </h2>
+        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
+          Annual Procurement & Resource Justification — Fiscal Year {year}
+        </p>
       </div>
+
+      {/* 3. METADATA TABLE */}
+      <table className="w-full border-collapse border border-black text-[8.5pt] mb-3">
+        <tbody>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
+            <td className="border border-black p-2 font-mono font-bold w-[35%]">
+              RSU-QAO-RAP-{year}-{format(today, 'MMdd')}
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE ISSUED:</td>
+            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
+          </tr>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">DEPARTMENT / UNIT:</td>
+            <td className="border border-black p-2 font-black uppercase text-slate-900">
+              {unitName} ({campusName})
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">ACTIONABLE PLANS:</td>
+            <td className="border border-black p-2 font-bold">{treatmentPlans.length} Entries Requiring Resources</td>
+          </tr>
+        </tbody>
+      </table>
 
       <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
         <thead>
-          <tr className="bg-slate-200 font-black text-slate-900 uppercase">
-            <th className="border border-black p-1.5 text-center w-[5%]">#</th>
+          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
+            <th className="border border-black p-1.5 text-center w-[4%]">#</th>
             <th className="border border-black p-1.5 text-center w-[18%]">Objective & Risk Context</th>
             <th className="border border-black p-1.5 text-center w-[8%]">Severity</th>
             <th className="border border-black p-1.5 text-center w-[26%]">Treatment Action Required</th>
-            <th className="border border-black p-1.5 text-center w-[23%]">Resources Needed (Budget / Tech / Staff)</th>
+            <th className="border border-black p-1.5 text-center w-[24%]">Resources Needed (Budget / Tech / Staff)</th>
             <th className="border border-black p-1.5 text-center w-[12%]">Responsible Lead</th>
             <th className="border border-black p-1.5 text-center w-[8%]">Target Date</th>
           </tr>
@@ -366,8 +399,6 @@ export function RiskAccountabilityTrackerTemplate({
   signatories,
 }: AccountabilityTrackerProps) {
   const today = new Date();
-
-  // Categorize by overdue, pending, completed
   const activeRisks = risks.filter((r) => r.type === 'Risk');
 
   const overdueRisks = activeRisks.filter((r) => {
@@ -385,36 +416,55 @@ export function RiskAccountabilityTrackerTemplate({
       className="p-8 text-black bg-white max-w-[12in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
       style={{ fontSize: '8.5pt' }}
     >
-      {/* HEADER */}
-      <div className="text-center flex flex-col items-center justify-center border-b-2 border-black pb-3 mb-4 w-full">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+      {/* 1. INSTITUTIONAL LETTERHEAD */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
           Republic of the Philippines
         </p>
-        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700 text-center">
+        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
+          ROMBLON STATE UNIVERSITY
+        </h1>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
           Monitoring & Evaluation Division • Quality Assurance Office
-        </p>
-        <div className="mt-2 py-1 px-4 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
-          Risk Treatment Accountability & Overdue Milestone Tracker (FY {year})
-        </div>
+        </h2>
+        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
       </div>
 
-      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-black">
-        <div>
-          Unit Context:{' '}
-          <span className="underline">
-            {unitName} ({campusName})
-          </span>
-        </div>
-        <div>
-          Status: <span className="text-rose-700">{overdueRisks.length} Overdue</span> |{' '}
-          <span className="text-amber-700">{inProgressRisks.length} Active</span> |{' '}
-          <span className="text-emerald-700">{completedRisks.length} Closed</span>
-        </div>
-        <div>
-          As of: <span className="underline">{format(new Date(), 'MMMM dd, yyyy')}</span>
-        </div>
+      {/* 2. DOCUMENT TITLE STRIP */}
+      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
+        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
+          RISK TREATMENT ACCOUNTABILITY & OVERDUE MILESTONE TRACKER
+        </h2>
+        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
+          Operational Milestone Monitoring — Fiscal Year {year}
+        </p>
       </div>
+
+      {/* 3. METADATA TABLE */}
+      <table className="w-full border-collapse border border-black text-[8.5pt] mb-4">
+        <tbody>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
+            <td className="border border-black p-2 font-mono font-bold w-[35%]">
+              RSU-QAO-AMT-{year}-{format(today, 'MMdd')}
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE GENERATED:</td>
+            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
+          </tr>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">UNIT CONTEXT:</td>
+            <td className="border border-black p-2 font-black uppercase text-slate-900">
+              {unitName} ({campusName})
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">ACTION STATUS:</td>
+            <td className="border border-black p-2 font-bold">
+              <span className="text-rose-700">{overdueRisks.length} Overdue</span> |{' '}
+              <span className="text-amber-700">{inProgressRisks.length} Active</span> |{' '}
+              <span className="text-emerald-700">{completedRisks.length} Closed</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* OVERDUE RISKS SECTION */}
       {overdueRisks.length > 0 && (
@@ -448,10 +498,10 @@ export function RiskAccountabilityTrackerTemplate({
                   </td>
                   <td className="border border-rose-400 p-1.5 text-center align-top font-bold">
                     <span className="bg-rose-200 text-rose-800 px-2 py-0.5 rounded text-[7.5pt] font-black">
-                      OVERDUE
+                      ⚠️ OVERDUE
                     </span>
                     {r.remindersSent ? (
-                      <p className="text-[7pt] text-slate-500 mt-1">{r.remindersSent} Reminders Sent</p>
+                      <p className="text-[7pt] text-slate-500 font-normal mt-0.5">Notice #{r.remindersSent} Sent</p>
                     ) : null}
                   </td>
                 </tr>
@@ -462,59 +512,66 @@ export function RiskAccountabilityTrackerTemplate({
       )}
 
       {/* ACTIVE & COMPLETED TABLE */}
-      <div>
-        <h4 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 border-b border-black pb-1 text-center">
-          Active On-Schedule & Closed Treatment Plans ({inProgressRisks.length + completedRisks.length})
-        </h4>
-        <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
-          <thead>
-            <tr className="bg-slate-200 font-black text-slate-900 uppercase">
-              <th className="border border-black p-1.5 text-center w-[24%]">Objective</th>
-              <th className="border border-black p-1.5 text-center w-[32%]">Mitigation Action</th>
-              <th className="border border-black p-1.5 text-center w-[18%]">Responsible Person</th>
-              <th className="border border-black p-1.5 text-center w-[12%]">Target / Closed Date</th>
-              <th className="border border-black p-1.5 text-center w-[14%]">Status</th>
+      <h3 className="text-[8.5pt] font-black uppercase tracking-wider mb-1.5 border-b border-black pb-1 text-center">
+        Full Treatment Milestone Inventory
+      </h3>
+      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
+        <thead>
+          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
+            <th className="border border-black p-1.5 text-center w-[4%]">#</th>
+            <th className="border border-black p-1.5 text-center w-[22%]">Objective & Risk</th>
+            <th className="border border-black p-1.5 text-center w-[30%]">Mitigation Strategy</th>
+            <th className="border border-black p-1.5 text-center w-[16%]">Accountable Lead</th>
+            <th className="border border-black p-1.5 text-center w-[12%]">Target Date</th>
+            <th className="border border-black p-1.5 text-center w-[16%]">Current Milestone</th>
+          </tr>
+        </thead>
+        <tbody>
+          {activeRisks.map((r, i) => (
+            <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+              <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
+              <td className="border border-black p-1.5 align-top">
+                <p className="font-bold text-slate-900">{r.objective}</p>
+                <p className="text-[7.5pt] text-slate-600 line-clamp-2">{r.description}</p>
+              </td>
+              <td className="border border-black p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
+              <td className="border border-black p-1.5 align-top font-bold text-slate-900">
+                {r.responsiblePersonName || 'Unit Focal Person'}
+              </td>
+              <td className="border border-black p-1.5 text-center align-top font-mono font-bold">
+                {safeFormatDate(r.targetDate)}
+              </td>
+              <td className="border border-black p-1.5 text-center align-top font-bold">
+                <span
+                  className={`inline-block px-1.5 py-0.5 rounded text-[7pt] font-black ${
+                    r.status === 'Closed'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : r.status === 'In Progress'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-slate-200 text-slate-800'
+                  }`}
+                >
+                  {r.status}
+                </span>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {[...inProgressRisks, ...completedRisks].map((r, i) => (
-              <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                <td className="border border-black p-1.5 font-bold align-top">{r.objective}</td>
-                <td className="border border-black p-1.5 align-top">{r.treatmentAction || '—'}</td>
-                <td className="border border-black p-1.5 align-top font-medium">
-                  {r.responsiblePersonName || 'Unit Lead'}
-                </td>
-                <td className="border border-black p-1.5 text-center align-top font-mono">
-                  {r.status === 'Closed'
-                    ? safeFormatDate(r.postTreatment?.dateImplemented || r.updatedAt)
-                    : safeFormatDate(r.targetDate)}
-                </td>
-                <td className="border border-black p-1.5 text-center align-top">
-                  <span
-                    className={`inline-block px-2 py-0.5 rounded text-[7.5pt] font-black ${
-                      r.status === 'Closed' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                    }`}
-                  >
-                    {r.status}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
 
       {/* SIGNATORIES */}
       <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
         <div>
-          <p className="font-bold text-slate-600 mb-5">Reviewed by Unit QMS Focal:</p>
-          <div className="border-b border-black w-44 mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qmsHead || 'Unit Head'}</p>
+          <p className="font-bold text-slate-600 mb-5">Generated & Verified by:</p>
+          <div className="border-b border-black w-48 mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qmsHead || 'QMS Focal Lead'}</p>
+          <p className="text-[7.5pt] text-slate-500">Quality Management System Division</p>
         </div>
         <div className="text-right">
           <p className="font-bold text-slate-600 mb-5">Noted by QAO Director:</p>
-          <div className="border-b border-black w-44 ml-auto mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qaoDirector || 'QAO Director'}</p>
+          <div className="border-b border-black w-48 ml-auto mb-1"></div>
+          <p className="font-black uppercase">{signatories?.qaoDirector || 'Director, Quality Assurance'}</p>
+          <p className="text-[7.5pt] text-slate-500">Director, Quality Assurance Office</p>
         </div>
       </div>
     </div>
@@ -539,46 +596,65 @@ export function RiskEffectivenessAuditTemplate({
   year,
   signatories,
 }: EffectivenessAuditProps) {
-  const verifiedRisks = risks.filter((r) => r.postTreatment || r.verification);
+  const today = new Date();
+  const verifiedRisks = risks.filter(
+    (r) => r.postTreatment || r.verification || r.status === 'Closed' || (r.type === 'Risk' && r.treatmentAction),
+  );
 
   return (
     <div
-      className="p-8 text-black bg-white max-w-[12.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
+      className="p-8 text-black bg-white max-w-[13in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
       style={{ fontSize: '8.5pt' }}
     >
-      {/* HEADER */}
-      <div className="text-center flex flex-col items-center justify-center border-b-2 border-black pb-3 mb-4 w-full">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+      {/* 1. INSTITUTIONAL LETTERHEAD */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
           Republic of the Philippines
         </p>
-        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700 text-center">
+        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
+          ROMBLON STATE UNIVERSITY
+        </h1>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
           Internal Quality Audit Committee • ISO 21001:2018 Clause 6.1 Audit Dossier
-        </p>
-        <div className="mt-2 py-1 px-4 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
-          Residual Risk & Treatment Effectiveness Verification Audit Dossier (FY {year})
-        </div>
+        </h2>
+        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
       </div>
 
-      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-3 border border-black">
-        <div>
-          Auditee Unit:{' '}
-          <span className="underline">
-            {unitName} ({campusName})
-          </span>
-        </div>
-        <div>
-          Standard:{' '}
-          <span className="font-mono">ISO 21001:2018 / ISO 9001:2015 Clause 6.1 (Actions to Address Risks & Opps)</span>
-        </div>
-        <div>
-          Date Audited: <span className="underline">{format(new Date(), 'MMMM dd, yyyy')}</span>
-        </div>
+      {/* 2. DOCUMENT TITLE STRIP */}
+      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
+        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
+          RESIDUAL RISK & TREATMENT EFFECTIVENESS VERIFICATION AUDIT DOSSIER
+        </h2>
+        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
+          ISO 21001:2018 / ISO 9001:2015 Clause 6.1 — Fiscal Year {year}
+        </p>
       </div>
+
+      {/* 3. METADATA TABLE */}
+      <table className="w-full border-collapse border border-black text-[8.5pt] mb-3">
+        <tbody>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
+            <td className="border border-black p-2 font-mono font-bold w-[35%]">
+              RSU-IQA-EVD-{year}-{format(today, 'MMdd')}
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE AUDITED:</td>
+            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
+          </tr>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">AUDITEE UNIT:</td>
+            <td className="border border-black p-2 font-black uppercase text-slate-900">
+              {unitName} ({campusName})
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">STANDARD:</td>
+            <td className="border border-black p-2 font-bold">ISO 21001:2018 & ISO 9001:2015 Clause 6.1</td>
+          </tr>
+        </tbody>
+      </table>
 
       <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
         <thead>
-          <tr className="bg-slate-200 font-black text-slate-900 uppercase">
+          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
             <th className="border border-black p-1.5 text-center w-[20%]">Objective & Risk</th>
             <th className="border border-black p-1.5 text-center w-[7%]">Pre-Mag</th>
             <th className="border border-black p-1.5 text-center w-[23%]">Implemented Treatment Action</th>
@@ -683,6 +759,7 @@ export function OpportunityInnovationTemplate({
   year,
   signatories,
 }: OpportunityScorecardProps) {
+  const today = new Date();
   const opportunities = risks.filter((r) => r.type === 'Opportunity');
   const capturedCount = opportunities.filter(
     (r) => r.status === 'Closed' || (r.postTreatment && r.postTreatment.evidence),
@@ -693,42 +770,61 @@ export function OpportunityInnovationTemplate({
       className="p-8 text-black bg-white max-w-[11.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
       style={{ fontSize: '8.5pt' }}
     >
-      {/* HEADER */}
-      <div className="text-center flex flex-col items-center justify-center border-b-2 border-black pb-3 mb-4 w-full">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+      {/* 1. INSTITUTIONAL LETTERHEAD */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
           Republic of the Philippines
         </p>
-        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700 text-center">
+        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
+          ROMBLON STATE UNIVERSITY
+        </h1>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
           Office of Strategic Planning, Innovation & Linkages
-        </p>
-        <div className="mt-2 py-1 px-4 bg-slate-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
-          Opportunity Capitalization & Strategic Innovation Scorecard (FY {year})
-        </div>
+        </h2>
+        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
       </div>
 
-      <div className="flex justify-between items-center text-[8pt] font-bold uppercase bg-slate-100 p-2 rounded mb-4 border border-black">
-        <div>
-          Unit:{' '}
-          <span className="underline">
-            {unitName} ({campusName})
-          </span>
-        </div>
-        <div>
-          Opportunities Identified: <span className="font-black text-indigo-700">{opportunities.length}</span>
-        </div>
-        <div>
-          Capitalization Rate:{' '}
-          <span className="font-black text-emerald-700">
-            {opportunities.length > 0 ? Math.round((capturedCount / opportunities.length) * 100) : 0}% ({capturedCount}{' '}
-            Realized)
-          </span>
-        </div>
+      {/* 2. DOCUMENT TITLE STRIP */}
+      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
+        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
+          OPPORTUNITY CAPITALIZATION & STRATEGIC INNOVATION SCORECARD
+        </h2>
+        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
+          Strategic Opportunity Capture & Innovation Monitoring — Fiscal Year {year}
+        </p>
       </div>
+
+      {/* 3. METADATA TABLE */}
+      <table className="w-full border-collapse border border-black text-[8.5pt] mb-4">
+        <tbody>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
+            <td className="border border-black p-2 font-mono font-bold w-[35%]">
+              RSU-QAO-OCS-{year}-{format(today, 'MMdd')}
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE ISSUED:</td>
+            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
+          </tr>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">UNIT CONTEXT:</td>
+            <td className="border border-black p-2 font-black uppercase text-slate-900">
+              {unitName} ({campusName})
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">CAPITALIZATION:</td>
+            <td className="border border-black p-2 font-bold">
+              <span className="text-emerald-700 font-black">
+                {opportunities.length > 0 ? Math.round((capturedCount / opportunities.length) * 100) : 0}% (
+                {capturedCount} Realized)
+              </span>{' '}
+              / {opportunities.length} Identified
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
       <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
         <thead>
-          <tr className="bg-slate-200 font-black text-slate-900 uppercase">
+          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
             <th className="border border-black p-1.5 text-center w-[5%]">#</th>
             <th className="border border-black p-1.5 text-center w-[22%]">Strategic Objective</th>
             <th className="border border-black p-1.5 text-center w-[28%]">Opportunity Description & Potential</th>
@@ -826,71 +922,87 @@ export function RiskStatusReminderNoticeTemplate({
       className="p-8 text-black bg-white max-w-[11.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
       style={{ fontSize: '8.5pt' }}
     >
-      {/* INSTITUTIONAL MEMORANDUM HEADER */}
-      <div className="border-b-2 border-black pb-3 mb-4 text-center flex flex-col items-center justify-center w-full">
-        <p className="text-[8pt] font-bold uppercase tracking-widest text-slate-600 text-center">
+      {/* 1. INSTITUTIONAL LETTERHEAD */}
+      <div className="text-center border-b-2 border-black pb-3 mb-4">
+        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
           Republic of the Philippines
         </p>
-        <h1 className="text-base font-black uppercase tracking-tight text-center">Romblon State University</h1>
-        <p className="text-[8pt] font-semibold text-slate-700 text-center">
-          Quality Assurance Office • Institutional Risk Monitoring Team
+        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
+          ROMBLON STATE UNIVERSITY
+        </h1>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">Quality Assurance Office</h2>
+        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
+      </div>
+
+      {/* 2. OFFICIAL MEMORANDUM STRIP */}
+      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
+        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
+          MEMORANDUM: RISK TREATMENT PLAN STATUS & ACTION REMINDER NOTICE
+        </h2>
+        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
+          ISO 21001:2018 Clause 6.1 (Actions to Address Risks & Opportunities) & Institutional QMS Compliance
         </p>
-        <div className="mt-2 py-1.5 px-4 bg-rose-900 text-white rounded font-black text-xs uppercase tracking-wider text-center">
-          Official Memorandum: Risk Treatment Plan Status & Action Reminder Notice
-        </div>
       </div>
 
-      {/* MEMORANDUM DETAILS */}
-      <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-lg border border-black text-[8.5pt] mb-4">
-        <div className="space-y-1">
-          <div>
-            <span className="font-bold text-slate-600 uppercase">TO:</span>{' '}
-            <strong className="uppercase text-slate-900">
+      {/* 3. MEMORANDUM DETAILS TABLE */}
+      <table className="w-full border-collapse border border-black text-[8.5pt] mb-4">
+        <tbody>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
+            <td className="border border-black p-2 font-mono font-bold w-[35%]">
+              RSU-QAO-RTN-{year}-{format(today, 'MMdd')}
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE ISSUED:</td>
+            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
+          </tr>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">FOR / TO:</td>
+            <td className="border border-black p-2 font-black uppercase text-slate-900">
               {unitName} ({campusName})
-            </strong>
-          </div>
-          <div>
-            <span className="font-bold text-slate-600 uppercase">ATTENTION:</span>{' '}
-            <strong className="text-slate-900">Unit Head, QMS Focal Persons & Risk Leads</strong>
-          </div>
-        </div>
-        <div className="space-y-1 sm:text-right">
-          <div>
-            <span className="font-bold text-slate-600 uppercase">DATE ISSUED:</span>{' '}
-            <strong className="text-slate-900">{format(new Date(), 'MMMM dd, yyyy')}</strong>
-          </div>
-          <div>
-            <span className="font-bold text-slate-600 uppercase">MONITORING YEAR:</span>{' '}
-            <strong className="text-slate-900">Fiscal Year {year}</strong>
-          </div>
-        </div>
-      </div>
+            </td>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">MONITORING YEAR:</td>
+            <td className="border border-black p-2 font-bold">Fiscal Year {year}</td>
+          </tr>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">ATTENTION:</td>
+            <td colSpan={3} className="border border-black p-2 font-bold">
+              Unit Head, Risk Leads, QMS Focal Persons & Process Owners
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">SUBJECT:</td>
+            <td colSpan={3} className="border border-black p-2 font-black uppercase underline">
+              COMPLIANCE DIRECTIVE ON OVERDUE AND PENDING RISK TREATMENT ACTIONS & EVIDENCE VERIFICATION
+            </td>
+          </tr>
+        </tbody>
+      </table>
 
-      {/* SUMMARY STATUS METRIC CARDS */}
+      {/* 4. SUMMARY STATUS METRIC CARDS */}
       <div className="grid grid-cols-4 gap-3 mb-4 text-center">
-        <div className="border border-black p-2 rounded bg-slate-100/70">
-          <p className="text-[7pt] font-black uppercase text-slate-500">Total Unit Risks</p>
-          <p className="text-xl font-black text-slate-900">{activeRisks.length}</p>
+        <div className="border border-black p-2.5 rounded bg-slate-50">
+          <p className="text-[7pt] font-black uppercase text-slate-600 tracking-wider">Total Unit Risks</p>
+          <p className="text-xl font-black text-slate-900 my-0.5">{activeRisks.length}</p>
           <p className="text-[7pt] text-slate-600 font-bold">{pendingCount} Action Required</p>
         </div>
-        <div className="border border-rose-500 p-2 rounded bg-rose-50">
-          <p className="text-[7pt] font-black uppercase text-rose-700">Overdue Treatments</p>
-          <p className="text-xl font-black text-rose-700">{overdueRisks.length}</p>
-          <p className="text-[7pt] text-rose-600 font-bold">Past Committed Deadline</p>
+        <div className="border border-rose-600 p-2.5 rounded bg-rose-50/70">
+          <p className="text-[7pt] font-black uppercase text-rose-800 tracking-wider">Overdue Treatments</p>
+          <p className="text-xl font-black text-rose-700 my-0.5">{overdueRisks.length}</p>
+          <p className="text-[7pt] text-rose-700 font-bold">Past Committed Deadline</p>
         </div>
-        <div className="border border-amber-500 p-2 rounded bg-amber-50">
-          <p className="text-[7pt] font-black uppercase text-amber-700">In Progress / Pending</p>
-          <p className="text-xl font-black text-amber-700">{inProgressRisks.length + openPendingRisks.length}</p>
-          <p className="text-[7pt] text-amber-600 font-bold">Active Implementation</p>
+        <div className="border border-amber-600 p-2.5 rounded bg-amber-50/70">
+          <p className="text-[7pt] font-black uppercase text-amber-800 tracking-wider">In Progress / Pending</p>
+          <p className="text-xl font-black text-amber-700 my-0.5">{inProgressRisks.length + openPendingRisks.length}</p>
+          <p className="text-[7pt] text-amber-700 font-bold">Active Implementation</p>
         </div>
-        <div className="border border-emerald-500 p-2 rounded bg-emerald-50">
-          <p className="text-[7pt] font-black uppercase text-emerald-700">Closed / Completed</p>
-          <p className="text-xl font-black text-emerald-700">{closedRisks.length}</p>
-          <p className="text-[7pt] text-emerald-600 font-bold">Verified Controls</p>
+        <div className="border border-emerald-600 p-2.5 rounded bg-emerald-50/70">
+          <p className="text-[7pt] font-black uppercase text-emerald-800 tracking-wider">Closed / Completed</p>
+          <p className="text-xl font-black text-emerald-700 my-0.5">{closedRisks.length}</p>
+          <p className="text-[7pt] text-emerald-700 font-bold">Verified Controls</p>
         </div>
       </div>
 
-      {/* DIRECTIVE STATEMENT */}
+      {/* 5. DIRECTIVE STATEMENT */}
       <div className="border-l-4 border-rose-600 bg-rose-50/50 p-2.5 rounded-r text-[8pt] mb-4 text-slate-800 border-y border-r border-slate-300">
         <p className="font-bold text-rose-900 mb-0.5">COMPLIANCE DIRECTIVE:</p>
         <p className="leading-snug">
@@ -900,13 +1012,13 @@ export function RiskStatusReminderNoticeTemplate({
         </p>
       </div>
 
-      {/* DETAILED ACTION ITEMS TABLE */}
-      <h3 className="text-[9pt] font-black uppercase tracking-wider mb-1.5 border-b border-black pb-1 text-center">
+      {/* 6. DETAILED ACTION ITEMS TABLE */}
+      <h3 className="text-[8.5pt] font-black uppercase tracking-wider mb-1.5 border-b border-black pb-1 text-center">
         Unit Risk Treatment Action Inventory & Current Status
       </h3>
       <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
         <thead>
-          <tr className="bg-slate-200 font-black text-slate-900 uppercase">
+          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
             <th className="border border-black p-1.5 text-center w-[4%]">#</th>
             <th className="border border-black p-1.5 text-center w-[20%]">Objective & Risk Context</th>
             <th className="border border-black p-1.5 text-center w-[8%]">Severity</th>
@@ -980,7 +1092,7 @@ export function RiskStatusReminderNoticeTemplate({
         </tbody>
       </table>
 
-      {/* SIGNATORIES */}
+      {/* 7. SIGNATORIES */}
       <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
         <div>
           <p className="font-bold text-slate-600 mb-5">Issued by Quality Assurance Office:</p>
