@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Risk, Signatories, Unit, Campus, Submission } from '@/lib/types';
 import {
   Dialog,
@@ -25,6 +25,7 @@ import {
   FileText,
   Filter,
   AlertTriangle,
+  Calendar,
 } from 'lucide-react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { RORPrintTemplate } from '@/components/risk/ror-print-template';
@@ -192,11 +193,33 @@ export function RiskDecisionReportsDialog({
   currentCycle = 'final',
   defaultReportId = 'non-submission-audit',
 }: RiskDecisionReportsDialogProps) {
+  const [activeYear, setActiveYear] = useState<number>(Number(selectedYear) || new Date().getFullYear());
   const [selectedReportId, setSelectedReportId] = useState<DecisionReportType>(defaultReportId);
   const [cycle, setCycle] = useState<'first' | 'final'>(currentCycle);
   const [selectedCampusScope, setSelectedCampusScope] = useState<string>('all');
   const [selectedUnitScope, setSelectedUnitScope] = useState<string>('all');
   const [selectedStatusScope, setSelectedStatusScope] = useState<string>('all');
+
+  useEffect(() => {
+    if (selectedYear) {
+      setActiveYear(Number(selectedYear));
+    }
+  }, [selectedYear]);
+
+  // Compute available years list dynamically from data + reasonable range
+  const yearsList = useMemo(() => {
+    const yrSet = new Set<number>();
+    const current = new Date().getFullYear();
+    for (let i = -3; i <= 3; i++) yrSet.add(current + i);
+    if (selectedYear) yrSet.add(Number(selectedYear));
+    filteredRisks?.forEach((r) => {
+      if (r.year) yrSet.add(Number(r.year));
+    });
+    allSubmissions?.forEach((s) => {
+      if (s.year) yrSet.add(Number(s.year));
+    });
+    return Array.from(yrSet).sort((a, b) => b - a);
+  }, [filteredRisks, allSubmissions, selectedYear]);
 
   // Filter available units based on selected campus
   const availableUnitsForCampus = useMemo(() => {
@@ -206,10 +229,15 @@ export function RiskDecisionReportsDialog({
     );
   }, [allUnits, selectedCampusScope]);
 
-  // Filter risks based on campus, status, and unit filters
+  // Filter risks based on target year, campus, status, and unit filters
   const processedRisks = useMemo(() => {
     const today = new Date();
     return filteredRisks.filter((r) => {
+      // 0. Year Filter
+      if (r.year && Number(r.year) !== Number(activeYear)) {
+        return false;
+      }
+
       // 1. Campus Site Filter
       if (selectedCampusScope !== 'all' && r.campusId !== selectedCampusScope) {
         return false;
@@ -231,7 +259,7 @@ export function RiskDecisionReportsDialog({
 
       return true;
     });
-  }, [filteredRisks, selectedCampusScope, selectedStatusScope]);
+  }, [filteredRisks, activeYear, selectedCampusScope, selectedStatusScope]);
 
   // Group risks by unit
   const unitsInFilter = useMemo(() => {
@@ -269,7 +297,7 @@ export function RiskDecisionReportsDialog({
     return unitsInFilter.filter((u) => u.unitId === selectedUnitScope);
   }, [unitsInFilter, selectedUnitScope]);
 
-  // Cross-reference all units with EOMS submissions and digital risks
+  // Cross-reference all units with EOMS submissions and digital risks for activeYear
   const auditUnitsList = useMemo<UnitComplianceAuditItem[]>(() => {
     const unitsToScan = availableUnitsForCampus;
 
@@ -277,9 +305,9 @@ export function RiskDecisionReportsDialog({
       const uCampusId = u.campusIds?.[0] || (selectedCampusScope !== 'all' ? selectedCampusScope : '');
       const uCampusName = campusMap.get(uCampusId) || 'Institutional';
 
-      // Submissions for this unit
+      // Submissions for this unit for activeYear
       const uSubmissions = (allSubmissions || []).filter(
-        (s) => s.unitId === u.id && Number(s.year) === Number(selectedYear),
+        (s) => s.unitId === u.id && Number(s.year) === Number(activeYear),
       );
 
       const firstCycleDocs = new Set(
@@ -296,8 +324,8 @@ export function RiskDecisionReportsDialog({
       const missingFirst = submissionTypes.filter((t) => !firstCycleDocs.has(t));
       const missingFinal = submissionTypes.filter((t) => !finalCycleDocs.has(t));
 
-      // Risks for this unit
-      const uRisks = (filteredRisks || []).filter((r) => r.unitId === u.id && Number(r.year) === Number(selectedYear));
+      // Risks for this unit for activeYear
+      const uRisks = (filteredRisks || []).filter((r) => r.unitId === u.id && Number(r.year) === Number(activeYear));
 
       const closedRisks = uRisks.filter((r) => r.status === 'Closed').length;
       const inProgressRisks = uRisks.filter((r) => r.status === 'In Progress').length;
@@ -341,7 +369,7 @@ export function RiskDecisionReportsDialog({
         complianceStatus,
       };
     });
-  }, [availableUnitsForCampus, allSubmissions, selectedYear, campusMap, filteredRisks, selectedCampusScope]);
+  }, [availableUnitsForCampus, allSubmissions, activeYear, campusMap, filteredRisks, selectedCampusScope]);
 
   const targetAuditUnits = useMemo(() => {
     if (selectedUnitScope === 'all') return auditUnitsList;
@@ -363,7 +391,7 @@ export function RiskDecisionReportsDialog({
                 ? 'All Campuses (University-Wide)'
                 : campusMap.get(selectedCampusScope) || 'Institutional'
             }
-            year={selectedYear}
+            year={activeYear}
             signatories={signatories}
             currentCycle={cycle}
           />
@@ -384,7 +412,7 @@ export function RiskDecisionReportsDialog({
                     risks={uRisks}
                     unitName={unitName}
                     campusName={campusName}
-                    year={selectedYear}
+                    year={activeYear}
                     signatories={signatories}
                     unitMap={unitMap}
                     campusMap={campusMap}
@@ -397,7 +425,7 @@ export function RiskDecisionReportsDialog({
                     risks={uRisks}
                     unitName={unitName}
                     campusName={campusName}
-                    year={selectedYear}
+                    year={activeYear}
                     signatories={signatories}
                     cycle={cycle}
                     unitMap={unitMap}
@@ -411,7 +439,7 @@ export function RiskDecisionReportsDialog({
                     risks={uRisks}
                     unitName={unitName}
                     campusName={campusName}
-                    year={selectedYear}
+                    year={activeYear}
                     signatories={signatories}
                     unitMap={unitMap}
                     campusMap={campusMap}
@@ -424,7 +452,7 @@ export function RiskDecisionReportsDialog({
                     risks={uRisks}
                     unitName={unitName}
                     campusName={campusName}
-                    year={selectedYear}
+                    year={activeYear}
                     signatories={signatories}
                     unitMap={unitMap}
                     campusMap={campusMap}
@@ -437,7 +465,7 @@ export function RiskDecisionReportsDialog({
                     risks={uRisks}
                     unitName={unitName}
                     campusName={campusName}
-                    year={selectedYear}
+                    year={activeYear}
                     signatories={signatories}
                     unitMap={unitMap}
                     campusMap={campusMap}
@@ -450,7 +478,7 @@ export function RiskDecisionReportsDialog({
                     risks={uRisks}
                     unitName={unitName}
                     campusName={campusName}
-                    year={selectedYear}
+                    year={activeYear}
                     signatories={signatories}
                     unitMap={unitMap}
                     campusMap={campusMap}
@@ -464,7 +492,7 @@ export function RiskDecisionReportsDialog({
                     risks={uRisks}
                     unitName={unitName}
                     campusName={campusName}
-                    year={selectedYear}
+                    year={activeYear}
                     signatories={signatories}
                     cycle={cycle}
                     unitMap={unitMap}
@@ -486,7 +514,7 @@ export function RiskDecisionReportsDialog({
           <!DOCTYPE html>
           <html>
           <head>
-              <title>${REPORT_OPTIONS.find((r) => r.id === selectedReportId)?.title || 'Decision Report'} - AY ${selectedYear}</title>
+              <title>${REPORT_OPTIONS.find((r) => r.id === selectedReportId)?.title || 'Decision Report'} - AY ${activeYear}</title>
               <script src="https://cdn.tailwindcss.com"></script>
               <style>
                   @page { 
@@ -562,9 +590,28 @@ export function RiskDecisionReportsDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* CONFIGURATION BAR (SITE/CAMPUS, UNIT, STATUS, CYCLE) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-800/40 p-3.5 rounded-xl border border-slate-200/60 dark:border-slate-800 text-xs">
-            {/* 1. CAMPUS / SITE SELECTION */}
+          {/* CONFIGURATION BAR (YEAR, SITE/CAMPUS, UNIT, STATUS, CYCLE) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-xl border border-slate-200/60 dark:border-slate-800 text-xs">
+            {/* 1. ACADEMIC / FISCAL YEAR SELECTION */}
+            <div className="space-y-1.5">
+              <label className="font-bold uppercase text-[10px] text-muted-foreground flex items-center gap-1">
+                <Calendar className="h-3 w-3 text-primary" /> Target Year
+              </label>
+              <Select value={String(activeYear)} onValueChange={(val) => setActiveYear(Number(val))}>
+                <SelectTrigger className="h-9 bg-white dark:bg-slate-900 font-bold">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {yearsList.map((yr) => (
+                    <SelectItem key={yr} value={String(yr)}>
+                      AY {yr}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 2. CAMPUS / SITE SELECTION */}
             <div className="space-y-1.5">
               <label className="font-bold uppercase text-[10px] text-muted-foreground flex items-center gap-1">
                 <School className="h-3 w-3 text-primary" /> Campus / Site
@@ -590,7 +637,7 @@ export function RiskDecisionReportsDialog({
               </Select>
             </div>
 
-            {/* 2. UNIT / DEPARTMENT SCOPE */}
+            {/* 3. UNIT / DEPARTMENT SCOPE */}
             <div className="space-y-1.5">
               <label className="font-bold uppercase text-[10px] text-muted-foreground flex items-center gap-1">
                 <Building className="h-3 w-3 text-primary" /> Unit / Department
@@ -620,7 +667,7 @@ export function RiskDecisionReportsDialog({
               </Select>
             </div>
 
-            {/* 3. STATUS FILTER */}
+            {/* 4. STATUS FILTER */}
             <div className="space-y-1.5">
               <label className="font-bold uppercase text-[10px] text-muted-foreground flex items-center gap-1">
                 <Filter className="h-3 w-3 text-primary" /> Status Filter
@@ -640,7 +687,7 @@ export function RiskDecisionReportsDialog({
               </Select>
             </div>
 
-            {/* 4. MONITORING CYCLE */}
+            {/* 5. MONITORING CYCLE */}
             <div className="space-y-1.5">
               <label className="font-bold uppercase text-[10px] text-muted-foreground flex items-center gap-1">
                 <Clock className="h-3 w-3 text-primary" /> Monitoring Cycle
@@ -738,7 +785,7 @@ export function RiskDecisionReportsDialog({
         <DialogFooter className="p-4 border-t bg-slate-50 dark:bg-slate-900/80 flex flex-row items-center justify-between sm:justify-between gap-2">
           <div className="text-xs text-muted-foreground font-medium">
             <span className="font-bold text-slate-900 dark:text-slate-100">{readyCount} Unit(s)</span>{' '}
-            {isAuditReport ? 'evaluated in deficiency audit' : 'ready for generation'}
+            {isAuditReport ? 'evaluated in deficiency audit' : 'ready for generation'} (AY {activeYear})
           </div>
 
           <div className="flex items-center gap-2">
@@ -751,7 +798,7 @@ export function RiskDecisionReportsDialog({
               className="font-black uppercase text-xs tracking-wider gap-2 shadow-md shadow-primary/20 bg-primary"
             >
               <Printer className="h-4 w-4" />
-              Generate & Print Report
+              Generate & Print Report (AY {activeYear})
             </Button>
           </div>
         </DialogFooter>
