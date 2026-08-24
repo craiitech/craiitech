@@ -37,6 +37,8 @@ import {
   Copy,
   Plus,
   ListChecks,
+  Search,
+  X,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
@@ -71,6 +73,8 @@ export function ProcedureManualManagement() {
   const [processesList, setProcessesList] = useState<ManualProcess[]>([]);
   const [newProcessNumber, setNewProcessNumber] = useState('');
   const [newProcessTitle, setNewProcessTitle] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const [newPart, setNewPart] = useState('');
   const [isSavingConfig, setIsSavingConfig] = useState(false);
@@ -331,10 +335,35 @@ export function ProcedureManualManagement() {
   const needsRevisionCount = manageableUnits.filter((u) => manualMap.get(u.id)?.status === 'Needs Revision').length;
   const notSubmittedCount = totalUnitsCount - updatedCount - needsRevisionCount;
 
+  const filteredUnits = useMemo(() => {
+    return manageableUnits.filter((unit) => {
+      const manual = manualMap.get(unit.id);
+      const hasData = Boolean(manual && (manual.procedureNumber || manual.manualTitle || manual.googleDriveLink));
+      const currentStatus = manual?.status || (hasData ? 'Updated' : 'Not Submitted');
+
+      if (statusFilter !== 'all' && currentStatus !== statusFilter) {
+        return false;
+      }
+
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase().trim();
+        const matchesUnit = unit.name.toLowerCase().includes(q);
+        const matchesProcNo = (manual?.procedureNumber || '').toLowerCase().includes(q);
+        const matchesTitle = (manual?.manualTitle || '').toLowerCase().includes(q);
+        const matchesCopied = (manual?.copiedFromUnitName || '').toLowerCase().includes(q);
+        return matchesUnit || matchesProcNo || matchesTitle || matchesCopied;
+      }
+
+      return true;
+    });
+  }, [manageableUnits, manualMap, statusFilter, searchTerm]);
+
+  const hasActiveFilters = searchTerm.trim() !== '' || statusFilter !== 'all';
+
   return (
     <>
       <Card className="shadow-md border-primary/10">
-        <CardHeader className="bg-muted/10 border-b py-4">
+        <CardHeader className="bg-muted/10 border-b py-4 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <CardTitle className="text-base font-black uppercase tracking-tight flex items-center gap-2">
@@ -346,7 +375,7 @@ export function ProcedureManualManagement() {
                 Status) for all university units.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge
                 variant="outline"
                 className="h-7 text-xs font-black uppercase px-3 bg-emerald-50 text-emerald-800 border-emerald-300"
@@ -365,7 +394,62 @@ export function ProcedureManualManagement() {
               >
                 {notSubmittedCount} Not Submitted
               </Badge>
+              {manageableUnits.length > 0 && (
+                <Badge variant="outline" className="h-7 text-xs font-black uppercase px-3 bg-background">
+                  {filteredUnits.length} of {manageableUnits.length} Units
+                </Badge>
+              )}
             </div>
+          </div>
+
+          {/* SEARCH & FILTER TOOLBAR */}
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center pt-1">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search by unit name, procedure number, or manual title..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-8 pr-8 h-9 text-xs bg-background"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="w-full sm:w-48">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 text-xs bg-background">
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="Updated">Updated</SelectItem>
+                  <SelectItem value="Needs Revision">Needs Revision</SelectItem>
+                  <SelectItem value="Not Submitted">Not Submitted</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {hasActiveFilters && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setStatusFilter('all');
+                }}
+                className="h-9 text-[10px] font-black uppercase tracking-wider shrink-0 bg-background"
+              >
+                <X className="h-3.5 w-3.5 mr-1" /> Reset Filters
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -373,7 +457,7 @@ export function ProcedureManualManagement() {
             <div className="flex h-64 items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : (
+          ) : filteredUnits.length > 0 ? (
             <ScrollArea className="h-[65dvh]">
               <Table>
                 <TableHeader className="bg-slate-50 dark:bg-slate-800/80 sticky top-0 z-10">
@@ -392,7 +476,7 @@ export function ProcedureManualManagement() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {manageableUnits.map((unit) => {
+                  {filteredUnits.map((unit) => {
                     const manual = manualMap.get(unit.id);
                     const hasData = Boolean(
                       manual && (manual.procedureNumber || manual.manualTitle || manual.googleDriveLink),
@@ -530,6 +614,24 @@ export function ProcedureManualManagement() {
                 </TableBody>
               </Table>
             </ScrollArea>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-52 text-center p-4">
+              <BookOpen className="h-8 w-8 text-muted-foreground/30 mb-2" />
+              <p className="text-xs font-bold text-muted-foreground">No procedure manuals match your filter.</p>
+              {hasActiveFilters && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                  }}
+                  className="mt-3 h-7 text-[10px] font-bold"
+                >
+                  Clear Filters
+                </Button>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>
