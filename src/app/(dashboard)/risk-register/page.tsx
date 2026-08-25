@@ -621,6 +621,10 @@ export default function RiskRegisterPage() {
             selectedYear={selectedYear}
             unitMap={unitMap}
             campusMap={campusMap}
+            selectedUnitId={unitFilter}
+            selectedCampusId={campusFilter}
+            isSupervisor={isSupervisor}
+            userRole={userRole}
             onSelectRisk={handleEditRisk}
           />
 

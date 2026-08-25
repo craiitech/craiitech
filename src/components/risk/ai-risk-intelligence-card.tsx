@@ -31,12 +31,17 @@ import {
   AlertCircle,
   ExternalLink,
   ShieldCheck,
+  Briefcase,
+  Users,
+  Compass,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { copyToClipboard } from '@/lib/evaluation-export';
+
+export type RiskAnalysisScope = 'unit' | 'supervisory' | 'institutional';
 
 interface AiRiskIntelligenceCardProps {
   risks: Risk[];
@@ -45,6 +50,10 @@ interface AiRiskIntelligenceCardProps {
   campusMap?: Map<string, string>;
   onSelectRisk?: (risk: Risk) => void;
   className?: string;
+  selectedUnitId?: string;
+  selectedCampusId?: string;
+  isSupervisor?: boolean;
+  userRole?: string;
 }
 
 export function AiRiskIntelligenceCard({
@@ -54,25 +63,57 @@ export function AiRiskIntelligenceCard({
   campusMap = new Map(),
   onSelectRisk,
   className = '',
+  selectedUnitId = 'all',
+  selectedCampusId = 'all',
+  isSupervisor = false,
+  userRole = '',
 }: AiRiskIntelligenceCardProps) {
   const { isAiEnabled, status, selectedModel, generateRiskIntelligence } = useWebLlm();
   const { toast } = useToast();
 
+  // Determine default scope based on user context / active filter
+  const initialScope = useMemo<RiskAnalysisScope>(() => {
+    if (selectedUnitId && selectedUnitId !== 'all') return 'unit';
+    if (isSupervisor || (selectedCampusId && selectedCampusId !== 'all')) return 'supervisory';
+    return 'institutional';
+  }, [selectedUnitId, selectedCampusId, isSupervisor]);
+
+  const [analysisScope, setAnalysisScope] = useState<RiskAnalysisScope>(initialScope);
   const [intelligenceText, setIntelligenceText] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [selectedAttentionTab, setSelectedAttentionTab] = useState<'all' | 'high' | 'overdue' | 'escalated'>('all');
+
+  // Auto-sync scope when filter changes significantly
+  useEffect(() => {
+    if (selectedUnitId && selectedUnitId !== 'all') {
+      setAnalysisScope('unit');
+    } else if (selectedCampusId && selectedCampusId !== 'all') {
+      setAnalysisScope('supervisory');
+    }
+  }, [selectedUnitId, selectedCampusId]);
 
   // Filter risks strictly for the selected academic year
   const yearRisks = useMemo(() => {
     return risks.filter((r) => r.year === selectedYear);
   }, [risks, selectedYear]);
 
+  // Scope-filtered risks
+  const scopedRisks = useMemo(() => {
+    if (analysisScope === 'unit' && selectedUnitId && selectedUnitId !== 'all') {
+      return yearRisks.filter((r) => r.unitId === selectedUnitId);
+    }
+    if (analysisScope === 'supervisory' && selectedCampusId && selectedCampusId !== 'all') {
+      return yearRisks.filter((r) => r.campusId === selectedCampusId);
+    }
+    return yearRisks;
+  }, [yearRisks, analysisScope, selectedUnitId, selectedCampusId]);
+
   // Compute key risk metrics & top management attention items
   const riskAnalytics = useMemo(() => {
     const now = new Date();
-    const risksOnly = yearRisks.filter((r) => r.type === 'Risk');
-    const opportunitiesOnly = yearRisks.filter((r) => r.type === 'Opportunity');
+    const risksOnly = scopedRisks.filter((r) => r.type === 'Risk');
+    const opportunitiesOnly = scopedRisks.filter((r) => r.type === 'Opportunity');
 
     const total = risksOnly.length;
     const openCount = risksOnly.filter((r) => r.status === 'Open').length;
@@ -95,7 +136,7 @@ export function AiRiskIntelligenceCard({
       (r) => r.isEscalated || !!r.escalationTrigger || (r.preTreatment.rating === 'Low' && r.escalationTrigger),
     );
 
-    // Risks Needing Immediate Attention by Top Management:
+    // Risks Needing Immediate Attention:
     // 1. High rating unclosed risks
     // 2. Magnitude >= 12 unclosed risks
     // 3. Overdue treatment action plans
@@ -129,6 +170,13 @@ export function AiRiskIntelligenceCard({
       campusCounts.set(cname, (campusCounts.get(cname) || 0) + 1);
     });
 
+    // Grouping by Unit
+    const unitCounts = new Map<string, number>();
+    risksOnly.forEach((r) => {
+      const uname = unitMap.get(r.unitId) || 'Operating Unit';
+      unitCounts.set(uname, (unitCounts.get(uname) || 0) + 1);
+    });
+
     const resolutionRate = total > 0 ? Math.round((closedCount / total) * 100) : 0;
 
     return {
@@ -146,15 +194,35 @@ export function AiRiskIntelligenceCard({
       topObjectives,
       resolutionRate,
       campusCounts: Array.from(campusCounts.entries()).map(([campus, count]) => ({ campus, count })),
+      unitCounts: Array.from(unitCounts.entries()).map(([unit, count]) => ({ unit, count })),
     };
-  }, [yearRisks, campusMap]);
+  }, [scopedRisks, campusMap, unitMap]);
+
+  // Derived current target names
+  const currentTargetUnitName = useMemo(() => {
+    if (selectedUnitId && selectedUnitId !== 'all') {
+      return unitMap.get(selectedUnitId) || 'Target Operating Unit';
+    }
+    return 'Operating Unit';
+  }, [selectedUnitId, unitMap]);
+
+  const currentTargetCampusName = useMemo(() => {
+    if (selectedCampusId && selectedCampusId !== 'all') {
+      return campusMap.get(selectedCampusId) || 'Main Campus';
+    }
+    return 'University System / All Campuses';
+  }, [selectedCampusId, campusMap]);
 
   // Execute AI generation with Local WebLLM
   const handleGenerateIntelligence = useCallback(async () => {
     setIsGenerating(true);
     try {
       const contextData = {
+        scope: analysisScope,
         year: selectedYear,
+        unitName: currentTargetUnitName,
+        campusName: currentTargetCampusName,
+        isSupervisor,
         totalRisks: riskAnalytics.totalRisks,
         highRisks: riskAnalytics.highCount,
         mediumRisks: riskAnalytics.mediumCount,
@@ -166,6 +234,7 @@ export function AiRiskIntelligenceCard({
         overdueCount: riskAnalytics.overdueCount,
         topObjectives: riskAnalytics.topObjectives.slice(0, 5),
         campusDistribution: riskAnalytics.campusCounts,
+        unitDistribution: riskAnalytics.unitCounts.slice(0, 6),
         attentionRisks: riskAnalytics.topAttentionItems.slice(0, 8).map((r) => {
           const target = r.targetDate
             ? r.targetDate instanceof Timestamp
@@ -189,7 +258,13 @@ export function AiRiskIntelligenceCard({
         }),
       };
 
-      const prompt = `Perform an institutional risk intelligence evaluation for Romblon State University for Academic Year ${selectedYear}. Identify the critical risks demanding top management attention and formulate strategic directives for university leadership.`;
+      let prompt = `Perform an institutional risk intelligence evaluation for Romblon State University for Academic Year ${selectedYear}. Identify the critical risks demanding top management attention and formulate strategic directives for university leadership.`;
+
+      if (analysisScope === 'unit') {
+        prompt = `Perform an operational risk analysis and action directive generation for "${currentTargetUnitName}" (${currentTargetCampusName}) for Academic Year ${selectedYear}. Focus on actionable next steps for the Unit Head and staff to mitigate vulnerabilities and close risks.`;
+      } else if (analysisScope === 'supervisory') {
+        prompt = `Perform a supervisory risk oversight analysis for "${currentTargetCampusName}" for Academic Year ${selectedYear}. Identify cluster vulnerabilities across supervised operating units and formulate supervisory action directives for Deans/Campus Directors.`;
+      }
 
       const result = await generateRiskIntelligence(prompt, contextData);
       setIntelligenceText(result);
@@ -197,20 +272,33 @@ export function AiRiskIntelligenceCard({
       console.error('Failed to generate Local AI Risk Intelligence:', err);
       toast({
         title: 'Analysis Generation Warning',
-        description: 'Generated standard institutional risk intelligence using local analytics engine.',
+        description: 'Generated standard contextual risk intelligence using local analytics engine.',
       });
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedYear, riskAnalytics, unitMap, campusMap, generateRiskIntelligence, toast]);
+  }, [
+    analysisScope,
+    selectedYear,
+    currentTargetUnitName,
+    currentTargetCampusName,
+    isSupervisor,
+    riskAnalytics,
+    unitMap,
+    campusMap,
+    generateRiskIntelligence,
+    toast,
+  ]);
 
-  // Trigger initial analysis when component mounts or year changes
+  // Trigger initial analysis when component mounts, year changes, or scope changes
   useEffect(() => {
-    if (yearRisks.length > 0) {
+    if (scopedRisks.length > 0) {
       handleGenerateIntelligence();
+    } else {
+      setIntelligenceText('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, yearRisks.length]);
+  }, [selectedYear, analysisScope, scopedRisks.length]);
 
   const handleCopy = async () => {
     const success = await copyToClipboard(intelligenceText);
@@ -218,7 +306,13 @@ export function AiRiskIntelligenceCard({
       setCopied(true);
       toast({
         title: 'Copied to Clipboard',
-        description: 'Executive Risk Intelligence report copied successfully.',
+        description: `${
+          analysisScope === 'unit'
+            ? 'Unit Risk Action Plan'
+            : analysisScope === 'supervisory'
+              ? 'Supervisory Risk Oversight Report'
+              : 'Executive Risk Intelligence report'
+        } copied successfully.`,
       });
       setTimeout(() => setCopied(false), 2000);
     }
@@ -227,11 +321,18 @@ export function AiRiskIntelligenceCard({
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     if (printWindow) {
+      const scopeTitle =
+        analysisScope === 'unit'
+          ? `Unit Risk Action Plan • ${currentTargetUnitName}`
+          : analysisScope === 'supervisory'
+            ? `Supervisory Risk Oversight • ${currentTargetCampusName}`
+            : 'Quality Assurance Office • Institutional Risk Intelligence Briefing';
+
       printWindow.document.open();
       printWindow.document.write(`
         <html>
           <head>
-            <title>RSU_Executive_Risk_Intelligence_AY${selectedYear}</title>
+            <title>RSU_${analysisScope.toUpperCase()}_Risk_Analysis_AY${selectedYear}</title>
             <style>
               body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #0f172a; line-height: 1.6; }
               h1 { font-size: 18pt; text-transform: uppercase; margin-bottom: 4px; text-align: center; }
@@ -250,8 +351,9 @@ export function AiRiskIntelligenceCard({
           <body>
             <div class="header">
               <h1>Romblon State University</h1>
-              <h2>Quality Assurance Office • Institutional Risk Intelligence Briefing</h2>
-              <p style="font-size: 10pt; font-weight: bold; margin-top: 8px;">ACADEMIC YEAR ${selectedYear}</p>
+              <h2>Quality Assurance Office</h2>
+              <p style="font-size: 11pt; font-weight: bold; margin-top: 4px; color: #1e293b;">${scopeTitle}</p>
+              <p style="font-size: 10pt; font-weight: bold; margin-top: 4px; color: #64748b;">ACADEMIC YEAR ${selectedYear}</p>
             </div>
             
             <div class="kri-grid">
@@ -261,7 +363,7 @@ export function AiRiskIntelligenceCard({
               </div>
               <div class="kri-card">
                 <div class="kri-value" style="color: #b91c1c;">${riskAnalytics.topAttentionItems.length}</div>
-                <div class="kri-label">Top Mgmt Attention</div>
+                <div class="kri-label">${analysisScope === 'unit' ? 'Action Required' : 'High Priority'}</div>
               </div>
               <div class="kri-card">
                 <div class="kri-value" style="color: #d97706;">${riskAnalytics.overdueCount}</div>
@@ -269,7 +371,7 @@ export function AiRiskIntelligenceCard({
               </div>
               <div class="kri-card">
                 <div class="kri-value" style="color: #15803d;">${riskAnalytics.resolutionRate}%</div>
-                <div class="kri-label">Mitigation Closure Rate</div>
+                <div class="kri-label">Closure Resolution Rate</div>
               </div>
             </div>
 
@@ -321,13 +423,19 @@ export function AiRiskIntelligenceCard({
       {/* ─── CARD HEADER ────────────────────────────────────────────── */}
       <CardHeader className="bg-gradient-to-r from-destructive/10 via-primary/5 to-transparent border-b py-4 px-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
               <div className="h-7 w-7 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center shrink-0 shadow-sm border border-destructive/20">
                 <ShieldAlert className="h-4 w-4" />
               </div>
               <CardTitle className="text-sm font-black uppercase tracking-tight text-foreground flex items-center gap-2">
-                <span>Executive Risk Intelligence & Top Management Directives</span>
+                <span>
+                  {analysisScope === 'unit'
+                    ? `Unit Risk Action Directives: ${currentTargetUnitName}`
+                    : analysisScope === 'supervisory'
+                      ? `Supervisory Risk Oversight: ${currentTargetCampusName}`
+                      : 'Executive Risk Intelligence & Institutional Directives'}
+                </span>
                 <Badge
                   variant="outline"
                   className="text-[9px] font-black uppercase border-destructive/30 text-destructive bg-destructive/5"
@@ -337,13 +445,59 @@ export function AiRiskIntelligenceCard({
               </CardTitle>
             </div>
             <CardDescription className="text-xs text-muted-foreground">
-              Autonomous on-device Local AI risk synthesis isolating critical vulnerabilities for University Top
-              Management (ISO 21001:2018 EOMS).
+              {analysisScope === 'unit'
+                ? `Autonomous on-device Local AI risk synthesis isolating actionable mitigation steps for ${currentTargetUnitName} (ISO 21001:2018 EOMS).`
+                : analysisScope === 'supervisory'
+                  ? `Autonomous on-device Local AI risk synthesis isolating cross-departmental bottlenecks and supervisory directives for ${currentTargetCampusName}.`
+                  : 'Autonomous on-device Local AI risk synthesis isolating critical vulnerabilities for University Top Management (ISO 21001:2018 EOMS).'}
             </CardDescription>
           </div>
 
-          {/* Engine Badges and Action Controls */}
+          {/* Scope Selector & Engine Controls */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {/* Scope Switcher Pills */}
+            <div className="flex items-center bg-muted/40 p-0.5 rounded-lg border border-border/80">
+              <Button
+                variant={analysisScope === 'unit' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setAnalysisScope('unit')}
+                className={cn(
+                  'h-6 text-[8px] font-black uppercase tracking-widest px-2.5 rounded-md gap-1',
+                  analysisScope === 'unit'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Briefcase className="h-2.5 w-2.5" /> Unit
+              </Button>
+              <Button
+                variant={analysisScope === 'supervisory' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setAnalysisScope('supervisory')}
+                className={cn(
+                  'h-6 text-[8px] font-black uppercase tracking-widest px-2.5 rounded-md gap-1',
+                  analysisScope === 'supervisory'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Users className="h-2.5 w-2.5" /> Supervisory
+              </Button>
+              <Button
+                variant={analysisScope === 'institutional' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setAnalysisScope('institutional')}
+                className={cn(
+                  'h-6 text-[8px] font-black uppercase tracking-widest px-2.5 rounded-md gap-1',
+                  analysisScope === 'institutional'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Compass className="h-2.5 w-2.5" /> University
+              </Button>
+            </div>
+
             {isLlmReady ? (
               <Badge className="h-6 text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 gap-1.5 shadow-sm">
                 <Cpu className="h-3 w-3" /> Local AI Active ({selectedModel.split('-')[0]})
@@ -356,13 +510,6 @@ export function AiRiskIntelligenceCard({
                 <Bot className="h-3 w-3" /> Local Rule Engine
               </Badge>
             )}
-
-            <Badge
-              variant="secondary"
-              className="h-6 text-[8px] font-bold uppercase tracking-wider text-muted-foreground"
-            >
-              100% On-Device • Private
-            </Badge>
 
             <div className="flex items-center gap-1">
               <Button
@@ -395,7 +542,7 @@ export function AiRiskIntelligenceCard({
                     className="h-8 px-3 text-[10px] font-black uppercase tracking-widest bg-background border-destructive/20 text-destructive hover:bg-destructive/10 gap-1.5 shadow-sm"
                   >
                     <Printer className="h-3.5 w-3.5" />
-                    Print Briefing
+                    {analysisScope === 'unit' ? 'Print Action Plan' : 'Print Report'}
                   </Button>
                 </>
               )}
@@ -410,7 +557,12 @@ export function AiRiskIntelligenceCard({
           <Card className="p-3 bg-muted/20 border-border/60 text-center shadow-sm">
             <p className="text-xl font-black text-foreground tabular-nums">{riskAnalytics.totalRisks}</p>
             <p className="text-[9px] font-bold uppercase text-muted-foreground mt-0.5">
-              Total Risks (AY {selectedYear})
+              {analysisScope === 'unit'
+                ? 'Unit Risks'
+                : analysisScope === 'supervisory'
+                  ? 'Supervised Risks'
+                  : 'Total Risks'}{' '}
+              (AY {selectedYear})
             </p>
           </Card>
 
@@ -422,7 +574,9 @@ export function AiRiskIntelligenceCard({
               </span>
             </div>
             <p className="text-xl font-black text-destructive tabular-nums">{riskAnalytics.topAttentionItems.length}</p>
-            <p className="text-[9px] font-black uppercase text-destructive tracking-tight mt-0.5">Top Mgmt Attention</p>
+            <p className="text-[9px] font-black uppercase text-destructive tracking-tight mt-0.5">
+              {analysisScope === 'unit' ? 'Action Required' : 'Priority Attention'}
+            </p>
           </Card>
 
           <Card className="p-3 bg-amber-500/10 border-amber-300 dark:border-amber-900/40 text-center shadow-sm">
@@ -430,7 +584,7 @@ export function AiRiskIntelligenceCard({
               {riskAnalytics.overdueCount}
             </p>
             <p className="text-[9px] font-bold uppercase text-amber-700 dark:text-amber-400 mt-0.5">
-              Overdue Action Plans
+              Overdue Mitigations
             </p>
           </Card>
 
@@ -451,13 +605,17 @@ export function AiRiskIntelligenceCard({
           </Card>
         </div>
 
-        {/* ─── 2. TOP MANAGEMENT ATTENTION REQUIRED MATRIX ──────────── */}
+        {/* ─── 2. TOP MANAGEMENT / SUPERVISORY ATTENTION REQUIRED MATRIX ──────────── */}
         <div className="space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-destructive" />
               <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
-                Priority Risks Requiring Top Management Action ({riskAnalytics.topAttentionItems.length})
+                {analysisScope === 'unit'
+                  ? `Priority Action Watchlist for ${currentTargetUnitName} (${riskAnalytics.topAttentionItems.length})`
+                  : analysisScope === 'supervisory'
+                    ? `Supervisory Escalation & Intervention Items (${riskAnalytics.topAttentionItems.length})`
+                    : `Priority Risks Requiring Top Management Action (${riskAnalytics.topAttentionItems.length})`}
               </h3>
             </div>
 
@@ -576,6 +734,11 @@ export function AiRiskIntelligenceCard({
                             <strong className="text-foreground">Mitigation:</strong> {risk.treatmentAction}
                           </p>
                         )}
+                        {risk.responsiblePersonName && (
+                          <p className="text-[9px] text-slate-500 line-clamp-1">
+                            <strong>Owner:</strong> {risk.responsiblePersonName}
+                          </p>
+                        )}
                       </div>
 
                       {onSelectRisk && (
@@ -586,7 +749,7 @@ export function AiRiskIntelligenceCard({
                             onClick={() => onSelectRisk(risk)}
                             className="h-6 text-[9px] font-black uppercase text-primary tracking-widest gap-1 p-0 hover:bg-transparent"
                           >
-                            Inspect in Detailed Register <ChevronRight className="h-3 w-3" />
+                            Inspect in Register <ChevronRight className="h-3 w-3" />
                           </Button>
                         </div>
                       )}
@@ -599,7 +762,9 @@ export function AiRiskIntelligenceCard({
             <div className="p-6 rounded-xl border border-dashed border-emerald-300 bg-emerald-50/20 text-center space-y-1">
               <CheckCircle2 className="h-6 w-6 text-emerald-600 mx-auto" />
               <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
-                No Critical Unmitigated Risks Flagged for Top Management in AY {selectedYear}
+                {analysisScope === 'unit'
+                  ? `No critical unmitigated risks recorded for ${currentTargetUnitName}`
+                  : `No Critical Unmitigated Risks Flagged in AY ${selectedYear}`}
               </p>
               <p className="text-[10px] text-muted-foreground">
                 All high-priority risks have defined treatments or have been closed with verification evidence.
@@ -608,13 +773,17 @@ export function AiRiskIntelligenceCard({
           )}
         </div>
 
-        {/* ─── 3. SYNTHESIZED LOCAL AI EXECUTIVE BRIEFING ─────────────── */}
+        {/* ─── 3. SYNTHESIZED LOCAL AI EXECUTIVE / ACTION BRIEFING ─────────────── */}
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between gap-2 border-b pb-2">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
               <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
-                University-Wide Risk Synthesis & Strategic Analysis
+                {analysisScope === 'unit'
+                  ? `Unit Risk Mitigation & Operational Action Plan (${currentTargetUnitName})`
+                  : analysisScope === 'supervisory'
+                    ? `Supervisory Risk Synthesis & Intervention Directives (${currentTargetCampusName})`
+                    : 'Institutional Risk Synthesis & Strategic Directives'}
               </h3>
             </div>
             <span className="text-[9px] font-bold uppercase text-muted-foreground">
@@ -628,10 +797,16 @@ export function AiRiskIntelligenceCard({
                 <Bot className="h-8 w-8 text-primary animate-bounce" />
                 <div className="space-y-1">
                   <p className="text-xs font-black uppercase tracking-wider text-primary animate-pulse">
-                    Synthesizing Institutional Risk Intelligence with Local AI...
+                    Synthesizing{' '}
+                    {analysisScope === 'unit'
+                      ? 'Unit Action Plan'
+                      : analysisScope === 'supervisory'
+                        ? 'Supervisory Oversight Briefing'
+                        : 'Institutional Risk Intelligence'}{' '}
+                    with Local AI...
                   </p>
                   <p className="text-[10px] text-muted-foreground">
-                    Evaluating risk severity, mitigation deadlines, objective exposures, and top management directives.
+                    Evaluating risk severity, mitigation deadlines, objective exposures, and actionable directives.
                   </p>
                 </div>
               </div>
@@ -655,7 +830,7 @@ export function AiRiskIntelligenceCard({
           <span>Compliant with ISO 21001:2018 Clause 6.1 (Actions to address risks and opportunities).</span>
         </div>
         <span className="font-semibold text-slate-700 dark:text-slate-300">
-          Executive Quality Assurance & Risk Oversight
+          Quality Assurance Office • Contextual Risk Intelligence
         </span>
       </CardFooter>
     </Card>
