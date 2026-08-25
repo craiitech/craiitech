@@ -53,7 +53,7 @@ interface AiRiskIntelligenceCardProps {
   selectedUnitId?: string;
   selectedCampusId?: string;
   isSupervisor?: boolean;
-  userRole?: string;
+  userRole?: string | null;
 }
 
 export function AiRiskIntelligenceCard({
