@@ -14,6 +14,7 @@ import type {
   CorrectiveActionRequest,
   ManagementReviewOutput,
   Cycle,
+  UnitOrgStructure,
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -49,6 +50,12 @@ import {
   Check,
   Monitor,
   Building2,
+  RotateCcw,
+  Hash,
+  Calendar,
+  FileBadge,
+  Link as LinkIcon,
+  ExternalLink,
 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
@@ -257,6 +264,20 @@ export function CampusSubmissionsView({
     );
     return auditFindings.filter((f) => unitScheduleIds.has(f.auditScheduleId));
   }, [campusSchedules, auditFindings, selectedUnitId]);
+
+  const orgStructuresQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedUnitId || !selectedYear) return null;
+    return query(
+      collection(firestore, 'unitOrgStructures'),
+      where('unitId', '==', selectedUnitId),
+      where('year', '==', Number(selectedYear)),
+    );
+  }, [firestore, selectedUnitId, selectedYear]);
+  const { data: unitOrgStructures, isLoading: isLoadingOrgStructures } =
+    useCollection<UnitOrgStructure>(orgStructuresQuery);
+
+  const firstCycleOrgStructure = unitOrgStructures?.find((r) => r.cycleId === 'first');
+  const finalCycleOrgStructure = unitOrgStructures?.find((r) => r.cycleId === 'final');
 
   /**
    * FILTERED CAMPUS GROUPS
@@ -992,10 +1013,132 @@ export function CampusSubmissionsView({
                     <div className="p-4 bg-muted/10 border rounded-xl flex items-start gap-3">
                       <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <p className="text-[10px] text-muted-foreground italic leading-tight">
-                        <strong>Analytical Perspecive:</strong> Data roll-up for {selectedYear}.
+                        <strong>Analytical Perspective:</strong> Data roll-up for {selectedYear}.
                       </p>
                     </div>
                   </div>
+                </div>
+
+                {/* Organizational Structure History */}
+                <div className="space-y-3 bg-muted/5 border border-primary/10 rounded-2xl p-5">
+                  <div className="flex items-center justify-between border-b pb-2">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-primary" />
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                        Unit Organizational Structure
+                      </h4>
+                    </div>
+                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-wider">
+                      AY {selectedYear}
+                    </Badge>
+                  </div>
+
+                  {isLoadingOrgStructures ? (
+                    <div className="flex items-center justify-center py-6 opacity-30">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    </div>
+                  ) : !firstCycleOrgStructure && !finalCycleOrgStructure ? (
+                    <div className="rounded-xl border border-dashed p-6 text-center bg-white/50 dark:bg-slate-900/50">
+                      <Building2 className="h-6 w-6 mx-auto mb-1 opacity-15" />
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground opacity-60">
+                        No organizational structure uploaded for {selectedYear}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[firstCycleOrgStructure, finalCycleOrgStructure].map((record, idx) => {
+                        const label = idx === 0 ? '1st Cycle' : 'Final Cycle';
+                        const badgeColor =
+                          idx === 0
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-green-50 text-green-700 border-green-200';
+                        if (!record) {
+                          return (
+                            <div
+                              key={idx}
+                              className="rounded-xl border border-dashed p-4 text-center bg-white/40 dark:bg-slate-900/40"
+                            >
+                              <Badge
+                                variant="outline"
+                                className={`${badgeColor} px-2.5 h-4 font-black text-[8px] uppercase mb-1.5`}
+                              >
+                                {label}
+                              </Badge>
+                              <p className="text-[9px] font-bold uppercase text-muted-foreground opacity-50">
+                                Not yet uploaded
+                              </p>
+                            </div>
+                          );
+                        }
+                        return (
+                          <div
+                            key={idx}
+                            className="rounded-xl border bg-white dark:bg-slate-900 shadow-xs overflow-hidden"
+                          >
+                            <div className="bg-muted/20 border-b px-3.5 py-2 flex items-center justify-between gap-2">
+                              <Badge
+                                variant="outline"
+                                className={`${badgeColor} px-2.5 h-4 font-black text-[8px] uppercase`}
+                              >
+                                {label}
+                              </Badge>
+                              <div className="flex items-center gap-1.5">
+                                {record.isCarriedOver && (
+                                  <Badge className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-none h-4 text-[7px] font-black uppercase gap-1 px-1.5">
+                                    <RotateCcw className="h-2 w-2" /> Carried Over
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="p-3.5 space-y-2.5">
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="space-y-0.5">
+                                  <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
+                                    <Hash className="h-2 w-2" /> Revision
+                                  </p>
+                                  <p className="font-black text-slate-800 dark:text-slate-200 text-[11px]">
+                                    {record.revisionNumber}
+                                  </p>
+                                </div>
+                                <div className="space-y-0.5">
+                                  <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
+                                    <Calendar className="h-2 w-2" /> Date
+                                  </p>
+                                  <p className="font-bold text-slate-800 dark:text-slate-200 text-[11px]">
+                                    {record.revisionDate}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="space-y-0.5">
+                                <p className="text-[8px] font-black uppercase text-muted-foreground tracking-widest flex items-center gap-1">
+                                  <FileBadge className="h-2 w-2" /> Uploaded By
+                                </p>
+                                <p className="font-bold text-[10px] text-slate-700 dark:text-slate-300 truncate">
+                                  {record.submittedBy}
+                                </p>
+                              </div>
+                              <div className="pt-2 border-t flex items-center gap-2">
+                                <div className="flex-1 bg-muted/30 rounded px-2 py-1 flex items-center gap-1.5 min-w-0">
+                                  <LinkIcon className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+                                  <span className="text-[8px] font-mono text-muted-foreground truncate">
+                                    {record.googleDriveLink}
+                                  </span>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="h-6 text-[8px] font-black uppercase shrink-0 px-2.5 bg-primary shadow-xs"
+                                  onClick={() => window.open(record.googleDriveLink, '_blank')}
+                                >
+                                  <ExternalLink className="h-2 w-2 mr-1" /> Open PDF
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

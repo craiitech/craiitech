@@ -22,6 +22,7 @@ import {
   LayoutList,
   Info,
   Sparkles,
+  Building2,
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +52,7 @@ import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-view';
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
+import { OrgStructureDirectoryView } from '@/components/submissions/org-structure-directory-view';
 import { SubmissionDashboard } from '@/components/submissions/submission-dashboard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
@@ -450,11 +452,17 @@ export default function SubmissionsPage() {
                 {isInstitutionalViewer && (
                   <TabsTrigger
                     value="by-campus"
-                    className="data-[state=active]:shadow-sm text-[10px) font-black uppercase tracking-widest px-6 h-8"
+                    className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8"
                   >
                     Site Matrix
                   </TabsTrigger>
                 )}
+                <TabsTrigger
+                  value="org-structures"
+                  className="gap-2 data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  <Building2 className="h-4 w-4" /> Org Structures
+                </TabsTrigger>
               </TabsList>
             </ScrollArea>
           </div>
@@ -866,6 +874,10 @@ export default function SubmissionsPage() {
               />
             </TabsContent>
           )}
+
+          <TabsContent value="org-structures" className="animate-in fade-in duration-500">
+            <OrgStructureDirectoryView allUnits={allUnits} allCampuses={campuses} selectedYear={reportSelectedYear} />
+          </TabsContent>
         </Tabs>
 
         <FeedbackDialog
