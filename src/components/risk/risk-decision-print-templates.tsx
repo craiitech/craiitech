@@ -798,9 +798,7 @@ export function OpportunityInnovationTemplate({
         <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
           ROMBLON STATE UNIVERSITY
         </h1>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
-          Office of Strategic Planning, Innovation & Linkages
-        </h2>
+        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">Quality Assurance Office</h2>
         <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
       </div>
 
@@ -895,11 +893,9 @@ export function OpportunityInnovationTemplate({
           <p className="font-black uppercase">{signatories?.qmsHead || 'Unit Head'}</p>
         </div>
         <div className="text-right">
-          <p className="font-bold text-slate-600 mb-5">Noted for Strategic Planning:</p>
+          <p className="font-bold text-slate-600 mb-5">Noted by Quality Assurance Office:</p>
           <div className="border-b border-black w-44 ml-auto mb-1"></div>
-          <p className="font-black uppercase">
-            {signatories?.qaoDirector || 'Vice President for Academic / Research Affairs'}
-          </p>
+          <p className="font-black uppercase">{signatories?.qaoDirector || 'Director, Quality Assurance Office'}</p>
         </div>
       </div>
     </div>
