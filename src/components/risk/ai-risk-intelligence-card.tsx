@@ -12,28 +12,22 @@ import {
   Bot,
   RotateCcw,
   ShieldAlert,
-  AlertTriangle,
   CheckCircle2,
-  TrendingUp,
   Flame,
   Copy,
   Check,
   Printer,
   ChevronRight,
-  Target,
   Clock,
   Building,
-  School,
-  UserCheck,
   Cpu,
   Layers,
-  FileText,
-  AlertCircle,
-  ExternalLink,
   ShieldCheck,
   Briefcase,
   Users,
   Compass,
+  Activity,
+  Gavel,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -66,7 +60,7 @@ export function AiRiskIntelligenceCard({
   selectedUnitId = 'all',
   selectedCampusId = 'all',
   isSupervisor = false,
-  userRole = '',
+  userRole: _userRole = '',
 }: AiRiskIntelligenceCardProps) {
   const { isAiEnabled, status, selectedModel, generateRiskIntelligence } = useWebLlm();
   const { toast } = useToast();
@@ -301,7 +295,12 @@ export function AiRiskIntelligenceCard({
   }, [selectedYear, analysisScope, scopedRisks.length]);
 
   const handleCopy = async () => {
-    const success = await copyToClipboard(intelligenceText);
+    // Strip raw ASCII equal signs and markdown hashes for a clean copy
+    const cleanText = intelligenceText
+      .replace(/^===+\s*|\s*===+$/gm, '')
+      .replace(/^###\s*/gm, '')
+      .replace(/^##\s*/gm, '');
+    const success = await copyToClipboard(cleanText || intelligenceText);
     if (success) {
       setCopied(true);
       toast({
@@ -328,6 +327,24 @@ export function AiRiskIntelligenceCard({
             ? `Supervisory Risk Oversight • ${currentTargetCampusName}`
             : 'Quality Assurance Office • Institutional Risk Intelligence Briefing';
 
+      // Clean intelligence text for print
+      const formattedPrintContent = intelligenceText
+        .split('\n')
+        .map((line) => {
+          const l = line.trim();
+          if (!l) return '<br/>';
+          if (l.match(/^(?:===|##|###)\s*(.+?)\s*(?:===)?$/i)) {
+            const heading = l.replace(/^[#=\s]+|[#=\s]+$/g, '');
+            return `<div class="section-title">${heading}</div>`;
+          }
+          if (l.match(/^(\d+)\.\s+(.+?):\s*(.*)$/)) {
+            const m = l.match(/^(\d+)\.\s+(.+?):\s*(.*)$/)!;
+            return `<div class="directive-box"><strong>${m[1]}. ${m[2]}:</strong> ${m[3]}</div>`;
+          }
+          return `<p style="margin: 4px 0;">${l}</p>`;
+        })
+        .join('');
+
       printWindow.document.open();
       printWindow.document.write(`
         <html>
@@ -338,13 +355,13 @@ export function AiRiskIntelligenceCard({
               h1 { font-size: 18pt; text-transform: uppercase; margin-bottom: 4px; text-align: center; }
               h2 { font-size: 13pt; text-transform: uppercase; margin-top: 0; color: #475569; text-align: center; }
               .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 24px; }
-              .section-title { font-size: 12pt; font-weight: bold; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 24px; color: #b91c1c; }
-              .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 8pt; font-weight: bold; text-transform: uppercase; background: #fee2e2; color: #991b1b; }
+              .section-title { font-size: 11pt; font-weight: 900; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px; margin-bottom: 10px; color: #0f172a; }
+              .directive-box { border-left: 3px solid #059669; background: #f0fdf4; padding: 8px 12px; margin: 6px 0; border-radius: 0 4px 4px 0; font-size: 9pt; }
               .kri-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
               .kri-card { border: 1px solid #cbd5e1; padding: 12px; border-radius: 6px; text-align: center; background: #f8fafc; }
               .kri-value { font-size: 16pt; font-weight: bold; }
               .kri-label { font-size: 8pt; text-transform: uppercase; color: #64748b; font-weight: bold; margin-top: 4px; }
-              .content { white-space: pre-wrap; font-size: 10pt; line-height: 1.7; }
+              .content { font-size: 9.5pt; line-height: 1.65; }
               .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 8pt; color: #94a3b8; text-align: center; font-style: italic; }
             </style>
           </head>
@@ -375,7 +392,7 @@ export function AiRiskIntelligenceCard({
               </div>
             </div>
 
-            <div class="content">${intelligenceText}</div>
+            <div class="content">${formattedPrintContent}</div>
 
             <div class="footer">
               Generated via Local On-Device AI Engine • Romblon State University EOMS Portal • ISO 21001:2018 Standard
@@ -811,9 +828,7 @@ export function AiRiskIntelligenceCard({
                 </div>
               </div>
             ) : intelligenceText ? (
-              <div className="text-xs text-foreground leading-relaxed font-sans space-y-3 whitespace-pre-wrap">
-                {intelligenceText}
-              </div>
+              <RiskIntelligenceRenderer text={intelligenceText} selectedYear={selectedYear} />
             ) : (
               <div className="py-6 text-center text-muted-foreground text-xs italic">
                 Click "Re-Analyze" above to generate a comprehensive Local AI risk analysis for Academic Year{' '}
@@ -834,5 +849,373 @@ export function AiRiskIntelligenceCard({
         </span>
       </CardFooter>
     </Card>
+  );
+}
+
+// ─── HELPER FORMATTER COMPONENTS FOR RISK INTELLIGENCE ─────────────────────────────
+
+function FormattedInlineText({ text }: { text: string }) {
+  const parts = text.split(/(\*\*.*?\*\*|\[.*?\]|\b\d{1,3}%\b)/g);
+
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (!part) return null;
+        if (part.startsWith('**') && part.endsWith('**')) {
+          const inner = part.slice(2, -2);
+          const isSeverity = /^(HIGH|CRITICAL|ACTION REQUIRED|ELEVATED THREAT LEVEL)/i.test(inner);
+          const isPositive = /^(CONTROLLED|LOW|LOW RESIDUAL|PASS|OPTIMAL)/i.test(inner);
+          return (
+            <strong
+              key={i}
+              className={cn(
+                'font-black',
+                isSeverity
+                  ? 'text-red-600 dark:text-red-400'
+                  : isPositive
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-slate-900 dark:text-slate-100',
+              )}
+            >
+              {inner}
+            </strong>
+          );
+        }
+        if (part.startsWith('[') && part.endsWith(']')) {
+          const inner = part.slice(1, -1);
+          const isHigh = /HIGH/i.test(inner);
+          const isMed = /MEDIUM/i.test(inner);
+          const isLow = /LOW/i.test(inner);
+          return (
+            <Badge
+              key={i}
+              variant="outline"
+              className={cn(
+                'mx-1 px-1.5 py-0 text-[10px] font-black uppercase tracking-wider align-middle',
+                isHigh
+                  ? 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
+                  : isMed
+                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                    : isLow
+                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                      : 'border-primary/20 bg-primary/5 text-primary',
+              )}
+            >
+              {inner}
+            </Badge>
+          );
+        }
+        if (/^\d{1,3}%$/.test(part)) {
+          return (
+            <span key={i} className="font-black text-primary tabular-nums">
+              {part}
+            </span>
+          );
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
+  );
+}
+
+interface ParsedRiskItem {
+  type: 'directive' | 'risk_card' | 'bullet' | 'paragraph';
+  number?: string;
+  title?: string;
+  description?: string;
+  fields?: Array<{ label: string; value: string }>;
+  rawText: string;
+}
+
+interface ParsedSection {
+  title: string;
+  sectionNumber?: string;
+  items: ParsedRiskItem[];
+}
+
+function getSectionIcon(title: string) {
+  const t = title.toUpperCase();
+  if (t.includes('STATUS') || t.includes('POSTURE') || t.includes('OVERVIEW') || t.includes('PROFILE')) {
+    return <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />;
+  }
+  if (t.includes('VULNERABILITIES') || t.includes('THREAT') || t.includes('ATTENTION') || t.includes('CLUSTERS')) {
+    return <ShieldAlert className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />;
+  }
+  if (
+    t.includes('ACCOUNTABILITY') ||
+    t.includes('OWNER') ||
+    t.includes('ALLOCATION') ||
+    t.includes('BOTTLENECK') ||
+    t.includes('RESOURCE')
+  ) {
+    return <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />;
+  }
+  if (t.includes('DIRECTIVES') || t.includes('ACTION') || t.includes('MITIGATION') || t.includes('INTERVENTION')) {
+    return <Gavel className="h-4 w-4 text-primary shrink-0" />;
+  }
+  return <Layers className="h-4 w-4 text-primary shrink-0" />;
+}
+
+function parseRiskReport(raw: string): { heroTitle: string | null; sections: ParsedSection[] } {
+  if (!raw) return { heroTitle: null, sections: [] };
+
+  const rawLines = raw.split('\n').map((l) => l.trim());
+  let heroTitle: string | null = null;
+  const sections: ParsedSection[] = [];
+  let currentSection: ParsedSection | null = null;
+
+  for (let i = 0; i < rawLines.length; i++) {
+    const line = rawLines[i];
+    if (!line) continue;
+
+    // Check for Document Hero Banner (e.g. ## SUPERVISORY RISK OVERSIGHT... or === SUPERVISORY... ===)
+    const heroMatch = line.match(/^(?:===|##)\s*(.+?)\s*(?:===)?$/i);
+    if (
+      heroMatch &&
+      !heroTitle &&
+      (heroMatch[1].toUpperCase().includes('ACTION PLAN') ||
+        heroMatch[1].toUpperCase().includes('OVERSIGHT BRIEFING') ||
+        heroMatch[1].toUpperCase().includes('RISK INTELLIGENCE') ||
+        heroMatch[1].toUpperCase().includes('RISK SYNTHESIS') ||
+        heroMatch[1].toUpperCase().includes('RISK POSTURE'))
+    ) {
+      heroTitle = heroMatch[1].replace(/^[#=\s]+|[#=\s]+$/g, '').trim();
+      continue;
+    }
+
+    // Check for Section Header (e.g. === 1. TITLE === or ### 1. TITLE or 1. TITLE: or ### TITLE)
+    const secHeaderMatch =
+      line.match(/^(?:===|###|##)\s*(?:(\d+)\.\s*)?(.+?)\s*(?:===)?$/i) ||
+      line.match(/^(\d+)\.\s+([A-Z\s&/()—–-]{5,}):?$/);
+
+    if (secHeaderMatch) {
+      const num = secHeaderMatch[1] ?? undefined;
+      const cleanTitle = (secHeaderMatch[2] || '')
+        .replace(/^[#=\s]+|[#=\s]+$/g, '')
+        .replace(/:$/, '')
+        .trim();
+
+      const isHeader =
+        cleanTitle.length > 3 &&
+        (cleanTitle === cleanTitle.toUpperCase() ||
+          cleanTitle.includes('STATUS') ||
+          cleanTitle.includes('VULNERABILITIES') ||
+          cleanTitle.includes('ACCOUNTABILITY') ||
+          cleanTitle.includes('DIRECTIVES') ||
+          cleanTitle.includes('POSTURE') ||
+          cleanTitle.includes('CLUSTERS') ||
+          cleanTitle.includes('ALLOCATION') ||
+          cleanTitle.includes('THREAT') ||
+          cleanTitle.includes('ATTENTION') ||
+          cleanTitle.includes('ACTIONS') ||
+          cleanTitle.includes('SUMMARY') ||
+          cleanTitle.includes('BOTTLENECK') ||
+          cleanTitle.includes('PROFILE'));
+
+      if (isHeader) {
+        if (currentSection) {
+          sections.push(currentSection);
+        }
+        currentSection = {
+          title: cleanTitle,
+          sectionNumber: num,
+          items: [],
+        };
+        continue;
+      }
+    }
+
+    if (!currentSection) {
+      currentSection = {
+        title: 'Executive Risk Overview',
+        items: [],
+      };
+    }
+
+    // Check for Numbered Directive (e.g. "1. Mandatory Catch-up Timetable: Require Unit Heads..." or "1. Title: Description")
+    const directiveMatch = line.match(/^(\d+)\.\s+(?:(?:\*\*|\[)?([A-Za-z0-9\s&/()—–-]+?)(?:\*\*|\])?:)\s*(.*)$/);
+    if (directiveMatch) {
+      currentSection.items.push({
+        type: 'directive',
+        number: directiveMatch[1],
+        title: directiveMatch[2].trim(),
+        description: directiveMatch[3].trim(),
+        rawText: line,
+      });
+      continue;
+    }
+
+    // Check for Numbered Risk Card (e.g. "1. [HIGH • Mag: 16] [Unit]: Description" or "[HIGH RISK] Description")
+    const riskCardMatch = line.match(/^(\d+\.\s*)?\[(HIGH|MEDIUM|LOW).*?\]\s*(.*)$/i);
+    if (riskCardMatch) {
+      const fields: Array<{ label: string; value: string }> = [];
+      let j = i + 1;
+      while (j < rawLines.length) {
+        const nextLine = rawLines[j];
+        const fieldMatch = nextLine.match(/^[-•*]\s*([A-Za-z\s]+?):\s*(.*)$/);
+        if (fieldMatch) {
+          fields.push({ label: fieldMatch[1].trim(), value: fieldMatch[2].trim() });
+          j++;
+        } else if (nextLine.startsWith('•') || nextLine.startsWith('-') || nextLine.startsWith('*')) {
+          fields.push({ label: 'Detail', value: nextLine.replace(/^[-•*]\s*/, '').trim() });
+          j++;
+        } else {
+          break;
+        }
+      }
+      i = j - 1;
+
+      currentSection.items.push({
+        type: 'risk_card',
+        rawText: line,
+        fields,
+      });
+      continue;
+    }
+
+    // Check for standard Bullet item
+    if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*')) {
+      const cleanBullet = line.replace(/^[-•*]\s*/, '');
+      currentSection.items.push({
+        type: 'bullet',
+        rawText: cleanBullet,
+      });
+      continue;
+    }
+
+    // Generic paragraph
+    currentSection.items.push({
+      type: 'paragraph',
+      rawText: line,
+    });
+  }
+
+  if (currentSection) {
+    sections.push(currentSection);
+  }
+
+  return { heroTitle, sections };
+}
+
+function RiskIntelligenceRenderer({ text, selectedYear }: { text: string; selectedYear: number }) {
+  const { heroTitle, sections } = useMemo(() => parseRiskReport(text), [text]);
+
+  if (!text) return null;
+
+  return (
+    <div className="space-y-6">
+      {/* ─── Hero Scope Banner ─── */}
+      {heroTitle && (
+        <div className="p-3.5 rounded-xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="h-9 w-9 rounded-xl bg-primary/20 flex items-center justify-center text-primary shrink-0 shadow-inner">
+              <Compass className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <h4 className="text-xs sm:text-sm font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 truncate">
+                {heroTitle}
+              </h4>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-primary/80">
+                ISO 21001:2018 Quality Management System Intelligence
+              </p>
+            </div>
+          </div>
+          <Badge
+            variant="outline"
+            className="w-fit text-[9px] font-black uppercase border-primary/30 text-primary bg-primary/5 px-2.5 py-0.5 shadow-sm"
+          >
+            Academic Year {selectedYear}
+          </Badge>
+        </div>
+      )}
+
+      {/* ─── Rendered Sections ─── */}
+      {sections.map((section, secIdx) => (
+        <div key={secIdx} className="space-y-3">
+          {/* Section Header */}
+          <div className="flex items-center gap-2 pt-1 border-b border-slate-200 dark:border-slate-800 pb-2">
+            {getSectionIcon(section.title)}
+            <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+              {section.sectionNumber ? `${section.sectionNumber}. ` : ''}
+              {section.title}
+            </h4>
+            <span className="flex-1 h-px bg-gradient-to-r from-slate-200 dark:from-slate-800 to-transparent" />
+          </div>
+
+          {/* Section Content Items */}
+          <div className="space-y-2.5 pl-0.5">
+            {section.items.map((item, itemIdx) => {
+              if (item.type === 'directive') {
+                return (
+                  <div
+                    key={itemIdx}
+                    className="p-3.5 rounded-xl bg-card border border-slate-200 dark:border-slate-800 shadow-sm flex items-start gap-3 transition-all hover:border-primary/40 hover:shadow-md"
+                  >
+                    <div className="h-6 w-6 rounded-full bg-primary/10 dark:bg-primary/20 border border-primary/30 flex items-center justify-center text-[10px] font-black text-primary shrink-0 mt-0.5 shadow-sm">
+                      {item.number}
+                    </div>
+                    <div className="space-y-1 min-w-0 flex-1">
+                      {item.title && (
+                        <h5 className="text-xs font-black uppercase tracking-tight text-primary flex items-center gap-1.5">
+                          {item.title}
+                        </h5>
+                      )}
+                      <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                        <FormattedInlineText text={item.description || item.rawText} />
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+
+              if (item.type === 'risk_card') {
+                return (
+                  <div
+                    key={itemIdx}
+                    className="p-3.5 rounded-xl bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/40 space-y-2.5 shadow-sm"
+                  >
+                    <div className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
+                      <FormattedInlineText text={item.rawText} />
+                    </div>
+                    {item.fields && item.fields.length > 0 && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-rose-200/60 dark:border-rose-900/40 text-[11px]">
+                        {item.fields.map((f, fIdx) => (
+                          <div key={fIdx} className="flex items-start gap-1 text-slate-600 dark:text-slate-400">
+                            <span className="font-black uppercase text-slate-700 dark:text-slate-300 shrink-0 text-[10px]">
+                              {f.label}:
+                            </span>
+                            <span className="font-medium">{f.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              if (item.type === 'bullet') {
+                return (
+                  <div
+                    key={itemIdx}
+                    className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-300 font-medium pl-1 leading-relaxed"
+                  >
+                    <span className="text-primary font-black shrink-0 select-none">›</span>
+                    <div className="flex-1">
+                      <FormattedInlineText text={item.rawText} />
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <p key={itemIdx} className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                  <FormattedInlineText text={item.rawText} />
+                </p>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

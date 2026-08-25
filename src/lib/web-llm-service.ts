@@ -512,22 +512,22 @@ export async function generateWebLlmRiskIntelligence(
         systemPrompt =
           `You are an expert QMS Risk Specialist & Operational Quality Officer assisting the Unit Head and operating staff of "${unitTitle}" (${campusTitle}) at Romblon State University under ISO 21001:2018 EOMS.\n` +
           `Analyze the unit's active risk and opportunity registry for Academic Year ${year}, evaluate overdue or pending mitigation treatments, identify assigned risk owner responsibilities, and formulate practical, step-by-step unit action directives.\n` +
-          'Structure your output clearly into:\n' +
-          `1. UNIT RISK POSTURE & PROFILE: Summary of active risks, severity ratings, and treatment progress for ${unitTitle}.\n` +
-          '2. CRITICAL UNIT VULNERABILITIES & OVERDUE TREATMENTS: Specific high/medium risks, overdue milestones, or operational bottlenecks requiring immediate unit action.\n' +
-          '3. RISK OWNER ASSIGNMENT & ACCOUNTABILITY: Clear breakdown of responsibilities, task owners, and action commitments for unit personnel.\n' +
-          '4. ACTIONABLE MITIGATION STEPS & PREVENTION DIRECTIVES: Concrete, numbered, practical steps the Unit Head and staff must execute immediately to mitigate vulnerabilities, achieve closure, and leverage opportunities.\n' +
-          'Maintain a supportive, highly actionable, and precise QMS operational tone.';
+          'Structure your output clearly into standard Markdown sections:\n' +
+          `### 1. UNIT RISK POSTURE & PROFILE: Summary of active risks, severity ratings, and treatment progress for ${unitTitle}.\n` +
+          '### 2. CRITICAL UNIT VULNERABILITIES & OVERDUE TREATMENTS: Specific high/medium risks, overdue milestones, or operational bottlenecks requiring immediate unit action.\n' +
+          '### 3. RISK OWNER ASSIGNMENT & ACCOUNTABILITY: Clear breakdown of responsibilities, task owners, and action commitments for unit personnel.\n' +
+          '### 4. ACTIONABLE MITIGATION STEPS & PREVENTION DIRECTIVES: Concrete, numbered, practical steps the Unit Head and staff must execute immediately to mitigate vulnerabilities, achieve closure, and leverage opportunities.\n' +
+          'Format with clear Markdown headings (###), bold tags for risk severity, and numbered lists (1., 2.). Do NOT use raw ASCII equal signs like ===. Maintain a supportive, highly actionable, and precise QMS operational tone.';
       } else if (scope === 'supervisory') {
         systemPrompt =
           `You are an Executive Quality Assurance Evaluator & Supervisory Risk Analyst assisting Deans, Campus Directors, and Supervisory Unit Heads across "${campusTitle}" at Romblon State University under ISO 21001:2018 EOMS.\n` +
           `Analyze the multi-unit risk data under your supervisory jurisdiction for Academic Year ${year}, identify systemic risk clusters across operating departments, evaluate unmitigated high-risk items requiring supervisory approval or resource support, and formulate supervisory action directives.\n` +
-          'Structure your output clearly into:\n' +
-          '1. SUPERVISORY RISK OVERSIGHT POSTURE: Cross-unit risk exposure, closure efficiency, and overall quality health under supervisory oversight.\n' +
-          '2. DEPARTMENTAL RISK CLUSTERS & ESCALATION WATCHLIST: Common vulnerabilities across supervised units and risks requiring supervisory intervention, budget approval, or policy escalation.\n' +
-          '3. RESOURCE ALLOCATION & REMEDIATION PRIORITIES: Priority administrative, logistical, and budgetary support required to unblock operating units.\n' +
-          '4. SUPERVISORY DIRECTIVES FOR UNIT HEADS: Numbered, actionable supervisory instructions to direct unit heads, establish accountability deadlines, and ensure ISO 21001 compliance.\n' +
-          'Maintain an authoritative, constructive supervisory oversight tone.';
+          'Structure your output clearly into standard Markdown sections:\n' +
+          '### 1. SUPERVISORY RISK OVERSIGHT POSTURE: Cross-unit risk exposure, closure efficiency, and overall quality health under supervisory oversight.\n' +
+          '### 2. DEPARTMENTAL RISK CLUSTERS & ESCALATION WATCHLIST: Common vulnerabilities across supervised units and risks requiring supervisory intervention, budget approval, or policy escalation.\n' +
+          '### 3. RESOURCE ALLOCATION & REMEDIATION PRIORITIES: Priority administrative, logistical, and budgetary support required to unblock operating units.\n' +
+          '### 4. SUPERVISORY ACTION DIRECTIVES FOR UNIT HEADS: Numbered, actionable supervisory instructions to direct unit heads, establish accountability deadlines, and ensure ISO 21001 compliance.\n' +
+          'Format with clear Markdown headings (###), bold tags for risk severity, and numbered lists (1., 2.). Do NOT use raw ASCII equal signs like ===. Maintain an authoritative, constructive supervisory oversight tone.';
       }
 
       const contextStr = contextData ? `\n\nLive Risk Registry Data: ${JSON.stringify(contextData)}` : '';
@@ -593,18 +593,19 @@ export function fallbackRiskIntelligenceGenerator(prompt: string, contextData?: 
   // UNIT-LEVEL RISK ACTION PLAN FALLBACK
   // ==========================================
   if (scope === 'unit') {
-    lines.push(`=== UNIT RISK ACTION PLAN — ${unitName.toUpperCase()} (${campusName.toUpperCase()}) — AY ${year} ===`);
+    lines.push(`## UNIT RISK ACTION PLAN — ${unitName.toUpperCase()} (${campusName.toUpperCase()}) — AY ${year}`);
+    lines.push(`### 1. OPERATIONAL RISK STATUS & EXPOSURE SUMMARY`);
     if (activeHighCount > 0 || overdueCount > 0) {
       lines.push(
-        `Unit Risk Status: ACTION REQUIRED. ${unitName} is currently tracking ${totalRisks} registered risks (${highRisks} High, ${mediumRisks} Medium, ${lowRisks} Low). There are ${overdueCount} overdue treatment plans and ${activeHighCount} high-severity items requiring immediate execution.`,
+        `**Unit Risk Status**: **ACTION REQUIRED**. ${unitName} is currently tracking ${totalRisks} registered risks (${highRisks} High, ${mediumRisks} Medium, ${lowRisks} Low). There are ${overdueCount} overdue treatment plans and ${activeHighCount} high-severity items requiring immediate execution.`,
       );
     } else {
       lines.push(
-        `Unit Risk Status: CONTROLLED OPERATIONAL POSTURE. ${unitName} maintains ${totalRisks} logged risks with a ${resolutionRate}% mitigation closure rate (${closedCount} closed, ${inProgressCount} in progress, ${openCount} open).`,
+        `**Unit Risk Status**: **CONTROLLED OPERATIONAL POSTURE**. ${unitName} maintains ${totalRisks} logged risks with a ${resolutionRate}% mitigation closure rate (${closedCount} closed, ${inProgressCount} in progress, ${openCount} open).`,
       );
     }
 
-    lines.push(`\n=== CRITICAL UNIT VULNERABILITIES & PENDING TREATMENTS ===`);
+    lines.push(`\n### 2. CRITICAL UNIT VULNERABILITIES & PENDING TREATMENTS`);
     if (attentionRisks.length > 0) {
       attentionRisks.slice(0, 5).forEach((r, idx) => {
         lines.push(`${idx + 1}. [${r.rating.toUpperCase()} RISK • Mag: ${r.magnitude}] "${r.description}"`);
@@ -618,20 +619,20 @@ export function fallbackRiskIntelligenceGenerator(prompt: string, contextData?: 
       lines.push(`• No critical unmitigated high risks currently recorded for ${unitName}.`);
     }
 
-    lines.push(`\n=== RISK OWNER ASSIGNMENT & ACCOUNTABILITY ===`);
+    lines.push(`\n### 3. RISK OWNER ASSIGNMENT & ACCOUNTABILITY`);
     lines.push(
-      `• ${unitName} Unit Head: Direct overall risk monitoring, resource request follow-ups, and QMS compliance.`,
+      `• **${unitName} Unit Head**: Direct overall risk monitoring, resource request follow-ups, and QMS compliance.`,
     );
     lines.push(
-      `• Designated Risk Focal Persons: Submit objective evidence of completed treatments to QAO for risk closure.`,
+      `• **Designated Risk Focal Persons**: Submit objective evidence of completed treatments to QAO for risk closure.`,
     );
     if (opportunitiesCount > 0) {
       lines.push(
-        `• Innovation Focal: Translate ${opportunitiesCount} identified opportunities into formalized standard operating procedures (SOPs).`,
+        `• **Innovation Focal**: Translate ${opportunitiesCount} identified opportunities into formalized standard operating procedures (SOPs).`,
       );
     }
 
-    lines.push(`\n=== ACTIONABLE UNIT MITIGATION DIRECTIVES ===`);
+    lines.push(`\n### 4. ACTIONABLE UNIT MITIGATION DIRECTIVES`);
     lines.push(
       `1. Immediate Treatment Execution: Prioritize and implement action plans for the ${openCount + inProgressCount} pending risk items before target deadlines.`,
     );
@@ -652,12 +653,13 @@ export function fallbackRiskIntelligenceGenerator(prompt: string, contextData?: 
   // SUPERVISORY RISK OVERSIGHT FALLBACK
   // ==========================================
   if (scope === 'supervisory') {
-    lines.push(`=== SUPERVISORY RISK OVERSIGHT BRIEFING — ${campusName.toUpperCase()} — AY ${year} ===`);
+    lines.push(`## SUPERVISORY RISK OVERSIGHT BRIEFING — ${campusName.toUpperCase()} — AY ${year}`);
+    lines.push(`### 1. SUPERVISORY RISK OVERSIGHT POSTURE`);
     lines.push(
-      `Supervisory Jurisdiction Overview: Supervised operating units are tracking ${totalRisks} total risks and ${opportunitiesCount} opportunities. Current treatment resolution rate across the supervisory cluster is ${resolutionRate}%, with ${overdueCount} overdue actions and ${activeHighCount} active high-magnitude risks.`,
+      `**Supervisory Jurisdiction Overview**: Supervised operating units across ${campusName} are tracking ${totalRisks} total risks and ${opportunitiesCount} opportunities. Current treatment resolution rate across the supervisory cluster is ${resolutionRate}%, with ${overdueCount} overdue actions and ${activeHighCount} active high-magnitude risks.`,
     );
 
-    lines.push(`\n=== DEPARTMENTAL RISK CLUSTERS & SUPERVISORY ATTENTION ITEMS ===`);
+    lines.push(`\n### 2. DEPARTMENTAL RISK CLUSTERS & SUPERVISORY ATTENTION ITEMS`);
     if (attentionRisks.length > 0) {
       attentionRisks.slice(0, 6).forEach((r, idx) => {
         lines.push(`${idx + 1}. [${r.rating.toUpperCase()} • Mag: ${r.magnitude}] [${r.unitName}]: "${r.description}"`);
@@ -668,7 +670,7 @@ export function fallbackRiskIntelligenceGenerator(prompt: string, contextData?: 
       lines.push(`• All supervised units maintain compliant, low-residual risk ratings.`);
     }
 
-    lines.push(`\n=== RESOURCE ALLOCATION & SUPERVISORY BOTTLENECK REMEDIATION ===`);
+    lines.push(`\n### 3. RESOURCE ALLOCATION & SUPERVISORY BOTTLENECK REMEDIATION`);
     if (topObjectives.length > 0) {
       lines.push(
         `1. Vulnerability Concentration: Supervised risk items cluster primarily around: ${topObjectives
@@ -681,7 +683,7 @@ export function fallbackRiskIntelligenceGenerator(prompt: string, contextData?: 
       `2. Overdue Action Remediation: ${overdueCount} treatment plans have passed their target dates, indicating potential budget, equipment, or staffing bottlenecks.`,
     );
 
-    lines.push(`\n=== SUPERVISORY DIRECTIVES FOR UNIT HEADS ===`);
+    lines.push(`\n### 4. SUPERVISORY ACTION DIRECTIVES FOR UNIT HEADS`);
     lines.push(
       `1. Mandatory Catch-up Timetable: Require Unit Heads with overdue items to submit revised 30-day catch-up schedules.`,
     );
@@ -701,22 +703,23 @@ export function fallbackRiskIntelligenceGenerator(prompt: string, contextData?: 
   // ==========================================
   // INSTITUTIONAL SCOPE FALLBACK (DEFAULT)
   // ==========================================
-  lines.push(`=== EXECUTIVE RISK POSTURE — AY ${year} ===`);
+  lines.push(`## INSTITUTIONAL RISK INTELLIGENCE & STRATEGIC SYNTHESIS — AY ${year}`);
+  lines.push(`### 1. EXECUTIVE RISK POSTURE & RESIDUAL EXPOSURE`);
   if (activeHighCount > 3 || overdueCount > 5) {
     lines.push(
-      `University Risk Status: ELEVATED THREAT LEVEL. The university currently tracks ${totalRisks} registered risks for AY ${year}, with ${activeHighCount} active high-magnitude risks and ${overdueCount} overdue treatment actions requiring urgent leadership intervention.`,
+      `**University Risk Status**: **ELEVATED THREAT LEVEL**. The university currently tracks ${totalRisks} registered risks for AY ${year}, with ${activeHighCount} active high-magnitude risks and ${overdueCount} overdue treatment actions requiring urgent leadership intervention.`,
     );
   } else if (activeHighCount > 0 || resolutionRate < 60) {
     lines.push(
-      `University Risk Status: MODERATE EXPOSURE — MANAGED WITH MONITORING. The active risk registry contains ${totalRisks} items (${highRisks} High, ${mediumRisks} Medium, ${lowRisks} Low). Treatment resolution rate stands at ${resolutionRate}%, with ${closedCount} risks successfully treated and closed.`,
+      `**University Risk Status**: **MODERATE EXPOSURE — MANAGED WITH MONITORING**. The active risk registry contains ${totalRisks} items (${highRisks} High, ${mediumRisks} Medium, ${lowRisks} Low). Treatment resolution rate stands at ${resolutionRate}%, with ${closedCount} risks successfully treated and closed.`,
     );
   } else {
     lines.push(
-      `University Risk Status: CONTROLLED & LOW RESIDUAL EXPOSURE. The risk control framework is operating effectively with a ${resolutionRate}% mitigation closure rate across monitored operating units.`,
+      `**University Risk Status**: **CONTROLLED & LOW RESIDUAL EXPOSURE**. The risk control framework is operating effectively with a ${resolutionRate}% mitigation closure rate across monitored operating units.`,
     );
   }
 
-  lines.push('\n=== TOP MANAGEMENT ATTENTION REQUIRED ===');
+  lines.push('\n### 2. TOP MANAGEMENT ATTENTION REQUIRED');
   if (attentionRisks.length > 0) {
     lines.push(
       `Top management must immediately review and authorize mitigation resources for the following ${attentionRisks.length} prioritized risk items:`,
@@ -736,7 +739,7 @@ export function fallbackRiskIntelligenceGenerator(prompt: string, contextData?: 
     );
   }
 
-  lines.push('\n=== INSTITUTIONAL THREAT PATTERNS & VULNERABILITIES ===');
+  lines.push('\n### 3. INSTITUTIONAL THREAT PATTERNS & VULNERABILITIES');
   if (topObjectives.length > 0) {
     lines.push(
       `1. Strategic Objective Vulnerability: Risks are most densely concentrated in: ${topObjectives
@@ -752,7 +755,7 @@ export function fallbackRiskIntelligenceGenerator(prompt: string, contextData?: 
     `3. Control Cadence: ${openCount} items remain in Open status and ${inProgressCount} in Progress, necessitating reinforced accountability for designated risk owners.`,
   );
 
-  lines.push('\n=== TOP MANAGEMENT STRATEGIC ACTION DIRECTIVES ===');
+  lines.push('\n### 4. TOP MANAGEMENT STRATEGIC ACTION DIRECTIVES');
   lines.push(
     '1. Resource Allocation: Direct the Budget and Planning Office to expedite funding releases for the critical high-magnitude treatments identified above.',
   );
