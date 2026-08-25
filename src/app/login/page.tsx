@@ -15,6 +15,7 @@ export default function LoginPage() {
     if (typeof window !== 'undefined') {
       try {
         sessionStorage.removeItem('rsu_eoms_announcement_spoken_session');
+        sessionStorage.removeItem('rsu_eoms_voice_prompt_answered_session');
       } catch {
         // Ignore sessionStorage access errors (e.g. in private browsing modes)
       }
