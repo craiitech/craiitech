@@ -291,16 +291,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [user]);
 
   const showEvalGate = !isAdmin && !isLoadingEval && !isEvaluationComplete && !isEvalSkipped;
-  const isEvalPending = !isAdmin && (isLoadingEval || (!isEvaluationComplete && !isEvalSkipped));
+  const isEvalPending = showEvalGate;
 
   useEffect(() => {
-    if (!isUserLoading && userProfile && userProfile.verified && !isEvalPending) {
+    if (!isUserLoading && userProfile && userProfile.verified !== false && !showEvalGate) {
       if (userProfile.lastSeenVersion !== CURRENT_SYSTEM_VERSION) {
         const timer = setTimeout(() => setIsWhatsNewOpen(true), 1500);
         return () => clearTimeout(timer);
       }
     }
-  }, [isUserLoading, userProfile, isEvalPending]);
+  }, [isUserLoading, userProfile, showEvalGate]);
 
   const getSubmissionsNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
