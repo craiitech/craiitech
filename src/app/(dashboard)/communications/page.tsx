@@ -71,6 +71,8 @@ import {
   Activity,
   BarChart3,
   ShieldCheck,
+  GraduationCap,
+  Users,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -136,10 +138,13 @@ export default function CommunicationsPage() {
   const [targetAudience, setTargetAudience] = useState<CommunicationTargetAudience>('Campus / Unit Heads');
   const [complianceDeadline, setComplianceDeadline] = useState('');
 
-  // Digital Send Specifics
-  const [recipientType, setRecipientType] = useState<'unit' | 'campus' | 'campus-unit' | 'individual' | 'all'>('unit');
+  // Digital Send & Manual Outgoing Specifics
+  const [recipientType, setRecipientType] = useState<
+    'unit' | 'campus' | 'campus-unit' | 'individual' | 'all' | 'external' | 'academic-units' | 'vp-cluster'
+  >('unit');
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
   const [currentRecipientSelection, setCurrentRecipientSelection] = useState('');
+  const [selectedVpId, setSelectedVpId] = useState('');
 
   // Manual Entry Specifics
   const [manualType, setManualType] = useState<'incoming' | 'outgoing'>('incoming');
@@ -157,6 +162,24 @@ export default function CommunicationsPage() {
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
   const unitMap = useMemo(() => new Map((units || []).map((u) => [u.id, u.name])), [units]);
+
+  const academicUnits = useMemo(() => {
+    if (!units) return [];
+    return units.filter((u) => u.category === 'Academic').sort((a, b) => a.name.localeCompare(b.name));
+  }, [units]);
+
+  const vpUnits = useMemo(() => {
+    if (!units) return [];
+    const assignedVpIds = new Set(units.map((u) => u.vicePresidentId).filter(Boolean) as string[]);
+    return units
+      .filter(
+        (u) =>
+          assignedVpIds.has(u.id) ||
+          u.name.toLowerCase().includes('vice president') ||
+          u.name.toLowerCase().includes('vp '),
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [units]);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
@@ -240,7 +263,7 @@ export default function CommunicationsPage() {
       let isIncoming = false;
       if (isCampusOdimo) {
         // Campus ODIMO sees comms addressed to their campus or to any unit within their campus
-        if (!c.manual && c.senderUnitId !== userProfile.campusId) {
+        if (c.senderUnitId !== userProfile.campusId) {
           if (c.recipientType === 'all') {
             isIncoming = true;
           } else if (c.recipientType === 'campus' && c.recipientIds?.includes(userProfile.campusId)) {
@@ -252,12 +275,14 @@ export default function CommunicationsPage() {
             isIncoming = c.recipientIds?.some((id) => campusUnitIds.includes(id)) || false;
           } else if (c.recipientType === 'individual' && c.recipientIds?.includes(userProfile.id)) {
             isIncoming = true;
+          } else if (c.manual && c.manualType === 'incoming' && c.recipientIds?.includes(userProfile.campusId)) {
+            isIncoming = true;
           }
         }
       } else {
         if (c.manual && c.manualType === 'incoming' && c.recipientIds?.includes(userProfile.unitId)) {
           isIncoming = true;
-        } else if (!c.manual && c.senderUnitId !== userProfile.unitId) {
+        } else if (c.senderUnitId !== userProfile.unitId) {
           if (c.recipientType === 'all') {
             isIncoming = true;
           } else if (c.recipientType === 'campus' && c.recipientIds?.includes(userProfile.campusId)) {
@@ -327,6 +352,8 @@ export default function CommunicationsPage() {
     setDriveLink('');
     setSelectedRecipients([]);
     setCurrentRecipientSelection('');
+    setSelectedVpId('');
+    setRecipientType('unit');
     setManualSenderText('');
     setManualRecipientText('');
     setManualOriginRefNum('');
@@ -533,10 +560,37 @@ export default function CommunicationsPage() {
           // Use user-entered origin's reference number (stored in manualOriginRefNum)
           computedSenderRef = manualOriginRefNum;
         } else {
-          if (!manualRecipientText.trim()) {
+          // Manual outgoing
+          if (recipientType === 'external' && !manualRecipientText.trim()) {
             toast({
               title: 'Validation Error',
-              description: 'Recipient details are required.',
+              description: 'Recipient office or person details are required.',
+              variant: 'destructive',
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          if (recipientType === 'vp-cluster' && !selectedVpId) {
+            toast({
+              title: 'Validation Error',
+              description: 'Please select a Vice President office / cluster.',
+              variant: 'destructive',
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          if (
+            recipientType !== 'external' &&
+            recipientType !== 'all' &&
+            recipientType !== 'campus-unit' &&
+            recipientType !== 'academic-units' &&
+            recipientType !== 'vp-cluster' &&
+            selectedRecipients.length === 0 &&
+            !manualRecipientText.trim()
+          ) {
+            toast({
+              title: 'Validation Error',
+              description: 'Please select at least one recipient unit or provide recipient details.',
               variant: 'destructive',
             });
             setIsSubmitting(false);
@@ -574,8 +628,28 @@ export default function CommunicationsPage() {
         payload.senderRefNum = computedSenderRef;
         payload.recipientRefNums = computedRecipientRefs;
 
-        // Handle "campus-unit" pseudo-type: send to all units within the Campus ODIMO's campus
-        if (recipientType === 'campus-unit') {
+        if (recipientType === 'academic-units') {
+          const acadIds = academicUnits.map((u) => u.id);
+          payload.recipientType = 'unit';
+          payload.recipientIds = acadIds;
+          payload.toText = 'All Academic Units & Colleges';
+        } else if (recipientType === 'vp-cluster') {
+          if (!selectedVpId) {
+            toast({
+              title: 'Validation Error',
+              description: 'Please select a Vice President office / cluster.',
+              variant: 'destructive',
+            });
+            setIsSubmitting(false);
+            return;
+          }
+          const clusterUnitIds =
+            units?.filter((u) => u.vicePresidentId === selectedVpId || u.id === selectedVpId).map((u) => u.id) || [];
+          const vpName = unitMap.get(selectedVpId) || 'Vice President Cluster';
+          payload.recipientType = 'unit';
+          payload.recipientIds = clusterUnitIds;
+          payload.toText = `All Units under ${vpName}`;
+        } else if (recipientType === 'campus-unit') {
           const campusUnitIds =
             units?.filter((u) => u.campusIds?.includes(userProfile.campusId || '')).map((u) => u.id) || [];
           const campusName = campusMap.get(userProfile.campusId || '') || 'Campus';
@@ -620,10 +694,81 @@ export default function CommunicationsPage() {
           payload.recipientRefNums = computedRecipientRefs;
           payload.senderRefNum = computedSenderRef;
         } else {
+          // Manual outgoing / release
           payload.senderUnitId = isCampusOdimo ? userProfile.campusId : userProfile.unitId;
           payload.senderText = resolvedSenderName;
           payload.senderRefNum = computedSenderRef;
-          payload.toText = manualRecipientText;
+          payload.recipientRefNums = computedRecipientRefs;
+
+          if (recipientType === 'external') {
+            payload.recipientType = 'external';
+            payload.recipientIds = [];
+            payload.toText = manualRecipientText.trim();
+          } else if (recipientType === 'academic-units') {
+            const acadIds = academicUnits.map((u) => u.id);
+            payload.recipientType = 'unit';
+            payload.recipientIds = acadIds;
+            payload.toText = manualRecipientText.trim()
+              ? `All Academic Units (${manualRecipientText.trim()})`
+              : 'All Academic Units & Colleges';
+          } else if (recipientType === 'vp-cluster') {
+            if (!selectedVpId) {
+              toast({
+                title: 'Validation Error',
+                description: 'Please select a Vice President office / cluster.',
+                variant: 'destructive',
+              });
+              setIsSubmitting(false);
+              return;
+            }
+            const clusterUnitIds =
+              units?.filter((u) => u.vicePresidentId === selectedVpId || u.id === selectedVpId).map((u) => u.id) || [];
+            const vpName = unitMap.get(selectedVpId) || 'Vice President Cluster';
+            payload.recipientType = 'unit';
+            payload.recipientIds = clusterUnitIds;
+            payload.toText = manualRecipientText.trim()
+              ? `All Units under ${vpName} (${manualRecipientText.trim()})`
+              : `All Units under ${vpName}`;
+          } else if (recipientType === 'campus-unit') {
+            const campusUnitIds =
+              units?.filter((u) => u.campusIds?.includes(userProfile.campusId || '')).map((u) => u.id) || [];
+            const campusName = campusMap.get(userProfile.campusId || '') || 'Campus';
+            payload.recipientType = 'unit';
+            payload.recipientIds = campusUnitIds;
+            payload.toText = manualRecipientText.trim()
+              ? `All Units — ${campusName} (${manualRecipientText.trim()})`
+              : `All Units — ${campusName}`;
+          } else if (recipientType === 'all') {
+            payload.recipientType = 'all';
+            payload.recipientIds = [];
+            payload.toText = manualRecipientText.trim()
+              ? `University-Wide (All) — ${manualRecipientText.trim()}`
+              : 'University-Wide (All)';
+          } else {
+            if (selectedRecipients.length > 0) {
+              payload.recipientType = recipientType;
+              payload.recipientIds = selectedRecipients;
+
+              let toText = '';
+              if (recipientType === 'unit') {
+                toText = selectedRecipients.map((id) => unitMap.get(id) || id).join(', ');
+              } else if (recipientType === 'campus') {
+                toText = selectedRecipients.map((id) => campusMap.get(id) || id).join(', ');
+              } else if (recipientType === 'individual') {
+                toText = selectedRecipients
+                  .map((id) => {
+                    const u = users?.find((x: any) => x.id === id);
+                    return u ? `${u.firstName} ${u.lastName}` : id;
+                  })
+                  .join(', ');
+              }
+              payload.toText = manualRecipientText.trim() ? `${toText} (${manualRecipientText.trim()})` : toText;
+            } else {
+              payload.recipientType = 'external';
+              payload.recipientIds = [];
+              payload.toText = manualRecipientText.trim();
+            }
+          }
         }
       }
 
@@ -1062,6 +1207,10 @@ export default function CommunicationsPage() {
       } else {
         setManualRecipientText(comm.toText || '');
         setCustomRefNum(comm.senderRefNum || '');
+        setRecipientType(
+          (comm.recipientType as any) || (comm.recipientIds && comm.recipientIds.length > 0 ? 'unit' : 'external'),
+        );
+        setSelectedRecipients(comm.recipientIds || []);
       }
     } else {
       setCommsMode('digital');
@@ -1671,6 +1820,7 @@ export default function CommunicationsPage() {
                       onValueChange={(val: any) => {
                         setRecipientType(val);
                         setSelectedRecipients([]);
+                        setSelectedVpId('');
                       }}
                     >
                       <SelectTrigger className="h-10 text-xs bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl">
@@ -1680,7 +1830,7 @@ export default function CommunicationsPage() {
                         {isCampusOdimo ? (
                           <>
                             <SelectItem value="unit" className="text-xs font-medium">
-                              Specific Unit (within campus)
+                              Specific Academic & Oversight Unit(s)
                             </SelectItem>
                             <SelectItem value="campus-unit" className="text-xs font-medium">
                               All Units in Campus
@@ -1691,8 +1841,14 @@ export default function CommunicationsPage() {
                           </>
                         ) : (
                           <>
+                            <SelectItem value="academic-units" className="text-xs font-medium">
+                              🎓 All Academic Units & Colleges ({academicUnits.length})
+                            </SelectItem>
+                            <SelectItem value="vp-cluster" className="text-xs font-medium">
+                              🏢 All Units Under a Vice President (VP Cluster)
+                            </SelectItem>
                             <SelectItem value="unit" className="text-xs font-medium">
-                              Academic & Oversight Units
+                              Academic & Oversight Units (Specific Selection)
                             </SelectItem>
                             <SelectItem value="campus" className="text-xs font-medium">
                               Campus Sites
@@ -1714,111 +1870,161 @@ export default function CommunicationsPage() {
                     </Select>
                   </div>
 
-                  {/* RECIPIENT LIST BUILDER */}
-                  {recipientType !== 'all' && recipientType !== 'campus-unit' && (
-                    <div className="space-y-2 border p-3.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
-                      <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">
-                        Add Recipients
-                      </label>
-                      <div className="flex gap-2">
-                        <Select value={currentRecipientSelection} onValueChange={setCurrentRecipientSelection}>
-                          <SelectTrigger className="h-9 text-xs bg-white border-slate-200 dark:border-slate-700 rounded-lg flex-1">
-                            <SelectValue placeholder={`Select ${recipientType}`} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {recipientType === 'unit' &&
-                              // Campus ODIMO: only units within their campus; others: all units
-                              (isCampusOdimo
-                                ? units
-                                    ?.filter((u) => u.campusIds?.includes(userProfile?.campusId || ''))
-                                    .sort((a, b) => a.name.localeCompare(b.name))
-                                    .map((u) => (
-                                      <SelectItem key={u.id} value={u.id} className="text-xs">
-                                        {u.name}
-                                      </SelectItem>
-                                    ))
-                                : units
-                                    ?.sort((a, b) => a.name.localeCompare(b.name))
-                                    .map((u) => (
-                                      <SelectItem key={u.id} value={u.id} className="text-xs">
-                                        {u.name}
-                                      </SelectItem>
-                                    )))}
-                            {recipientType === 'campus' &&
-                              campuses
-                                ?.sort((a, b) => a.name.localeCompare(b.name))
-                                .map((c) => (
-                                  <SelectItem key={c.id} value={c.id} className="text-xs">
-                                    {c.name}
-                                  </SelectItem>
-                                ))}
-                            {recipientType === 'individual' &&
-                              // Campus ODIMO: only individuals within their campus; others: all users
-                              (isCampusOdimo
-                                ? users
-                                    ?.filter((u: any) => {
-                                      const userUnit = units?.find((un) => un.id === u.unitId);
-                                      return (
-                                        userUnit?.campusIds?.includes(userProfile?.campusId || '') ||
-                                        u.campusId === userProfile?.campusId
-                                      );
-                                    })
-                                    .sort((a: any, b: any) => a.firstName.localeCompare(b.firstName))
-                                    .map((u: any) => (
-                                      <SelectItem key={u.id} value={u.id} className="text-xs">
-                                        {u.firstName} {u.lastName} ({u.role})
-                                      </SelectItem>
-                                    ))
-                                : users
-                                    ?.sort((a: any, b: any) => a.firstName.localeCompare(b.firstName))
-                                    .map((u: any) => (
-                                      <SelectItem key={u.id} value={u.id} className="text-xs">
-                                        {u.firstName} {u.lastName} ({u.role})
-                                      </SelectItem>
-                                    )))}
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          type="button"
-                          onClick={handleAddRecipient}
-                          size="sm"
-                          className="h-9 px-4 font-bold bg-indigo-600 rounded-lg shrink-0"
-                        >
-                          <Plus className="h-4 w-4" /> Add
-                        </Button>
+                  {/* ALL ACADEMIC UNITS BANNER */}
+                  {recipientType === 'academic-units' && (
+                    <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-800/60 rounded-xl space-y-1">
+                      <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold text-xs">
+                        <GraduationCap className="h-4 w-4" />
+                        <span>Broadcasting to all {academicUnits.length} Academic Units & Colleges</span>
                       </div>
-
-                      {/* Selected List */}
-                      <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 empty:hidden">
-                        {selectedRecipients.map((id) => {
-                          let labelText = id;
-                          if (recipientType === 'unit') labelText = unitMap.get(id) || id;
-                          else if (recipientType === 'campus') labelText = campusMap.get(id) || id;
-                          else if (recipientType === 'individual') {
-                            const u = users?.find((x) => x.id === id);
-                            labelText = u ? `${u.firstName} ${u.lastName}` : id;
-                          }
-
-                          return (
-                            <Badge
-                              key={id}
-                              variant="outline"
-                              className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1.5"
-                            >
-                              {labelText}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveRecipient(id)}
-                                className="text-slate-400 hover:text-rose-600 focus:outline-none"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          );
-                        })}
-                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                        Every academic unit and college will receive this communication in their Incoming Logbook for
+                        local receipt and compliance.
+                      </p>
                     </div>
                   )}
+
+                  {/* VP CLUSTER SELECTOR */}
+                  {recipientType === 'vp-cluster' && (
+                    <div className="space-y-2 border p-3.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
+                      <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider block">
+                        Select Vice President Office / Cluster
+                      </label>
+                      <Select value={selectedVpId} onValueChange={setSelectedVpId}>
+                        <SelectTrigger className="h-9 text-xs bg-white border-slate-200 dark:border-slate-700 rounded-lg">
+                          <SelectValue placeholder="Choose VP Office / Division..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {vpUnits.map((vp) => {
+                            const count =
+                              units?.filter((u) => u.vicePresidentId === vp.id || u.id === vp.id).length || 0;
+                            return (
+                              <SelectItem key={vp.id} value={vp.id} className="text-xs">
+                                {vp.name} ({count} reporting units)
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                      {selectedVpId && (
+                        <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                          Will be routed to all{' '}
+                          {units?.filter((u) => u.vicePresidentId === selectedVpId || u.id === selectedVpId).length ||
+                            0}{' '}
+                          units reporting under {unitMap.get(selectedVpId)}.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* RECIPIENT LIST BUILDER */}
+                  {recipientType !== 'all' &&
+                    recipientType !== 'campus-unit' &&
+                    recipientType !== 'academic-units' &&
+                    recipientType !== 'vp-cluster' && (
+                      <div className="space-y-2 border p-3.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">
+                          Add Recipients
+                        </label>
+                        <div className="flex gap-2">
+                          <Select value={currentRecipientSelection} onValueChange={setCurrentRecipientSelection}>
+                            <SelectTrigger className="h-9 text-xs bg-white border-slate-200 dark:border-slate-700 rounded-lg flex-1">
+                              <SelectValue placeholder={`Select ${recipientType}`} />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {recipientType === 'unit' &&
+                                // Campus ODIMO: only units within their campus; others: all units
+                                (isCampusOdimo
+                                  ? units
+                                      ?.filter((u) => u.campusIds?.includes(userProfile?.campusId || ''))
+                                      .sort((a, b) => a.name.localeCompare(b.name))
+                                      .map((u) => (
+                                        <SelectItem key={u.id} value={u.id} className="text-xs">
+                                          {u.name}
+                                        </SelectItem>
+                                      ))
+                                  : units
+                                      ?.sort((a, b) => a.name.localeCompare(b.name))
+                                      .map((u) => (
+                                        <SelectItem key={u.id} value={u.id} className="text-xs">
+                                          {u.name}
+                                        </SelectItem>
+                                      )))}
+                              {recipientType === 'campus' &&
+                                campuses
+                                  ?.sort((a, b) => a.name.localeCompare(b.name))
+                                  .map((c) => (
+                                    <SelectItem key={c.id} value={c.id} className="text-xs">
+                                      {c.name}
+                                    </SelectItem>
+                                  ))}
+                              {recipientType === 'individual' &&
+                                // Campus ODIMO: only individuals within their campus; others: all users
+                                (isCampusOdimo
+                                  ? users
+                                      ?.filter((u: any) => {
+                                        const userUnit = units?.find((un) => un.id === u.unitId);
+                                        return (
+                                          userUnit?.campusIds?.includes(userProfile?.campusId || '') ||
+                                          u.campusId === userProfile?.campusId
+                                        );
+                                      })
+                                      .sort((a: any, b: any) => a.firstName.localeCompare(b.firstName))
+                                      .map((u: any) => (
+                                        <SelectItem key={u.id} value={u.id} className="text-xs">
+                                          {u.firstName} {u.lastName} ({u.role})
+                                        </SelectItem>
+                                      ))
+                                  : users
+                                      ?.sort((a: any, b: any) => a.firstName.localeCompare(b.firstName))
+                                      .map((u: any) => (
+                                        <SelectItem key={u.id} value={u.id} className="text-xs">
+                                          {u.firstName} {u.lastName} ({u.role})
+                                        </SelectItem>
+                                      )))}
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            type="button"
+                            onClick={handleAddRecipient}
+                            size="sm"
+                            className="h-9 px-4 font-bold bg-indigo-600 rounded-lg shrink-0"
+                          >
+                            <Plus className="h-4 w-4" /> Add
+                          </Button>
+                        </div>
+
+                        {/* Selected List */}
+                        <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 empty:hidden">
+                          {selectedRecipients.map((id) => {
+                            let labelText = id;
+                            if (recipientType === 'unit') labelText = unitMap.get(id) || id;
+                            else if (recipientType === 'campus') labelText = campusMap.get(id) || id;
+                            else if (recipientType === 'individual') {
+                              const u = users?.find((x) => x.id === id);
+                              labelText = u ? `${u.firstName} ${u.lastName}` : id;
+                            }
+
+                            return (
+                              <Badge
+                                key={id}
+                                variant="outline"
+                                className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1.5"
+                              >
+                                {labelText}
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveRecipient(id)}
+                                  className="text-slate-400 hover:text-rose-600 focus:outline-none"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                 </>
               ) : (
                 <>
@@ -1851,17 +2057,253 @@ export default function CommunicationsPage() {
                     </>
                   ) : (
                     <>
+                      {/* MANUAL OUTGOING / RELEASE RECIPIENT SPECIFICATION */}
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
-                          Recipient (To Office/Person)
+                          Recipient Classification / Target Type
+                        </label>
+                        <Select
+                          value={recipientType}
+                          onValueChange={(val: any) => {
+                            setRecipientType(val);
+                            setSelectedRecipients([]);
+                            setSelectedVpId('');
+                          }}
+                        >
+                          <SelectTrigger className="h-10 text-xs bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl">
+                            <SelectValue placeholder="Select Recipient Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {isCampusOdimo ? (
+                              <>
+                                <SelectItem value="unit" className="text-xs font-medium">
+                                  Specific Academic & Oversight Unit(s)
+                                </SelectItem>
+                                <SelectItem value="campus-unit" className="text-xs font-medium">
+                                  All Units in Campus
+                                </SelectItem>
+                                <SelectItem value="individual" className="text-xs font-medium">
+                                  Individual User (Direct)
+                                </SelectItem>
+                                <SelectItem value="external" className="text-xs font-medium">
+                                  External Office / Agency / Other
+                                </SelectItem>
+                              </>
+                            ) : (
+                              <>
+                                <SelectItem value="academic-units" className="text-xs font-medium">
+                                  🎓 All Academic Units & Colleges ({academicUnits.length})
+                                </SelectItem>
+                                <SelectItem value="vp-cluster" className="text-xs font-medium">
+                                  🏢 All Units Under a Vice President (VP Cluster)
+                                </SelectItem>
+                                <SelectItem value="unit" className="text-xs font-medium">
+                                  Academic & Oversight Units (Specific Selection)
+                                </SelectItem>
+                                <SelectItem value="campus" className="text-xs font-medium">
+                                  Campus Sites
+                                </SelectItem>
+                                <SelectItem value="individual" className="text-xs font-medium">
+                                  Individual Users (Direct)
+                                </SelectItem>
+                                <SelectItem
+                                  value="all"
+                                  disabled={!isAuthorizedForUniversityWide}
+                                  className="text-xs font-medium"
+                                >
+                                  University-Wide (All Officers){' '}
+                                  {!isAuthorizedForUniversityWide && '(President / Authorized Units Only)'}
+                                </SelectItem>
+                                <SelectItem value="external" className="text-xs font-medium">
+                                  External Office / Agency / Other
+                                </SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* ALL ACADEMIC UNITS BANNER */}
+                      {recipientType === 'academic-units' && (
+                        <div className="p-3.5 bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-800/60 rounded-xl space-y-1">
+                          <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold text-xs">
+                            <GraduationCap className="h-4 w-4" />
+                            <span>Broadcasting to all {academicUnits.length} Academic Units & Colleges</span>
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                            Every academic unit and college will receive this communication in their Incoming Logbook
+                            for local receipt and compliance.
+                          </p>
+                        </div>
+                      )}
+
+                      {/* VP CLUSTER SELECTOR */}
+                      {recipientType === 'vp-cluster' && (
+                        <div className="space-y-2 border p-3.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
+                          <label className="text-[9px] font-black uppercase text-slate-500 tracking-wider block">
+                            Select Vice President Office / Cluster
+                          </label>
+                          <Select value={selectedVpId} onValueChange={setSelectedVpId}>
+                            <SelectTrigger className="h-9 text-xs bg-white border-slate-200 dark:border-slate-700 rounded-lg">
+                              <SelectValue placeholder="Choose VP Office / Division..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {vpUnits.map((vp) => {
+                                const count =
+                                  units?.filter((u) => u.vicePresidentId === vp.id || u.id === vp.id).length || 0;
+                                return (
+                                  <SelectItem key={vp.id} value={vp.id} className="text-xs">
+                                    {vp.name} ({count} reporting units)
+                                  </SelectItem>
+                                );
+                              })}
+                            </SelectContent>
+                          </Select>
+                          {selectedVpId && (
+                            <p className="text-[10px] text-indigo-600 dark:text-indigo-400 font-medium">
+                              Will be routed to all{' '}
+                              {units?.filter((u) => u.vicePresidentId === selectedVpId || u.id === selectedVpId)
+                                .length || 0}{' '}
+                              units reporting under {unitMap.get(selectedVpId)}.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* RECIPIENT LIST BUILDER FOR INTERNAL DESTINATIONS */}
+                      {recipientType !== 'all' &&
+                        recipientType !== 'campus-unit' &&
+                        recipientType !== 'external' &&
+                        recipientType !== 'academic-units' &&
+                        recipientType !== 'vp-cluster' && (
+                          <div className="space-y-2 border p-3.5 rounded-xl bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">
+                                Select Recipient{' '}
+                                {recipientType === 'unit' ? 'Units' : recipientType === 'campus' ? 'Campuses' : 'Users'}
+                              </label>
+                              <span className="text-[8px] text-slate-400 font-medium">
+                                (Will receive communication in their incoming logbook)
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              <Select value={currentRecipientSelection} onValueChange={setCurrentRecipientSelection}>
+                                <SelectTrigger className="h-9 text-xs bg-white border-slate-200 dark:border-slate-700 rounded-lg flex-1">
+                                  <SelectValue placeholder={`Select ${recipientType}`} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {recipientType === 'unit' &&
+                                    (isCampusOdimo
+                                      ? units
+                                          ?.filter((u) => u.campusIds?.includes(userProfile?.campusId || ''))
+                                          .sort((a, b) => a.name.localeCompare(b.name))
+                                          .map((u) => (
+                                            <SelectItem key={u.id} value={u.id} className="text-xs">
+                                              {u.name}
+                                            </SelectItem>
+                                          ))
+                                      : units
+                                          ?.sort((a, b) => a.name.localeCompare(b.name))
+                                          .map((u) => (
+                                            <SelectItem key={u.id} value={u.id} className="text-xs">
+                                              {u.name}
+                                            </SelectItem>
+                                          )))}
+                                  {recipientType === 'campus' &&
+                                    campuses
+                                      ?.sort((a, b) => a.name.localeCompare(b.name))
+                                      .map((c) => (
+                                        <SelectItem key={c.id} value={c.id} className="text-xs">
+                                          {c.name}
+                                        </SelectItem>
+                                      ))}
+                                  {recipientType === 'individual' &&
+                                    (isCampusOdimo
+                                      ? users
+                                          ?.filter((u: any) => {
+                                            const userUnit = units?.find((un) => un.id === u.unitId);
+                                            return (
+                                              userUnit?.campusIds?.includes(userProfile?.campusId || '') ||
+                                              u.campusId === userProfile?.campusId
+                                            );
+                                          })
+                                          .sort((a: any, b: any) => a.firstName.localeCompare(b.firstName))
+                                          .map((u: any) => (
+                                            <SelectItem key={u.id} value={u.id} className="text-xs">
+                                              {u.firstName} {u.lastName} ({u.role})
+                                            </SelectItem>
+                                          ))
+                                      : users
+                                          ?.sort((a: any, b: any) => a.firstName.localeCompare(b.firstName))
+                                          .map((u: any) => (
+                                            <SelectItem key={u.id} value={u.id} className="text-xs">
+                                              {u.firstName} {u.lastName} ({u.role})
+                                            </SelectItem>
+                                          )))}
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                type="button"
+                                onClick={handleAddRecipient}
+                                size="sm"
+                                className="h-9 px-4 font-bold bg-indigo-600 rounded-lg shrink-0"
+                              >
+                                <Plus className="h-4 w-4" /> Add
+                              </Button>
+                            </div>
+
+                            {/* Selected List */}
+                            <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 empty:hidden">
+                              {selectedRecipients.map((id) => {
+                                let labelText = id;
+                                if (recipientType === 'unit') labelText = unitMap.get(id) || id;
+                                else if (recipientType === 'campus') labelText = campusMap.get(id) || id;
+                                else if (recipientType === 'individual') {
+                                  const u = users?.find((x) => x.id === id);
+                                  labelText = u ? `${u.firstName} ${u.lastName}` : id;
+                                }
+
+                                return (
+                                  <Badge
+                                    key={id}
+                                    variant="outline"
+                                    className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full text-[9px] font-bold flex items-center gap-1.5"
+                                  >
+                                    {labelText}
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveRecipient(id)}
+                                      className="text-slate-400 hover:text-rose-600 focus:outline-none"
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </button>
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                      {/* TEXT INPUT FOR EXTERNAL OR OPTIONAL ATTENTION LINE */}
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                          {recipientType === 'external'
+                            ? 'Recipient (To External Office / Agency / Person)'
+                            : 'Specific Office / Attention Line (Optional)'}
                         </label>
                         <Input
-                          placeholder="e.g. RSU President / Quality Assurance Committee"
+                          placeholder={
+                            recipientType === 'external'
+                              ? 'e.g. CHED Regional Office / CSC / External Partner'
+                              : 'e.g. Attn: College Dean / Dr. Juan Dela Cruz'
+                          }
                           value={manualRecipientText}
                           onChange={(e) => setManualRecipientText(e.target.value)}
                           className="h-10 text-xs bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 rounded-xl"
+                          required={recipientType === 'external'}
                         />
                       </div>
+
                       <div className="space-y-1.5">
                         <label className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
                           Name of Sender

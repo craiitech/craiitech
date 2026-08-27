@@ -1325,7 +1325,8 @@ export type CommunicationKind =
   | 'Invitation'
   | 'Transmittal Document';
 
-export type CommunicationRecipientType = 'unit' | 'campus' | 'individual' | 'all';
+export type CommunicationRecipientType =
+  'unit' | 'campus' | 'individual' | 'all' | 'external' | 'academic-units' | 'vp-cluster';
 
 export type CommunicationScope = 'Internal' | 'External';
 
