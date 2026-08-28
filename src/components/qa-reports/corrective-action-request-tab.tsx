@@ -96,6 +96,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AuditorNCManager } from '@/components/audit/auditor-nc-manager';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { getNextCarActionInfo, type CarNextActionInfo } from '@/lib/car-utils';
 import { CARControlRegisterTemplate } from './car-control-register-template';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import {
@@ -254,6 +256,85 @@ export function getCarYear(car: Partial<CorrectiveActionRequest>): number | null
   return null;
 }
 
+function QuickDateSetter({
+  car,
+  currentInfo,
+  onSave,
+}: {
+  car: CorrectiveActionRequest;
+  currentInfo: CarNextActionInfo;
+  onSave: (carId: string, newDateStr: string, nextActionType?: string) => Promise<void>;
+}) {
+  const [dateVal, setDateVal] = useState<string>(() => {
+    if (currentInfo.date) {
+      return format(currentInfo.date, 'yyyy-MM-dd');
+    }
+    return format(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
+  });
+  const [actionType, setActionType] = useState<string>(() => {
+    return (
+      (car.followUpLogs && car.followUpLogs.length > 0
+        ? car.followUpLogs[car.followUpLogs.length - 1]?.nextAction
+        : null) || 'For Verification'
+    );
+  });
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!dateVal) return;
+    setIsSaving(true);
+    try {
+      await onSave(car.id, dateVal, actionType);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3 pt-1 text-left" onClick={(e) => e.stopPropagation()}>
+      <div className="space-y-1">
+        <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300">
+          Target / Scheduled Date
+        </label>
+        <Input
+          type="date"
+          value={dateVal}
+          onChange={(e) => setDateVal(e.target.value)}
+          className="h-8 text-xs bg-white font-medium"
+        />
+      </div>
+      <div className="space-y-1">
+        <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300">
+          Action Milestone Type
+        </label>
+        <Select value={actionType} onValueChange={setActionType}>
+          <SelectTrigger className="h-8 text-xs bg-white font-bold">
+            <SelectValue placeholder="Select Action" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="For Verification">1. For Verification</SelectItem>
+            <SelectItem value="For ReChecking">2. For ReChecking</SelectItem>
+            <SelectItem value="Add More Actions">3. Add More Actions</SelectItem>
+            <SelectItem value="For Closure Verification">4. For Closure Verification</SelectItem>
+            <SelectItem value="Continue Monitoring">5. Continue Monitoring</SelectItem>
+            <SelectItem value="Others">6. Others</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Button
+        size="sm"
+        disabled={isSaving || !dateVal}
+        onClick={handleSave}
+        className="w-full h-8 text-[10px] font-black uppercase bg-primary gap-1.5"
+      >
+        {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+        Save Next Action Date
+      </Button>
+    </div>
+  );
+}
+
 export function CorrectiveActionRequestTab({
   campuses,
   units,
@@ -328,6 +409,123 @@ export function CorrectiveActionRequestTab({
     } finally {
       setNotifyingCarId(null);
     }
+  };
+
+  const handleQuickDateUpdate = async (carId: string, newDateStr: string, nextActionType?: string) => {
+    if (!firestore || !newDateStr) return;
+    try {
+      const targetCar = rawCars?.find((c) => c.id === carId);
+      if (!targetCar) return;
+
+      const targetDate = Timestamp.fromDate(new Date(newDateStr));
+      const authorName = userProfile
+        ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
+        : 'QA Administrator';
+
+      const updatePayload: any = {
+        nextVerificationDate: targetDate,
+        updatedAt: serverTimestamp(),
+        lastUpdatedBy: userProfile?.id || 'admin',
+        lastUpdatedByName: authorName,
+        lastUpdatedByRole: userRole || 'Administrator',
+      };
+
+      if (nextActionType) {
+        const existingLogs = targetCar.followUpLogs || [];
+        const newLog = {
+          result: `Scheduled next action: ${nextActionType}`,
+          verifiedBy: authorName,
+          date: serverTimestamp(),
+          nextAction: nextActionType,
+          nextActionDate: targetDate,
+        };
+        updatePayload.followUpLogs = [...existingLogs, newLog];
+      }
+
+      await updateDoc(doc(firestore, 'correctiveActionRequests', carId), updatePayload);
+      toast({
+        title: 'Next Action Date Scheduled',
+        description: `CAR ${targetCar.carNumber} milestone set to ${format(new Date(newDateStr), 'MMM dd, yyyy')}.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Update Failed',
+        description: err.message || 'Could not update action date',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const renderNextActionCell = (car: CorrectiveActionRequest) => {
+    const info = getNextCarActionInfo(car);
+    const isActionable = car.status !== 'Closed';
+
+    const urgencyBadgeClass =
+      info.urgency === 'overdue'
+        ? 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300'
+        : info.urgency === 'today'
+          ? 'bg-rose-500 text-white animate-pulse'
+          : info.urgency === 'due_soon'
+            ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300'
+            : info.urgency === 'scheduled'
+              ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300'
+              : info.urgency === 'closed'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300'
+                : 'bg-muted text-muted-foreground';
+
+    return (
+      <TableCell className="text-center">
+        <div className="flex flex-col items-center gap-1">
+          <div className="flex items-center gap-1.5 justify-center">
+            <span
+              className={cn(
+                'text-[10px] font-black tabular-nums',
+                info.isOverdue ? 'text-rose-600' : 'text-slate-800 dark:text-slate-200',
+              )}
+            >
+              {info.formattedDate}
+            </span>
+            {(canManage || isInstitutionalViewer) && isActionable && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5 p-0 text-muted-foreground hover:text-primary"
+                    title="Quick reschedule / update Next Action Date"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <CalendarClock className="h-3 w-3" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-3 space-y-3" align="center" onClick={(e) => e.stopPropagation()}>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-100">
+                      Set Next Action Date
+                    </h4>
+                    <p className="text-[10px] text-muted-foreground">
+                      Update milestone / follow-up date for CAR {car.carNumber}.
+                    </p>
+                  </div>
+                  <QuickDateSetter car={car} currentInfo={info} onSave={handleQuickDateUpdate} />
+                </PopoverContent>
+              </Popover>
+            )}
+          </div>
+          <Badge variant="outline" className={cn('text-[8px] font-black uppercase h-4 px-1.5', urgencyBadgeClass)}>
+            {info.badgeText}
+          </Badge>
+          {info.actionType !== 'None' && info.actionType !== 'Closed' && (
+            <span
+              className="text-[8px] font-bold text-muted-foreground truncate max-w-[130px]"
+              title={info.actionLabel}
+            >
+              {info.actionType}
+            </span>
+          )}
+        </div>
+      </TableCell>
+    );
   };
 
   const isInstitutionalViewer =
@@ -1825,6 +2023,7 @@ export function CorrectiveActionRequestTab({
                     <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
                     <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Next Action Date</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
                     <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
                   </TableRow>
@@ -1832,7 +2031,7 @@ export function CorrectiveActionRequestTab({
                 <TableBody>
                   {filteredCars.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-xs">
                         No Corrective Action Requests found matching the selected filters.
                       </TableCell>
                     </TableRow>
@@ -1887,6 +2086,7 @@ export function CorrectiveActionRequestTab({
                             ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy')
                             : '--'}
                         </TableCell>
+                        {renderNextActionCell(car)}
                         <TableCell className="text-center">
                           <Badge
                             variant="outline"
@@ -1962,6 +2162,7 @@ export function CorrectiveActionRequestTab({
                     <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
                     <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Next Action Date</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
                     <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
                   </TableRow>
@@ -1969,7 +2170,7 @@ export function CorrectiveActionRequestTab({
                 <TableBody>
                   {openOngoingCars.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-xs">
                         No Open or On-going Corrective Action Requests found.
                       </TableCell>
                     </TableRow>
@@ -2024,6 +2225,7 @@ export function CorrectiveActionRequestTab({
                             ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy')
                             : '--'}
                         </TableCell>
+                        {renderNextActionCell(car)}
                         <TableCell className="text-center">
                           <Badge className="text-[9px] font-black uppercase bg-amber-50 text-amber-700 border-amber-200 px-2 h-5">
                             {car.status}
@@ -2095,6 +2297,7 @@ export function CorrectiveActionRequestTab({
                     <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
                     <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Next Action Date</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
                     <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
                   </TableRow>
@@ -2102,7 +2305,7 @@ export function CorrectiveActionRequestTab({
                 <TableBody>
                   {closedCars.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-xs">
                         No Closed Non-Conformance records found.
                       </TableCell>
                     </TableRow>
@@ -2157,6 +2360,7 @@ export function CorrectiveActionRequestTab({
                             ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy')
                             : '--'}
                         </TableCell>
+                        {renderNextActionCell(car)}
                         <TableCell className="text-center">
                           <Badge className="text-[9px] font-black uppercase bg-emerald-100 text-emerald-800 border-emerald-200 px-2 h-5">
                             {car.status}
@@ -2229,6 +2433,7 @@ export function CorrectiveActionRequestTab({
                     <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
                     <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Next Action Date</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Status</TableHead>
                     <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
                   </TableRow>
@@ -2236,7 +2441,7 @@ export function CorrectiveActionRequestTab({
                 <TableBody>
                   {carsForAction.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-32 text-center text-muted-foreground text-xs">
+                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-xs">
                         No items currently requiring active update or closure verification.
                       </TableCell>
                     </TableRow>
@@ -2291,6 +2496,7 @@ export function CorrectiveActionRequestTab({
                             ? format(car.timeLimitForReply.toDate(), 'MMM dd, yyyy')
                             : '--'}
                         </TableCell>
+                        {renderNextActionCell(car)}
                         <TableCell className="text-center">
                           <Badge className="text-[9px] font-black uppercase bg-indigo-50 text-indigo-700 border-none px-2 h-5">
                             {car.status}

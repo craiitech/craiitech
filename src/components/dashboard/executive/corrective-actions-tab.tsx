@@ -24,6 +24,7 @@ import { ClipboardCheck, Clock, CheckCircle2, AlertTriangle, ShieldAlert, Trendi
 import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
+import { UpcomingCarActionsCard } from '@/components/dashboard/upcoming-car-actions-card';
 
 interface CorrectiveActionsTabProps {
   cars: CorrectiveActionRequest[];
@@ -366,6 +367,9 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
           </Card>
         ))}
       </div>
+
+      {/* Upcoming CAR Milestones & Next Actions Hub */}
+      <UpcomingCarActionsCard cars={cars} allUnits={allUnits} campuses={campuses} selectedYear={selectedYear} />
 
       {/* Row 1: Status Donut + Nature Donut */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

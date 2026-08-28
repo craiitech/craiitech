@@ -53,6 +53,7 @@ import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { VoiceProvider } from '@/components/voice/voice-provider';
+import { getNextCarActionInfo } from '@/lib/car-utils';
 
 const CURRENT_SYSTEM_VERSION = '2.6.0';
 
@@ -448,8 +449,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const carNotificationsCount = useMemo(() => {
     if (!carNotifications) return 0;
-    if (isAdmin || isAuditor) return carNotifications.filter((c) => c.needsVerification).length;
-    if (isSupervisor) return carNotifications.filter((c) => c.needsVerification).length;
+    if (isAdmin || isAuditor || isSupervisor) {
+      return carNotifications.filter((c) => {
+        if (c.status === 'Closed') return false;
+        if (c.needsVerification) return true;
+        const info = getNextCarActionInfo(c);
+        return info.urgency === 'overdue' || info.urgency === 'today' || info.urgency === 'due_soon';
+      }).length;
+    }
     return carNotifications.filter((c) => c.status === 'Open' || c.status === 'Awaiting Response/Update').length;
   }, [carNotifications, isAdmin, isSupervisor, isAuditor]);
 
@@ -613,24 +620,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // 2. CARs — individual items
     if (carNotifications) {
       carNotifications.forEach((car) => {
-        if (
-          !isAdmin &&
-          !isSupervisor &&
-          !isAuditor &&
-          car.status !== 'Open' &&
-          car.status !== 'Awaiting Response/Update'
-        )
-          return;
-        // Institutional viewers: only surface unit submissions awaiting verification.
-        if ((isAdmin || isSupervisor || isAuditor) && !car.needsVerification) return;
-        list.push({
-          id: `car-${car.id}`,
-          module: 'car',
-          label: `${car.carNumber} — ${car.natureOfFinding}`,
-          description:
-            isAdmin || isSupervisor || isAuditor ? 'Unit update submitted — awaiting verification' : car.status,
-          link: '/qa-reports?tab=car',
-        });
+        if (car.status === 'Closed') return;
+        const info = getNextCarActionInfo(car);
+
+        if (isAdmin || isSupervisor || isAuditor) {
+          let description = '';
+          if (car.needsVerification) {
+            description = 'Unit update submitted — awaiting verification';
+          } else if (info.urgency === 'overdue') {
+            description = `🚨 Overdue: ${info.actionLabel} (${info.badgeText})`;
+          } else if (info.urgency === 'today' || info.urgency === 'due_soon') {
+            description = `⏳ Upcoming: ${info.actionLabel} (${info.badgeText})`;
+          } else {
+            return;
+          }
+
+          list.push({
+            id: `car-${car.id}`,
+            module: 'car',
+            label: `${car.carNumber} — ${car.natureOfFinding}`,
+            description,
+            link: `/qa-reports?tab=car&id=${car.id}`,
+          });
+        } else {
+          if (car.status !== 'Open' && car.status !== 'Awaiting Response/Update') return;
+          list.push({
+            id: `car-${car.id}`,
+            module: 'car',
+            label: `${car.carNumber} — ${car.natureOfFinding}`,
+            description: info.isOverdue ? `Overdue: ${info.actionLabel}` : `${car.status} (${info.badgeText})`,
+            link: `/qa-reports?tab=car&id=${car.id}`,
+          });
+        }
       });
     }
 

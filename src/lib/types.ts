@@ -673,6 +673,7 @@ export type CorrectiveActionRequest = {
   status: 'Open' | 'In Progress' | 'Awaiting Response/Update' | 'For Final Verification' | 'Closed';
   needsVerification?: boolean; // New flag for tracking unit updates
   nextVerificationDate?: any; // New: Date for scheduling follow-up/reminders
+  nextActionDate?: any; // Date for upcoming action milestone
   lastUpdatedBy?: string;
   lastUpdatedByName?: string;
   lastUpdatedByRole?: string;

@@ -91,6 +91,7 @@ import { ScheduleTab } from '@/components/dashboard/executive/schedule-tab';
 import { AccreditationPerformanceTab } from '@/components/dashboard/executive/accreditation-performance-tab';
 import { KpiDashboardTab } from '@/components/dashboard/kpi-dashboard-tab';
 import { OkrWorkspaceTab } from '@/components/dashboard/okr-workspace-tab';
+import { UpcomingCarActionsCard } from '@/components/dashboard/upcoming-car-actions-card';
 import type {
   Submission,
   User as AppUser,
@@ -1518,6 +1519,14 @@ export default function HomePage() {
           units={allUnits}
           campuses={campuses}
           cycles={allCycles}
+          selectedYear={selectedYear}
+        />
+
+        {/* Upcoming CAR Milestones & Actions Hub */}
+        <UpcomingCarActionsCard
+          cars={allCars || []}
+          allUnits={allUnits || []}
+          campuses={campuses || []}
           selectedYear={selectedYear}
         />
 

@@ -30,6 +30,7 @@ import { cn, parseDate } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from '@/components/qa-reports/car-print-template';
+import { getNextCarActionInfo } from '@/lib/car-utils';
 
 interface AuditorNCManagerProps {
   findings: AuditFinding[];
@@ -227,96 +228,142 @@ export function AuditorNCManager({
                   <TableHead className="text-[10px] font-black uppercase">Procedure</TableHead>
                   <TableHead className="text-[10px] font-black uppercase">Finding & Clause</TableHead>
                   <TableHead className="text-center text-[10px] font-black uppercase">CAR Status</TableHead>
+                  <TableHead className="text-center text-[10px] font-black uppercase">Next Action & Date</TableHead>
                   <TableHead className="text-right pr-8 text-[10px] font-black uppercase">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {unissuedNcData.map((item, idx) => (
-                  <TableRow key={idx} className="hover:bg-muted/20 transition-colors group">
-                    <TableCell className="pl-8 py-5">
-                      <div className="space-y-1">
-                        <p className="font-black text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">
-                          {item.schedule.targetName}
-                        </p>
-                        <div className="flex items-center gap-1.5 text-[9px] font-bold text-primary/70 uppercase">
-                          <Building2 className="h-3 w-3" /> {campusMap.get(item.schedule.campusId) || 'Unknown Site'}
+                {unissuedNcData.map((item, idx) => {
+                  const carInfo = item.linkedCar ? getNextCarActionInfo(item.linkedCar) : null;
+                  const urgencyBadgeClass = carInfo
+                    ? carInfo.urgency === 'overdue'
+                      ? 'bg-rose-100 text-rose-800 border-rose-200'
+                      : carInfo.urgency === 'today'
+                        ? 'bg-rose-500 text-white animate-pulse'
+                        : carInfo.urgency === 'due_soon'
+                          ? 'bg-amber-100 text-amber-800 border-amber-200'
+                          : carInfo.urgency === 'scheduled'
+                            ? 'bg-blue-50 text-blue-700 border-blue-200'
+                            : 'bg-muted text-muted-foreground'
+                    : 'bg-muted text-muted-foreground';
+
+                  return (
+                    <TableRow key={idx} className="hover:bg-muted/20 transition-colors group">
+                      <TableCell className="pl-8 py-5">
+                        <div className="space-y-1">
+                          <p className="font-black text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">
+                            {item.schedule.targetName}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[9px] font-bold text-primary/70 uppercase">
+                            <Building2 className="h-3 w-3" /> {campusMap.get(item.schedule.campusId) || 'Unknown Site'}
+                          </div>
+                          <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase">
+                            <User className="h-3 w-3" /> {item.schedule.auditorName || 'TBA'}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase">
-                          <User className="h-3 w-3" /> {item.schedule.auditorName || 'TBA'}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="max-w-xs py-5">
-                      <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-relaxed line-clamp-2">
-                        {item.schedule.procedureDescription || 'N/A'}
-                      </p>
-                    </TableCell>
-                    <TableCell className="max-w-md py-5">
-                      <div className="space-y-2">
-                        <Badge className="bg-rose-600 text-white border-none h-4 px-1.5 text-[8px] font-black">
-                          ISO Clause {item.finding.isoClause}
-                        </Badge>
-                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic line-clamp-2">
-                          "{item.finding.ncStatement || item.finding.description}"
+                      </TableCell>
+                      <TableCell className="max-w-xs py-5">
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-relaxed line-clamp-2">
+                          {item.schedule.procedureDescription || 'N/A'}
                         </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {item.linkedCar ? (
-                        <div className="flex flex-col items-center gap-1">
-                          <Badge className="bg-emerald-600 text-white font-black text-[9px] h-5 px-2">
-                            CAR {item.linkedCar.carNumber}
+                      </TableCell>
+                      <TableCell className="max-w-md py-5">
+                        <div className="space-y-2">
+                          <Badge className="bg-rose-600 text-white border-none h-4 px-1.5 text-[8px] font-black">
+                            ISO Clause {item.finding.isoClause}
                           </Badge>
-                          <p className="text-[7px] font-black text-muted-foreground uppercase">
-                            {item.linkedCar.status}
+                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic line-clamp-2">
+                            "{item.finding.ncStatement || item.finding.description}"
                           </p>
                         </div>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="text-rose-600 border-rose-200 bg-rose-50 h-5 text-[9px] font-black uppercase animate-pulse"
-                        >
-                          CAR PENDING
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right pr-8">
-                      <div className="flex items-center justify-end gap-2">
-                        {item.isIssued ? (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-8 text-[9px] font-black bg-white gap-1.5"
-                              onClick={() => handlePrintCar(item.linkedCar!)}
-                            >
-                              <Printer className="h-3 w-3" /> PRINT
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              size="sm"
-                              className="h-8 text-[9px] font-black bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 gap-1.5"
-                              onClick={() => router.push(`/qa-reports?tab=car&id=${item.linkedCar!.id}`)}
-                            >
-                              <Target className="h-3 w-3" /> MANAGE
-                            </Button>
-                          </>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {item.linkedCar ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <Badge className="bg-emerald-600 text-white font-black text-[9px] h-5 px-2">
+                              CAR {item.linkedCar.carNumber}
+                            </Badge>
+                            <p className="text-[7px] font-black text-muted-foreground uppercase">
+                              {item.linkedCar.status}
+                            </p>
+                          </div>
                         ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => handleIssueCar(item)}
-                            className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md gap-1.5"
+                          <Badge
+                            variant="outline"
+                            className="text-rose-600 border-rose-200 bg-rose-50 h-5 text-[9px] font-black uppercase animate-pulse"
                           >
-                            <Gavel className="h-3.5 w-3.5" /> ISSUE CAR
-                          </Button>
+                            CAR PENDING
+                          </Badge>
                         )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {carInfo ? (
+                          <div className="flex flex-col items-center gap-1">
+                            <span
+                              className={cn(
+                                'text-[10px] font-black tabular-nums',
+                                carInfo.isOverdue ? 'text-rose-600' : 'text-slate-800 dark:text-slate-200',
+                              )}
+                            >
+                              {carInfo.formattedDate}
+                            </span>
+                            <Badge
+                              variant="outline"
+                              className={cn('text-[8px] font-black uppercase h-4 px-1.5', urgencyBadgeClass)}
+                            >
+                              {carInfo.badgeText}
+                            </Badge>
+                            <span className="text-[8px] font-bold text-muted-foreground truncate max-w-[120px]">
+                              {carInfo.actionType}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-1">
+                            <span className="text-[10px] font-bold text-muted-foreground">Pending CAR</span>
+                            <Badge variant="outline" className="text-[8px] font-bold uppercase h-4 px-1 bg-muted/40">
+                              Unissued NC
+                            </Badge>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right pr-8">
+                        <div className="flex items-center justify-end gap-2">
+                          {item.isIssued ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-8 text-[9px] font-black bg-white gap-1.5"
+                                onClick={() => handlePrintCar(item.linkedCar!)}
+                              >
+                                <Printer className="h-3 w-3" /> PRINT
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 text-[9px] font-black bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 gap-1.5"
+                                onClick={() => router.push(`/qa-reports?tab=car&id=${item.linkedCar!.id}`)}
+                              >
+                                <Target className="h-3 w-3" /> MANAGE
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => handleIssueCar(item)}
+                              className="h-8 text-[9px] font-black uppercase bg-indigo-600 hover:bg-indigo-700 shadow-md gap-1.5"
+                            >
+                              <Gavel className="h-3.5 w-3.5" /> ISSUE CAR
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
                 {unissuedNcData.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="h-40 text-center opacity-20">
+                    <TableCell colSpan={6} className="h-40 text-center opacity-20">
                       <Activity className="h-10 w-10 mx-auto mb-2" />
                       <p className="text-[10px] font-black uppercase tracking-widest">
                         No unissued NC findings detected for this scope
