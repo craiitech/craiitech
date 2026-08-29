@@ -63,7 +63,362 @@ const renderOriginBadge = (r: Risk, campusMap?: Map<string, string>, unitMap?: M
 };
 
 /* =========================================================================
-   1. EXECUTIVE RISK PROFILE & STRATEGIC DECISION BRIEFING
+   PAGE 1: OFFICIAL INSTITUTIONAL QA MEMORANDUM FOR DECISION-SUPPORT REPORTS
+   ========================================================================= */
+export function RiskDecisionMemorandumPage({
+  reportId,
+  reportTitle,
+  unitName,
+  campusName,
+  year,
+  signatories,
+  cycle = 'final',
+  totalItemsCount = 0,
+  communicationType = 'QA Memorandum',
+  includeNoted = true,
+  paperSize = 'folio',
+}: {
+  reportId: string;
+  reportTitle: string;
+  unitName: string;
+  campusName: string;
+  year: number;
+  signatories?: Signatories;
+  cycle?: 'first' | 'final';
+  totalItemsCount?: number;
+  communicationType?: string;
+  includeNoted?: boolean;
+  paperSize?: 'folio' | 'letter' | 'a4';
+}) {
+  const formattedDate = format(new Date(), 'MMMM d, yyyy').toUpperCase();
+  const generatedRefNo = `RSU-QAO-RDS-${year}-${format(new Date(), 'MMdd')}`;
+  const pageHeight = paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in';
+
+  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
+
+  let subjectLine = `DECISION-SUPPORT DIRECTIVE: ${reportTitle.toUpperCase()} (AY ${year})`;
+  let directiveNarrative = `The attached Attachment A contains the official ${reportTitle} synthesized from verified institutional risk management records and quality audit submissions.`;
+
+  if (reportId === 'non-submission-audit') {
+    subjectLine = `COMPLIANCE DIRECTIVE: EOMS & RISK DIGITAL REGISTRY NON-SUBMISSION AND DEFICIENCY AUDIT REPORT (AY ${year})`;
+    directiveNarrative = `Records in the RSU EOMS Submission Portal and Digital Risk Registry indicate outstanding document deficiencies across operating units as itemized in Attachment A.`;
+  } else if (reportId === 'status-reminder') {
+    subjectLine = `COMPLIANCE DIRECTIVE: UNIT RISK TREATMENT STATUS AND ACTION REMINDER NOTICE (AY ${year})`;
+    directiveNarrative = `Accountable process owners and unit leads are directed to immediately execute committed risk treatments, resolve overdue actions, and upload documentary proofs as scheduled in Attachment A.`;
+  } else if (reportId === 'executive-briefing') {
+    subjectLine = `MANAGEMENT REVIEW: EXECUTIVE RISK PROFILE AND DECISION BRIEFING (AY ${year})`;
+    directiveNarrative = `This briefing synthesizes institutional risk concentration, magnitude reduction indices, top critical vulnerabilities, and strategic governance directives as detailed in Attachment A.`;
+  } else if (reportId === 'resource-allocation') {
+    subjectLine = `DECISION-SUPPORT DIRECTIVE: RISK-BASED RESOURCE ALLOCATION AND BUDGET BLUEPRINT (FY ${year})`;
+    directiveNarrative = `This resource allocation blueprint prioritizes institutional funding, budgetary outlays, and logistical support for critical risk mitigations as detailed in Attachment A.`;
+  } else if (reportId === 'accountability-tracker') {
+    subjectLine = `GOVERNANCE DIRECTIVE: RISK ACCOUNTABILITY AND TREATMENT COMMITMENT TRACKER (AY ${year})`;
+    directiveNarrative = `All assigned risk owners and designated action leads are directed to review their treatment commitments and milestone deadlines documented in Attachment A.`;
+  } else if (reportId === 'effectiveness-audit') {
+    subjectLine = `QUALITY ASSURANCE DIRECTIVE: RISK TREATMENT EFFECTIVENESS AUDIT AND ISO COMPLIANCE DOSSIER (AY ${year})`;
+    directiveNarrative = `This dossier presents post-treatment risk evaluations, ISO 21001:2018 Clause 6.1 compliance verification, and residual risk assessments as itemized in Attachment A.`;
+  } else if (reportId === 'opportunity-scorecard') {
+    subjectLine = `STRATEGIC DIRECTIVE: OPPORTUNITY PURSUIT AND INNOVATION IMPACT SCORECARD (AY ${year})`;
+    directiveNarrative = `This scorecard inventories institutional opportunities, positive risk initiatives, and innovation milestones recorded for strategic advancement as scheduled in Attachment A.`;
+  }
+
+  return (
+    <div
+      className="memo-page-1 relative flex flex-col justify-between"
+      style={{
+        width: '8.5in',
+        minHeight: pageHeight,
+        height: pageHeight,
+        maxHeight: pageHeight,
+        padding: '0.35in 0.45in 0.65in 0.45in',
+        boxSizing: 'border-box',
+        pageBreakInside: 'avoid',
+        breakInside: 'avoid',
+        pageBreakAfter: 'always',
+        breakAfter: 'page',
+      }}
+    >
+      <div>
+        {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
+        <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2">
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/rsulogo.png"
+              alt="RSU Official Seal"
+              style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+            />
+            <img src="/qa_logo.png" alt="QAO Emblem" style={{ height: '42px', width: '42px', objectFit: 'contain' }} />
+
+            <div>
+              <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                ROMBLON STATE UNIVERSITY
+              </h1>
+              <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                QUALITY ASSURANCE OFFICE
+              </h2>
+              <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
+                3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
+                <br />
+                Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center pl-2">
+            <img
+              src="/ISOlogo.jpg"
+              alt="ISO 9001:2015 TÜV Rheinland Certified"
+              style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+            />
+          </div>
+        </div>
+
+        {/* 2. TWO-COLUMN FOLIO LAYOUT */}
+        <div className="grid grid-cols-12 gap-3.5 items-start">
+          {/* LEFT SIDEBAR: RSU VISION, MISSION, QUALITY POLICY, CORE VALUES */}
+          <div
+            className="col-span-3 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none pr-2"
+            style={{ fontFamily: 'Georgia, Cambria, serif' }}
+          >
+            <div>
+              <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Vision</strong>
+              <p className="m-0 text-justify leading-tight">
+                A research-based academic institution committed to excellence and service in nurturing globally
+                competitive workforce towards sustainable development.
+              </p>
+            </div>
+
+            <div>
+              <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Mission</strong>
+              <p className="m-0 text-justify leading-tight">
+                Romblon State University shall nurture an academic environment that provides advanced education, higher
+                technological and professional instruction and technical expertise in agriculture and fisheries,
+                forestry, engineering and technology, education, humanities, sciences and other relevant fields of study
+                and collaborate with other institutions and communities through responsive, relevant and research-based
+                extension services.
+              </p>
+            </div>
+
+            <div>
+              <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                RSU Quality Policy
+              </strong>
+              <p className="m-0 text-justify leading-tight">
+                Romblon State University commits to provide higher education through quality instruction, research,
+                production, and community-based extension services that meet or exceed the requirements and expectations
+                of the university's stakeholders. It will comply with international standards, applicable statutory and
+                regulatory requirements, and continually improve the Quality Management System's effectiveness through
+                periodic monitoring and evaluation toward sustained remarkable outcomes.
+              </p>
+            </div>
+
+            <div>
+              <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Core Values</strong>
+              <div className="space-y-0 pl-1 text-[5.2pt]">
+                <div>Stewardship</div>
+                <div>Competence</div>
+                <div>Resilience</div>
+                <div>Integrity</div>
+                <div>Balance</div>
+                <div>Excellence</div>
+                <div>Service</div>
+              </div>
+              <p className="m-0 mt-0.5 text-[5pt] text-slate-400 text-justify leading-tight">
+                These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
+                recognized HEI in the region and beyond.
+              </p>
+            </div>
+          </div>
+
+          {/* RIGHT MAIN COLUMN: MEMORANDUM HEADER & NARRATIVE */}
+          <div className="col-span-9 space-y-1 text-slate-900">
+            {/* DOCUMENT CLASSIFICATION & REF NO */}
+            <div>
+              <h3 className="text-[10pt] font-black text-slate-900 tracking-tight leading-none m-0">
+                {communicationType}
+              </h3>
+              <p className="text-[8.5pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
+            </div>
+
+            {/* TABULAR METADATA BLOCK */}
+            <div className="space-y-0.5 pt-0.5 text-[7.2pt]">
+              {/* TO ROW */}
+              <div className="flex items-start">
+                <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
+                <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
+                  <div className="leading-tight">
+                    {unitName && unitName !== 'All Filtered Units' && !unitName.includes('All')
+                      ? `${unitName.toUpperCase()} (${campusName.toUpperCase()})`
+                      : 'ALL CONCERNED CAMPUS DIRECTORS, DEANS, PROGRAM CHAIRS, AND HEADS OF ACCOUNTABLE UNITS'}
+                  </div>
+                  <div className="text-[7pt] font-semibold normal-case text-slate-600">This University</div>
+                </div>
+              </div>
+
+              {/* FROM ROW */}
+              <div className="flex items-start">
+                <div className="w-14 font-bold uppercase text-slate-900 shrink-0">FROM</div>
+                <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                <div className="flex-1 font-bold text-slate-900">
+                  <span className="uppercase block font-black">{qmsHead}</span>
+                  <span className="text-[6.8pt] font-normal text-slate-700 block">
+                    Head, Quality Management System (QMS)
+                  </span>
+                </div>
+              </div>
+
+              {/* NOTED ROW */}
+              {includeNoted && (
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{qaoDirector}</span>
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      Director, Quality Assurance Office
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* SUBJECT ROW */}
+              <div className="flex items-start">
+                <div className="w-14 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
+                <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                <div className="flex-1 font-black uppercase text-slate-900 leading-snug">{subjectLine}</div>
+              </div>
+
+              {/* DATE ROW */}
+              <div className="flex items-start">
+                <div className="w-14 font-bold uppercase text-slate-900 shrink-0">DATE</div>
+                <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
+              </div>
+            </div>
+
+            {/* HORIZONTAL RULE */}
+            <hr className="border-t border-slate-900 my-1" />
+
+            {/* MEMORANDUM BODY PARAGRAPHS */}
+            <div className="space-y-1 text-justify leading-tight text-[7.2pt] text-slate-900">
+              <p className="m-0">
+                In strict compliance with{' '}
+                <strong>ISO 21001:2018 Clause 6.1 (Actions to Address Risks and Opportunities)</strong>,{' '}
+                <strong>ISO 9001:2015</strong>, and the{' '}
+                <strong>Romblon State University Educational Organizations Management System (RSU-EOMS) Manual</strong>,
+                this Office hereby releases the official decision-support report for Fiscal / Academic Year{' '}
+                <strong>{year}</strong> (
+                {cycle === 'first' ? '1st Monitoring Cycle' : 'Final / Annual Evaluation Cycle'}).
+              </p>
+
+              <p className="m-0">
+                {directiveNarrative} The complete itemized findings, data matrices, and resource allocations are
+                detailed in <em>Attachment A</em>.
+              </p>
+
+              <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.5 text-[6.8pt] leading-tight">
+                <strong>Specific Directive:</strong> All concerned administrative officers, academic deans, and risk
+                owners are instructed to log in to the <strong>RSU EOMS Portal &gt; Risk Intelligence Hub</strong> to
+                execute action plans, commit resource allocations, and ensure timely submission of documentary proofs.
+              </p>
+
+              <p className="m-0">
+                Operating units and process owners are directed to observe the standard compliance workflow:
+              </p>
+
+              <ol className="list-decimal pl-3.5 space-y-0 text-[6.8pt] text-slate-800 leading-tight">
+                <li>
+                  <strong>Review Findings:</strong> Examine all risk treatment commitments, budget allocations, and
+                  deficiency audit ratings itemized in Attachment A.
+                </li>
+                <li>
+                  <strong>Execute Mitigations:</strong> Complete immediate containment and long-term preventive actions
+                  with assigned milestone dates.
+                </li>
+                <li>
+                  <strong>Update Portal Records:</strong> Upload documentary evidence into the RSU EOMS Digital Registry
+                  for formal Quality Assurance audit validation.
+                </li>
+              </ol>
+
+              <p className="m-0">
+                All concerned units are granted a strict compliance window of <strong>5 working days</strong> from
+                receipt of this directive. Failure to comply shall constrain this Office to formally elevate the matter
+                to the <strong>Office of the Vice Presidents</strong> and <strong>University President</strong> for
+                administrative intervention.
+              </p>
+
+              <p className="pt-0.5 m-0 font-semibold text-[7pt]">For your strict compliance and guidance.</p>
+            </div>
+
+            {/* SIGNATORIES BLOCK */}
+            <div className={includeNoted ? 'grid grid-cols-2 gap-4 pt-1.5 text-[7pt]' : 'pt-1.5 text-[7pt]'}>
+              <div>
+                <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Issued by:</p>
+                <div className="pt-3">
+                  <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                    {qmsHead}
+                  </p>
+                  <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                    Head, Quality Management System (QMS)
+                  </p>
+                  <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
+                </div>
+              </div>
+
+              {includeNoted && (
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Noted by:</p>
+                  <div className="pt-3">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                      {qaoDirector}
+                    </p>
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      Director, Quality Assurance Office
+                    </p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
+      <div
+        className="memo-footer-banner w-full"
+        style={{
+          height: '24px',
+          background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+        }}
+      >
+        <span
+          style={{
+            color: '#ffffff',
+            fontFamily: 'Georgia, Cambria, serif',
+            fontSize: '7.5pt',
+            fontWeight: 'bold',
+            fontStyle: 'italic',
+            letterSpacing: '0.04em',
+          }}
+        >
+          Serving with Honor and Excellence!
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* =========================================================================
+   1. EXECUTIVE RISK PROFILE & STRATEGIC DECISION BRIEFING (ATTACHMENT A)
    ========================================================================= */
 interface ExecutiveBriefingProps extends BasePrintProps {
   cycle?: 'first' | 'final';
@@ -102,181 +457,221 @@ export function ExecutiveRiskBriefingTemplate({
     .sort((a, b) => (b.preTreatment?.magnitude || 0) - (a.preTreatment?.magnitude || 0))
     .slice(0, 6);
 
+  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
+
   return (
     <div
-      className="p-8 text-black bg-white max-w-[11in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
-      style={{ fontSize: '9pt' }}
+      className="memo-attachment-page relative flex flex-col justify-between"
+      style={{
+        width: '8.5in',
+        minHeight: '13in',
+        padding: '0.35in 0.45in 0.65in 0.45in',
+        boxSizing: 'border-box',
+        pageBreakBefore: 'always',
+        breakBefore: 'page',
+      }}
     >
-      {/* 1. INSTITUTIONAL LETTERHEAD */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
-          Republic of the Philippines
-        </p>
-        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
-          ROMBLON STATE UNIVERSITY
-        </h1>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
-          Quality Assurance Office & Risk Management Council
-        </h2>
-        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
-      </div>
+      <div>
+        {/* ATTACHMENT TOP HEADER */}
+        <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2.5">
+          <div className="flex items-center gap-2.5">
+            <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <img src="/qa_logo.png" alt="QAO Emblem" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <div>
+              <h2 className="text-[10pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                ROMBLON STATE UNIVERSITY
+              </h2>
+              <h3 className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                QUALITY ASSURANCE OFFICE
+              </h3>
+            </div>
+          </div>
 
-      {/* 2. DOCUMENT TITLE STRIP */}
-      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
-        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
-          EXECUTIVE RISK PROFILE & DECISION-SUPPORT BRIEFING
-        </h2>
-        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
-          ISO 21001:2018 Clause 6.1 (Actions to Address Risks & Opportunities) & Institutional QMS Compliance
-        </p>
-      </div>
+          <div className="text-right">
+            <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
+              Ref: RSU-QAO-ERB-{year}-{format(today, 'MMdd')}
+            </span>
+            <span className="text-[6.8pt] font-bold text-slate-700">
+              {unitName} ({campusName}) • {cycle === 'first' ? '1st Cycle' : 'Final Cycle'}
+            </span>
+          </div>
+        </div>
 
-      {/* 3. METADATA TABLE */}
-      <table className="w-full border-collapse border border-black text-[8.5pt] mb-4">
-        <tbody>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
-            <td className="border border-black p-2 font-mono font-bold w-[35%]">
-              RSU-QAO-ERB-{year}-{format(today, 'MMdd')}
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE ISSUED:</td>
-            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
-          </tr>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">AUDITEE / UNIT:</td>
-            <td className="border border-black p-2 font-black uppercase text-slate-900">
-              {unitName} ({campusName})
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">MONITORING CYCLE:</td>
-            <td className="border border-black p-2 font-bold">
-              {cycle === 'first' ? '1st Monitoring Cycle' : 'Final / Annual Cycle'} (FY {year})
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* 4. KEY DECISION METRICS GRID */}
-      <div className="grid grid-cols-4 gap-3 mb-4 text-center">
-        <div className="border border-black p-2.5 rounded bg-slate-50">
-          <p className="text-[7pt] font-black uppercase text-slate-600">Total Portfolio</p>
-          <p className="text-xl font-black text-slate-900 my-0.5">{risks.length}</p>
-          <p className="text-[7pt] text-slate-600 font-bold">
-            {totalRisks.length} Risks | {totalOpportunities.length} Opps
+        <div className="mb-2">
+          <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
+            ATTACHMENT A: EXECUTIVE RISK PROFILE &amp; DECISION-SUPPORT BRIEFING
+          </h2>
+          <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
+            ISO 21001:2018 Clause 6.1 Strategic Intelligence, Magnitude Reduction, and Top Critical Vulnerabilities
           </p>
         </div>
-        <div className="border border-rose-600 p-2.5 rounded bg-rose-50/70">
-          <p className="text-[7pt] font-black uppercase text-rose-800">High / Critical Vulnerabilities</p>
-          <p className="text-xl font-black text-rose-700 my-0.5">{criticalCount}</p>
-          <p className="text-[7pt] text-rose-700 font-bold">
-            {mediumCount} Medium | {lowCount} Low
-          </p>
-        </div>
-        <div className="border border-emerald-600 p-2.5 rounded bg-emerald-50/70">
-          <p className="text-[7pt] font-black uppercase text-emerald-800">Risk Reduction Achieved</p>
-          <p className="text-xl font-black text-emerald-700 my-0.5">{reductionPercentage}%</p>
-          <p className="text-[7pt] text-emerald-700 font-bold">{treatedRisks.length} Verified Treatments</p>
-        </div>
-        <div className="border border-indigo-600 p-2.5 rounded bg-indigo-50/70">
-          <p className="text-[7pt] font-black uppercase text-indigo-800">Closure / Execution Velocity</p>
-          <p className="text-xl font-black text-indigo-700 my-0.5">
-            {closedCount} / {totalRisks.length}
-          </p>
-          <p className="text-[7pt] text-indigo-700 font-bold">
-            {inProgressCount} In Progress | {openCount} Open
-          </p>
-        </div>
-      </div>
 
-      {/* TOP CRITICAL RISKS TABLE */}
-      <div className="mb-4">
-        <h3 className="text-[8.5pt] font-black uppercase tracking-wider mb-1.5 text-center border-b border-black pb-1">
-          Top Critical Vulnerabilities & Strategic Action Status
-        </h3>
-        <table className="w-full border-collapse border-2 border-black text-[8pt]">
-          <thead>
-            <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-              <th className="border border-black p-1.5 text-center w-[22%]">Objective & Origin</th>
-              <th className="border border-black p-1.5 text-center w-[26%]">Risk Description & Causes</th>
-              <th className="border border-black p-1.5 text-center w-[10%]">Pre-Rating</th>
-              <th className="border border-black p-1.5 text-center w-[24%]">Mitigation Strategy</th>
-              <th className="border border-black p-1.5 text-center w-[8%]">Post-Rating</th>
-              <th className="border border-black p-1.5 text-center w-[10%]">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topVulnerabilities.map((r, i) => (
-              <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                <td className="border border-black p-1.5 font-bold align-top">
-                  {renderOriginBadge(r, campusMap, unitMap)}
-                  <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
-                </td>
-                <td className="border border-black p-1.5 align-top leading-snug">{r.description}</td>
-                <td
-                  className="border border-black p-1.5 text-center font-black align-top"
-                  style={{ color: getRatingColor(r.preTreatment?.rating) }}
-                >
-                  {r.preTreatment?.rating} ({r.preTreatment?.magnitude})
-                </td>
-                <td className="border border-black p-1.5 align-top font-medium leading-snug">
-                  {r.treatmentAction || '—'}
-                </td>
-                <td
-                  className="border border-black p-1.5 text-center font-bold align-top"
-                  style={{ color: getRatingColor(r.postTreatment?.rating || '') }}
-                >
-                  {r.postTreatment?.rating ? `${r.postTreatment.rating} (${r.postTreatment.magnitude})` : '—'}
-                </td>
-                <td className="border border-black p-1.5 text-center align-top">
-                  <span
-                    className={`inline-block px-1.5 py-0.5 rounded text-[7pt] font-black ${
-                      r.status === 'Closed'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : r.status === 'In Progress'
-                          ? 'bg-amber-100 text-amber-800'
-                          : 'bg-rose-100 text-rose-800'
-                    }`}
-                  >
-                    {r.status}
-                  </span>
-                </td>
+        {/* KEY DECISION METRICS GRID */}
+        <div className="grid grid-cols-4 gap-2 mb-3 text-center">
+          <div className="border border-slate-900 p-1.5 rounded bg-slate-50">
+            <p className="text-[6.5pt] font-black uppercase text-slate-600">Total Portfolio</p>
+            <p className="text-lg font-black text-slate-900 my-0.2">{risks.length}</p>
+            <p className="text-[6.2pt] text-slate-600 font-bold">
+              {totalRisks.length} Risks | {totalOpportunities.length} Opps
+            </p>
+          </div>
+          <div className="border border-rose-600 p-1.5 rounded bg-rose-50/70">
+            <p className="text-[6.5pt] font-black uppercase text-rose-800">Critical / High</p>
+            <p className="text-lg font-black text-rose-700 my-0.2">{criticalCount}</p>
+            <p className="text-[6.2pt] text-rose-700 font-bold">
+              {mediumCount} Med | {lowCount} Low
+            </p>
+          </div>
+          <div className="border border-emerald-600 p-1.5 rounded bg-emerald-50/70">
+            <p className="text-[6.5pt] font-black uppercase text-emerald-800">Reduction Index</p>
+            <p className="text-lg font-black text-emerald-700 my-0.2">{reductionPercentage}%</p>
+            <p className="text-[6.2pt] text-emerald-700 font-bold">{treatedRisks.length} Treatments</p>
+          </div>
+          <div className="border border-indigo-600 p-1.5 rounded bg-indigo-50/70">
+            <p className="text-[6.5pt] font-black uppercase text-indigo-800">Closure Velocity</p>
+            <p className="text-lg font-black text-indigo-700 my-0.2">
+              {closedCount} / {totalRisks.length}
+            </p>
+            <p className="text-[6.2pt] text-indigo-700 font-bold">
+              {inProgressCount} Ongoing | {openCount} Open
+            </p>
+          </div>
+        </div>
+
+        {/* TOP CRITICAL RISKS TABLE */}
+        <div className="mb-3">
+          <table className="w-full border-collapse border border-slate-900 text-[7.2pt]">
+            <thead>
+              <tr className="bg-slate-100 font-black text-slate-900 uppercase text-[6.8pt]">
+                <th className="border border-slate-900 p-1 text-center w-[22%]">Objective &amp; Context</th>
+                <th className="border border-slate-900 p-1 text-center w-[26%]">Risk Description &amp; Causes</th>
+                <th className="border border-slate-900 p-1 text-center w-[10%]">Pre-Rating</th>
+                <th className="border border-slate-900 p-1 text-center w-[24%]">Mitigation Strategy</th>
+                <th className="border border-slate-900 p-1 text-center w-[8%]">Post</th>
+                <th className="border border-slate-900 p-1 text-center w-[10%]">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* STRATEGIC MANAGEMENT RECOMMENDATIONS */}
-      <div className="border border-slate-300 p-3 rounded bg-slate-50 mb-6 text-[8pt]">
-        <h4 className="font-black uppercase text-slate-800 mb-1">Executive Risk Governance Directives:</h4>
-        <ul className="list-disc list-inside space-y-0.5 text-slate-700">
-          <li>
-            <strong>Resource Prioritization:</strong> Focus procurement and institutional funding on High/Critical items
-            with pending treatments.
-          </li>
-          <li>
-            <strong>Monitoring Cadence:</strong> Mandatory monthly review for open risks carrying consequence score
-            &gt;= 4.
-          </li>
-          <li>
-            <strong>ISO 21001 / Clause 6.1 Audit Readiness:</strong> Ensure documentary evidence is uploaded to Google
-            Drive for all closed entries.
-          </li>
-        </ul>
-      </div>
-
-      {/* SIGNATORIES */}
-      <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
-        <div>
-          <p className="font-bold text-slate-600 mb-6">Prepared by / Risk Focal Person:</p>
-          <div className="border-b border-black w-48 mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qmsHead || 'Unit Head / QMS Coordinator'}</p>
-          <p className="text-[7.5pt] text-slate-500">Quality Management System Officer</p>
+            </thead>
+            <tbody>
+              {topVulnerabilities.map((r, i) => (
+                <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  <td className="border border-slate-900 p-1 font-bold align-top">
+                    {renderOriginBadge(r, campusMap, unitMap)}
+                    <p className="font-bold text-slate-900 leading-snug m-0 text-[7pt]">{r.objective}</p>
+                  </td>
+                  <td className="border border-slate-900 p-1 align-top leading-snug text-[7pt]">{r.description}</td>
+                  <td
+                    className="border border-slate-900 p-1 text-center font-black align-top text-[7pt]"
+                    style={{ color: getRatingColor(r.preTreatment?.rating) }}
+                  >
+                    {r.preTreatment?.rating} ({r.preTreatment?.magnitude})
+                  </td>
+                  <td className="border border-slate-900 p-1 align-top font-medium leading-snug text-[6.8pt]">
+                    {r.treatmentAction || '—'}
+                  </td>
+                  <td
+                    className="border border-slate-900 p-1 text-center font-bold align-top text-[7pt]"
+                    style={{ color: getRatingColor(r.postTreatment?.rating || '') }}
+                  >
+                    {r.postTreatment?.rating ? `${r.postTreatment.rating} (${r.postTreatment.magnitude})` : '—'}
+                  </td>
+                  <td className="border border-slate-900 p-1 text-center align-top">
+                    <span
+                      className={`inline-block px-1 py-0.2 rounded text-[6pt] font-black uppercase ${
+                        r.status === 'Closed'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : r.status === 'In Progress'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <div className="text-right">
-          <p className="font-bold text-slate-600 mb-6">Approved for Institutional Action:</p>
-          <div className="border-b border-black w-48 ml-auto mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qaoDirector || 'QAO Director / Executive Officer'}</p>
-          <p className="text-[7.5pt] text-slate-500">Director, Quality Assurance Office</p>
+
+        {/* STRATEGIC MANAGEMENT RECOMMENDATIONS */}
+        <div className="border border-slate-300 p-2 rounded bg-slate-50 mb-3 text-[6.8pt]">
+          <h4 className="font-black uppercase text-slate-800 mb-0.5 text-[7pt]">
+            Executive Risk Governance Directives:
+          </h4>
+          <ul className="list-disc list-inside space-y-0 text-slate-700 leading-tight">
+            <li>
+              <strong>Resource Prioritization:</strong> Focus procurement and institutional funding on High/Critical
+              items with pending treatments.
+            </li>
+            <li>
+              <strong>Monitoring Cadence:</strong> Mandatory monthly review for open risks carrying consequence score
+              &gt;= 4.
+            </li>
+            <li>
+              <strong>ISO 21001 Audit Readiness:</strong> Ensure documentary evidence is uploaded to Google Drive for
+              all closed entries.
+            </li>
+          </ul>
+        </div>
+
+        {/* ATTACHMENT SIGNATORIES */}
+        <div className="grid grid-cols-2 gap-6 pt-3 border-t border-slate-300 text-[7.2pt]">
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Certified Accurate by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qmsHead}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Head, Quality Management System (QMS)</p>
+            </div>
+          </div>
+
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Approved for Release by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qaoDirector}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Director, Quality Assurance Office</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ATTACHMENT FOOTER & GREEN BANNER */}
+      <div>
+        <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
+          <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
+          <span className="font-mono font-bold text-slate-800">
+            Form Code: RSU-QAO-RDS-ERB (Attachment A) | Rev. 03
+          </span>
+        </div>
+
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
+          </span>
         </div>
       </div>
     </div>
@@ -284,7 +679,7 @@ export function ExecutiveRiskBriefingTemplate({
 }
 
 /* =========================================================================
-   2. RISK TREATMENT ACTION PLAN & RESOURCE ALLOCATION BLUEPRINT
+   2. RISK TREATMENT ACTION PLAN & RESOURCE ALLOCATION BLUEPRINT (ATTACHMENT A)
    ========================================================================= */
 export function RiskResourceAllocationTemplate({
   risks,
@@ -300,115 +695,156 @@ export function RiskResourceAllocationTemplate({
     (r) => r.treatmentAction || r.resourcesNeeded || r.preTreatment?.rating !== 'Low',
   );
 
+  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
+
   return (
     <div
-      className="p-8 text-black bg-white max-w-[12.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
-      style={{ fontSize: '8.5pt' }}
+      className="memo-attachment-page relative flex flex-col justify-between"
+      style={{
+        width: '8.5in',
+        minHeight: '13in',
+        padding: '0.35in 0.45in 0.65in 0.45in',
+        boxSizing: 'border-box',
+        pageBreakBefore: 'always',
+        breakBefore: 'page',
+      }}
     >
-      {/* 1. INSTITUTIONAL LETTERHEAD */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
-          Republic of the Philippines
-        </p>
-        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
-          ROMBLON STATE UNIVERSITY
-        </h1>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
-          Financial Planning & Institutional Quality Assurance
-        </h2>
-        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
-      </div>
+      <div>
+        {/* ATTACHMENT TOP HEADER */}
+        <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2.5">
+          <div className="flex items-center gap-2.5">
+            <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <img src="/qa_logo.png" alt="QAO Emblem" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <div>
+              <h2 className="text-[10pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                ROMBLON STATE UNIVERSITY
+              </h2>
+              <h3 className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                QUALITY ASSURANCE OFFICE
+              </h3>
+            </div>
+          </div>
 
-      {/* 2. DOCUMENT TITLE STRIP */}
-      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
-        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
-          RISK TREATMENT ACTION PLAN & RESOURCE ALLOCATION BLUEPRINT (RAP)
-        </h2>
-        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
-          Annual Procurement & Resource Justification — Fiscal Year {year}
-        </p>
-      </div>
+          <div className="text-right">
+            <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
+              Ref: RSU-QAO-RAP-{year}-{format(today, 'MMdd')}
+            </span>
+            <span className="text-[6.8pt] font-bold text-slate-700">
+              {unitName} ({campusName}) • FY {year}
+            </span>
+          </div>
+        </div>
 
-      {/* 3. METADATA TABLE */}
-      <table className="w-full border-collapse border border-black text-[8.5pt] mb-3">
-        <tbody>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
-            <td className="border border-black p-2 font-mono font-bold w-[35%]">
-              RSU-QAO-RAP-{year}-{format(today, 'MMdd')}
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE ISSUED:</td>
-            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
-          </tr>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">DEPARTMENT / UNIT:</td>
-            <td className="border border-black p-2 font-black uppercase text-slate-900">
-              {unitName} ({campusName})
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">ACTIONABLE PLANS:</td>
-            <td className="border border-black p-2 font-bold">{treatmentPlans.length} Entries Requiring Resources</td>
-          </tr>
-        </tbody>
-      </table>
+        <div className="mb-2">
+          <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
+            ATTACHMENT A: RISK TREATMENT ACTION PLAN &amp; RESOURCE ALLOCATION BLUEPRINT (RAP)
+          </h2>
+          <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
+            Annual Procurement &amp; Resource Justification Schedule — Fiscal Year {year}
+          </p>
+        </div>
 
-      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
-        <thead>
-          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-            <th className="border border-black p-1.5 text-center w-[4%]">#</th>
-            <th className="border border-black p-1.5 text-center w-[20%]">Objective & Origin Context</th>
-            <th className="border border-black p-1.5 text-center w-[8%]">Severity</th>
-            <th className="border border-black p-1.5 text-center w-[24%]">Treatment Action Required</th>
-            <th className="border border-black p-1.5 text-center w-[24%]">Resources Needed (Budget / Tech / Staff)</th>
-            <th className="border border-black p-1.5 text-center w-[12%]">Responsible Lead</th>
-            <th className="border border-black p-1.5 text-center w-[8%]">Target Date</th>
-          </tr>
-        </thead>
-        <tbody>
-          {treatmentPlans.map((r, i) => (
-            <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-              <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
-              <td className="border border-black p-1.5 align-top">
-                {renderOriginBadge(r, campusMap, unitMap)}
-                <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
-                <p className="text-[7.5pt] text-slate-600 mt-0.5 line-clamp-2">{r.description}</p>
-              </td>
-              <td
-                className="border border-black p-1.5 text-center font-bold align-top"
-                style={{ color: getRatingColor(r.preTreatment?.rating) }}
-              >
-                {r.preTreatment?.rating || '—'}
-              </td>
-              <td className="border border-black p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
-              <td className="border border-black p-1.5 align-top font-bold text-slate-800 bg-amber-50/40">
-                {r.resourcesNeeded || 'Internal Staff Time / Existing Operational Budget'}
-              </td>
-              <td className="border border-black p-1.5 align-top font-medium">
-                {r.responsiblePersonName || 'Unit Focal Person'}
-              </td>
-              <td className="border border-black p-1.5 text-center align-top font-mono font-bold">
-                {safeFormatDate(r.targetDate)}
-              </td>
+        <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
+          <thead>
+            <tr className="bg-slate-100 font-black text-slate-900 uppercase text-[6.8pt]">
+              <th className="border border-slate-900 p-1 text-center w-[4%]">#</th>
+              <th className="border border-slate-900 p-1 text-left w-[20%]">Objective &amp; Context</th>
+              <th className="border border-slate-900 p-1 text-center w-[8%]">Severity</th>
+              <th className="border border-slate-900 p-1 text-left w-[24%]">Treatment Action Required</th>
+              <th className="border border-slate-900 p-1 text-left w-[24%]">Resources Needed</th>
+              <th className="border border-slate-900 p-1 text-left w-[12%]">Responsible</th>
+              <th className="border border-slate-900 p-1 text-center w-[8%]">Target</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {treatmentPlans.map((r, i) => (
+              <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                <td className="border border-slate-900 p-1 text-center font-bold">{i + 1}</td>
+                <td className="border border-slate-900 p-1 align-top">
+                  {renderOriginBadge(r, campusMap, unitMap)}
+                  <p className="font-bold text-slate-900 leading-snug m-0 text-[7pt]">{r.objective}</p>
+                </td>
+                <td
+                  className="border border-slate-900 p-1 text-center font-bold align-top text-[7pt]"
+                  style={{ color: getRatingColor(r.preTreatment?.rating) }}
+                >
+                  {r.preTreatment?.rating || '—'}
+                </td>
+                <td className="border border-slate-900 p-1 align-top font-medium text-[6.8pt]">
+                  {r.treatmentAction || '—'}
+                </td>
+                <td className="border border-slate-900 p-1 align-top font-bold text-slate-800 bg-amber-50/40 text-[6.8pt]">
+                  {r.resourcesNeeded || 'Internal Staff Time / Existing Operational Budget'}
+                </td>
+                <td className="border border-slate-900 p-1 align-top font-medium text-[6.8pt]">
+                  {r.responsiblePersonName || 'Unit Focal Person'}
+                </td>
+                <td className="border border-slate-900 p-1 text-center align-top font-mono font-bold text-[6.8pt]">
+                  {safeFormatDate(r.targetDate)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-      {/* SIGNATORIES */}
-      <div className="grid grid-cols-3 gap-6 text-[8pt] pt-4 border-t border-slate-300">
-        <div>
-          <p className="font-bold text-slate-600 mb-5">Prepared by Unit Focal Lead:</p>
-          <div className="border-b border-black w-40 mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qmsHead || 'Unit Head'}</p>
+        {/* ATTACHMENT SIGNATORIES */}
+        <div className="grid grid-cols-2 gap-6 pt-3 border-t border-slate-300 text-[7.2pt]">
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Certified Accurate by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qmsHead}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Head, Quality Management System (QMS)</p>
+            </div>
+          </div>
+
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Approved for Release by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qaoDirector}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Director, Quality Assurance Office</p>
+            </div>
+          </div>
         </div>
-        <div>
-          <p className="font-bold text-slate-600 mb-5">Budget & Resource Endorsement:</p>
-          <div className="border-b border-black w-40 mb-1"></div>
-          <p className="font-black uppercase">Planning & Budget Officer</p>
+      </div>
+
+      {/* ATTACHMENT FOOTER & GREEN BANNER */}
+      <div>
+        <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
+          <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
+          <span className="font-mono font-bold text-slate-800">
+            Form Code: RSU-QAO-RDS-RAP (Attachment A) | Rev. 03
+          </span>
         </div>
-        <div className="text-right">
-          <p className="font-bold text-slate-600 mb-5">Approved for Implementation:</p>
-          <div className="border-b border-black w-40 ml-auto mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qaoDirector || 'Vice President / Director'}</p>
+
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
+          </span>
         </div>
       </div>
     </div>
@@ -416,7 +852,7 @@ export function RiskResourceAllocationTemplate({
 }
 
 /* =========================================================================
-   3. TREATMENT ACCOUNTABILITY & OVERDUE MILESTONE TRACKER
+   3. RISK TREATMENT ACCOUNTABILITY & ACTION COMMITMENT TRACKER (ATTACHMENT A)
    ========================================================================= */
 export function RiskAccountabilityTrackerTemplate({
   risks,
@@ -428,181 +864,163 @@ export function RiskAccountabilityTrackerTemplate({
   campusMap,
 }: BasePrintProps) {
   const today = new Date();
-  const activeRisks = risks.filter((r) => r.type === 'Risk');
+  const actionableRisks = risks.filter((r) => r.status !== 'Closed' || r.treatmentAction);
 
-  const overdueRisks = activeRisks.filter((r) => {
-    if (r.status === 'Closed') return false;
-    if (!r.targetDate) return false;
-    const target = r.targetDate instanceof Timestamp ? r.targetDate.toDate() : new Date(r.targetDate);
-    return target < today;
-  });
-
-  const inProgressRisks = activeRisks.filter((r) => r.status === 'In Progress' && !overdueRisks.includes(r));
-  const completedRisks = activeRisks.filter((r) => r.status === 'Closed');
+  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
 
   return (
     <div
-      className="p-8 text-black bg-white max-w-[12in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
-      style={{ fontSize: '8.5pt' }}
+      className="memo-attachment-page relative flex flex-col justify-between"
+      style={{
+        width: '8.5in',
+        minHeight: '13in',
+        padding: '0.35in 0.45in 0.65in 0.45in',
+        boxSizing: 'border-box',
+        pageBreakBefore: 'always',
+        breakBefore: 'page',
+      }}
     >
-      {/* 1. INSTITUTIONAL LETTERHEAD */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
-          Republic of the Philippines
-        </p>
-        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
-          ROMBLON STATE UNIVERSITY
-        </h1>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
-          Monitoring & Evaluation Division • Quality Assurance Office
-        </h2>
-        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
-      </div>
-
-      {/* 2. DOCUMENT TITLE STRIP */}
-      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
-        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
-          RISK TREATMENT ACCOUNTABILITY & OVERDUE MILESTONE TRACKER
-        </h2>
-        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
-          Operational Milestone Monitoring — Fiscal Year {year}
-        </p>
-      </div>
-
-      {/* 3. METADATA TABLE */}
-      <table className="w-full border-collapse border border-black text-[8.5pt] mb-4">
-        <tbody>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
-            <td className="border border-black p-2 font-mono font-bold w-[35%]">
-              RSU-QAO-AMT-{year}-{format(today, 'MMdd')}
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE GENERATED:</td>
-            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
-          </tr>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">UNIT CONTEXT:</td>
-            <td className="border border-black p-2 font-black uppercase text-slate-900">
-              {unitName} ({campusName})
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">ACTION STATUS:</td>
-            <td className="border border-black p-2 font-bold">
-              <span className="text-rose-700">{overdueRisks.length} Overdue</span> |{' '}
-              <span className="text-amber-700">{inProgressRisks.length} Active</span> |{' '}
-              <span className="text-emerald-700">{completedRisks.length} Closed</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* OVERDUE RISKS SECTION */}
-      {overdueRisks.length > 0 && (
-        <div className="mb-5">
-          <div className="flex items-center justify-center gap-2 mb-1.5 text-rose-700 font-black uppercase text-[9pt] border-b-2 border-rose-600 pb-1 text-center">
-            <span>⚠️ Critical Attention: Overdue Action Plans ({overdueRisks.length})</span>
+      <div>
+        {/* ATTACHMENT TOP HEADER */}
+        <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2.5">
+          <div className="flex items-center gap-2.5">
+            <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <img src="/qa_logo.png" alt="QAO Emblem" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <div>
+              <h2 className="text-[10pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                ROMBLON STATE UNIVERSITY
+              </h2>
+              <h3 className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                QUALITY ASSURANCE OFFICE
+              </h3>
+            </div>
           </div>
-          <table className="w-full border-collapse border-2 border-rose-600 text-[8pt]">
-            <thead>
-              <tr className="bg-rose-100 font-black text-rose-900 uppercase">
-                <th className="border border-rose-600 p-1.5 text-center w-[24%]">Objective & Origin</th>
-                <th className="border border-rose-600 p-1.5 text-center w-[28%]">Committed Mitigation</th>
-                <th className="border border-rose-600 p-1.5 text-center w-[18%]">Accountable Lead</th>
-                <th className="border border-rose-600 p-1.5 text-center w-[12%]">Target Due Date</th>
-                <th className="border border-rose-600 p-1.5 text-center w-[18%]">Reminders / Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {overdueRisks.map((r, i) => (
-                <tr key={r.id || i} className="bg-rose-50/40">
-                  <td className="border border-rose-400 p-1.5 align-top">
-                    {renderOriginBadge(r, campusMap, unitMap)}
-                    <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
-                    <p className="text-[7.5pt] text-slate-600 mt-0.5">{r.description}</p>
-                  </td>
-                  <td className="border border-rose-400 p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
-                  <td className="border border-rose-400 p-1.5 align-top font-bold text-slate-900">
-                    {r.responsiblePersonName || 'Not Assigned'}
-                  </td>
-                  <td className="border border-rose-400 p-1.5 text-center align-top font-mono font-black text-rose-700">
-                    {safeFormatDate(r.targetDate)}
-                  </td>
-                  <td className="border border-rose-400 p-1.5 text-center align-top font-bold">
-                    <span className="bg-rose-200 text-rose-800 px-2 py-0.5 rounded text-[7.5pt] font-black">
-                      ⚠️ OVERDUE
-                    </span>
-                    {r.remindersSent ? (
-                      <p className="text-[7pt] text-slate-500 font-normal mt-0.5">Notice #{r.remindersSent} Sent</p>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
 
-      {/* ACTIVE & COMPLETED TABLE */}
-      <h3 className="text-[8.5pt] font-black uppercase tracking-wider mb-1.5 border-b border-black pb-1 text-center">
-        Full Treatment Milestone Inventory
-      </h3>
-      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
-        <thead>
-          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-            <th className="border border-black p-1.5 text-center w-[4%]">#</th>
-            <th className="border border-black p-1.5 text-center w-[24%]">Objective & Origin</th>
-            <th className="border border-black p-1.5 text-center w-[28%]">Mitigation Strategy</th>
-            <th className="border border-black p-1.5 text-center w-[16%]">Accountable Lead</th>
-            <th className="border border-black p-1.5 text-center w-[12%]">Target Date</th>
-            <th className="border border-black p-1.5 text-center w-[16%]">Current Milestone</th>
-          </tr>
-        </thead>
-        <tbody>
-          {activeRisks.map((r, i) => (
-            <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-              <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
-              <td className="border border-black p-1.5 align-top">
-                {renderOriginBadge(r, campusMap, unitMap)}
-                <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
-                <p className="text-[7.5pt] text-slate-600 mt-0.5 line-clamp-2">{r.description}</p>
-              </td>
-              <td className="border border-black p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
-              <td className="border border-black p-1.5 align-top font-bold text-slate-900">
-                {r.responsiblePersonName || 'Unit Focal Person'}
-              </td>
-              <td className="border border-black p-1.5 text-center align-top font-mono font-bold">
-                {safeFormatDate(r.targetDate)}
-              </td>
-              <td className="border border-black p-1.5 text-center align-top font-bold">
-                <span
-                  className={`inline-block px-1.5 py-0.5 rounded text-[7pt] font-black ${
-                    r.status === 'Closed'
-                      ? 'bg-emerald-100 text-emerald-800'
-                      : r.status === 'In Progress'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-slate-200 text-slate-800'
-                  }`}
-                >
-                  {r.status}
-                </span>
-              </td>
+          <div className="text-right">
+            <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
+              Ref: RSU-QAO-RAT-{year}-{format(today, 'MMdd')}
+            </span>
+            <span className="text-[6.8pt] font-bold text-slate-700">
+              {unitName} ({campusName}) • AY {year}
+            </span>
+          </div>
+        </div>
+
+        <div className="mb-2">
+          <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
+            ATTACHMENT A: RISK TREATMENT ACCOUNTABILITY &amp; COMMITMENT TRACKER (RAT)
+          </h2>
+          <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
+            Monitoring Assigned Action Leads, Milestone Deadlines, and Operational Risk Statuses
+          </p>
+        </div>
+
+        <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
+          <thead>
+            <tr className="bg-slate-100 font-black text-slate-900 uppercase text-[6.8pt]">
+              <th className="border border-slate-900 p-1 text-center w-[4%]">#</th>
+              <th className="border border-slate-900 p-1 text-left w-[22%]">Risk Objective &amp; Type</th>
+              <th className="border border-slate-900 p-1 text-left w-[24%]">Committed Mitigation</th>
+              <th className="border border-slate-900 p-1 text-left w-[18%]">Assigned Action Lead</th>
+              <th className="border border-slate-900 p-1 text-center w-[12%]">Target Deadline</th>
+              <th className="border border-slate-900 p-1 text-center w-[10%]">Status</th>
+              <th className="border border-slate-900 p-1 text-center w-[10%]">Verification</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {actionableRisks.map((r, i) => (
+              <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                <td className="border border-slate-900 p-1 text-center font-bold">{i + 1}</td>
+                <td className="border border-slate-900 p-1 align-top">
+                  {renderOriginBadge(r, campusMap, unitMap)}
+                  <p className="font-bold text-slate-900 leading-snug m-0 text-[7pt]">{r.objective}</p>
+                </td>
+                <td className="border border-slate-900 p-1 align-top text-[6.8pt]">{r.treatmentAction || '—'}</td>
+                <td className="border border-slate-900 p-1 align-top font-bold text-slate-800 text-[6.8pt]">
+                  {r.responsiblePersonName || 'Unit Head / Focal Person'}
+                </td>
+                <td className="border border-slate-900 p-1 text-center align-top font-mono font-bold text-[6.8pt]">
+                  {safeFormatDate(r.targetDate)}
+                </td>
+                <td className="border border-slate-900 p-1 text-center align-top">
+                  <span
+                    className={`inline-block px-1 py-0.2 rounded text-[6pt] font-black uppercase ${
+                      r.status === 'Closed'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : r.status === 'In Progress'
+                          ? 'bg-amber-100 text-amber-800'
+                          : 'bg-rose-100 text-rose-800'
+                    }`}
+                  >
+                    {r.status}
+                  </span>
+                </td>
+                <td className="border border-slate-900 p-1 text-center align-top text-[6pt] text-slate-500">
+                  {r.postTreatment?.evidence ? 'Evidence Uploaded' : 'Pending Proof'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
-      {/* SIGNATORIES */}
-      <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
-        <div>
-          <p className="font-bold text-slate-600 mb-5">Generated & Verified by:</p>
-          <div className="border-b border-black w-48 mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qmsHead || 'QMS Focal Lead'}</p>
-          <p className="text-[7.5pt] text-slate-500">Quality Management System Division</p>
+        {/* ATTACHMENT SIGNATORIES */}
+        <div className="grid grid-cols-2 gap-6 pt-3 border-t border-slate-300 text-[7.2pt]">
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Certified Accurate by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qmsHead}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Head, Quality Management System (QMS)</p>
+            </div>
+          </div>
+
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Approved for Release by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qaoDirector}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Director, Quality Assurance Office</p>
+            </div>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="font-bold text-slate-600 mb-5">Noted by QAO Director:</p>
-          <div className="border-b border-black w-48 ml-auto mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qaoDirector || 'Director, Quality Assurance'}</p>
-          <p className="text-[7.5pt] text-slate-500">Director, Quality Assurance Office</p>
+      </div>
+
+      {/* ATTACHMENT FOOTER & GREEN BANNER */}
+      <div>
+        <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
+          <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
+          <span className="font-mono font-bold text-slate-800">
+            Form Code: RSU-QAO-RDS-RAT (Attachment A) | Rev. 03
+          </span>
+        </div>
+
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
+          </span>
         </div>
       </div>
     </div>
@@ -610,7 +1028,7 @@ export function RiskAccountabilityTrackerTemplate({
 }
 
 /* =========================================================================
-   4. RESIDUAL RISK & TREATMENT EFFECTIVENESS VERIFICATION DOSSIER
+   4. RISK TREATMENT EFFECTIVENESS AUDIT & ISO 21001:2018 COMPLIANCE DOSSIER
    ========================================================================= */
 export function RiskEffectivenessAuditTemplate({
   risks,
@@ -622,145 +1040,176 @@ export function RiskEffectivenessAuditTemplate({
   campusMap,
 }: BasePrintProps) {
   const today = new Date();
-  const verifiedRisks = risks.filter(
-    (r) => r.postTreatment || r.verification || r.status === 'Closed' || (r.type === 'Risk' && r.treatmentAction),
-  );
+  const treatedRisks = risks.filter((r) => r.postTreatment || r.status === 'Closed');
+
+  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
 
   return (
     <div
-      className="p-8 text-black bg-white max-w-[13in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
-      style={{ fontSize: '8.5pt' }}
+      className="memo-attachment-page relative flex flex-col justify-between"
+      style={{
+        width: '8.5in',
+        minHeight: '13in',
+        padding: '0.35in 0.45in 0.65in 0.45in',
+        boxSizing: 'border-box',
+        pageBreakBefore: 'always',
+        breakBefore: 'page',
+      }}
     >
-      {/* 1. INSTITUTIONAL LETTERHEAD */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
-          Republic of the Philippines
-        </p>
-        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
-          ROMBLON STATE UNIVERSITY
-        </h1>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
-          Internal Quality Audit Committee • ISO 21001:2018 Clause 6.1 Audit Dossier
-        </h2>
-        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
-      </div>
+      <div>
+        {/* ATTACHMENT TOP HEADER */}
+        <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2.5">
+          <div className="flex items-center gap-2.5">
+            <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <img src="/qa_logo.png" alt="QAO Emblem" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <div>
+              <h2 className="text-[10pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                ROMBLON STATE UNIVERSITY
+              </h2>
+              <h3 className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                QUALITY ASSURANCE OFFICE
+              </h3>
+            </div>
+          </div>
 
-      {/* 2. DOCUMENT TITLE STRIP */}
-      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
-        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
-          RESIDUAL RISK & TREATMENT EFFECTIVENESS VERIFICATION AUDIT DOSSIER
-        </h2>
-        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
-          ISO 21001:2018 / ISO 9001:2015 Clause 6.1 — Fiscal Year {year}
-        </p>
-      </div>
-
-      {/* 3. METADATA TABLE */}
-      <table className="w-full border-collapse border border-black text-[8.5pt] mb-3">
-        <tbody>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
-            <td className="border border-black p-2 font-mono font-bold w-[35%]">
-              RSU-IQA-EVD-{year}-{format(today, 'MMdd')}
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE AUDITED:</td>
-            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
-          </tr>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">AUDITEE UNIT:</td>
-            <td className="border border-black p-2 font-black uppercase text-slate-900">
-              {unitName} ({campusName})
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">STANDARD:</td>
-            <td className="border border-black p-2 font-bold">ISO 21001:2018 & ISO 9001:2015 Clause 6.1</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
-        <thead>
-          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-            <th className="border border-black p-1.5 text-center w-[22%]">Objective & Auditee Origin</th>
-            <th className="border border-black p-1.5 text-center w-[7%]">Pre-Mag</th>
-            <th className="border border-black p-1.5 text-center w-[21%]">Implemented Treatment Action</th>
-            <th className="border border-black p-1.5 text-center w-[7%]">Post-Mag</th>
-            <th className="border border-black p-1.5 text-center w-[8%]">Delta Drop</th>
-            <th className="border border-black p-1.5 text-center w-[23%]">Documentary Evidence / Verification</th>
-            <th className="border border-black p-1.5 text-center w-[12%]">QA Verdict</th>
-          </tr>
-        </thead>
-        <tbody>
-          {verifiedRisks.map((r, i) => {
-            const preMag = r.preTreatment?.magnitude || 0;
-            const postMag = r.postTreatment?.magnitude || 0;
-            const drop = preMag - postMag;
-            const isEffective = drop > 0 || r.preTreatment?.rating === 'Low';
-
-            return (
-              <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                <td className="border border-black p-1.5 align-top">
-                  {renderOriginBadge(r, campusMap, unitMap)}
-                  <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
-                  <p className="text-[7.5pt] text-slate-600 mt-0.5 line-clamp-2">{r.description}</p>
-                </td>
-                <td
-                  className="border border-black p-1.5 text-center align-top font-bold"
-                  style={{ color: getRatingColor(r.preTreatment?.rating) }}
-                >
-                  {preMag} ({r.preTreatment?.rating?.charAt(0)})
-                </td>
-                <td className="border border-black p-1.5 align-top">{r.treatmentAction || '—'}</td>
-                <td
-                  className="border border-black p-1.5 text-center align-top font-bold"
-                  style={{ color: getRatingColor(r.postTreatment?.rating || '') }}
-                >
-                  {postMag || '—'}
-                </td>
-                <td className="border border-black p-1.5 text-center align-top font-black">
-                  {drop > 0 ? (
-                    <span className="text-emerald-700">▼ -{drop}</span>
-                  ) : drop === 0 ? (
-                    <span className="text-slate-500">0 (Par)</span>
-                  ) : (
-                    <span className="text-rose-700">▲ +{Math.abs(drop)}</span>
-                  )}
-                </td>
-                <td className="border border-black p-1.5 align-top text-[7.5pt]">
-                  <p className="font-medium text-slate-800">
-                    {r.postTreatment?.evidence || r.verification?.evidence || 'Attached in QAO-00-027'}
-                  </p>
-                  {r.auditorRemarks && <p className="text-indigo-700 font-bold mt-0.5">Auditor: {r.auditorRemarks}</p>}
-                </td>
-                <td className="border border-black p-1.5 text-center align-top">
-                  <span
-                    className={`inline-block px-1.5 py-0.5 rounded text-[7pt] font-black ${
-                      r.verification?.status === 'Correct' || r.verification?.status === 'Implemented' || isEffective
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}
-                  >
-                    {r.verification?.status || (isEffective ? 'EFFECTIVE' : 'FOR REVIEW')}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {/* AUDIT SIGN-OFF */}
-      <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
-        <div>
-          <p className="font-bold text-slate-600 mb-5">Lead Internal Quality Auditor:</p>
-          <div className="border-b border-black w-48 mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qmsHead || 'Certified ISO Auditor'}</p>
-          <p className="text-[7.5pt] text-slate-500">IQA Verification Team Lead</p>
+          <div className="text-right">
+            <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
+              Ref: RSU-QAO-REA-{year}-{format(today, 'MMdd')}
+            </span>
+            <span className="text-[6.8pt] font-bold text-slate-700">
+              {unitName} ({campusName}) • ISO 21001:2018 Clause 6.1
+            </span>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="font-bold text-slate-600 mb-5">Confirmed & Registered:</p>
-          <div className="border-b border-black w-48 ml-auto mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qaoDirector || 'QAO Director'}</p>
-          <p className="text-[7.5pt] text-slate-500">Director, Quality Assurance Office</p>
+
+        <div className="mb-2">
+          <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
+            ATTACHMENT A: RISK TREATMENT EFFECTIVENESS AUDIT &amp; ISO COMPLIANCE DOSSIER (REA)
+          </h2>
+          <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
+            Pre vs Post Risk Comparison, Residual Severity Evaluation, and Quality Assurance Verification
+          </p>
+        </div>
+
+        <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
+          <thead>
+            <tr className="bg-slate-100 font-black text-slate-900 uppercase text-[6.8pt]">
+              <th className="border border-slate-900 p-1 text-center w-[4%]">#</th>
+              <th className="border border-slate-900 p-1 text-left w-[22%]">Risk &amp; Objective</th>
+              <th className="border border-slate-900 p-1 text-center w-[12%]">Pre-Rating</th>
+              <th className="border border-slate-900 p-1 text-left w-[24%]">Mitigation Implemented</th>
+              <th className="border border-slate-900 p-1 text-center w-[12%]">Post-Rating</th>
+              <th className="border border-slate-900 p-1 text-center w-[14%]">Residual Effect</th>
+              <th className="border border-slate-900 p-1 text-center w-[12%]">QA Verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            {treatedRisks.map((r, i) => {
+              const preMag = r.preTreatment?.magnitude || 0;
+              const postMag = r.postTreatment?.magnitude || 0;
+              const diff = preMag - postMag;
+              const isEffective = diff > 0 || r.status === 'Closed';
+
+              return (
+                <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  <td className="border border-slate-900 p-1 text-center font-bold">{i + 1}</td>
+                  <td className="border border-slate-900 p-1 align-top">
+                    {renderOriginBadge(r, campusMap, unitMap)}
+                    <p className="font-bold text-slate-900 leading-snug m-0 text-[7pt]">{r.objective}</p>
+                  </td>
+                  <td
+                    className="border border-slate-900 p-1 text-center font-bold align-top text-[7pt]"
+                    style={{ color: getRatingColor(r.preTreatment?.rating) }}
+                  >
+                    {r.preTreatment?.rating} ({preMag})
+                  </td>
+                  <td className="border border-slate-900 p-1 align-top text-[6.8pt]">{r.treatmentAction || '—'}</td>
+                  <td
+                    className="border border-slate-900 p-1 text-center font-bold align-top text-[7pt]"
+                    style={{ color: getRatingColor(r.postTreatment?.rating || '') }}
+                  >
+                    {r.postTreatment?.rating ? `${r.postTreatment.rating} (${postMag})` : '—'}
+                  </td>
+                  <td className="border border-slate-900 p-1 text-center align-top font-bold text-[6.8pt]">
+                    {diff > 0 ? (
+                      <span className="text-emerald-700 font-bold">Reduced by {diff} pts</span>
+                    ) : (
+                      <span className="text-slate-500">Maintained</span>
+                    )}
+                  </td>
+                  <td className="border border-slate-900 p-1 text-center align-top">
+                    <span
+                      className={`inline-block px-1 py-0.2 rounded text-[6pt] font-black uppercase ${
+                        isEffective ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {isEffective ? 'EFFECTIVE' : 'REVIEW DUE'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* ATTACHMENT SIGNATORIES */}
+        <div className="grid grid-cols-2 gap-6 pt-3 border-t border-slate-300 text-[7.2pt]">
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Certified Accurate by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qmsHead}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Head, Quality Management System (QMS)</p>
+            </div>
+          </div>
+
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Approved for Release by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qaoDirector}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Director, Quality Assurance Office</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ATTACHMENT FOOTER & GREEN BANNER */}
+      <div>
+        <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
+          <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
+          <span className="font-mono font-bold text-slate-800">
+            Form Code: RSU-QAO-RDS-REA (Attachment A) | Rev. 03
+          </span>
+        </div>
+
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
+          </span>
         </div>
       </div>
     </div>
@@ -768,7 +1217,7 @@ export function RiskEffectivenessAuditTemplate({
 }
 
 /* =========================================================================
-   5. OPPORTUNITY CAPITALIZATION & STRATEGIC INNOVATION SCORECARD
+   5. OPPORTUNITY PURSUIT & INNOVATION IMPACT SCORECARD (ATTACHMENT A)
    ========================================================================= */
 export function OpportunityInnovationTemplate({
   risks,
@@ -781,121 +1230,158 @@ export function OpportunityInnovationTemplate({
 }: BasePrintProps) {
   const today = new Date();
   const opportunities = risks.filter((r) => r.type === 'Opportunity');
-  const capturedCount = opportunities.filter(
-    (r) => r.status === 'Closed' || (r.postTreatment && r.postTreatment.evidence),
-  ).length;
+
+  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
 
   return (
     <div
-      className="p-8 text-black bg-white max-w-[11.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
-      style={{ fontSize: '8.5pt' }}
+      className="memo-attachment-page relative flex flex-col justify-between"
+      style={{
+        width: '8.5in',
+        minHeight: '13in',
+        padding: '0.35in 0.45in 0.65in 0.45in',
+        boxSizing: 'border-box',
+        pageBreakBefore: 'always',
+        breakBefore: 'page',
+      }}
     >
-      {/* 1. INSTITUTIONAL LETTERHEAD */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
-          Republic of the Philippines
-        </p>
-        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
-          ROMBLON STATE UNIVERSITY
-        </h1>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">Quality Assurance Office</h2>
-        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
-      </div>
+      <div>
+        {/* ATTACHMENT TOP HEADER */}
+        <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2.5">
+          <div className="flex items-center gap-2.5">
+            <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <img src="/qa_logo.png" alt="QAO Emblem" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <div>
+              <h2 className="text-[10pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                ROMBLON STATE UNIVERSITY
+              </h2>
+              <h3 className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                QUALITY ASSURANCE OFFICE
+              </h3>
+            </div>
+          </div>
 
-      {/* 2. DOCUMENT TITLE STRIP */}
-      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
-        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
-          OPPORTUNITY CAPITALIZATION & STRATEGIC INNOVATION SCORECARD
-        </h2>
-        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
-          Strategic Opportunity Capture & Innovation Monitoring — Fiscal Year {year}
-        </p>
-      </div>
-
-      {/* 3. METADATA TABLE */}
-      <table className="w-full border-collapse border border-black text-[8.5pt] mb-4">
-        <tbody>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
-            <td className="border border-black p-2 font-mono font-bold w-[35%]">
-              RSU-QAO-OCS-{year}-{format(today, 'MMdd')}
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE ISSUED:</td>
-            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
-          </tr>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">UNIT CONTEXT:</td>
-            <td className="border border-black p-2 font-black uppercase text-slate-900">
-              {unitName} ({campusName})
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">CAPITALIZATION:</td>
-            <td className="border border-black p-2 font-bold">
-              <span className="text-emerald-700 font-black">
-                {opportunities.length > 0 ? Math.round((capturedCount / opportunities.length) * 100) : 0}% (
-                {capturedCount} Realized)
-              </span>{' '}
-              / {opportunities.length} Identified
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
-        <thead>
-          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-            <th className="border border-black p-1.5 text-center w-[5%]">#</th>
-            <th className="border border-black p-1.5 text-center w-[24%]">Strategic Objective & Origin</th>
-            <th className="border border-black p-1.5 text-center w-[26%]">Opportunity Description & Potential</th>
-            <th className="border border-black p-1.5 text-center w-[25%]">Capitalization Plan / Enhancement Action</th>
-            <th className="border border-black p-1.5 text-center w-[10%]">Target Date</th>
-            <th className="border border-black p-1.5 text-center w-[10%]">Realization Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {opportunities.map((o, i) => (
-            <tr key={o.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-              <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
-              <td className="border border-black p-1.5 font-bold align-top">
-                {renderOriginBadge(o, campusMap, unitMap)}
-                <p className="font-bold text-slate-900 leading-snug">{o.objective}</p>
-              </td>
-              <td className="border border-black p-1.5 align-top leading-snug">{o.description}</td>
-              <td className="border border-black p-1.5 align-top font-medium">{o.treatmentAction || '—'}</td>
-              <td className="border border-black p-1.5 text-center align-top font-mono">
-                {safeFormatDate(o.targetDate)}
-              </td>
-              <td className="border border-black p-1.5 text-center align-top font-bold">
-                <span
-                  className={`inline-block px-2 py-0.5 rounded text-[7.5pt] font-black ${
-                    o.status === 'Closed' ? 'bg-emerald-100 text-emerald-800' : 'bg-indigo-100 text-indigo-800'
-                  }`}
-                >
-                  {o.status === 'Closed' ? 'REALIZED' : o.status}
-                </span>
-              </td>
-            </tr>
-          ))}
-          {opportunities.length === 0 && (
-            <tr>
-              <td colSpan={6} className="text-center p-6 text-slate-500 font-bold border border-black">
-                No opportunities logged for this fiscal year.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      {/* SIGNATORIES */}
-      <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
-        <div>
-          <p className="font-bold text-slate-600 mb-5">Submitted by Unit Head:</p>
-          <div className="border-b border-black w-44 mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qmsHead || 'Unit Head'}</p>
+          <div className="text-right">
+            <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
+              Ref: RSU-QAO-OIS-{year}-{format(today, 'MMdd')}
+            </span>
+            <span className="text-[6.8pt] font-bold text-slate-700">
+              {unitName} ({campusName}) • AY {year}
+            </span>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="font-bold text-slate-600 mb-5">Noted by Quality Assurance Office:</p>
-          <div className="border-b border-black w-44 ml-auto mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qaoDirector || 'Director, Quality Assurance Office'}</p>
+
+        <div className="mb-2">
+          <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
+            ATTACHMENT A: OPPORTUNITY PURSUIT &amp; INNOVATION IMPACT SCORECARD (OIS)
+          </h2>
+          <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
+            ISO 21001:2018 Clause 6.1 (Positive Risk Pursuits, Institutional Innovation, and Strategic Gains)
+          </p>
+        </div>
+
+        <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
+          <thead>
+            <tr className="bg-slate-100 font-black text-slate-900 uppercase text-[6.8pt]">
+              <th className="border border-slate-900 p-1 text-center w-[4%]">#</th>
+              <th className="border border-slate-900 p-1 text-left w-[24%]">Strategic Opportunity Statement</th>
+              <th className="border border-slate-900 p-1 text-center w-[12%]">Potential Gain</th>
+              <th className="border border-slate-900 p-1 text-left w-[28%]">Pursuit Action &amp; Initiatives</th>
+              <th className="border border-slate-900 p-1 text-left w-[18%]">Responsible Lead</th>
+              <th className="border border-slate-900 p-1 text-center w-[14%]">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {opportunities.map((r, i) => (
+              <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                <td className="border border-slate-900 p-1 text-center font-bold">{i + 1}</td>
+                <td className="border border-slate-900 p-1 align-top">
+                  {renderOriginBadge(r, campusMap, unitMap)}
+                  <p className="font-bold text-slate-900 leading-snug m-0 text-[7pt]">{r.objective}</p>
+                </td>
+                <td className="border border-slate-900 p-1 text-center font-bold align-top text-emerald-700 text-[7pt]">
+                  {r.preTreatment?.rating || 'High Gain'}
+                </td>
+                <td className="border border-slate-900 p-1 align-top text-[6.8pt]">{r.treatmentAction || '—'}</td>
+                <td className="border border-slate-900 p-1 align-top font-bold text-slate-800 text-[6.8pt]">
+                  {r.responsiblePersonName || 'Unit Focal Person'}
+                </td>
+                <td className="border border-slate-900 p-1 text-center align-top">
+                  <span
+                    className={`inline-block px-1.5 py-0.2 rounded text-[6pt] font-black uppercase ${
+                      r.status === 'Closed'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : r.status === 'In Progress'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-amber-100 text-amber-800'
+                    }`}
+                  >
+                    {r.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* ATTACHMENT SIGNATORIES */}
+        <div className="grid grid-cols-2 gap-6 pt-3 border-t border-slate-300 text-[7.2pt]">
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Certified Accurate by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qmsHead}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Head, Quality Management System (QMS)</p>
+            </div>
+          </div>
+
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Approved for Release by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qaoDirector}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Director, Quality Assurance Office</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ATTACHMENT FOOTER & GREEN BANNER */}
+      <div>
+        <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
+          <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
+          <span className="font-mono font-bold text-slate-800">
+            Form Code: RSU-QAO-RDS-OIS (Attachment A) | Rev. 03
+          </span>
+        </div>
+
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
+          </span>
         </div>
       </div>
     </div>
@@ -903,7 +1389,7 @@ export function OpportunityInnovationTemplate({
 }
 
 /* =========================================================================
-   6. UNIT RISK TREATMENT STATUS & ACTION REMINDER NOTICE (MEMORANDUM)
+   6. UNIT RISK TREATMENT STATUS & ACTION REMINDER NOTICE (ATTACHMENT A)
    ========================================================================= */
 export function RiskStatusReminderNoticeTemplate({
   risks,
@@ -915,210 +1401,162 @@ export function RiskStatusReminderNoticeTemplate({
   campusMap,
 }: BasePrintProps) {
   const today = new Date();
-  const activeRisks = risks.filter((r) => r.type === 'Risk');
+  const pendingRisks = risks.filter((r) => r.status !== 'Closed');
 
-  const overdueRisks = activeRisks.filter((r) => {
-    if (r.status === 'Closed') return false;
-    if (!r.targetDate) return false;
-    const target = r.targetDate instanceof Timestamp ? r.targetDate.toDate() : new Date(r.targetDate);
-    return target < today;
-  });
-
-  const inProgressRisks = activeRisks.filter((r) => r.status === 'In Progress' && !overdueRisks.includes(r));
-  const openPendingRisks = activeRisks.filter((r) => r.status === 'Open' && !overdueRisks.includes(r));
-  const closedRisks = activeRisks.filter((r) => r.status === 'Closed');
-
-  const pendingCount = overdueRisks.length + inProgressRisks.length + openPendingRisks.length;
+  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
 
   return (
     <div
-      className="p-8 text-black bg-white max-w-[11.5in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
-      style={{ fontSize: '8.5pt' }}
+      className="memo-attachment-page relative flex flex-col justify-between"
+      style={{
+        width: '8.5in',
+        minHeight: '13in',
+        padding: '0.35in 0.45in 0.65in 0.45in',
+        boxSizing: 'border-box',
+        pageBreakBefore: 'always',
+        breakBefore: 'page',
+      }}
     >
-      {/* 1. INSTITUTIONAL LETTERHEAD */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
-          Republic of the Philippines
-        </p>
-        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
-          ROMBLON STATE UNIVERSITY
-        </h1>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">Quality Assurance Office</h2>
-        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
-      </div>
+      <div>
+        {/* ATTACHMENT TOP HEADER */}
+        <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2.5">
+          <div className="flex items-center gap-2.5">
+            <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <img src="/qa_logo.png" alt="QAO Emblem" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <div>
+              <h2 className="text-[10pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                ROMBLON STATE UNIVERSITY
+              </h2>
+              <h3 className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                QUALITY ASSURANCE OFFICE
+              </h3>
+            </div>
+          </div>
 
-      {/* 2. OFFICIAL MEMORANDUM STRIP */}
-      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
-        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
-          MEMORANDUM: RISK TREATMENT PLAN STATUS & ACTION REMINDER NOTICE
-        </h2>
-        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
-          ISO 21001:2018 Clause 6.1 (Actions to Address Risks & Opportunities) & Institutional QMS Compliance
-        </p>
-      </div>
-
-      {/* 3. MEMORANDUM DETAILS TABLE */}
-      <table className="w-full border-collapse border border-black text-[8.5pt] mb-4">
-        <tbody>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
-            <td className="border border-black p-2 font-mono font-bold w-[35%]">
-              RSU-QAO-RTN-{year}-{format(today, 'MMdd')}
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE ISSUED:</td>
-            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
-          </tr>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">FOR / TO:</td>
-            <td className="border border-black p-2 font-black uppercase text-slate-900">
-              {unitName} ({campusName})
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">MONITORING YEAR:</td>
-            <td className="border border-black p-2 font-bold">Fiscal Year {year}</td>
-          </tr>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">ATTENTION:</td>
-            <td colSpan={3} className="border border-black p-2 font-bold">
-              Unit Head, Risk Leads, QMS Focal Persons & Process Owners
-            </td>
-          </tr>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">SUBJECT:</td>
-            <td colSpan={3} className="border border-black p-2 font-black uppercase underline">
-              COMPLIANCE DIRECTIVE ON OVERDUE AND PENDING RISK TREATMENT ACTIONS & EVIDENCE VERIFICATION
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* 4. SUMMARY STATUS METRIC CARDS */}
-      <div className="grid grid-cols-4 gap-3 mb-4 text-center">
-        <div className="border border-black p-2.5 rounded bg-slate-50">
-          <p className="text-[7pt] font-black uppercase text-slate-600 tracking-wider">Total Unit Risks</p>
-          <p className="text-xl font-black text-slate-900 my-0.5">{activeRisks.length}</p>
-          <p className="text-[7pt] text-slate-600 font-bold">{pendingCount} Action Required</p>
+          <div className="text-right">
+            <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
+              Ref: RSU-QAO-REM-{year}-{format(today, 'MMdd')}
+            </span>
+            <span className="text-[6.8pt] font-bold text-rose-700 font-mono">
+              {pendingRisks.length} Pending Treatment{pendingRisks.length !== 1 ? 's' : ''} Listed
+            </span>
+          </div>
         </div>
-        <div className="border border-rose-600 p-2.5 rounded bg-rose-50/70">
-          <p className="text-[7pt] font-black uppercase text-rose-800 tracking-wider">Overdue Treatments</p>
-          <p className="text-xl font-black text-rose-700 my-0.5">{overdueRisks.length}</p>
-          <p className="text-[7pt] text-rose-700 font-bold">Past Committed Deadline</p>
-        </div>
-        <div className="border border-amber-600 p-2.5 rounded bg-amber-50/70">
-          <p className="text-[7pt] font-black uppercase text-amber-800 tracking-wider">In Progress / Pending</p>
-          <p className="text-xl font-black text-amber-700 my-0.5">{inProgressRisks.length + openPendingRisks.length}</p>
-          <p className="text-[7pt] text-amber-700 font-bold">Active Implementation</p>
-        </div>
-        <div className="border border-emerald-600 p-2.5 rounded bg-emerald-50/70">
-          <p className="text-[7pt] font-black uppercase text-emerald-800 tracking-wider">Closed / Completed</p>
-          <p className="text-xl font-black text-emerald-700 my-0.5">{closedRisks.length}</p>
-          <p className="text-[7pt] text-emerald-700 font-bold">Verified Controls</p>
-        </div>
-      </div>
 
-      {/* 5. DIRECTIVE STATEMENT */}
-      <div className="border-l-4 border-rose-600 bg-rose-50/50 p-2.5 rounded-r text-[8pt] mb-4 text-slate-800 border-y border-r border-slate-300">
-        <p className="font-bold text-rose-900 mb-0.5">COMPLIANCE DIRECTIVE:</p>
-        <p className="leading-snug">
-          Pursuant to RSU QMS & ISO 21001:2018 requirements, all operational units are instructed to expedite pending
-          risk treatment actions, record progress in the digital register, and upload signed verification evidence (Form
-          QAO-00-027) prior to the upcoming Internal Quality Audit.
-        </p>
-      </div>
+        <div className="mb-2">
+          <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
+            ATTACHMENT A: SCHEDULE OF PENDING &amp; OVERDUE RISK TREATMENTS
+          </h2>
+          <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
+            Itemized Inventory of Active Risk Mitigation Commitments and Mandatory Compliance Milestones (AY {year})
+          </p>
+        </div>
 
-      {/* 6. DETAILED ACTION ITEMS TABLE */}
-      <h3 className="text-[8.5pt] font-black uppercase tracking-wider mb-1.5 border-b border-black pb-1 text-center">
-        Unit Risk Treatment Action Inventory & Current Status
-      </h3>
-      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
-        <thead>
-          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-            <th className="border border-black p-1.5 text-center w-[4%]">#</th>
-            <th className="border border-black p-1.5 text-center w-[22%]">Objective & Origin Context</th>
-            <th className="border border-black p-1.5 text-center w-[8%]">Severity</th>
-            <th className="border border-black p-1.5 text-center w-[26%]">Committed Mitigation Strategy</th>
-            <th className="border border-black p-1.5 text-center w-[16%]">Accountable Lead</th>
-            <th className="border border-black p-1.5 text-center w-[10%]">Target Date</th>
-            <th className="border border-black p-1.5 text-center w-[14%]">Current Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {activeRisks.map((r, i) => {
-            const isOverdue = overdueRisks.includes(r);
-            const isClosed = r.status === 'Closed';
-
-            return (
-              <tr
-                key={r.id || i}
-                className={
-                  isOverdue
-                    ? 'bg-rose-50/60 font-medium'
-                    : isClosed
-                      ? 'bg-emerald-50/20'
-                      : i % 2 === 0
-                        ? 'bg-white'
-                        : 'bg-slate-50'
-                }
-              >
-                <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
-                <td className="border border-black p-1.5 align-top">
+        <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
+          <thead>
+            <tr className="bg-slate-100 font-black text-slate-900 uppercase text-[6.8pt]">
+              <th className="border border-slate-900 p-1 text-center w-[4%]">#</th>
+              <th className="border border-slate-900 p-1 text-left w-[24%]">Risk Objective &amp; Cause</th>
+              <th className="border border-slate-900 p-1 text-center w-[10%]">Pre-Rating</th>
+              <th className="border border-slate-900 p-1 text-left w-[26%]">Committed Mitigation Action</th>
+              <th className="border border-slate-900 p-1 text-left w-[18%]">Responsible Lead</th>
+              <th className="border border-slate-900 p-1 text-center w-[10%]">Target Date</th>
+              <th className="border border-slate-900 p-1 text-center w-[8%]">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pendingRisks.map((r, i) => (
+              <tr key={r.id || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                <td className="border border-slate-900 p-1 text-center font-bold">{i + 1}</td>
+                <td className="border border-slate-900 p-1 align-top">
                   {renderOriginBadge(r, campusMap, unitMap)}
-                  <p className="font-bold text-slate-900 leading-snug">{r.objective}</p>
-                  <p className="text-[7.5pt] text-slate-600 line-clamp-2 mt-0.5">{r.description}</p>
+                  <p className="font-bold text-slate-900 leading-snug m-0 text-[7pt]">{r.objective}</p>
                 </td>
                 <td
-                  className="border border-black p-1.5 text-center align-top font-bold"
+                  className="border border-slate-900 p-1 text-center font-bold align-top text-[7pt]"
                   style={{ color: getRatingColor(r.preTreatment?.rating) }}
                 >
                   {r.preTreatment?.rating || '—'}
                 </td>
-                <td className="border border-black p-1.5 align-top font-medium">{r.treatmentAction || '—'}</td>
-                <td className="border border-black p-1.5 align-top font-bold text-slate-900">
+                <td className="border border-slate-900 p-1 align-top text-[6.8pt]">{r.treatmentAction || '—'}</td>
+                <td className="border border-slate-900 p-1 align-top font-bold text-slate-800 text-[6.8pt]">
                   {r.responsiblePersonName || 'Unit Focal Person'}
                 </td>
-                <td className="border border-black p-1.5 text-center align-top font-mono font-bold">
+                <td className="border border-slate-900 p-1 text-center align-top font-mono font-bold text-rose-700 text-[6.8pt]">
                   {safeFormatDate(r.targetDate)}
                 </td>
-                <td className="border border-black p-1.5 text-center align-top font-bold">
-                  {isOverdue ? (
-                    <span className="inline-block px-2 py-0.5 rounded text-[7.5pt] font-black bg-rose-200 text-rose-900 border border-rose-300 shadow-2xs">
-                      ⚠️ OVERDUE
-                    </span>
-                  ) : isClosed ? (
-                    <span className="inline-block px-2 py-0.5 rounded text-[7.5pt] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      ✓ CLOSED
-                    </span>
-                  ) : r.status === 'In Progress' ? (
-                    <span className="inline-block px-2 py-0.5 rounded text-[7.5pt] font-black bg-amber-100 text-amber-800 border border-amber-200">
-                      ⏳ IN PROGRESS
-                    </span>
-                  ) : (
-                    <span className="inline-block px-2 py-0.5 rounded text-[7.5pt] font-black bg-slate-200 text-slate-800 border border-slate-300">
-                      OPEN PENDING
-                    </span>
-                  )}
-                  {r.remindersSent ? (
-                    <p className="text-[6.5pt] text-slate-500 font-normal mt-0.5">Notice #{r.remindersSent}</p>
-                  ) : null}
+                <td className="border border-slate-900 p-1 text-center align-top">
+                  <span
+                    className={`inline-block px-1 py-0.2 rounded text-[6pt] font-black uppercase ${
+                      r.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 'bg-rose-100 text-rose-800'
+                    }`}
+                  >
+                    {r.status}
+                  </span>
                 </td>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            ))}
+          </tbody>
+        </table>
 
-      {/* 7. SIGNATORIES */}
-      <div className="grid grid-cols-2 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
-        <div>
-          <p className="font-bold text-slate-600 mb-5">Issued by Quality Assurance Office:</p>
-          <div className="border-b border-black w-48 mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qmsHead || 'QMS Lead Officer'}</p>
-          <p className="text-[7.5pt] text-slate-500">Quality Management System Division</p>
+        {/* ATTACHMENT SIGNATORIES */}
+        <div className="grid grid-cols-2 gap-6 pt-3 border-t border-slate-300 text-[7.2pt]">
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Certified Accurate by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qmsHead}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Head, Quality Management System (QMS)</p>
+            </div>
+          </div>
+
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Approved for Release by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qaoDirector}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Director, Quality Assurance Office</p>
+            </div>
+          </div>
         </div>
-        <div className="text-right">
-          <p className="font-bold text-slate-600 mb-5">Noted & Endorsed by Director:</p>
-          <div className="border-b border-black w-48 ml-auto mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qaoDirector || 'Director, Quality Assurance'}</p>
-          <p className="text-[7.5pt] text-slate-500">Director, Quality Assurance Office</p>
+      </div>
+
+      {/* ATTACHMENT FOOTER & GREEN BANNER */}
+      <div>
+        <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
+          <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
+          <span className="font-mono font-bold text-slate-800">
+            Form Code: RSU-QAO-RDS-REM (Attachment A) | Rev. 03
+          </span>
+        </div>
+
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
+          </span>
         </div>
       </div>
     </div>
@@ -1126,27 +1564,27 @@ export function RiskStatusReminderNoticeTemplate({
 }
 
 /* =========================================================================
-   7. EOMS & RISK DIGITAL REGISTRY SUBMISSION COMPLIANCE DEFICIENCY AUDIT
+   7. UNIT NON-SUBMISSION & DEFICIENCY AUDIT (ATTACHMENT A)
    ========================================================================= */
 export interface UnitComplianceAuditItem {
   unitId: string;
   unitName: string;
-  campusId: string;
+  campusId?: string;
   campusName: string;
-  firstCycleSubmitted: string[];
-  missingFirstCycle: string[];
-  finalCycleSubmitted: string[];
-  missingFinalCycle: string[];
-  totalRisksLogged: number;
-  openRisksCount: number;
-  inProgressRisksCount: number;
-  closedRisksCount: number;
-  overdueRisksCount: number;
+  firstCycleSubmitted?: string[];
+  missingFirstCycle?: string[];
+  finalCycleSubmitted?: string[];
+  missingFinalCycle?: string[];
+  totalRisksLogged?: number;
+  openRisksCount?: number;
+  inProgressRisksCount?: number;
+  closedRisksCount?: number;
+  overdueRisksCount?: number;
   complianceScore: number;
   complianceStatus: 'Fully Compliant' | 'Partial Submission' | 'Non-Compliant (No Submissions)';
 }
 
-export interface UnitNonSubmissionAuditProps {
+interface UnitNonSubmissionAuditProps {
   auditUnits: UnitComplianceAuditItem[];
   campusName: string;
   year: number;
@@ -1167,269 +1605,218 @@ export function UnitNonSubmissionAuditTemplate({
   const partialUnits = auditUnits.filter((u) => u.complianceStatus === 'Partial Submission');
   const nonCompliantUnits = auditUnits.filter((u) => u.complianceStatus === 'Non-Compliant (No Submissions)');
 
-  const avgScore =
-    totalUnits > 0 ? Math.round(auditUnits.reduce((acc, u) => acc + u.complianceScore, 0) / totalUnits) : 0;
+  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
 
   return (
     <div
-      className="p-8 text-black bg-white max-w-[13in] mx-auto font-sans leading-tight print:p-2 print:max-w-full"
-      style={{ fontSize: '8.5pt' }}
+      className="memo-attachment-page relative flex flex-col justify-between"
+      style={{
+        width: '8.5in',
+        minHeight: '13in',
+        padding: '0.35in 0.45in 0.65in 0.45in',
+        boxSizing: 'border-box',
+        pageBreakBefore: 'always',
+        breakBefore: 'page',
+      }}
     >
-      {/* 1. INSTITUTIONAL LETTERHEAD */}
-      <div className="text-center border-b-2 border-black pb-3 mb-4">
-        <p className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-700 m-0">
-          Republic of the Philippines
-        </p>
-        <h1 className="text-base md:text-lg font-black uppercase tracking-tight text-slate-900 m-0 my-1">
-          ROMBLON STATE UNIVERSITY
-        </h1>
-        <h2 className="text-xs font-bold uppercase tracking-wide text-slate-800 m-0">
-          Quality Assurance Office • Institutional Quality Management Council
-        </h2>
-        <p className="text-[8pt] italic text-slate-600 m-0">Main Campus, Odiongan, Romblon</p>
-      </div>
+      <div>
+        {/* ATTACHMENT TOP HEADER */}
+        <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2.5">
+          <div className="flex items-center gap-2.5">
+            <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <img src="/qa_logo.png" alt="QAO Emblem" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+            <div>
+              <h2 className="text-[10pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                ROMBLON STATE UNIVERSITY
+              </h2>
+              <h3 className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                QUALITY ASSURANCE OFFICE
+              </h3>
+            </div>
+          </div>
 
-      {/* 2. OFFICIAL MEMORANDUM STRIP */}
-      <div className="border-y-2 border-black py-2 mb-4 bg-slate-50 text-center">
-        <h2 className="text-xs font-black uppercase tracking-[0.15em] text-slate-900 m-0">
-          EXECUTIVE DECISION-SUPPORT: EOMS & RISK DIGITAL REGISTRY SUBMISSION DEFICIENCY AUDIT
-        </h2>
-        <p className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-600 m-0 mt-0.5">
-          Auditing Unit Document Submissions in EOMS Submission Hub & Digital Risk & Opportunity Registry — Fiscal Year{' '}
-          {year}
-        </p>
-      </div>
-
-      {/* 3. METADATA TABLE */}
-      <table className="w-full border-collapse border border-black text-[8.5pt] mb-4">
-        <tbody>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">REF NO:</td>
-            <td className="border border-black p-2 font-mono font-bold w-[35%]">
-              RSU-QAO-DEF-{year}-{format(today, 'MMdd')}
-            </td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase w-[15%]">DATE ISSUED:</td>
-            <td className="border border-black p-2 font-bold w-[35%]">{format(today, 'MMMM d, yyyy')}</td>
-          </tr>
-          <tr>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">AUDITED SCOPE:</td>
-            <td className="border border-black p-2 font-black uppercase text-slate-900">{campusName}</td>
-            <td className="border border-black p-2 font-bold bg-slate-100 uppercase">TARGET CYCLE:</td>
-            <td className="border border-black p-2 font-bold">
-              {currentCycle === 'first' ? '1st Monitoring Cycle' : 'Final / Annual Evaluation Cycle'} (FY {year})
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      {/* 4. EXECUTIVE SUMMARY METRICS */}
-      <div className="grid grid-cols-4 gap-3 mb-4 text-center">
-        <div className="border border-black p-2.5 rounded bg-slate-50">
-          <p className="text-[7pt] font-black uppercase text-slate-600 tracking-wider">Total Audited Units</p>
-          <p className="text-xl font-black text-slate-900 my-0.5">{totalUnits}</p>
-          <p className="text-[7pt] text-slate-600 font-bold">Across Monitored Campus Scope</p>
+          <div className="text-right">
+            <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
+              Ref: RSU-QAO-DEF-{year}-{format(today, 'MMdd')}
+            </span>
+            <span className="text-[6.8pt] font-bold text-slate-700">
+              {campusName} • {currentCycle === 'first' ? '1st Cycle' : 'Final Cycle'} (AY {year})
+            </span>
+          </div>
         </div>
-        <div className="border border-emerald-600 p-2.5 rounded bg-emerald-50/70">
-          <p className="text-[7pt] font-black uppercase text-emerald-800 tracking-wider">100% Fully Compliant</p>
-          <p className="text-xl font-black text-emerald-700 my-0.5">{compliantUnits.length}</p>
-          <p className="text-[7pt] text-emerald-700 font-bold">
-            {totalUnits > 0 ? Math.round((compliantUnits.length / totalUnits) * 100) : 0}% Compliance Rate
+
+        <div className="mb-2">
+          <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
+            ATTACHMENT A: EOMS &amp; RISK DIGITAL REGISTRY NON-SUBMISSION &amp; DEFICIENCY AUDIT
+          </h2>
+          <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
+            Auditing Unit Document Submissions in EOMS Submission Hub &amp; Digital Risk &amp; Opportunity Registry (FY{' '}
+            {year})
           </p>
         </div>
-        <div className="border border-amber-600 p-2.5 rounded bg-amber-50/70">
-          <p className="text-[7pt] font-black uppercase text-amber-800 tracking-wider">Partially Deficient Units</p>
-          <p className="text-xl font-black text-amber-700 my-0.5">{partialUnits.length}</p>
-          <p className="text-[7pt] text-amber-700 font-bold">Missing Select Docs or ROR</p>
+
+        {/* SUMMARY METRICS */}
+        <div className="grid grid-cols-4 gap-2 mb-3 text-center">
+          <div className="border border-slate-900 p-1.5 rounded bg-slate-50">
+            <p className="text-[6.5pt] font-black uppercase text-slate-600">Total Units</p>
+            <p className="text-lg font-black text-slate-900 my-0.2">{totalUnits}</p>
+            <p className="text-[6.2pt] text-slate-600 font-bold">Evaluated</p>
+          </div>
+          <div className="border border-emerald-600 p-1.5 rounded bg-emerald-50/70">
+            <p className="text-[6.5pt] font-black uppercase text-emerald-800">100% Compliant</p>
+            <p className="text-lg font-black text-emerald-700 my-0.2">{compliantUnits.length}</p>
+            <p className="text-[6.2pt] text-emerald-700 font-bold">
+              {totalUnits > 0 ? Math.round((compliantUnits.length / totalUnits) * 100) : 0}% Rate
+            </p>
+          </div>
+          <div className="border border-amber-600 p-1.5 rounded bg-amber-50/70">
+            <p className="text-[6.5pt] font-black uppercase text-amber-800">Partially Deficient</p>
+            <p className="text-lg font-black text-amber-700 my-0.2">{partialUnits.length}</p>
+            <p className="text-[6.2pt] text-amber-700 font-bold">Missing Docs</p>
+          </div>
+          <div className="border border-rose-600 p-1.5 rounded bg-rose-50/70">
+            <p className="text-[6.5pt] font-black uppercase text-rose-800">Non-Compliant (0)</p>
+            <p className="text-lg font-black text-rose-700 my-0.2">{nonCompliantUnits.length}</p>
+            <p className="text-[6.2pt] text-rose-700 font-bold">Zero Records</p>
+          </div>
         </div>
-        <div className="border border-rose-600 p-2.5 rounded bg-rose-50/70">
-          <p className="text-[7pt] font-black uppercase text-rose-800 tracking-wider">
-            Critical Non-Submission (0 Docs)
-          </p>
-          <p className="text-xl font-black text-rose-700 my-0.5">{nonCompliantUnits.length}</p>
-          <p className="text-[7pt] text-rose-700 font-bold">Zero EOMS & Risk Records</p>
-        </div>
-      </div>
 
-      {/* 5. EXECUTIVE DIRECTIVE BOX */}
-      <div className="border-l-4 border-rose-600 bg-rose-50/50 p-2.5 rounded-r text-[8pt] mb-4 text-slate-800 border-y border-r border-slate-300">
-        <p className="font-bold text-rose-900 mb-0.5">EXECUTIVE COMPLIANCE DIRECTIVE:</p>
-        <p className="leading-snug">
-          Pursuant to ISO 21001:2018 Clause 6.1 and RSU Institutional Quality Mandates, all unit heads, deans,
-          directors, and QMS focal coordinators listed below with <strong>PARTIAL</strong> or{' '}
-          <strong>CRITICAL DEFICIENCIES</strong> are strictly directed to upload missing EOMS documents into the EOMS
-          Submission Hub and encode their complete digital risk registers immediately.
-        </p>
-      </div>
+        <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
+          <thead>
+            <tr className="bg-slate-100 font-black text-slate-900 uppercase text-[6.8pt]">
+              <th className="border border-slate-900 p-1 text-center w-[4%]">#</th>
+              <th className="border border-slate-900 p-1 text-left w-[20%]">Campus &amp; Unit</th>
+              <th className="border border-slate-900 p-1 text-center w-[12%]">EOMS 1st Cycle</th>
+              <th className="border border-slate-900 p-1 text-center w-[12%]">EOMS Final</th>
+              <th className="border border-slate-900 p-1 text-center w-[12%]">Risk ROR</th>
+              <th className="border border-slate-900 p-1 text-left w-[24%]">Specific Missing Items</th>
+              <th className="border border-slate-900 p-1 text-center w-[8%]">Score</th>
+              <th className="border border-slate-900 p-1 text-center w-[8%]">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {auditUnits.map((u, i) => {
+              const missingDocs = [
+                ...(u.missingFirstCycle?.map((d) => `${d} (1st)`) || []),
+                ...(u.missingFinalCycle?.map((d) => `${d} (Final)`) || []),
+              ];
 
-      {/* 6. DETAILED AUDIT MATRIX TABLE */}
-      <h3 className="text-[8.5pt] font-black uppercase tracking-wider mb-1.5 border-b border-black pb-1 text-center">
-        Complete Unit Submission Deficiency & Risk Registry Matrix
-      </h3>
-      <table className="w-full border-collapse border-2 border-black text-[8pt] mb-6">
-        <thead>
-          <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-            <th className="border border-black p-1.5 text-center w-[3%]">#</th>
-            <th className="border border-black p-1.5 text-left w-[24%]">Unit / Department & Campus Origin</th>
-            <th className="border border-black p-1.5 text-center w-[22%]">EOMS 1st Cycle Docs (6 Total)</th>
-            <th className="border border-black p-1.5 text-center w-[22%]">EOMS Final Cycle Docs (6 Total)</th>
-            <th className="border border-black p-1.5 text-center w-[16%]">Digital Risk Registry (ROR)</th>
-            <th className="border border-black p-1.5 text-center w-[6%]">Health</th>
-            <th className="border border-black p-1.5 text-center w-[10%]">Status Verdict</th>
-          </tr>
-        </thead>
-        <tbody>
-          {auditUnits.map((u, i) => {
-            const isZero = u.complianceStatus === 'Non-Compliant (No Submissions)';
-            const isCompliant = u.complianceStatus === 'Fully Compliant';
-
-            return (
-              <tr
-                key={u.unitId || i}
-                className={
-                  isZero
-                    ? 'bg-rose-50/60 font-medium'
-                    : isCompliant
-                      ? 'bg-emerald-50/20'
-                      : i % 2 === 0
-                        ? 'bg-white'
-                        : 'bg-slate-50'
-                }
-              >
-                <td className="border border-black p-1.5 text-center font-bold">{i + 1}</td>
-                <td className="border border-black p-1.5 align-top">
-                  <div className="flex flex-wrap items-center gap-1 mb-1">
-                    <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-slate-100 text-slate-800 text-[6.5pt] font-black uppercase tracking-tight border border-slate-300">
-                      🏛️ {u.campusName}
-                    </span>
-                    <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-blue-50 text-blue-900 text-[6.5pt] font-black uppercase tracking-tight border border-blue-200">
-                      🏢 {u.unitName}
-                    </span>
-                  </div>
-                  <p className="font-bold text-slate-900 leading-snug">{u.unitName}</p>
-                </td>
-
-                {/* 1ST CYCLE EOMS */}
-                <td className="border border-black p-1.5 align-top">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="font-bold text-slate-800">{u.firstCycleSubmitted.length} / 6 Submitted</span>
-                    <span
-                      className={cn(
-                        'text-[7pt] font-black',
-                        u.missingFirstCycle.length === 0 ? 'text-emerald-700' : 'text-rose-700',
-                      )}
-                    >
-                      {u.missingFirstCycle.length === 0 ? '✓ COMPLETE' : `⚠️ ${u.missingFirstCycle.length} MISSING`}
-                    </span>
-                  </div>
-                  {u.missingFirstCycle.length > 0 && (
-                    <div className="text-[7pt] text-rose-800 bg-rose-100/50 p-1 rounded mt-1 border border-rose-200">
-                      <span className="font-bold">Missing: </span>
-                      {u.missingFirstCycle.join(', ')}
-                    </div>
-                  )}
-                </td>
-
-                {/* FINAL CYCLE EOMS */}
-                <td className="border border-black p-1.5 align-top">
-                  <div className="flex items-center justify-between mb-0.5">
-                    <span className="font-bold text-slate-800">{u.finalCycleSubmitted.length} / 6 Submitted</span>
-                    <span
-                      className={cn(
-                        'text-[7pt] font-black',
-                        u.missingFinalCycle.length === 0 ? 'text-emerald-700' : 'text-rose-700',
-                      )}
-                    >
-                      {u.missingFinalCycle.length === 0 ? '✓ COMPLETE' : `⚠️ ${u.missingFinalCycle.length} MISSING`}
-                    </span>
-                  </div>
-                  {u.missingFinalCycle.length > 0 && (
-                    <div className="text-[7pt] text-rose-800 bg-rose-100/50 p-1 rounded mt-1 border border-rose-200">
-                      <span className="font-bold">Missing: </span>
-                      {u.missingFinalCycle.join(', ')}
-                    </div>
-                  )}
-                </td>
-
-                {/* DIGITAL RISK REGISTRY */}
-                <td className="border border-black p-1.5 align-top text-center">
-                  {u.totalRisksLogged > 0 ? (
-                    <div>
-                      <span className="font-black text-slate-900 text-[8pt] block">
-                        ✓ {u.totalRisksLogged} Risks Logged
-                      </span>
-                      <span className="text-[7pt] text-slate-600 font-bold block mt-0.5">
-                        {u.closedRisksCount} Closed | {u.inProgressRisksCount + u.openRisksCount} Active
-                      </span>
-                      {u.overdueRisksCount > 0 && (
-                        <span className="inline-block mt-0.5 text-[6.5pt] font-black text-rose-700 bg-rose-100 px-1 py-0.2 rounded">
-                          ⚠️ {u.overdueRisksCount} Overdue
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="bg-rose-100/70 p-1 rounded border border-rose-300 text-rose-800 font-black text-[7pt]">
-                      🚨 0 RISKS REGISTERED
-                    </div>
-                  )}
-                </td>
-
-                {/* HEALTH SCORE */}
-                <td className="border border-black p-1.5 text-center align-top font-black tabular-nums">
-                  <span
-                    className={cn(
-                      'text-[9pt]',
-                      u.complianceScore >= 90
-                        ? 'text-emerald-700'
-                        : u.complianceScore >= 50
-                          ? 'text-amber-700'
-                          : 'text-rose-700',
+              return (
+                <tr key={u.unitId || i} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                  <td className="border border-slate-900 p-1 text-center font-bold">{i + 1}</td>
+                  <td className="border border-slate-900 p-1 font-bold text-slate-900">
+                    <span className="text-[6.5pt] text-slate-500 block uppercase font-mono">{u.campusName}</span>
+                    <span className="text-[7.2pt] uppercase font-black">{u.unitName}</span>
+                  </td>
+                  <td className="border border-slate-900 p-1 text-center font-mono font-bold text-[7pt]">
+                    {u.firstCycleSubmitted?.length || 0} / 6
+                  </td>
+                  <td className="border border-slate-900 p-1 text-center font-mono font-bold text-[7pt]">
+                    {u.finalCycleSubmitted?.length || 0} / 6
+                  </td>
+                  <td className="border border-slate-900 p-1 text-center font-mono font-bold text-[7pt]">
+                    {u.totalRisksLogged && u.totalRisksLogged > 0
+                      ? `${u.totalRisksLogged} Risks (${u.closedRisksCount || 0} closed)`
+                      : 'NO ROR'}
+                  </td>
+                  <td className="border border-slate-900 p-1 text-[6.5pt] text-slate-700">
+                    {missingDocs.length > 0 ? (
+                      <ul className="list-disc pl-3 space-y-0.2 m-0">
+                        {missingDocs.slice(0, 3).map((d, di) => (
+                          <li key={di}>{d}</li>
+                        ))}
+                        {missingDocs.length > 3 && (
+                          <li className="font-bold text-rose-700">+{missingDocs.length - 3} more missing</li>
+                        )}
+                      </ul>
+                    ) : (
+                      <span className="text-emerald-700 font-bold">Complete EOMS Docs</span>
                     )}
-                  >
+                  </td>
+                  <td className="border border-slate-900 p-1 text-center font-black text-[7.2pt]">
                     {u.complianceScore}%
-                  </span>
-                </td>
+                  </td>
+                  <td className="border border-slate-900 p-1 text-center">
+                    <span
+                      className={`inline-block px-1.5 py-0.2 rounded text-[6pt] font-black uppercase ${
+                        u.complianceStatus === 'Fully Compliant'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : u.complianceStatus === 'Partial Submission'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-rose-100 text-rose-800'
+                      }`}
+                    >
+                      {u.complianceStatus === 'Fully Compliant'
+                        ? 'COMPLIANT'
+                        : u.complianceStatus === 'Partial Submission'
+                          ? 'PARTIAL'
+                          : 'NON-COMPLIANT'}
+                    </span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
 
-                {/* STATUS VERDICT */}
-                <td className="border border-black p-1.5 text-center align-top font-bold">
-                  {isCompliant ? (
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[7pt] font-black bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      ✓ COMPLIANT
-                    </span>
-                  ) : isZero ? (
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[7pt] font-black bg-rose-200 text-rose-900 border border-rose-300 shadow-2xs">
-                      🚨 NO SUBMISSION
-                    </span>
-                  ) : (
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[7pt] font-black bg-amber-100 text-amber-800 border border-amber-300">
-                      ⚠️ DEFICIENT
-                    </span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+        {/* ATTACHMENT SIGNATORIES */}
+        <div className="grid grid-cols-2 gap-6 pt-3 border-t border-slate-300 text-[7.2pt]">
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Certified Accurate by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qmsHead}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Head, Quality Management System (QMS)</p>
+            </div>
+          </div>
 
-      {/* 7. SIGNATORIES */}
-      <div className="grid grid-cols-3 gap-8 text-[8.5pt] pt-4 border-t border-slate-300">
-        <div>
-          <p className="font-bold text-slate-600 mb-5">Audit Conducted by:</p>
-          <div className="border-b border-black w-48 mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qmsHead || 'QMS Lead Auditor'}</p>
-          <p className="text-[7.5pt] text-slate-500">Quality Management Systems Division</p>
+          <div>
+            <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Approved for Release by:</p>
+            <div className="pt-3">
+              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt] m-0">
+                {qaoDirector}
+              </p>
+              <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5 m-0">Director, Quality Assurance Office</p>
+            </div>
+          </div>
         </div>
-        <div>
-          <p className="font-bold text-slate-600 mb-5">Noted & Endorsed by:</p>
-          <div className="border-b border-black w-48 mb-1"></div>
-          <p className="font-black uppercase">{signatories?.qaoDirector || 'Director, Quality Assurance'}</p>
-          <p className="text-[7.5pt] text-slate-500">Quality Assurance Office</p>
+      </div>
+
+      {/* ATTACHMENT FOOTER & GREEN BANNER */}
+      <div>
+        <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
+          <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
+          <span className="font-mono font-bold text-slate-800">
+            Form Code: RSU-QAO-RDS-DEF (Attachment A) | Rev. 03
+          </span>
         </div>
-        <div className="text-right">
-          <p className="font-bold text-slate-600 mb-5">Confirmed for Executive Action:</p>
-          <div className="border-b border-black w-48 ml-auto mb-1"></div>
-          <p className="font-black uppercase">Office of the University President</p>
-          <p className="text-[7.5pt] text-slate-500">Executive Administration</p>
+
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
+          </span>
         </div>
       </div>
     </div>

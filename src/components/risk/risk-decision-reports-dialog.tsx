@@ -37,6 +37,7 @@ import {
   OpportunityInnovationTemplate,
   RiskStatusReminderNoticeTemplate,
   UnitNonSubmissionAuditTemplate,
+  RiskDecisionMemorandumPage,
   type UnitComplianceAuditItem,
 } from '@/components/risk/risk-decision-print-templates';
 import { cn, normalizeReportType } from '@/lib/utils';
@@ -379,25 +380,50 @@ export function RiskDecisionReportsDialog({
   const handleExecutePrint = () => {
     try {
       let reportsHtml = '';
+      const reportOption = REPORT_OPTIONS.find((r) => r.id === selectedReportId);
+      const reportTitle = reportOption?.title || 'Decision-Support Report';
 
       if (selectedReportId === 'non-submission-audit') {
         if (targetAuditUnits.length === 0) return;
 
+        const campusScopeName =
+          selectedCampusScope === 'all'
+            ? 'All Campuses (University-Wide)'
+            : campusMap.get(selectedCampusScope) || 'Institutional';
+        const unitScopeName =
+          selectedUnitScope === 'all'
+            ? 'All Audited Units'
+            : allUnits?.find((u) => u.id === selectedUnitScope)?.name || 'Audited Unit';
+
+        const memoPage = (
+          <RiskDecisionMemorandumPage
+            reportId={selectedReportId}
+            reportTitle={reportTitle}
+            unitName={unitScopeName}
+            campusName={campusScopeName}
+            year={activeYear}
+            signatories={signatories}
+            cycle={cycle}
+            totalItemsCount={targetAuditUnits.length}
+          />
+        );
+
         const templateNode = (
           <UnitNonSubmissionAuditTemplate
             auditUnits={targetAuditUnits}
-            campusName={
-              selectedCampusScope === 'all'
-                ? 'All Campuses (University-Wide)'
-                : campusMap.get(selectedCampusScope) || 'Institutional'
-            }
+            campusName={campusScopeName}
             year={activeYear}
             signatories={signatories}
             currentCycle={cycle}
           />
         );
 
-        reportsHtml = `<div class="print-page-break">${renderToStaticMarkup(templateNode)}</div>`;
+        reportsHtml = `<div class="memo-root-document text-black bg-white mx-auto print:p-0 print:max-w-full" style="width: 8.5in;">${renderToStaticMarkup(
+          <div>
+            {memoPage}
+            {templateNode}
+          </div>,
+        )}</div>`;
       } else {
         if (targetUnitGroups.length === 0) return;
 
@@ -502,7 +528,25 @@ export function RiskDecisionReportsDialog({
                 break;
             }
 
-            return `<div key="${unitId}" class="print-page-break">${renderToStaticMarkup(templateNode)}</div>`;
+            const memoPage = (
+              <RiskDecisionMemorandumPage
+                reportId={selectedReportId}
+                reportTitle={reportTitle}
+                unitName={unitName}
+                campusName={campusName}
+                year={activeYear}
+                signatories={signatories}
+                cycle={cycle}
+                totalItemsCount={uRisks.length}
+              />
+            );
+
+            return `<div key="${unitId}" class="memo-root-document text-black bg-white mx-auto print:p-0 print:max-w-full" style="width: 8.5in; margin-bottom: 30px;">${renderToStaticMarkup(
+              <div>
+                {memoPage}
+                {templateNode}
+              </div>,
+            )}</div>`;
           })
           .join('');
       }
@@ -514,37 +558,52 @@ export function RiskDecisionReportsDialog({
           <!DOCTYPE html>
           <html>
           <head>
-              <title>${REPORT_OPTIONS.find((r) => r.id === selectedReportId)?.title || 'Decision Report'} - AY ${activeYear}</title>
-              <script src="https://cdn.tailwindcss.com"></script>
+              <title>QA Memorandum - ${reportTitle} (AY ${activeYear})</title>
+              <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
               <style>
                   @page { 
-                      size: ${REPORT_OPTIONS.find((r) => r.id === selectedReportId)?.pageSize || '11in 8.5in'}; 
-                      margin: 0; 
+                      size: 8.5in 13in !important; 
+                      margin: 0 !important; 
                   }
                   @media print { 
                       html, body { 
-                          margin: 0; 
-                          padding: 0; 
-                          background: white; 
-                          -webkit-print-color-adjust: exact; 
-                          print-color-adjust: exact;
+                          margin: 0 !important; 
+                          padding: 0 !important; 
+                          background: white !important; 
+                          -webkit-print-color-adjust: exact !important; 
+                          print-color-adjust: exact !important;
                           font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
                       } 
                       .no-print { display: none !important; } 
-                      .print-page-break { 
-                          page-break-after: always; 
-                          padding: 0.35in; 
-                          box-sizing: border-box; 
-                          overflow: hidden; 
-                          display: block; 
-                          position: relative; 
-                          background: white;
-                      } 
+                      #print-content { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+                      .memo-root-document { padding: 0 !important; width: 100% !important; }
+                      .memo-page-1 {
+                          page-break-after: always !important;
+                          break-after: page !important;
+                          page-break-inside: avoid !important;
+                          break-inside: avoid !important;
+                          position: relative !important;
+                          box-sizing: border-box !important;
+                          padding: 0.35in 0.45in 0.65in 0.45in !important;
+                      }
+                      .memo-attachment-page {
+                          page-break-before: always !important;
+                          break-before: page !important;
+                          position: relative !important;
+                          box-sizing: border-box !important;
+                          padding: 0.35in 0.45in 0.65in 0.45in !important;
+                      }
+                      .memo-footer-banner {
+                          position: absolute !important;
+                          bottom: 0.25in !important;
+                          left: 0.45in !important;
+                          right: 0.45in !important;
+                      }
                   } 
                   body { 
                       font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-                      background: #f8fafc; 
-                      padding: 0; 
+                      background: #f1f5f9; 
+                      padding: 20px; 
                       color: black; 
                   }
                   table { border-collapse: collapse !important; width: 100% !important; }
@@ -552,14 +611,12 @@ export function RiskDecisionReportsDialog({
               </style>
           </head>
           <body>
-              ${reportsHtml}
-              <script>
-                  window.onload = function() {
-                      setTimeout(function() {
-                          window.print();
-                      }, 500);
-                  };
-              </script>
+              <div class="no-print mb-6 flex justify-center">
+                  <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print QA Memorandum (Folio 8.5x13 Format)</button>
+              </div>
+              <div id="print-content">
+                  ${reportsHtml}
+              </div>
           </body>
           </html>
         `);

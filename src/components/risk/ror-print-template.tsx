@@ -621,27 +621,57 @@ export function RORPrintTemplate({
       {/* 5. FOOTER CONTROL INFO */}
       <div
         style={{
-          marginTop: '40px',
+          marginTop: '30px',
           paddingTop: '10px',
-          borderTop: '2px solid #eee',
+          borderTop: '1px solid #ddd',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-end',
-          fontSize: '8pt',
-          color: '#999',
+          fontSize: '7pt',
+          color: '#666',
           fontStyle: 'italic',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <p style={{ fontWeight: '900', color: 'black', fontStyle: 'normal' }}>Form: QAO-03-002 | REV 03-2025</p>
-          <p>Creation Date: 2021-02-14 | Revision Date: 2025-02-10</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+          <p style={{ fontWeight: '900', color: 'black', fontStyle: 'normal', margin: 0 }}>
+            Form Code: RSU-QAO-ROR-002 (Attachment A) | Rev. 03
+          </p>
+          <p style={{ margin: 0 }}>Creation Date: 2021-02-14 | Revision Date: 2025-02-10</p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <p style={{ fontSize: '12pt', fontWeight: '900', color: 'black', fontStyle: 'normal' }}>
+          <p style={{ fontSize: '9pt', fontWeight: '900', color: 'black', fontStyle: 'normal', margin: 0 }}>
             ROR Registry Year: {year}
           </p>
-          <p style={{ marginTop: '2px' }}>Authenticated via RSU EOMS Digital Portal</p>
+          <p style={{ margin: 0 }}>Authenticated via RSU EOMS Digital Portal</p>
         </div>
+      </div>
+
+      {/* 6. OFFICIAL GREEN-GOLD BOTTOM FOOTER BANNER */}
+      <div
+        className="memo-footer-banner w-full"
+        style={{
+          height: '24px',
+          marginTop: '10px',
+          background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+        }}
+      >
+        <span
+          style={{
+            color: '#ffffff',
+            fontFamily: 'Georgia, Cambria, serif',
+            fontSize: '7.5pt',
+            fontWeight: 'bold',
+            fontStyle: 'italic',
+            letterSpacing: '0.04em',
+          }}
+        >
+          Serving with Honor and Excellence!
+        </span>
       </div>
     </div>
   );
