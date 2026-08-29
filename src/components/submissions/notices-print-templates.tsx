@@ -36,9 +36,8 @@ interface CampusNoticeProps {
 
 /**
  * NOTICE OF NON-COMPLIANCE TEMPLATE (UNIT LEVEL)
- * Optimized for Folio (8.5 x 13) with 11pt typography and single spacing.
- * Aligns Unit Name and Campus under the FOR: label.
- * Signatories: Name on first line, Title on second line, no solid line.
+ * Official 1-page Folio (8.5 x 13) Memorandum layout with institutional letterhead,
+ * left sidebar (Vision, Mission, Policy, Core Values), metadata table, and green-gold footer.
  */
 export function NoticeOfNonCompliance({
   unitName,
@@ -49,181 +48,355 @@ export function NoticeOfNonCompliance({
   qaoDirector,
   qmsHead,
 }: NoticeProps) {
-  const isPresident = unitName.toLowerCase().includes('president');
-  const isVP = unitName.toLowerCase().includes('vice president');
-
-  let designationLine = 'THE UNIT HEAD / DIRECTOR / DEAN / PROGRAM CHAIR';
-  let unitLine = unitName.toUpperCase();
-  const campusLine = campusName.toUpperCase();
-  let thruLine: string | null = null;
-
-  if (isPresident) {
-    designationLine = 'THE UNIVERSITY PRESIDENT';
-    unitLine = 'OFFICE OF THE UNIVERSITY PRESIDENT';
-  } else if (isVP) {
-    designationLine = 'THE VICE PRESIDENT';
-    unitLine = unitName.toUpperCase();
-  } else if (!campusName.toLowerCase().includes('main campus')) {
-    thruLine = `THE CAMPUS DIRECTOR, ${campusName.toUpperCase()}`;
-  }
-
+  const formattedDate = format(new Date(), 'MMMM d, yyyy').toUpperCase();
+  const generatedRefNo = `RSU-QAO-NNC-${year}-${format(new Date(), 'MMdd')}`;
   const isFirstCompliant = missingFirst.length === 0;
+  const isFinalCompliant = missingFinal.length === 0;
+
+  const directorName = qaoDirector || 'SARAH JANE F. FALLARIA';
+  const qmsHeadName = qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
 
   return (
     <div
-      className="p-12 text-black dark:text-white bg-white max-w-[8.5in] mx-auto font-serif leading-tight"
-      style={{ fontSize: '11pt' }}
+      className="memo-root-document text-black bg-white mx-auto print:p-0 print:max-w-full"
+      style={{
+        width: '8.5in',
+        boxSizing: 'border-box',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      }}
     >
-      {/* Institutional Header */}
-      <div className="text-center border-b-2 border-black pb-4 mb-8">
-        <div className="space-y-1">
-          <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '14pt' }}>
-            Romblon State University
-          </h1>
-          <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '12pt' }}>
-            Quality Assurance Office
-          </h2>
-          <p className="text-[9pt] italic">Main Campus, Odiongan, Romblon</p>
-        </div>
-      </div>
+      <div
+        className="memo-page-1 relative flex flex-col justify-between"
+        style={{
+          width: '8.5in',
+          minHeight: '13in',
+          height: '13in',
+          maxHeight: '13in',
+          padding: '0.35in 0.45in 0.65in 0.45in',
+          boxSizing: 'border-box',
+          pageBreakInside: 'avoid',
+          breakInside: 'avoid',
+          pageBreakAfter: 'always',
+          breakAfter: 'page',
+        }}
+      >
+        <div>
+          {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
+          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2">
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/rsulogo.png"
+                alt="RSU Official Seal"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
+              <img
+                src="/qa_logo.png"
+                alt="QAO Emblem"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
 
-      <div className="flex justify-between mb-8">
-        <div className="space-y-0.5">
-          <p className="font-bold uppercase">MEMORANDUM</p>
-          <p className="text-[9pt] font-mono">
-            Ref No: RSU-QAO-NNC-{year}-{format(new Date(), 'MMdd')}
-          </p>
-        </div>
-        <p className="font-bold">{format(new Date(), 'MMMM d, yyyy')}</p>
-      </div>
+              <div>
+                <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                  ROMBLON STATE UNIVERSITY
+                </h1>
+                <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                  QUALITY ASSURANCE OFFICE
+                </h2>
+                <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
+                  3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
+                  <br />
+                  Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
+                </p>
+              </div>
+            </div>
 
-      <div className="space-y-3 mb-10">
-        <div className="grid grid-cols-12 gap-2">
-          <span className="col-span-1 font-bold uppercase">FOR:</span>
-          <div className="col-span-11 space-y-0.5">
-            <p className="font-bold uppercase">{designationLine}</p>
-            <p className="font-bold uppercase">{unitLine}</p>
-            <p className="font-bold uppercase">{campusLine}</p>
+            <div className="flex items-center pl-2">
+              <img
+                src="/ISOlogo.jpg"
+                alt="ISO 9001:2015 TÜV Rheinland Certified"
+                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+              />
+            </div>
+          </div>
+
+          {/* 2. TWO-COLUMN FOLIO LAYOUT */}
+          <div className="grid grid-cols-12 gap-3.5 items-start">
+            {/* LEFT SIDEBAR: RSU VISION, MISSION, QUALITY POLICY, CORE VALUES */}
+            <div
+              className="col-span-3 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none pr-2"
+              style={{ fontFamily: 'Georgia, Cambria, serif' }}
+            >
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Vision</strong>
+                <p className="m-0 text-justify leading-tight">
+                  A research-based academic institution committed to excellence and service in nurturing globally
+                  competitive workforce towards sustainable development.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Mission</strong>
+                <p className="m-0 text-justify leading-tight">
+                  Romblon State University shall nurture an academic environment that provides advanced education,
+                  higher technological and professional instruction and technical expertise in agriculture and
+                  fisheries, forestry, engineering and technology, education, humanities, sciences and other relevant
+                  fields of study and collaborate with other institutions and communities through responsive, relevant
+                  and research-based extension services.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Quality Policy
+                </strong>
+                <p className="m-0 text-justify leading-tight">
+                  Romblon State University commits to provide higher education through quality instruction, research,
+                  production, and community-based extension services that meet or exceed the requirements and
+                  expectations of the university's stakeholders. It will comply with international standards, applicable
+                  statutory and regulatory requirements, and continually improve the Quality Management System's
+                  effectiveness through periodic monitoring and evaluation toward sustained remarkable outcomes.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Core Values
+                </strong>
+                <div className="space-y-0 pl-1 text-[5.2pt]">
+                  <div>Stewardship</div>
+                  <div>Competence</div>
+                  <div>Resilience</div>
+                  <div>Integrity</div>
+                  <div>Balance</div>
+                  <div>Excellence</div>
+                  <div>Service</div>
+                </div>
+                <p className="m-0 mt-0.5 text-[5pt] text-slate-400 text-justify leading-tight">
+                  These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
+                  recognized HEI in the region and beyond.
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT MAIN COLUMN: MEMORANDUM HEADER & NARRATIVE */}
+            <div className="col-span-9 space-y-1 text-slate-900">
+              {/* DOCUMENT CLASSIFICATION & REF NO */}
+              <div>
+                <h3 className="text-[10pt] font-black text-slate-900 tracking-tight leading-none m-0">QA Memorandum</h3>
+                <p className="text-[8.5pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
+              </div>
+
+              {/* TABULAR METADATA BLOCK */}
+              <div className="space-y-0.5 pt-0.5 text-[7.2pt]">
+                {/* TO ROW */}
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
+                    <div className="leading-tight">THE UNIT HEAD / DEAN / PROGRAM CHAIR, {unitName.toUpperCase()}</div>
+                    <div className="text-[7pt] font-semibold normal-case text-slate-600">
+                      {campusName.toUpperCase()} — Romblon State University
+                    </div>
+                  </div>
+                </div>
+
+                {/* FROM ROW */}
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">FROM</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{qmsHeadName}</span>
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      Head, Quality Management System (QMS)
+                    </span>
+                  </div>
+                </div>
+
+                {/* NOTED ROW */}
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{directorName}</span>
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      Director, Quality Assurance Office
+                    </span>
+                  </div>
+                </div>
+
+                {/* SUBJECT ROW */}
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900 leading-snug">
+                    NOTICE OF NON-COMPLIANCE: OUTSTANDING EOMS MANDATORY SUBMISSIONS (AY {year})
+                  </div>
+                </div>
+
+                {/* DATE ROW */}
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">DATE</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
+                </div>
+              </div>
+
+              {/* HORIZONTAL RULE */}
+              <hr className="border-t border-slate-900 my-1" />
+
+              {/* MEMORANDUM BODY PARAGRAPHS */}
+              <div className="space-y-1 text-justify leading-tight text-[7.2pt] text-slate-900">
+                <p className="m-0">
+                  In strict compliance with <strong>ISO 21001:2018 Clause 7.5 (Documented Information)</strong>,{' '}
+                  <strong>ISO 9001:2015</strong>, and the{' '}
+                  <strong>RSU Educational Organizations Management System (EOMS) Manual</strong>, this Office has
+                  conducted a compliance audit for Academic Year <strong>{year}</strong>.
+                </p>
+
+                <p className="m-0">
+                  Verification records in the <strong>RSU EOMS Digital Submission Portal</strong> reveal that your
+                  office has outstanding documentary deficiencies as summarized below:
+                </p>
+
+                {/* DEFICIENCY STATUS BOXES */}
+                <div className="grid grid-cols-2 gap-2 my-1">
+                  <div
+                    className={cn(
+                      'p-1.5 rounded border text-[6.8pt]',
+                      isFirstCompliant ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300',
+                    )}
+                  >
+                    <div className="flex items-center justify-between font-black uppercase text-[7pt] mb-0.5">
+                      <span className={isFirstCompliant ? 'text-emerald-800' : 'text-rose-800'}>
+                        1st Submission Cycle
+                      </span>
+                      <span
+                        className={cn(
+                          'px-1 py-0.2 rounded text-[6pt]',
+                          isFirstCompliant ? 'bg-emerald-200 text-emerald-900' : 'bg-rose-200 text-rose-900',
+                        )}
+                      >
+                        {isFirstCompliant ? 'COMPLIANT' : 'DEFICIENT'}
+                      </span>
+                    </div>
+                    {isFirstCompliant ? (
+                      <p className="m-0 text-emerald-700">All mandatory documents submitted and verified.</p>
+                    ) : (
+                      <ul className="list-disc pl-3.5 m-0 text-rose-900 space-y-0.2">
+                        {missingFirst.map((d, i) => (
+                          <li key={i}>{d}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div
+                    className={cn(
+                      'p-1.5 rounded border text-[6.8pt]',
+                      isFinalCompliant ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300',
+                    )}
+                  >
+                    <div className="flex items-center justify-between font-black uppercase text-[7pt] mb-0.5">
+                      <span className={isFinalCompliant ? 'text-emerald-800' : 'text-rose-800'}>
+                        Final Evaluation Cycle
+                      </span>
+                      <span
+                        className={cn(
+                          'px-1 py-0.2 rounded text-[6pt]',
+                          isFinalCompliant ? 'bg-emerald-200 text-emerald-900' : 'bg-rose-200 text-rose-900',
+                        )}
+                      >
+                        {isFinalCompliant ? 'COMPLIANT' : 'DEFICIENT'}
+                      </span>
+                    </div>
+                    {isFinalCompliant ? (
+                      <p className="m-0 text-emerald-700">All mandatory documents submitted and verified.</p>
+                    ) : (
+                      <ul className="list-disc pl-3.5 m-0 text-rose-900 space-y-0.2">
+                        {missingFinal.map((d, i) => (
+                          <li key={i}>{d}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+
+                <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.5 text-[6.8pt] leading-tight">
+                  <strong>Specific Directive:</strong> The Unit Head / Program Chair is hereby directed to access the{' '}
+                  <strong>RSU EOMS Portal &gt; Submissions Hub</strong>, upload the signed PDF files, and notify the
+                  Quality Assurance Office within the compliance window.
+                </p>
+
+                <p className="m-0">
+                  Your office is granted a strict compliance window of <strong>3 working days</strong> from receipt of
+                  this notice. Failure to comply shall constrain this Office to formally elevate the matter to the{' '}
+                  <strong>Office of the Vice Presidents</strong> and <strong>University President</strong> for
+                  administrative intervention.
+                </p>
+
+                <p className="pt-0.5 m-0 font-semibold text-[7pt]">
+                  For your immediate compliance and appropriate action.
+                </p>
+              </div>
+
+              {/* SIGNATORIES BLOCK */}
+              <div className="grid grid-cols-2 gap-4 pt-1.5 text-[7pt]">
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Issued by:</p>
+                  <div className="pt-3">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                      {qmsHeadName}
+                    </p>
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      Head, Quality Management System (QMS)
+                    </p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Noted by:</p>
+                  <div className="pt-3">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                      {directorName}
+                    </p>
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      Director, Quality Assurance Office
+                    </p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {thruLine && (
-          <div className="grid grid-cols-12 gap-2">
-            <span className="col-span-1 font-bold uppercase">THRU:</span>
-            <span className="col-span-11 font-bold uppercase">{thruLine}</span>
-          </div>
-        )}
-
-        <div className="border-b border-black pb-2" />
-
-        <div className="grid grid-cols-12 gap-2 pt-2">
-          <span className="col-span-2 font-bold uppercase">SUBJECT:</span>
-          <span className="col-span-10 font-black uppercase underline decoration-2 underline-offset-4">
-            NOTICE OF NON-COMPLIANCE (EOMS DOCUMENTATION)
+        {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
           </span>
         </div>
-      </div>
-
-      <div className="space-y-6 text-justify">
-        <p>
-          This is to formally inform your office that as of <strong>{format(new Date(), 'MMMM do, yyyy')}</strong>, the
-          <strong> {unitName}</strong> has failed to complete the mandatory documentation requirements for the
-          Educational Organizations Management System (EOMS) aligned with ISO 21001:2018 for the Academic Year{' '}
-          <strong>{year}</strong>.
-        </p>
-
-        <p>Upon verification through the RSU EOMS Portal, the current audit status for your unit is as follows:</p>
-
-        <div className="space-y-4 py-2">
-          {isFirstCompliant ? (
-            <div className="border border-green-600 p-4 bg-green-50/30 flex items-center justify-between rounded-lg">
-              <div className="space-y-0.5">
-                <p className="font-black text-green-700 uppercase" style={{ fontSize: '9pt' }}>
-                  I. FIRST SUBMISSION CYCLE:
-                </p>
-                <p className="font-bold text-green-600">FULLY COMPLIANT</p>
-              </div>
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-            </div>
-          ) : (
-            <div className="border border-black p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-lg">
-              <p className="font-bold uppercase mb-2 text-primary" style={{ fontSize: '9pt' }}>
-                I. FIRST SUBMISSION CYCLE (OUTSTANDING):
-              </p>
-              <ul className="list-disc pl-8 space-y-1">
-                {missingFirst.map((doc, i) => (
-                  <li key={i}>{doc}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {missingFinal.length > 0 ? (
-            <div className="border border-black p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-lg">
-              <p className="font-bold uppercase mb-2 text-primary" style={{ fontSize: '9pt' }}>
-                II. FINAL SUBMISSION CYCLE (OUTSTANDING):
-              </p>
-              <ul className="list-disc pl-8 space-y-1">
-                {missingFinal.map((doc, i) => (
-                  <li key={i}>{doc}</li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <div className="border border-green-600 p-4 bg-green-50/30 flex items-center justify-between rounded-lg">
-              <div className="space-y-0.5">
-                <p className="font-black text-green-700 uppercase" style={{ fontSize: '9pt' }}>
-                  II. FINAL SUBMISSION CYCLE:
-                </p>
-                <p className="font-bold text-green-600">FULLY COMPLIANT</p>
-              </div>
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-            </div>
-          )}
-        </div>
-
-        <p>
-          Please be reminded that full compliance with documentation cycles is critical for institutional quality audits
-          and the maintenance of our ISO certification. You are hereby directed to upload the corrected documents to
-          your designated Google Drive folders and notify the Quality Assurance Office within{' '}
-          <strong>three (3) working days</strong>
-          from receipt of this notice.
-        </p>
-
-        <p>For your immediate compliance and appropriate action.</p>
-      </div>
-
-      {/* SIGNATORIES BLOCK - Name on 1st line, Title on 2nd line, no solid line */}
-      <div className="mt-20 space-y-8">
-        <div className="w-full text-left">
-          <p className="font-black uppercase" style={{ fontSize: '11pt' }}>
-            {qmsHead}
-          </p>
-          <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>
-            HEAD, QUALITY MANAGEMENT SYSTEM UNIT
-          </p>
-        </div>
-
-        <div className="space-y-4 text-left">
-          <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
-          <div className="w-full">
-            <p className="font-black uppercase" style={{ fontSize: '11pt' }}>
-              {qaoDirector}
-            </p>
-            <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>
-              DIRECTOR, QUALITY ASSURANCE OFFICE
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-900 dark:text-slate-100">
-        This is a system-generated report; signature is not required.
-      </div>
-
-      <div className="mt-auto pt-8 border-t border-slate-200 dark:border-slate-700 flex justify-between text-[9pt] text-slate-400 font-bold italic">
-        <span>RSU-QAO-FOR-022 | Rev 02-2025</span>
-        <span>Issued via RSU EOMS Portal</span>
       </div>
     </div>
   );
@@ -231,6 +404,7 @@ export function NoticeOfNonCompliance({
 
 /**
  * NOTICE OF COMPLIANCE TEMPLATE (UNIT LEVEL)
+ * Official 1-page Folio (8.5 x 13) Certificate of Compliance layout.
  */
 export function NoticeOfCompliance({
   unitName,
@@ -242,126 +416,290 @@ export function NoticeOfCompliance({
   qmsHead,
   cycle,
 }: NoticeProps) {
+  const formattedDate = format(new Date(), 'MMMM d, yyyy').toUpperCase();
+  const generatedRefNo = `RSU-QAO-NOC-${year}-${format(new Date(), 'MMdd')}`;
+  const directorName = qaoDirector || 'SARAH JANE F. FALLARIA';
+  const qmsHeadName = qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+
   return (
     <div
-      className="p-12 text-black dark:text-white bg-white max-w-[8.5in] mx-auto font-serif leading-tight border-[12px] border-double border-slate-200 dark:border-slate-700"
-      style={{ fontSize: '11pt' }}
+      className="memo-root-document text-black bg-white mx-auto print:p-0 print:max-w-full"
+      style={{
+        width: '8.5in',
+        boxSizing: 'border-box',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      }}
     >
-      <div className="border border-slate-800 p-10 min-h-[11in] flex flex-col">
-        {/* Institutional Header */}
-        <div className="text-center pb-6 mb-12 border-b border-slate-100 dark:border-slate-700">
-          <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '16pt' }}>
-            Romblon State University
-          </h1>
-          <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '12pt' }}>
-            Quality Assurance Office
-          </h2>
-          <div className="w-24 h-1 bg-primary mx-auto mt-4" />
-        </div>
+      <div
+        className="memo-page-1 relative flex flex-col justify-between"
+        style={{
+          width: '8.5in',
+          minHeight: '13in',
+          height: '13in',
+          maxHeight: '13in',
+          padding: '0.35in 0.45in 0.65in 0.45in',
+          boxSizing: 'border-box',
+          pageBreakInside: 'avoid',
+          breakInside: 'avoid',
+          pageBreakAfter: 'always',
+          breakAfter: 'page',
+        }}
+      >
+        <div>
+          {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
+          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2">
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/rsulogo.png"
+                alt="RSU Official Seal"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
+              <img
+                src="/qa_logo.png"
+                alt="QAO Emblem"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
 
-        <div className="text-center space-y-10 flex-1">
-          <div className="flex justify-center">
-            <ShieldCheck className="h-20 w-24 text-emerald-600" />
+              <div>
+                <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                  ROMBLON STATE UNIVERSITY
+                </h1>
+                <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                  QUALITY ASSURANCE OFFICE
+                </h2>
+                <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
+                  3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
+                  <br />
+                  Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center pl-2">
+              <img
+                src="/ISOlogo.jpg"
+                alt="ISO 9001:2015 TÜV Rheinland Certified"
+                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+              />
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <h2
-              className="font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-100"
-              style={{ fontSize: '24pt' }}
+          {/* 2. TWO-COLUMN FOLIO LAYOUT */}
+          <div className="grid grid-cols-12 gap-3.5 items-start">
+            {/* LEFT SIDEBAR */}
+            <div
+              className="col-span-3 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none pr-2"
+              style={{ fontFamily: 'Georgia, Cambria, serif' }}
             >
-              Notice of Compliance
-            </h2>
-            {cycle && (
-              <p className="font-mono font-black text-xs uppercase tracking-widest text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-full w-fit mx-auto border border-emerald-100">
-                {cycle}
-              </p>
-            )}
-          </div>
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Vision</strong>
+                <p className="m-0 text-justify leading-tight">
+                  A research-based academic institution committed to excellence and service in nurturing globally
+                  competitive workforce towards sustainable development.
+                </p>
+              </div>
 
-          <p className="text-lg italic text-slate-600 dark:text-slate-400">This is to officially certify that the</p>
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Mission</strong>
+                <p className="m-0 text-justify leading-tight">
+                  Romblon State University shall nurture an academic environment that provides advanced education,
+                  higher technological and professional instruction and technical expertise in agriculture and
+                  fisheries, forestry, engineering and technology, education, humanities, sciences and other relevant
+                  fields of study and collaborate with other institutions and communities through responsive, relevant
+                  and research-based extension services.
+                </p>
+              </div>
 
-          <div className="py-4">
-            <h3
-              className="font-black uppercase text-primary underline underline-offset-4 decoration-slate-300"
-              style={{ fontSize: '20pt' }}
-            >
-              {unitName}
-            </h3>
-            <p
-              className="font-bold text-slate-700 dark:text-slate-300 mt-3 uppercase tracking-widest"
-              style={{ fontSize: '12pt' }}
-            >
-              {campusName}
-            </p>
-          </div>
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Quality Policy
+                </strong>
+                <p className="m-0 text-justify leading-tight">
+                  Romblon State University commits to provide higher education through quality instruction, research,
+                  production, and community-based extension services that meet or exceed the requirements and
+                  expectations of the university's stakeholders. It will comply with international standards, applicable
+                  statutory and regulatory requirements, and continually improve the Quality Management System's
+                  effectiveness through periodic monitoring and evaluation toward sustained remarkable outcomes.
+                </p>
+              </div>
 
-          <p className="max-w-xl mx-auto text-base leading-relaxed">
-            has successfully completed and fulfilled all mandatory documentation requirements for the
-            <strong> Educational Organizations Management System (EOMS)</strong> compliant with
-            <strong> ISO 21001:2018</strong> standards for the{' '}
-            <span className="font-bold underline">{cycle || 'First and Final'} Submission Cycle(s)</span> for the
-            Academic Year <strong>{year}</strong>.
-          </p>
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Core Values
+                </strong>
+                <div className="space-y-0 pl-1 text-[5.2pt]">
+                  <div>Stewardship</div>
+                  <div>Competence</div>
+                  <div>Resilience</div>
+                  <div>Integrity</div>
+                  <div>Balance</div>
+                  <div>Excellence</div>
+                  <div>Service</div>
+                </div>
+                <p className="m-0 mt-0.5 text-[5pt] text-slate-400 text-justify leading-tight">
+                  These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
+                  recognized HEI in the region and beyond.
+                </p>
+              </div>
+            </div>
 
-          <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-xl max-w-sm mx-auto shadow-sm space-y-4">
-            <div className="border-b border-emerald-200 pb-2">
-              <p className="text-[10pt] font-black uppercase tracking-widest text-emerald-700 mb-1">
-                Institutional Verification Ledger
-              </p>
-              <div className="flex items-center justify-center gap-3">
-                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
-                <span className="text-xl font-black text-emerald-800">
-                  {totalApproved} / {totalPossible} Approved Records
-                </span>
+            {/* RIGHT MAIN COLUMN */}
+            <div className="col-span-9 space-y-1 text-slate-900">
+              <div>
+                <h3 className="text-[10pt] font-black text-slate-900 tracking-tight leading-none m-0">
+                  QA Notice of Compliance
+                </h3>
+                <p className="text-[8.5pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
+              </div>
+
+              {/* METADATA BLOCK */}
+              <div className="space-y-0.5 pt-0.5 text-[7.2pt]">
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
+                    <div className="leading-tight">THE UNIT HEAD / DEAN / PROGRAM CHAIR, {unitName.toUpperCase()}</div>
+                    <div className="text-[7pt] font-semibold normal-case text-slate-600">
+                      {campusName.toUpperCase()} — Romblon State University
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">FROM</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{qmsHeadName}</span>
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      Head, Quality Management System (QMS)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{directorName}</span>
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      Director, Quality Assurance Office
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900 leading-snug">
+                    CERTIFICATE OF COMPLIANCE: EOMS QUALITY DOCUMENTATION PARITY (AY {year})
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">DATE</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
+                </div>
+              </div>
+
+              <hr className="border-t border-slate-900 my-1" />
+
+              <div className="space-y-1.5 text-justify leading-tight text-[7.2pt] text-slate-900">
+                <p className="m-0">
+                  This is to officially recognize and commend the <strong>{unitName}</strong> ({campusName}) for having
+                  successfully fulfilled all mandatory documentation requirements of the{' '}
+                  <strong>Educational Organizations Management System (EOMS)</strong> in strict alignment with{' '}
+                  <strong>ISO 21001:2018</strong> and <strong>ISO 9001:2015</strong> standards for Academic Year{' '}
+                  <strong>{year}</strong> ({cycle || 'First and Final Cycles'}).
+                </p>
+
+                {/* INSTITUTIONAL VERIFICATION BADGE */}
+                <div className="border border-emerald-400 bg-emerald-50/60 p-2 rounded-lg flex items-center justify-between my-1">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1 text-emerald-800 font-black uppercase text-[7.5pt]">
+                      <ShieldCheck className="h-4 w-4 text-emerald-700 inline" />
+                      <span>Institutional Verification Ledger</span>
+                    </div>
+                    <p className="text-[6.8pt] text-emerald-700 font-bold m-0">
+                      Quality Documentation Maturity: 100% Verified Compliant
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono font-black text-emerald-900 text-[10pt] block">
+                      {totalApproved} / {totalPossible}
+                    </span>
+                    <span className="text-[5.8pt] uppercase font-bold text-emerald-700">Approved Documents</span>
+                  </div>
+                </div>
+
+                <p className="m-0">
+                  The Quality Assurance Office acknowledges the dedicated efforts of the leadership, faculty, and staff
+                  of the <strong>{unitName}</strong> in upholding institutional quality standards and sustaining our
+                  commitment to continuous quality improvement.
+                </p>
+
+                <p className="pt-0.5 m-0 font-semibold text-[7pt]">
+                  Issued for official documentation, quality audit, and accreditation records.
+                </p>
+              </div>
+
+              {/* SIGNATORIES BLOCK */}
+              <div className="grid grid-cols-2 gap-4 pt-2 text-[7pt]">
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Certified by:</p>
+                  <div className="pt-3">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                      {qmsHeadName}
+                    </p>
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      Head, Quality Management System (QMS)
+                    </p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Approved by:</p>
+                  <div className="pt-3">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                      {directorName}
+                    </p>
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      Director, Quality Assurance Office
+                    </p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          <p className="text-sm text-slate-500 pt-8">
-            Issued this <strong>{format(new Date(), 'do')}</strong> day of <strong>{format(new Date(), 'MMMM')}</strong>
-            ,<strong> {format(new Date(), 'yyyy')}</strong>.
-          </p>
         </div>
 
-        {/* SIGNATORIES BLOCK - Consistent with Non-Compliance format */}
-        <div className="mt-20 space-y-8 text-left">
-          <div className="w-full">
-            <p className="font-black uppercase" style={{ fontSize: '11pt' }}>
-              {qmsHead}
-            </p>
-            <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>
-              HEAD, QUALITY MANAGEMENT SYSTEM UNIT
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
-            <div className="w-full">
-              <p className="font-black uppercase" style={{ fontSize: '11pt' }}>
-                {qaoDirector}
-              </p>
-              <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>
-                DIRECTOR, QUALITY ASSURANCE OFFICE
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 text-center text-[9pt] font-bold italic text-slate-500">
-          This is a system-generated report; signature is not required.
-        </div>
-
-        <div className="mt-auto pt-6 flex justify-between items-end text-[9pt] text-slate-400 uppercase font-bold tracking-tighter">
-          <div className="flex flex-col space-y-0.5">
-            <span>
-              Verification Code: VER-{year}-{format(new Date(), 'HHmm')}
-            </span>
-            <span>RSU-QAO-FOR-023 | REV 01-2025</span>
-          </div>
-          <div className="text-right">
-            <p>Institutional Excellence Record</p>
-            <p>Issued by RSU EOMS Digital Portal</p>
-          </div>
+        {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
+          </span>
         </div>
       </div>
     </div>
@@ -370,123 +708,297 @@ export function NoticeOfCompliance({
 
 /**
  * CONSOLIDATED CAMPUS STATUS NOTICE (NON-COMPLIANCE)
+ * Official 1-page Folio (8.5 x 13) layout for Campus-level notice.
  */
 export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qmsHead, units }: CampusNoticeProps) {
+  const formattedDate = format(new Date(), 'MMMM d, yyyy').toUpperCase();
+  const generatedRefNo = `RSU-QAO-CNNC-${year}-${format(new Date(), 'MMdd')}`;
+  const directorName = qaoDirector || 'SARAH JANE F. FALLARIA';
+  const qmsHeadName = qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
   const nonCompliantUnits = units.filter((u) => u.score < 100);
 
   return (
     <div
-      className="p-12 text-black dark:text-white bg-white max-w-[8.5in] mx-auto font-serif leading-tight"
-      style={{ fontSize: '11pt' }}
+      className="memo-root-document text-black bg-white mx-auto print:p-0 print:max-w-full"
+      style={{
+        width: '8.5in',
+        boxSizing: 'border-box',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      }}
     >
-      <div className="text-center border-b-2 border-black pb-4 mb-8">
-        <div className="space-y-1">
-          <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '14pt' }}>
-            Romblon State University
-          </h1>
-          <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '12pt' }}>
-            Quality Assurance Office
-          </h2>
-          <p className="text-[9pt] italic">Main Campus, Odiongan, Romblon</p>
-        </div>
-      </div>
+      <div
+        className="memo-page-1 relative flex flex-col justify-between"
+        style={{
+          width: '8.5in',
+          minHeight: '13in',
+          height: '13in',
+          maxHeight: '13in',
+          padding: '0.35in 0.45in 0.65in 0.45in',
+          boxSizing: 'border-box',
+          pageBreakInside: 'avoid',
+          breakInside: 'avoid',
+          pageBreakAfter: 'always',
+          breakAfter: 'page',
+        }}
+      >
+        <div>
+          {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
+          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2">
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/rsulogo.png"
+                alt="RSU Official Seal"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
+              <img
+                src="/qa_logo.png"
+                alt="QAO Emblem"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
 
-      <div className="flex justify-between mb-8">
-        <div className="space-y-0.5">
-          <p className="font-bold uppercase">MEMORANDUM</p>
-          <p className="text-[9pt] font-mono">
-            Ref No: RSU-QAO-CNNC-{year}-{format(new Date(), 'MMdd')}
-          </p>
-        </div>
-        <p className="font-bold">{format(new Date(), 'MMMM d, yyyy')}</p>
-      </div>
+              <div>
+                <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                  ROMBLON STATE UNIVERSITY
+                </h1>
+                <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                  QUALITY ASSURANCE OFFICE
+                </h2>
+                <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
+                  3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
+                  <br />
+                  Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
+                </p>
+              </div>
+            </div>
 
-      <div className="space-y-4 mb-8">
-        <div className="grid grid-cols-12 gap-2">
-          <span className="col-span-1 font-bold uppercase">FOR:</span>
-          <div className="col-span-11 space-y-0.5">
-            <p className="font-black uppercase" style={{ fontSize: '12pt' }}>
-              THE CAMPUS DIRECTOR
-            </p>
-            <p className="font-black uppercase" style={{ fontSize: '12pt' }}>
-              {campusName}
-            </p>
+            <div className="flex items-center pl-2">
+              <img
+                src="/ISOlogo.jpg"
+                alt="ISO 9001:2015 TÜV Rheinland Certified"
+                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+              />
+            </div>
+          </div>
+
+          {/* 2. TWO-COLUMN FOLIO LAYOUT */}
+          <div className="grid grid-cols-12 gap-3.5 items-start">
+            {/* LEFT SIDEBAR */}
+            <div
+              className="col-span-3 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none pr-2"
+              style={{ fontFamily: 'Georgia, Cambria, serif' }}
+            >
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Vision</strong>
+                <p className="m-0 text-justify leading-tight">
+                  A research-based academic institution committed to excellence and service in nurturing globally
+                  competitive workforce towards sustainable development.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Mission</strong>
+                <p className="m-0 text-justify leading-tight">
+                  Romblon State University shall nurture an academic environment that provides advanced education,
+                  higher technological and professional instruction and technical expertise in agriculture and
+                  fisheries, forestry, engineering and technology, education, humanities, sciences and other relevant
+                  fields of study and collaborate with other institutions and communities through responsive, relevant
+                  and research-based extension services.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Quality Policy
+                </strong>
+                <p className="m-0 text-justify leading-tight">
+                  Romblon State University commits to provide higher education through quality instruction, research,
+                  production, and community-based extension services that meet or exceed the requirements and
+                  expectations of the university's stakeholders. It will comply with international standards, applicable
+                  statutory and regulatory requirements, and continually improve the Quality Management System's
+                  effectiveness through periodic monitoring and evaluation toward sustained remarkable outcomes.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Core Values
+                </strong>
+                <div className="space-y-0 pl-1 text-[5.2pt]">
+                  <div>Stewardship</div>
+                  <div>Competence</div>
+                  <div>Resilience</div>
+                  <div>Integrity</div>
+                  <div>Balance</div>
+                  <div>Excellence</div>
+                  <div>Service</div>
+                </div>
+                <p className="m-0 mt-0.5 text-[5pt] text-slate-400 text-justify leading-tight">
+                  These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
+                  recognized HEI in the region and beyond.
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT MAIN COLUMN */}
+            <div className="col-span-9 space-y-1 text-slate-900">
+              <div>
+                <h3 className="text-[10pt] font-black text-slate-900 tracking-tight leading-none m-0">QA Memorandum</h3>
+                <p className="text-[8.5pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
+              </div>
+
+              {/* METADATA BLOCK */}
+              <div className="space-y-0.5 pt-0.5 text-[7.2pt]">
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
+                    <div className="leading-tight">THE CAMPUS DIRECTOR, {campusName.toUpperCase()}</div>
+                    <div className="text-[7pt] font-semibold normal-case text-slate-600">Romblon State University</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">FROM</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{qmsHeadName}</span>
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      Head, Quality Management System (QMS)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{directorName}</span>
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      Director, Quality Assurance Office
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900 leading-snug">
+                    CAMPUS COMPLIANCE DIRECTIVE: DEFICIENT EOMS SUBMISSIONS AUDIT (AY {year})
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">DATE</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
+                </div>
+              </div>
+
+              <hr className="border-t border-slate-900 my-1" />
+
+              <div className="space-y-1 text-justify leading-tight text-[7.2pt] text-slate-900">
+                <p className="m-0">
+                  Transmitted herewith is the official compliance evaluation for <strong>{campusName}</strong> for
+                  Academic Year <strong>{year}</strong> based on recorded submissions in the{' '}
+                  <strong>RSU EOMS Digital Portal</strong>.
+                </p>
+
+                <p className="m-0">
+                  The following operating units under your campus jurisdiction currently have outstanding EOMS
+                  documentary deficiencies:
+                </p>
+
+                {/* NON-COMPLIANT UNITS TABLE */}
+                <table className="w-full border-collapse border border-slate-900 text-[6.5pt] my-1">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-900 font-bold uppercase">
+                      <th className="border border-slate-900 p-1 text-left">Unit / Department</th>
+                      <th className="border border-slate-900 p-1 text-center w-20">Maturity Score</th>
+                      <th className="border border-slate-900 p-1 text-center w-28">Approved / Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {nonCompliantUnits.map((u, i) => (
+                      <tr key={i} className="hover:bg-slate-50">
+                        <td className="border border-slate-900 p-1 font-bold">{u.name}</td>
+                        <td className="border border-slate-900 p-1 text-center font-mono font-black text-rose-700">
+                          {u.score.toFixed(0)}%
+                        </td>
+                        <td className="border border-slate-900 p-1 text-center font-mono font-bold">
+                          {u.approvedCount} / {u.totalPossible}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.5 text-[6.8pt] leading-tight">
+                  <strong>Specific Directive:</strong> Campus Directors are directed to convene an immediate
+                  coordination meeting with the heads of the delinquent units listed above to ensure complete document
+                  uploads within <strong>3 working days</strong>.
+                </p>
+
+                <p className="pt-0.5 m-0 font-semibold text-[7pt]">For your prompt guidance and strict compliance.</p>
+              </div>
+
+              {/* SIGNATORIES BLOCK */}
+              <div className="grid grid-cols-2 gap-4 pt-1.5 text-[7pt]">
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Issued by:</p>
+                  <div className="pt-3">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                      {qmsHeadName}
+                    </p>
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      Head, Quality Management System (QMS)
+                    </p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Noted by:</p>
+                  <div className="pt-3">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                      {directorName}
+                    </p>
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      Director, Quality Assurance Office
+                    </p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="grid grid-cols-12 gap-2 pt-2 border-t border-black mt-2">
-          <span className="col-span-2 font-bold uppercase">SUBJECT:</span>
-          <span className="col-span-10 font-black uppercase underline decoration-2 underline-offset-4">
-            CONSOLIDATED EOMS COMPLIANCE STATUS REPORT
+
+        {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
           </span>
         </div>
-      </div>
-
-      <div className="space-y-6 text-justify">
-        <p>
-          Respectfully submitted herewith is the <strong>Consolidated Compliance Status Report</strong> for the
-          <strong> {campusName}</strong> Academic Year <strong>{year}</strong>, as verified through the RSU EOMS Digital
-          Submission and Monitoring Portal.
-        </p>
-
-        <div className="space-y-8">
-          {nonCompliantUnits.length > 0 && (
-            <section className="space-y-4">
-              <h3 className="font-black text-[10pt] uppercase bg-slate-100 dark:bg-slate-700 p-2 border-l-[4px] border-black">
-                I. UNITS WITH OUTSTANDING REQUIREMENTS (NON-COMPLIANT)
-              </h3>
-              <div className="space-y-4">
-                {nonCompliantUnits.map((unit, idx) => (
-                  <div key={idx} className="border border-black/20 p-4 rounded-lg bg-slate-50/30 dark:bg-slate-800/30">
-                    <div className="flex justify-between items-center mb-2">
-                      <p className="font-black text-sm uppercase">{unit.name}</p>
-                      <span className="font-black bg-white border border-black px-3 py-0.5 rounded text-[10pt]">
-                        {unit.score}% MATURITY
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-        </div>
-
-        <p>
-          Campus Directors are urged to coordinate with the non-compliant units identified above to expedite the
-          completion of their documentation requirements.
-        </p>
-      </div>
-
-      {/* SIGNATORIES BLOCK - Consistent with Non-Compliance format */}
-      <div className="mt-20 space-y-8 text-left">
-        <div className="w-full">
-          <p className="font-black uppercase" style={{ fontSize: '11pt' }}>
-            {qmsHead}
-          </p>
-          <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>
-            HEAD, QUALITY MANAGEMENT SYSTEM UNIT
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
-          <div className="w-full">
-            <p className="font-black uppercase" style={{ fontSize: '11pt' }}>
-              {qaoDirector}
-            </p>
-            <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>
-              DIRECTOR, QUALITY ASSURANCE OFFICE
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-900 dark:text-slate-100">
-        This is a system-generated report; signature is not required.
-      </div>
-
-      <div className="mt-auto pt-8 border-t border-slate-200 dark:border-slate-700 flex justify-between text-[9pt] text-slate-400 font-bold italic">
-        <span>RSU-QAO-FOR-024 | REV 01-2025</span>
-        <span>Issued via RSU EOMS Portal</span>
       </div>
     </div>
   );
@@ -1038,110 +1550,287 @@ export function MissingSubmissionsReport({
 
 /**
  * CONSOLIDATED CAMPUS STATUS NOTICE (COMPLIANCE)
+ * Official 1-page Folio (8.5 x 13) layout for Campus-level Notice of Compliance.
  */
 export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHead, units, cycle }: CampusNoticeProps) {
+  const formattedDate = format(new Date(), 'MMMM d, yyyy').toUpperCase();
+  const generatedRefNo = `RSU-QAO-CNOC-${year}-${format(new Date(), 'MMdd')}`;
+  const directorName = qaoDirector || 'SARAH JANE F. FALLARIA';
+  const qmsHeadName = qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+
   return (
     <div
-      className="p-12 text-black dark:text-white bg-white max-w-[8.5in] mx-auto font-serif border-[10px] border-double border-slate-200 dark:border-slate-700"
-      style={{ fontSize: '11pt' }}
+      className="memo-root-document text-black bg-white mx-auto print:p-0 print:max-w-full"
+      style={{
+        width: '8.5in',
+        boxSizing: 'border-box',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      }}
     >
-      <div className="border border-slate-800 p-10 min-h-[11in] flex flex-col">
-        <div className="text-center pb-6 mb-12 border-b border-slate-100 dark:border-slate-700">
-          <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '16pt' }}>
-            Romblon State University
-          </h1>
-          <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '12pt' }}>
-            Quality Assurance Office
-          </h2>
-          <div className="w-24 h-1 bg-primary mx-auto mt-4" />
-        </div>
+      <div
+        className="memo-page-1 relative flex flex-col justify-between"
+        style={{
+          width: '8.5in',
+          minHeight: '13in',
+          height: '13in',
+          maxHeight: '13in',
+          padding: '0.35in 0.45in 0.65in 0.45in',
+          boxSizing: 'border-box',
+          pageBreakInside: 'avoid',
+          breakInside: 'avoid',
+          pageBreakAfter: 'always',
+          breakAfter: 'page',
+        }}
+      >
+        <div>
+          {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
+          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2">
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/rsulogo.png"
+                alt="RSU Official Seal"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
+              <img
+                src="/qa_logo.png"
+                alt="QAO Emblem"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
 
-        <div className="text-center space-y-10 flex-1">
-          <div className="flex justify-center">
-            <ShieldCheck className="h-24 w-24 text-emerald-600" />
+              <div>
+                <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                  ROMBLON STATE UNIVERSITY
+                </h1>
+                <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                  QUALITY ASSURANCE OFFICE
+                </h2>
+                <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
+                  3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
+                  <br />
+                  Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center pl-2">
+              <img
+                src="/ISOlogo.jpg"
+                alt="ISO 9001:2015 TÜV Rheinland Certified"
+                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+              />
+            </div>
           </div>
 
-          <div className="space-y-3">
-            <h2
-              className="font-black uppercase tracking-[0.15em] text-slate-900 dark:text-slate-100"
-              style={{ fontSize: '24pt' }}
+          {/* 2. TWO-COLUMN FOLIO LAYOUT */}
+          <div className="grid grid-cols-12 gap-3.5 items-start">
+            {/* LEFT SIDEBAR */}
+            <div
+              className="col-span-3 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none pr-2"
+              style={{ fontFamily: 'Georgia, Cambria, serif' }}
             >
-              Institutional Notice of Compliance
-            </h2>
-            {cycle && (
-              <p className="font-mono font-black text-xs uppercase tracking-widest text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-full w-fit mx-auto border border-emerald-100">
-                {cycle}
-              </p>
-            )}
-          </div>
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Vision</strong>
+                <p className="m-0 text-justify leading-tight">
+                  A research-based academic institution committed to excellence and service in nurturing globally
+                  competitive workforce towards sustainable development.
+                </p>
+              </div>
 
-          <p className="text-xl italic text-slate-600 dark:text-slate-400">This is to officially recognize that the</p>
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Mission</strong>
+                <p className="m-0 text-justify leading-tight">
+                  Romblon State University shall nurture an academic environment that provides advanced education,
+                  higher technological and professional instruction and technical expertise in agriculture and
+                  fisheries, forestry, engineering and technology, education, humanities, sciences and other relevant
+                  fields of study and collaborate with other institutions and communities through responsive, relevant
+                  and research-based extension services.
+                </p>
+              </div>
 
-          <div className="py-6">
-            <h3
-              className="font-black uppercase text-primary underline underline-offset-8 decoration-slate-300"
-              style={{ fontSize: '28pt' }}
-            >
-              {campusName}
-            </h3>
-          </div>
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Quality Policy
+                </strong>
+                <p className="m-0 text-justify leading-tight">
+                  Romblon State University commits to provide higher education through quality instruction, research,
+                  production, and community-based extension services that meet or exceed the requirements and
+                  expectations of the university's stakeholders. It will comply with international standards, applicable
+                  statutory and regulatory requirements, and continually improve the Quality Management System's
+                  effectiveness through periodic monitoring and evaluation toward sustained remarkable outcomes.
+                </p>
+              </div>
 
-          <p className="max-w-xl mx-auto text-lg leading-relaxed">
-            under the leadership of the Campus Director, has achieved <strong>100% Quality Documentation Parity</strong>
-            across all assigned academic and administrative units for the{' '}
-            <span className="font-bold underline">{cycle || 'First and Final'} Submission Cycle(s)</span> for the
-            Academic Year <strong>{year}</strong>.
-          </p>
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Core Values
+                </strong>
+                <div className="space-y-0 pl-1 text-[5.2pt]">
+                  <div>Stewardship</div>
+                  <div>Competence</div>
+                  <div>Resilience</div>
+                  <div>Integrity</div>
+                  <div>Balance</div>
+                  <div>Excellence</div>
+                  <div>Service</div>
+                </div>
+                <p className="m-0 mt-0.5 text-[5pt] text-slate-400 text-justify leading-tight">
+                  These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
+                  recognized HEI in the region and beyond.
+                </p>
+              </div>
+            </div>
 
-          <div className="max-w-xs mx-auto pt-8">
-            <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-xl shadow-sm">
-              <p className="text-[10pt] font-black uppercase tracking-widest text-emerald-700 mb-1">
-                Site Maturity Index
-              </p>
-              <span className="text-4xl font-black text-emerald-800">100.0%</span>
+            {/* RIGHT MAIN COLUMN */}
+            <div className="col-span-9 space-y-1 text-slate-900">
+              <div>
+                <h3 className="text-[10pt] font-black text-slate-900 tracking-tight leading-none m-0">
+                  QA Notice of Compliance
+                </h3>
+                <p className="text-[8.5pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
+              </div>
+
+              {/* METADATA BLOCK */}
+              <div className="space-y-0.5 pt-0.5 text-[7.2pt]">
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
+                    <div className="leading-tight">THE CAMPUS DIRECTOR, {campusName.toUpperCase()}</div>
+                    <div className="text-[7pt] font-semibold normal-case text-slate-600">Romblon State University</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">FROM</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{qmsHeadName}</span>
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      Head, Quality Management System (QMS)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{directorName}</span>
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      Director, Quality Assurance Office
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900 leading-snug">
+                    CAMPUS COMPLIANCE CERTIFICATE: 100% EOMS QUALITY PARITY (AY {year})
+                  </div>
+                </div>
+
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">DATE</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
+                </div>
+              </div>
+
+              <hr className="border-t border-slate-900 my-1" />
+
+              <div className="space-y-1.5 text-justify leading-tight text-[7.2pt] text-slate-900">
+                <p className="m-0">
+                  The Quality Assurance Office officially confers this{' '}
+                  <strong>Institutional Notice of Compliance</strong> upon <strong>{campusName}</strong> for achieving{' '}
+                  <strong>100% Quality Documentation Parity</strong> across all assigned academic departments and
+                  operating units for Academic Year <strong>{year}</strong> ({cycle || 'First & Final Cycles'}).
+                </p>
+
+                {/* SITE MATURITY INDEX BOX */}
+                <div className="border border-emerald-400 bg-emerald-50/60 p-2 rounded-lg flex items-center justify-between my-1">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1 text-emerald-800 font-black uppercase text-[7.5pt]">
+                      <ShieldCheck className="h-4 w-4 text-emerald-700 inline" />
+                      <span>Campus Quality Documentation Performance</span>
+                    </div>
+                    <p className="text-[6.8pt] text-emerald-700 font-bold m-0">
+                      ISO 21001:2018 &amp; ISO 9001:2015 Standards Verified
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-mono font-black text-emerald-900 text-[11pt] block">100.0%</span>
+                    <span className="text-[5.8pt] uppercase font-bold text-emerald-700">Campus Maturity</span>
+                  </div>
+                </div>
+
+                <p className="m-0">
+                  This achievement demonstrates exemplary leadership, administrative diligence, and strong quality
+                  culture. All documentation has been formally recorded in the institutional quality repository.
+                </p>
+
+                <p className="pt-0.5 m-0 font-semibold text-[7pt]">
+                  Issued for official institutional recognition and quality records.
+                </p>
+              </div>
+
+              {/* SIGNATORIES BLOCK */}
+              <div className="grid grid-cols-2 gap-4 pt-2 text-[7pt]">
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Certified by:</p>
+                  <div className="pt-3">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                      {qmsHeadName}
+                    </p>
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      Head, Quality Management System (QMS)
+                    </p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Approved by:</p>
+                  <div className="pt-3">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                      {directorName}
+                    </p>
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      Director, Quality Assurance Office
+                    </p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* SIGNATORIES BLOCK - Consistent with Non-Compliance format */}
-        <div className="mt-20 space-y-8 text-left">
-          <div className="w-full">
-            <p className="font-black uppercase" style={{ fontSize: '11pt' }}>
-              {qmsHead}
-            </p>
-            <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>
-              HEAD, QUALITY MANAGEMENT SYSTEM UNIT
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
-            <div className="w-full">
-              <p className="font-black uppercase" style={{ fontSize: '11pt' }}>
-                {qaoDirector}
-              </p>
-              <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>
-                DIRECTOR, QUALITY ASSURANCE OFFICE
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-8 text-center text-[9pt] font-bold italic text-slate-500">
-          This is a system-generated report; signature is not required.
-        </div>
-
-        <div className="mt-auto pt-6 flex justify-between items-end text-[9pt] text-slate-400 uppercase font-bold tracking-tighter">
-          <div className="flex flex-col space-y-0.5">
-            <span>
-              Verification Code: SITE-VER-{year}-{format(new Date(), 'HHmm')}
-            </span>
-            <span>RSU-QAO-FOR-023 | REV 01-2025</span>
-          </div>
-          <div className="text-right">
-            <p>Institutional Excellence Record</p>
-            <p>Issued by RSU EOMS Digital Portal</p>
-          </div>
+        {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
+          </span>
         </div>
       </div>
     </div>

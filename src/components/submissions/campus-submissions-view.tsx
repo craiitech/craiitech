@@ -475,13 +475,43 @@ export function CampusSubmissionsView({
                         <style>
                             @page { 
                                 size: 8.5in 13in !important; 
-                                margin: 0.5in !important; 
+                                margin: 0 !important; 
                             }
                             @media print { 
-                                body { background: white; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; } 
+                                html, body { 
+                                    margin: 0 !important; 
+                                    padding: 0 !important; 
+                                    background: white !important; 
+                                    -webkit-print-color-adjust: exact !important; 
+                                    print-color-adjust: exact !important; 
+                                } 
                                 .no-print { display: none !important; } 
+                                #print-content { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+                                .memo-root-document { padding: 0 !important; width: 100% !important; }
+                                .memo-page-1 {
+                                    page-break-after: always !important;
+                                    break-after: page !important;
+                                    page-break-inside: avoid !important;
+                                    break-inside: avoid !important;
+                                    position: relative !important;
+                                    box-sizing: border-box !important;
+                                    padding: 0.35in 0.45in 0.65in 0.45in !important;
+                                }
+                                .memo-attachment-page {
+                                    page-break-before: always !important;
+                                    break-before: page !important;
+                                    position: relative !important;
+                                    box-sizing: border-box !important;
+                                    padding: 0.35in 0.45in 0.65in 0.45in !important;
+                                }
+                                .memo-footer-banner {
+                                    position: absolute !important;
+                                    bottom: 0.25in !important;
+                                    left: 0.45in !important;
+                                    right: 0.45in !important;
+                                }
                             } 
-                            body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                            body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; padding: 20px; color: black; }
                         </style>
                     </head>
                     <body>
@@ -540,13 +570,43 @@ export function CampusSubmissionsView({
                         <style>
                             @page { 
                                 size: 8.5in 13in !important; 
-                                margin: 0.5in !important; 
+                                margin: 0 !important; 
                             }
                             @media print { 
-                                body { background: white; margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact; } 
+                                html, body { 
+                                    margin: 0 !important; 
+                                    padding: 0 !important; 
+                                    background: white !important; 
+                                    -webkit-print-color-adjust: exact !important; 
+                                    print-color-adjust: exact !important; 
+                                } 
                                 .no-print { display: none !important; } 
+                                #print-content { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+                                .memo-root-document { padding: 0 !important; width: 100% !important; }
+                                .memo-page-1 {
+                                    page-break-after: always !important;
+                                    break-after: page !important;
+                                    page-break-inside: avoid !important;
+                                    break-inside: avoid !important;
+                                    position: relative !important;
+                                    box-sizing: border-box !important;
+                                    padding: 0.35in 0.45in 0.65in 0.45in !important;
+                                }
+                                .memo-attachment-page {
+                                    page-break-before: always !important;
+                                    break-before: page !important;
+                                    position: relative !important;
+                                    box-sizing: border-box !important;
+                                    padding: 0.35in 0.45in 0.65in 0.45in !important;
+                                }
+                                .memo-footer-banner {
+                                    position: absolute !important;
+                                    bottom: 0.25in !important;
+                                    left: 0.45in !important;
+                                    right: 0.45in !important;
+                                }
                             } 
-                            body { font-family: serif; background: #f9fafb; padding: 40px; color: black; font-size: 11pt; }
+                            body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; padding: 20px; color: black; }
                         </style>
                     </head>
                     <body>
