@@ -305,8 +305,8 @@ export function CAROverdueMemorandumTemplate({
         </p>
         <ul className="list-disc pl-6 space-y-1 text-slate-800 text-[10pt]">
           <li>
-            Formally elevate the matter to the <strong>Office of the University President</strong> and the{' '}
-            <strong>Executive Quality Council</strong> for administrative intervention;
+            Formally elevate the matter to the <strong>Office of the Vice Presidents</strong> and{' '}
+            <strong>University President</strong> for administrative intervention;
           </li>
           <li>
             Reclassify the item as a <strong>Major Systemic Nonconformity</strong> with immediate adverse effect on the
