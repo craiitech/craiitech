@@ -73,6 +73,7 @@ import {
   CampusNoticeOfNonCompliance,
   MissingSubmissionsReport,
 } from './notices-print-templates';
+import { MissingSubmissionsDialog } from './missing-submissions-dialog';
 import { useUser, useFirestore, useMemoFirebase, useDoc, useCollection } from '@/firebase';
 import { doc, Timestamp, collection, query, where } from '@/firebase/firestore-wrapper';
 import { StrategicSwotAnalysis } from './strategic-swot-analysis';
@@ -173,8 +174,6 @@ export function CampusSubmissionsView({
 
   // PRINT MISSING SUBMISSION FILTER STATES
   const [isPrintMissingDialogOpen, setIsPrintMissingDialogOpen] = useState(false);
-  const [printMissingYear, setPrintMissingYear] = useState<string>(selectedYear);
-  const [printMissingCycle, setPrintMissingCycle] = useState<'all' | 'first' | 'final'>('all');
 
   const availableYears = useMemo(() => {
     const yearsSet = new Set<string>();
@@ -567,142 +566,6 @@ export function CampusSubmissionsView({
     }
   };
 
-  const handlePrintMissingSubmissions = (
-    yearToPrint = printMissingYear || selectedYear,
-    cycleToPrint: 'all' | 'first' | 'final' = printMissingCycle,
-  ) => {
-    if (!allCampuses || !allUnits || !allSubmissions) return;
-
-    const rows: { campusName: string; unitName: string; documents: string[]; cycle: string }[] = [];
-
-    allCampuses.forEach((campus) => {
-      const campusUnits = allUnits
-        .filter((u) => u.campusIds?.includes(campus.id))
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-      campusUnits.forEach((unit) => {
-        const unitSubs = allSubmissions.filter(
-          (s) => s.unitId === unit.id && s.campusId === campus.id && s.year.toString() === yearToPrint,
-        );
-
-        const getMissingForCycle = (cycleId: 'first' | 'final', cycleLabel: string) => {
-          if (!isCycleActive(cycleId, yearToPrint, allCycles)) return;
-
-          const cycleSubs = unitSubs.filter((s) => s.cycleId === cycleId);
-          const registry = cycleSubs.find((s) => s.reportType === 'Risk and Opportunity Registry');
-          const isActionPlanNA = registry?.riskRating === 'low';
-
-          const missing = submissionTypes.filter((type) => {
-            const existing = cycleSubs.find((s) => s.reportType === type);
-            if (existing && (existing.statusId === 'submitted' || existing.statusId === 'approved')) return false;
-            if (type === 'Risk and Opportunity Action Plan' && isActionPlanNA) return false;
-            return true;
-          });
-
-          if (missing.length > 0) {
-            rows.push({
-              campusName: campus.name,
-              unitName: unit.name,
-              documents: missing,
-              cycle: cycleLabel,
-            });
-          }
-        };
-
-        if (cycleToPrint === 'all' || cycleToPrint === 'first') {
-          getMissingForCycle('first', 'First Submission Cycle');
-        }
-        if (cycleToPrint === 'all' || cycleToPrint === 'final') {
-          getMissingForCycle('final', 'Final Submission Cycle');
-        }
-      });
-    });
-
-    const cycleDisplayLabel =
-      cycleToPrint === 'first'
-        ? 'First Submission Cycle'
-        : cycleToPrint === 'final'
-          ? 'Final Submission Cycle'
-          : 'All Submission Cycles';
-
-    const reportHtml = renderToStaticMarkup(
-      <MissingSubmissionsReport
-        year={Number(yearToPrint)}
-        cycleLabel={cycleDisplayLabel}
-        qaoDirector={signatories?.qaoDirector || '____________________'}
-        qmsHead={signatories?.qmsHead || 'QMS Head'}
-        rows={rows}
-      />,
-    );
-
-    try {
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        printWindow.document.open();
-        printWindow.document.write(`
-                <html>
-                    <head>
-                        <title>QA Memorandum - Missing EOMS Submissions (AY ${yearToPrint})</title>
-                        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-                        <style>
-                            @page { 
-                                size: 8.5in 13in !important; 
-                                margin: 0 !important; 
-                            }
-                            @media print { 
-                                html, body { 
-                                    margin: 0 !important; 
-                                    padding: 0 !important; 
-                                    background: white !important; 
-                                    -webkit-print-color-adjust: exact !important; 
-                                    print-color-adjust: exact !important; 
-                                } 
-                                .no-print { display: none !important; } 
-                                #print-content { padding: 0 !important; margin: 0 !important; width: 100% !important; }
-                                .memo-root-document { padding: 0 !important; width: 100% !important; }
-                                .memo-page-1 {
-                                    page-break-after: always !important;
-                                    break-after: page !important;
-                                    page-break-inside: avoid !important;
-                                    break-inside: avoid !important;
-                                    position: relative !important;
-                                    box-sizing: border-box !important;
-                                    padding: 0.35in 0.45in 0.65in 0.45in !important;
-                                }
-                                .memo-attachment-page {
-                                    page-break-before: always !important;
-                                    break-before: page !important;
-                                    position: relative !important;
-                                    box-sizing: border-box !important;
-                                    padding: 0.35in 0.45in 0.65in 0.45in !important;
-                                }
-                                .memo-footer-banner {
-                                    position: absolute !important;
-                                    bottom: 0.25in !important;
-                                    left: 0.45in !important;
-                                    right: 0.45in !important;
-                                }
-                            } 
-                            body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; padding: 20px; color: black; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="no-print mb-6 flex justify-center">
-                            <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print QA Memorandum (Folio 8.5x13 Format)</button>
-                        </div>
-                        <div id="print-content">
-                            ${reportHtml}
-                        </div>
-                    </body>
-                </html>
-            `);
-        printWindow.document.close();
-      }
-    } catch (err) {
-      console.error('Print error:', err);
-    }
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -717,10 +580,7 @@ export function CampusSubmissionsView({
             variant="outline"
             size="sm"
             className="h-9 px-4 font-black uppercase text-[10px] tracking-widest bg-white border-destructive/40 text-destructive hover:bg-destructive/5 shadow-sm"
-            onClick={() => {
-              setPrintMissingYear(selectedYear);
-              setIsPrintMissingDialogOpen(true);
-            }}
+            onClick={() => setIsPrintMissingDialogOpen(true)}
             disabled={!allSubmissions || !allCampuses || !allUnits}
           >
             <Printer className="mr-2 h-4 w-4" />
@@ -1364,88 +1224,18 @@ export function CampusSubmissionsView({
       </div>
 
       {/* ================================================================== */}
-      {/* PRINT MISSING SUBMISSION FILTER DIALOG                              */}
+      {/* PRINT MISSING SUBMISSION MEMORANDUM & AUDIT DIALOG                   */}
       {/* ================================================================== */}
-      <Dialog open={isPrintMissingDialogOpen} onOpenChange={setIsPrintMissingDialogOpen}>
-        <DialogContent className="max-w-md p-6 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800">
-          <DialogHeader className="space-y-1 pb-2 border-b border-slate-100 dark:border-slate-800">
-            <DialogTitle className="text-base font-black uppercase tracking-tight flex items-center gap-2 text-slate-900 dark:text-slate-100">
-              <Printer className="h-5 w-5 text-destructive" />
-              Print Missing Submissions Report
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground font-medium">
-              Select the academic year and submission cycle to generate the institutional missing documentation report.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-3">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                Academic Year
-              </Label>
-              <Select value={printMissingYear} onValueChange={setPrintMissingYear}>
-                <SelectTrigger className="h-10 text-xs font-bold bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
-                  <SelectValue placeholder="Select Academic Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableYears.map((yr) => (
-                    <SelectItem key={yr} value={yr} className="text-xs font-bold">
-                      Academic Year {yr}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-black uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                Submission Cycle
-              </Label>
-              <Select
-                value={printMissingCycle}
-                onValueChange={(val: 'all' | 'first' | 'final') => setPrintMissingCycle(val)}
-              >
-                <SelectTrigger className="h-10 text-xs font-bold bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800">
-                  <SelectValue placeholder="Select Cycle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" className="text-xs font-bold">
-                    All Cycles (First &amp; Final)
-                  </SelectItem>
-                  <SelectItem value="first" className="text-xs font-bold">
-                    First Submission Cycle Only
-                  </SelectItem>
-                  <SelectItem value="final" className="text-xs font-bold">
-                    Final Submission Cycle Only
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:justify-end pt-2 border-t border-slate-100 dark:border-slate-800">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsPrintMissingDialogOpen(false)}
-              className="h-9 text-xs font-bold uppercase tracking-wider"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              onClick={() => {
-                setIsPrintMissingDialogOpen(false);
-                handlePrintMissingSubmissions(printMissingYear, printMissingCycle);
-              }}
-              className="h-9 text-xs font-black uppercase tracking-wider bg-destructive hover:bg-destructive/90 text-white shadow-md border-none"
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Generate &amp; Print Report
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <MissingSubmissionsDialog
+        isOpen={isPrintMissingDialogOpen}
+        onOpenChange={setIsPrintMissingDialogOpen}
+        allCampuses={allCampuses}
+        allUnits={allUnits}
+        allSubmissions={allSubmissions}
+        allCycles={allCycles}
+        signatories={signatories}
+        selectedYear={selectedYear}
+      />
     </div>
   );
 }

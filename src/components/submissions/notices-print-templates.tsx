@@ -512,6 +512,13 @@ export function MissingSubmissionsReport({
   rows,
   communicationType = 'QA Memorandum',
   includeNoted = true,
+  memoRefNo,
+  memoDate,
+  gracePeriodDays = 5,
+  customDirective,
+  targetScope = 'all',
+  targetCampusName,
+  targetUnitName,
   paperSize = 'folio',
 }: {
   year: number;
@@ -521,12 +528,35 @@ export function MissingSubmissionsReport({
   rows: MissingSubmissionRow[];
   communicationType?: string;
   includeNoted?: boolean;
+  memoRefNo?: string;
+  memoDate?: string;
+  gracePeriodDays?: number;
+  customDirective?: string;
+  targetScope?: 'all' | 'campus' | 'unit';
+  targetCampusName?: string;
+  targetUnitName?: string;
   paperSize?: 'folio' | 'letter' | 'a4';
 }) {
-  const formattedDate = format(new Date(), 'MMMM d, yyyy').toUpperCase();
-  const generatedRefNo = `RSU-QAO-MIS-${year}-${format(new Date(), 'MMdd')}`;
+  const parsedDate = memoDate ? new Date(memoDate) : new Date();
+  const formattedDate = format(isNaN(parsedDate.getTime()) ? new Date() : parsedDate, 'MMMM d, yyyy').toUpperCase();
+  const generatedRefNo = memoRefNo
+    ? memoRefNo.startsWith('RSU-QAO-')
+      ? memoRefNo
+      : `RSU-QAO-MIS-${memoRefNo}`
+    : `RSU-QAO-MIS-${year}-${format(new Date(), 'MMdd')}`;
   const totalMissingCount = rows.reduce((acc, r) => acc + r.documents.length, 0);
   const pageHeight = paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in';
+
+  let recipientLine = 'ALL CONCERNED CAMPUS DIRECTORS, DEANS, PROGRAM CHAIRS, AND HEADS OF ACCOUNTABLE UNITS';
+  let recipientSubline = 'This University';
+
+  if (targetScope === 'unit' && targetUnitName) {
+    recipientLine = `THE UNIT HEAD / DEAN / PROGRAM CHAIR, ${targetUnitName.toUpperCase()}`;
+    recipientSubline = targetCampusName ? targetCampusName.toUpperCase() : 'This University';
+  } else if (targetScope === 'campus' && targetCampusName && targetCampusName !== 'All Campuses (University-Wide)') {
+    recipientLine = `THE CAMPUS DIRECTOR, DEANS, AND HEADS OF ACCOUNTABLE UNITS`;
+    recipientSubline = targetCampusName.toUpperCase();
+  }
 
   return (
     <div
@@ -670,10 +700,8 @@ export function MissingSubmissionsReport({
                   <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
                   <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                   <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
-                    <div className="leading-tight">
-                      ALL CONCERNED CAMPUS DIRECTORS, DEANS, PROGRAM CHAIRS, AND HEADS OF ACCOUNTABLE UNITS
-                    </div>
-                    <div className="text-[7pt] font-semibold normal-case text-slate-600">This University</div>
+                    <div className="leading-tight">{recipientLine}</div>
+                    <div className="text-[7pt] font-semibold normal-case text-slate-600">{recipientSubline}</div>
                   </div>
                 </div>
 
@@ -746,9 +774,9 @@ export function MissingSubmissionsReport({
                 </p>
 
                 <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.5 text-[6.8pt] leading-tight">
-                  <strong>Specific Directive:</strong> Accountable Unit Heads, Program Chairs, and Campus Leads are
-                  directed to convene their respective QMS teams and upload all completed document requirements into the
-                  RSU EOMS Submission Portal without further delay.
+                  <strong>Specific Directive:</strong>{' '}
+                  {customDirective ||
+                    'Accountable Unit Heads, Program Chairs, and Campus Leads are directed to convene their respective QMS teams and upload all completed document requirements into the RSU EOMS Submission Portal without further delay.'}
                 </p>
 
                 <p className="m-0">To complete your submission, please follow the standard portal workflow:</p>
@@ -769,10 +797,11 @@ export function MissingSubmissionsReport({
                 </ol>
 
                 <p className="m-0">
-                  All concerned units are granted a strict compliance window of <strong>5 working days</strong> from
-                  receipt of this directive. Failure to comply shall constrain this Office to formally elevate the
-                  matter to the <strong>Office of the Vice Presidents</strong> and <strong>University President</strong>{' '}
-                  for administrative intervention.
+                  All concerned units are granted a strict compliance window of{' '}
+                  <strong>{gracePeriodDays} working days</strong> from receipt of this directive. Failure to comply
+                  shall constrain this Office to formally elevate the matter to the{' '}
+                  <strong>Office of the Vice Presidents</strong> and <strong>University President</strong> for
+                  administrative intervention.
                 </p>
 
                 <p className="pt-0.5 m-0 font-semibold text-[7pt]">For your strict compliance and guidance.</p>
