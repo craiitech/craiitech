@@ -510,152 +510,498 @@ export function MissingSubmissionsReport({
   qaoDirector,
   qmsHead,
   rows,
+  communicationType = 'QA Memorandum',
+  includeNoted = true,
+  paperSize = 'folio',
 }: {
   year: number;
   cycleLabel?: string;
   qaoDirector: string;
   qmsHead: string;
   rows: MissingSubmissionRow[];
+  communicationType?: string;
+  includeNoted?: boolean;
+  paperSize?: 'folio' | 'letter' | 'a4';
 }) {
-  const grouped = rows.reduce<Record<string, MissingSubmissionRow[]>>((acc, row) => {
-    if (!acc[row.campusName]) acc[row.campusName] = [];
-    acc[row.campusName].push(row);
-    return acc;
-  }, {});
-
-  const campusNames = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
+  const formattedDate = format(new Date(), 'MMMM d, yyyy').toUpperCase();
+  const generatedRefNo = `RSU-QAO-MIS-${year}-${format(new Date(), 'MMdd')}`;
+  const totalMissingCount = rows.reduce((acc, r) => acc + r.documents.length, 0);
+  const pageHeight = paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in';
 
   return (
     <div
-      className="p-12 text-black dark:text-white bg-white max-w-[8.5in] mx-auto font-serif leading-tight"
-      style={{ fontSize: '11pt' }}
+      className="memo-root-document text-black bg-white mx-auto print:p-0 print:max-w-full"
+      style={{
+        width: '8.5in',
+        boxSizing: 'border-box',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      }}
     >
-      <div className="text-center border-b-2 border-black pb-4 mb-8">
-        <div className="space-y-1">
-          <h1 className="font-bold uppercase tracking-tight" style={{ fontSize: '14pt' }}>
-            Romblon State University
-          </h1>
-          <h2 className="font-semibold uppercase tracking-tight" style={{ fontSize: '12pt' }}>
-            Quality Assurance Office
-          </h2>
-          <p className="text-[9pt] italic">Main Campus, Odiongan, Romblon</p>
-        </div>
-      </div>
+      {/* ========================================================
+          PAGE 1: OFFICIAL 1-PAGE FOLIO MEMORANDUM
+          ======================================================== */}
+      <div
+        className="memo-page-1 relative flex flex-col justify-between"
+        style={{
+          width: '8.5in',
+          minHeight: pageHeight,
+          height: pageHeight,
+          maxHeight: pageHeight,
+          padding: '0.35in 0.45in 0.65in 0.45in',
+          boxSizing: 'border-box',
+          pageBreakInside: 'avoid',
+          breakInside: 'avoid',
+          pageBreakAfter: 'always',
+          breakAfter: 'page',
+        }}
+      >
+        <div>
+          {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
+          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2">
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/rsulogo.png"
+                alt="RSU Official Seal"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
+              <img
+                src="/qa_logo.png"
+                alt="QAO Emblem"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
 
-      <div className="flex justify-between mb-8">
-        <div className="space-y-0.5">
-          <p className="font-bold uppercase">MEMORANDUM</p>
-          <p className="text-[9pt] font-mono">
-            Ref No: RSU-QAO-MIS-{year}-{format(new Date(), 'MMdd')}
-          </p>
-        </div>
-        <p className="font-bold">{format(new Date(), 'MMMM d, yyyy')}</p>
-      </div>
+              <div>
+                <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                  ROMBLON STATE UNIVERSITY
+                </h1>
+                <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                  QUALITY ASSURANCE OFFICE
+                </h2>
+                <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
+                  3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
+                  <br />
+                  Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
+                </p>
+              </div>
+            </div>
 
-      <div className="space-y-4 mb-8">
-        <div className="grid grid-cols-12 gap-2 pt-2">
-          <span className="col-span-2 font-bold uppercase">SUBJECT:</span>
-          <span className="col-span-10 font-black uppercase underline decoration-2 underline-offset-4">
-            MISSING SUBMISSIONS REPORT — EOMS DOCUMENTATION (AY {year}
-            {cycleLabel ? ` — ${cycleLabel.toUpperCase()}` : ''})
+            <div className="flex items-center pl-2">
+              <img
+                src="/ISOlogo.jpg"
+                alt="ISO 9001:2015 TÜV Rheinland Certified"
+                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+              />
+            </div>
+          </div>
+
+          {/* 2. TWO-COLUMN FOLIO LAYOUT */}
+          <div className="grid grid-cols-12 gap-3.5 items-start">
+            {/* LEFT SIDEBAR: RSU VISION, MISSION, QUALITY POLICY, CORE VALUES */}
+            <div
+              className="col-span-3 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none pr-2"
+              style={{ fontFamily: 'Georgia, Cambria, serif' }}
+            >
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Vision</strong>
+                <p className="m-0 text-justify leading-tight">
+                  A research-based academic institution committed to excellence and service in nurturing globally
+                  competitive workforce towards sustainable development.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Mission</strong>
+                <p className="m-0 text-justify leading-tight">
+                  Romblon State University shall nurture an academic environment that provides advanced education,
+                  higher technological and professional instruction and technical expertise in agriculture and
+                  fisheries, forestry, engineering and technology, education, humanities, sciences and other relevant
+                  fields of study and collaborate with other institutions and communities through responsive, relevant
+                  and research-based extension services.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Quality Policy
+                </strong>
+                <p className="m-0 text-justify leading-tight">
+                  Romblon State University commits to provide higher education through quality instruction, research,
+                  production, and community-based extension services that meet or exceed the requirements and
+                  expectations of the university's stakeholders. It will comply with international standards, applicable
+                  statutory and regulatory requirements, and continually improve the Quality Management System's
+                  effectiveness through periodic monitoring and evaluation toward sustained remarkable outcomes.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Core Values
+                </strong>
+                <div className="space-y-0 pl-1 text-[5.2pt]">
+                  <div>Stewardship</div>
+                  <div>Competence</div>
+                  <div>Resilience</div>
+                  <div>Integrity</div>
+                  <div>Balance</div>
+                  <div>Excellence</div>
+                  <div>Service</div>
+                </div>
+                <p className="m-0 mt-0.5 text-[5pt] text-slate-400 text-justify leading-tight">
+                  These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
+                  recognized HEI in the region and beyond.
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT MAIN COLUMN: MEMORANDUM HEADER & NARRATIVE */}
+            <div className="col-span-9 space-y-1 text-slate-900">
+              {/* DOCUMENT CLASSIFICATION & REF NO */}
+              <div>
+                <h3 className="text-[10pt] font-black text-slate-900 tracking-tight leading-none m-0">
+                  {communicationType}
+                </h3>
+                <p className="text-[8.5pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
+              </div>
+
+              {/* TABULAR METADATA BLOCK (COLON-ALIGNED) */}
+              <div className="space-y-0.5 pt-0.5 text-[7.2pt]">
+                {/* TO ROW */}
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
+                    <div className="leading-tight">
+                      ALL CONCERNED CAMPUS DIRECTORS, DEANS, PROGRAM CHAIRS, AND HEADS OF ACCOUNTABLE UNITS
+                    </div>
+                    <div className="text-[7pt] font-semibold normal-case text-slate-600">This University</div>
+                  </div>
+                </div>
+
+                {/* FROM ROW */}
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">FROM</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{qmsHead}</span>
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      Head, Quality Management System (QMS)
+                    </span>
+                  </div>
+                </div>
+
+                {/* NOTED ROW */}
+                {includeNoted && (
+                  <div className="flex items-start">
+                    <div className="w-14 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
+                    <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                    <div className="flex-1 font-bold text-slate-900">
+                      <span className="uppercase block font-black">{qaoDirector}</span>
+                      <span className="text-[6.8pt] font-normal text-slate-700 block">
+                        Director, Quality Assurance Office
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* SUBJECT ROW */}
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900 leading-snug">
+                    COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF OUTSTANDING EOMS DOCUMENTATION REQUIREMENTS (AY {year}
+                    {cycleLabel ? ` — ${cycleLabel.toUpperCase()}` : ''})
+                  </div>
+                </div>
+
+                {/* DATE ROW */}
+                <div className="flex items-start">
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">DATE</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
+                </div>
+              </div>
+
+              {/* HORIZONTAL RULE */}
+              <hr className="border-t border-slate-900 my-1" />
+
+              {/* MEMORANDUM BODY PARAGRAPHS */}
+              <div className="space-y-1 text-justify leading-tight text-[7.2pt] text-slate-900">
+                <p className="m-0">
+                  In accordance with the mandatory requirements of <strong>ISO 21001:2018 (EOMS)</strong>,{' '}
+                  <strong>ISO 9001:2015</strong>, and the{' '}
+                  <strong>
+                    Romblon State University Educational Organizations Management System (RSU-EOMS) Manual
+                  </strong>
+                  , all academic and administrative operating units across all campuses are required to maintain current
+                  and approved quality documentation.
+                </p>
+
+                <p className="m-0">
+                  Official verification records in the <strong>RSU EOMS Submission Portal</strong> indicate that as of{' '}
+                  <strong>{formattedDate}</strong>, several academic and administrative units have{' '}
+                  <strong>outstanding / unsubmitted quality management documents</strong> for Academic Year{' '}
+                  <strong>{year}</strong>
+                  {cycleLabel ? ` (${cycleLabel})` : ''}. The complete inventory of delinquent units and missing
+                  documents is detailed in <em>Attachment A</em>.
+                </p>
+
+                <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.5 text-[6.8pt] leading-tight">
+                  <strong>Specific Directive:</strong> Accountable Unit Heads, Program Chairs, and Campus Leads are
+                  directed to convene their respective QMS teams and upload all completed document requirements into the
+                  RSU EOMS Submission Portal without further delay.
+                </p>
+
+                <p className="m-0">To complete your submission, please follow the standard portal workflow:</p>
+
+                <ol className="list-decimal pl-3.5 space-y-0 text-[6.8pt] text-slate-800 leading-tight">
+                  <li>
+                    <strong>Access the Portal:</strong> Log in to the <strong>RSU EOMS Submission Portal</strong> and
+                    navigate to <em>Submissions &gt; Campus / Unit Matrix</em>.
+                  </li>
+                  <li>
+                    <strong>Upload Documents:</strong> Select your unit, choose the required report type (e.g. Risk and
+                    Opportunity Registry, Operational Plan, Work Instructions), and attach the signed PDF document.
+                  </li>
+                  <li>
+                    <strong>Submit for QA Review:</strong> Click <em>"Submit Document"</em> to forward the file to the
+                    Quality Assurance Office for formal audit verification.
+                  </li>
+                </ol>
+
+                <p className="m-0">
+                  All concerned units are granted a strict compliance window of <strong>5 working days</strong> from
+                  receipt of this directive. Failure to comply shall constrain this Office to formally elevate the
+                  matter to the <strong>Office of the Vice Presidents</strong> and <strong>University President</strong>{' '}
+                  for administrative intervention.
+                </p>
+
+                <p className="pt-0.5 m-0 font-semibold text-[7pt]">For your strict compliance and guidance.</p>
+              </div>
+
+              {/* SIGNATORIES BLOCK */}
+              <div className={includeNoted ? 'grid grid-cols-2 gap-4 pt-1.5 text-[7pt]' : 'pt-1.5 text-[7pt]'}>
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Issued by:</p>
+                  <div className="pt-3">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                      {qmsHead}
+                    </p>
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      Head, Quality Management System (QMS)
+                    </p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
+                  </div>
+                </div>
+
+                {includeNoted && (
+                  <div>
+                    <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Noted by:</p>
+                    <div className="pt-3">
+                      <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                        {qaoDirector}
+                      </p>
+                      <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                        Director, Quality Assurance Office
+                      </p>
+                      <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
+        <div
+          className="memo-footer-banner w-full"
+          style={{
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+          }}
+        >
+          <span
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Serving with Honor and Excellence!
           </span>
         </div>
       </div>
 
-      <div className="space-y-6">
-        <p className="text-justify">
-          The following matrix lists the units with outstanding Educational Organizations Management System (EOMS)
-          documentation for the Academic Year <strong>{year}</strong>
-          {cycleLabel ? ` (${cycleLabel})` : ''}, as verified through the RSU EOMS Digital Submission and Monitoring
-          Portal.
-        </p>
+      {/* ========================================================
+          PAGE 2+: ATTACHMENT A - SCHEDULE OF OUTSTANDING SUBMISSIONS TABLE
+          ======================================================== */}
+      <div
+        className="memo-attachment-page relative flex flex-col justify-between"
+        style={{
+          width: '8.5in',
+          minHeight: pageHeight,
+          padding: '0.35in 0.45in 0.65in 0.45in',
+          boxSizing: 'border-box',
+          pageBreakBefore: 'always',
+          breakBefore: 'page',
+        }}
+      >
+        <div>
+          {/* ATTACHMENT TOP HEADER */}
+          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2.5">
+            <div className="flex items-center gap-2.5">
+              <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
+              <img
+                src="/qa_logo.png"
+                alt="QAO Emblem"
+                style={{ height: '36px', width: '36px', objectFit: 'contain' }}
+              />
+              <div>
+                <h2 className="text-[10pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                  ROMBLON STATE UNIVERSITY
+                </h2>
+                <h3 className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                  QUALITY ASSURANCE OFFICE
+                </h3>
+              </div>
+            </div>
 
-        {campusNames.length === 0 ? (
-          <div className="border border-black p-8 text-center rounded-lg bg-slate-50/30">
-            <p className="font-black uppercase">No Outstanding Submissions</p>
-            <p className="text-[10pt] italic">
-              All units are fully compliant for AY {year}
-              {cycleLabel ? ` (${cycleLabel})` : ''}.
+            <div className="text-right">
+              <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">Ref: {generatedRefNo}</span>
+              <span className="text-[6.8pt] font-bold text-rose-700 font-mono">
+                {totalMissingCount} Missing Document Item{totalMissingCount !== 1 ? 's' : ''} Listed
+              </span>
+            </div>
+          </div>
+
+          <div className="mb-2">
+            <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
+              ATTACHMENT A: SCHEDULE OF OUTSTANDING EOMS DOCUMENTATION SUBMISSIONS
+            </h2>
+            <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
+              Itemized Inventory of Accountable Units and Delinquent EOMS Documentation Requirements (AY {year}
+              {cycleLabel ? ` — ${cycleLabel}` : ''})
             </p>
           </div>
-        ) : (
-          campusNames.map((campusName) => (
-            <section key={campusName} className="space-y-2">
-              <h3
-                className="font-black uppercase bg-slate-100 dark:bg-slate-800 p-2 border-l-[4px] border-black"
-                style={{ fontSize: '10pt' }}
-              >
-                {campusName}
-              </h3>
-              <table className="w-full border-collapse" style={{ fontSize: '9.5pt' }}>
-                <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-800">
-                    <th className="border border-black p-2 text-left uppercase">Site/Campus</th>
-                    <th className="border border-black p-2 text-left uppercase">Unit</th>
-                    <th className="border border-black p-2 text-left uppercase">Documents</th>
-                    <th className="border border-black p-2 text-left uppercase">Status</th>
+
+          {/* ATTACHMENT TABLE */}
+          {rows.length === 0 ? (
+            <div className="p-8 text-center border border-dashed rounded text-slate-500 italic text-xs">
+              No outstanding submissions recorded. All units are fully compliant for Academic Year {year}.
+            </div>
+          ) : (
+            <table className="w-full border-collapse border border-slate-900 text-[7.5pt]">
+              <thead>
+                <tr className="bg-slate-100 font-black text-slate-900 uppercase text-[7pt]">
+                  <th className="border border-slate-900 p-1.5 text-center w-[5%]">#</th>
+                  <th className="border border-slate-900 p-1.5 text-left w-[25%]">Site / Campus</th>
+                  <th className="border border-slate-900 p-1.5 text-left w-[28%]">Accountable Unit</th>
+                  <th className="border border-slate-900 p-1.5 text-left w-[30%]">Required Document(s) &amp; Cycle</th>
+                  <th className="border border-slate-900 p-1.5 text-center w-[12%]">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50">
+                    <td className="border border-slate-900 p-1 text-center font-bold text-slate-600">{idx + 1}</td>
+                    <td className="border border-slate-900 p-1 font-bold text-slate-900 uppercase">{row.campusName}</td>
+                    <td className="border border-slate-900 p-1 font-bold text-slate-900 uppercase">{row.unitName}</td>
+                    <td className="border border-slate-900 p-1 text-slate-800">
+                      <ul className="list-disc pl-3.5 space-y-0.5 m-0 text-[7pt]">
+                        {row.documents.map((doc, i) => (
+                          <li key={i}>
+                            <strong>{doc}</strong>{' '}
+                            <span className="text-slate-500 italic text-[6.5pt]">({row.cycle})</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                    <td className="border border-slate-900 p-1 text-center font-sans">
+                      <span className="inline-block px-1.5 py-0.2 rounded text-[6pt] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
+                        NOT SUBMITTED
+                      </span>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {grouped[campusName].map((row, idx) => (
-                    <tr key={idx} className={cn(idx % 2 === 1 && 'bg-slate-50/50')}>
-                      <td className="border border-black p-2">{campusName}</td>
-                      <td className="border border-black p-2 font-bold">{row.unitName}</td>
-                      <td className="border border-black p-2">
-                        <ul className="list-disc pl-5 space-y-0.5">
-                          {row.documents.map((doc, i) => (
-                            <li key={i}>
-                              {doc} <span className="italic text-slate-600">({row.cycle})</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </td>
-                      <td className="border border-black p-2 font-black uppercase">Not Submitted</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
-          ))
-        )}
+                ))}
+              </tbody>
+            </table>
+          )}
 
-        <p className="text-justify">
-          Units identified above are directed to complete and submit the outstanding documents at the earliest
-          opportunity to ensure continuous compliance with institutional quality standards.
-        </p>
-      </div>
+          {/* ATTACHMENT SIGNATORIES */}
+          <div
+            className={
+              includeNoted
+                ? 'grid grid-cols-2 gap-6 pt-4 mt-3 text-[7.2pt] border-t border-slate-300'
+                : 'pt-4 mt-3 text-[7.2pt] border-t border-slate-300'
+            }
+          >
+            <div>
+              <p className="font-bold text-slate-600 uppercase text-[6pt]">Certified Accurate by:</p>
+              <div className="pt-3">
+                <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt]">
+                  {qmsHead}
+                </p>
+                <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5">Head, Quality Management System (QMS)</p>
+              </div>
+            </div>
 
-      {/* SIGNATORIES BLOCK */}
-      <div className="mt-20 space-y-8 text-left">
-        <div className="w-full">
-          <p className="font-black uppercase" style={{ fontSize: '11pt' }}>
-            {qmsHead}
-          </p>
-          <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>
-            HEAD, QUALITY MANAGEMENT SYSTEM UNIT
-          </p>
-        </div>
-
-        <div className="space-y-4">
-          <p className="font-bold uppercase text-[9pt] opacity-60">NOTED BY:</p>
-          <div className="w-full">
-            <p className="font-black uppercase" style={{ fontSize: '11pt' }}>
-              {qaoDirector}
-            </p>
-            <p className="font-bold uppercase" style={{ fontSize: '10pt' }}>
-              DIRECTOR, QUALITY ASSURANCE OFFICE
-            </p>
+            {includeNoted && (
+              <div>
+                <p className="font-bold text-slate-600 uppercase text-[6pt]">Approved for Release by:</p>
+                <div className="pt-3">
+                  <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt]">
+                    {qaoDirector}
+                  </p>
+                  <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5">Director, Quality Assurance Office</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      <div className="mt-12 text-center text-[10pt] font-bold italic text-slate-900 dark:text-slate-100">
-        This is a system-generated report; signature is not required.
-      </div>
+        {/* ATTACHMENT FOOTER & GREEN BANNER */}
+        <div>
+          <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
+            <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
+            <span className="font-mono font-bold text-slate-800">
+              Form Code: RSU-QAO-EOMS-MIS-01 (Attachment A) | Rev. 03
+            </span>
+          </div>
 
-      <div className="mt-auto pt-8 border-t border-slate-200 dark:border-slate-700 flex justify-between text-[9pt] text-slate-400 font-bold italic">
-        <span>RSU-QAO-FOR-025 | REV 01-2026</span>
-        <span>Issued via RSU EOMS Portal</span>
+          <div
+            className="memo-footer-banner w-full"
+            style={{
+              height: '24px',
+              background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+            }}
+          >
+            <span
+              style={{
+                color: '#ffffff',
+                fontFamily: 'Georgia, Cambria, serif',
+                fontSize: '7.5pt',
+                fontWeight: 'bold',
+                fontStyle: 'italic',
+                letterSpacing: '0.04em',
+              }}
+            >
+              Serving with Honor and Excellence!
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
