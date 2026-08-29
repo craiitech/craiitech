@@ -84,7 +84,7 @@ export function CAROverdueMemorandumDialog({
   const [memoDate, setMemoDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [gracePeriodDays, setGracePeriodDays] = useState<number>(5);
   const [customDirective, setCustomDirective] = useState<string>(
-    'Accountable Unit Heads are directed to convene their QMS teams, finalize the root cause statements, and upload committed action plans into the CRAIITECH portal without further delay.',
+    'Accountable Unit Heads are directed to convene their QMS teams, finalize the root cause statements, and upload committed action plans into the RSU EOMS Submission Portal without further delay.',
   );
   const [activePreviewIndex, setActivePreviewIndex] = useState<number>(0);
   const [isNotifying, setIsNotifying] = useState<boolean>(false);
@@ -304,7 +304,7 @@ FOR / TO: ${activeGroup.unitName.toUpperCase()} (${activeGroup.campusName})
 FROM: ${signatories?.qaoDirector || 'DIRECTOR, QUALITY ASSURANCE OFFICE'}
 SUBJECT: FINAL NOTICE TO SUBMIT ROOT CAUSE ANALYSIS & CORRECTIVE ACTION PLAN FOR OVERDUE CAR(S)
 
-In accordance with ISO 21001:2018 Clause 10.2 and RSU QMS policies, please be informed that your unit has ${activeGroup.overdueCars.length} overdue Corrective Action Request(s):
+In accordance with ISO 21001:2018 Clause 10.2 and the Romblon State University Educational Organizations Management System (RSU-EOMS) Manual, please be informed that your unit has ${activeGroup.overdueCars.length} overdue Corrective Action Request(s):
 
 ${activeGroup.overdueCars
   .map(
@@ -313,8 +313,8 @@ ${activeGroup.overdueCars
   )
   .join('\n')}
 
-INSTRUCTIONS TO RESPOND IN CRAIITECH:
-1. Log in to the CRAIITECH Portal (QA Reports > CAR Registry).
+INSTRUCTIONS TO RESPOND IN RSU EOMS SUBMISSION PORTAL:
+1. Log in to the RSU EOMS Submission Portal (QA Reports > CAR Registry).
 2. Locate your assigned CAR and click "Take Action".
 3. Fill in Section B (Root Cause Analysis using 5-Whys or Fishbone).
 4. Specify immediate containment and long-term corrective action steps with realistic completion dates.

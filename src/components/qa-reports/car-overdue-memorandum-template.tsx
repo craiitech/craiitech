@@ -150,15 +150,15 @@ export function CAROverdueMemorandumTemplate({
           1. <strong>LEGAL & REGULATORY BASIS:</strong> In accordance with the provisions of{' '}
           <strong>ISO 21001:2018 (Educational Organizations Management Systems) Clause 10.2</strong>,{' '}
           <strong>ISO 9001:2015 Clause 10.2</strong>, and the{' '}
-          <strong>Romblon State University Quality Management System (RSU-QMS) Manual</strong>, all accountable units
-          are mandated to timely investigate nonconformities, determine genuine root causes, and implement corrective
-          actions within the prescribed timeline.
+          <strong>Romblon State University Educational Organizations Management System (RSU-EOMS) Manual</strong>, all
+          accountable units are mandated to timely investigate nonconformities, determine genuine root causes, and
+          implement corrective actions within the prescribed timeline.
         </p>
 
         <p>
-          2. <strong>NOTICE OF NON-RESPONSE:</strong> Records in the <strong>CRAIITECH QMS Portal</strong> indicate that
-          as of <strong>{formattedDate}</strong>, your office has <strong>failed to submit</strong> the required{' '}
-          <em>Root Cause Analysis (RCA)</em> and <em>Corrective Action Plan (CAP)</em> for{' '}
+          2. <strong>NOTICE OF NON-RESPONSE:</strong> Records in the <strong>RSU EOMS Submission Portal</strong>{' '}
+          indicate that as of <strong>{formattedDate}</strong>, your office has <strong>failed to submit</strong> the
+          required <em>Root Cause Analysis (RCA)</em> and <em>Corrective Action Plan (CAP)</em> for{' '}
           <strong>
             {totalOverdue} Corrective Action Request{totalOverdue > 1 ? 's' : ''} (CAR)
           </strong>
@@ -233,15 +233,15 @@ export function CAROverdueMemorandumTemplate({
         </table>
       </div>
 
-      {/* 6. STEP-BY-STEP INSTRUCTIONS ON HOW TO RESPOND IN CRAIITECH */}
+      {/* 6. STEP-BY-STEP INSTRUCTIONS ON HOW TO RESPOND IN RSU EOMS SUBMISSION PORTAL */}
       <div className="border-2 border-black bg-slate-50/60 p-4 rounded-none mb-6 font-sans text-[8.5pt]">
         <h4 className="text-[9pt] font-black uppercase tracking-wider text-slate-900 border-b border-black pb-1 mb-2.5">
-          MANDATORY INSTRUCTIONS: HOW TO FILE YOUR UNIT RESPONSE IN CRAIITECH
+          MANDATORY INSTRUCTIONS: HOW TO FILE YOUR UNIT RESPONSE IN RSU EOMS SUBMISSION PORTAL
         </h4>
 
         <ol className="space-y-2 pl-4 list-decimal text-slate-800 leading-snug">
           <li>
-            <strong>Access the CRAIITECH EOMS Portal:</strong> Navigate to{' '}
+            <strong>Access the RSU EOMS Submission Portal:</strong> Navigate to{' '}
             <span className="font-mono font-bold bg-white px-1.5 py-0.5 border border-slate-300">
               QA Reports &gt; CAR Registry
             </span>{' '}
@@ -284,8 +284,8 @@ export function CAROverdueMemorandumTemplate({
           </li>
           <li>
             <strong>Upload Objective Evidence:</strong> Prepare and attach documentary proof (training attendance,
-            revised forms, communication memos, photographic evidence) in the CRAIITECH system once action steps are
-            completed.
+            revised forms, communication memos, photographic evidence) in the RSU EOMS Submission Portal once action
+            steps are completed.
           </li>
         </ol>
       </div>
@@ -296,7 +296,7 @@ export function CAROverdueMemorandumTemplate({
           3. <strong>STRICT GRACE WINDOW:</strong> Your office is granted a final, non-extendable grace period of{' '}
           <strong>{gracePeriodDays} working days</strong> from the date of this memorandum (on or before{' '}
           <strong>{format(new Date(Date.now() + gracePeriodDays * 24 * 60 * 60 * 1000), 'MMMM d, yyyy (EEEE)')}</strong>
-          ) to submit the completed Root Cause Analysis and Corrective Action Plan in the CRAIITECH system.
+          ) to submit the completed Root Cause Analysis and Corrective Action Plan in the RSU EOMS Submission Portal.
         </p>
 
         <p>
