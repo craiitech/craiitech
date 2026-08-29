@@ -386,11 +386,12 @@ export function CAROverdueMemorandumDialog({
               ? 'COMPLIANCE DIRECTIVE: IMMEDIATE EVIDENCE SUBMISSION FOR CARS PENDING FINAL QUALITY VERIFICATION'
               : 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR OVERDUE CORRECTIVE ACTION REQUESTS (CAR)';
 
-    const notedSection = includeNoted
-      ? `
-Noted by:
-${selectedQaoDirector || signatories?.qaoDirector || 'SARAH JANE F. FALLARIA'}
-Director, Quality Assurance Office`
+    const notedHeader = includeNoted
+      ? `\n\nNOTED       :   ${selectedQaoDirector || signatories?.qaoDirector || 'SARAH JANE F. FALLARIA'}\n                Director, Quality Assurance Office`
+      : '';
+
+    const notedSignatory = includeNoted
+      ? `\n\nNoted by:\n${selectedQaoDirector || signatories?.qaoDirector || 'SARAH JANE F. FALLARIA'}\nDirector, Quality Assurance Office`
       : '';
 
     const text = `
@@ -401,7 +402,7 @@ TO          :   ${recipients}
                 This University
 
 FROM        :   ${signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)'}
-                Head, Quality Management System (QMS)
+                Head, Quality Management System (QMS)${notedHeader}
 
 SUBJECT     :   ${subjectLine}
 
@@ -429,7 +430,7 @@ For your strict compliance and guidance.
 
 Issued by:
 ${signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)'}
-Head, Quality Management System (QMS)${notedSection}
+Head, Quality Management System (QMS)${notedSignatory}
     `.trim();
 
     navigator.clipboard.writeText(text);

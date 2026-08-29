@@ -252,6 +252,20 @@ export function CAROverdueMemorandumTemplate({
                   </div>
                 </div>
 
+                {/* NOTED ROW (WHEN includeNoted IS TRUE) */}
+                {includeNoted && (
+                  <div className="flex items-start">
+                    <div className="w-16 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
+                    <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
+                    <div className="flex-1 font-bold text-slate-900">
+                      <span className="uppercase block font-black">{qaoDirector}</span>
+                      <span className="text-[8pt] font-normal text-slate-700 block">
+                        Director, Quality Assurance Office
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 {/* SUBJECT ROW */}
                 <div className="flex items-start">
                   <div className="w-16 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
