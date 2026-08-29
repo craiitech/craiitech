@@ -1447,7 +1447,7 @@ export function MissingSubmissionsReport({
             </div>
           </div>
 
-          <div className="mb-2">
+          <div className={`mb-2 ${isReportOnly ? 'text-center' : ''}`}>
             <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
               {isReportOnly ? '' : 'ATTACHMENT A: '}SCHEDULE OF OUTSTANDING EOMS DOCUMENTATION SUBMISSIONS
             </h2>
@@ -1455,6 +1455,21 @@ export function MissingSubmissionsReport({
               Itemized Inventory of Accountable Units and Delinquent EOMS Documentation Requirements (AY {year}
               {cycleLabel ? ` — ${cycleLabel}` : ''})
             </p>
+            {isReportOnly && (
+              <div className="mt-1.5 flex items-center justify-center gap-4 text-[7.5pt] font-bold text-slate-800 uppercase tracking-tight border-y border-slate-300 py-1 bg-slate-50/80">
+                <span>
+                  <strong>SITE/CAMPUS:</strong>{' '}
+                  {targetCampusName && targetCampusName !== 'All Campuses (University-Wide)'
+                    ? targetCampusName
+                    : 'All Campuses (University-Wide)'}
+                </span>
+                <span className="text-slate-400">•</span>
+                <span>
+                  <strong>UNIT:</strong>{' '}
+                  {targetScope === 'unit' && targetUnitName ? targetUnitName : 'All Accountable Units'}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* ATTACHMENT TABLE */}

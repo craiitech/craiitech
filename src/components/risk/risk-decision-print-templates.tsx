@@ -507,13 +507,24 @@ export function ExecutiveRiskBriefingTemplate({
           </div>
         </div>
 
-        <div className="mb-2">
+        <div className={`mb-2 ${isReportOnly ? 'text-center' : ''}`}>
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
             {isReportOnly ? '' : 'ATTACHMENT A: '}EXECUTIVE RISK PROFILE &amp; DECISION-SUPPORT BRIEFING
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             ISO 21001:2018 Clause 6.1 Strategic Intelligence, Magnitude Reduction, and Top Critical Vulnerabilities
           </p>
+          {isReportOnly && (
+            <div className="mt-1.5 flex items-center justify-center gap-4 text-[7.5pt] font-bold text-slate-800 uppercase tracking-tight border-y border-slate-300 py-1 bg-slate-50/80">
+              <span>
+                <strong>SITE/CAMPUS:</strong> {campusName || 'Main Campus'}
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                <strong>UNIT:</strong> {unitName || 'All Audited Units'}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* KEY DECISION METRICS GRID */}
@@ -749,13 +760,24 @@ export function RiskResourceAllocationTemplate({
           </div>
         </div>
 
-        <div className="mb-2">
+        <div className={`mb-2 ${isReportOnly ? 'text-center' : ''}`}>
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
             {isReportOnly ? '' : 'ATTACHMENT A: '}RISK TREATMENT ACTION PLAN &amp; RESOURCE ALLOCATION BLUEPRINT (RAP)
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             Annual Procurement &amp; Resource Justification Schedule — Fiscal Year {year}
           </p>
+          {isReportOnly && (
+            <div className="mt-1.5 flex items-center justify-center gap-4 text-[7.5pt] font-bold text-slate-800 uppercase tracking-tight border-y border-slate-300 py-1 bg-slate-50/80">
+              <span>
+                <strong>SITE/CAMPUS:</strong> {campusName || 'Main Campus'}
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                <strong>UNIT:</strong> {unitName || 'All Audited Units'}
+              </span>
+            </div>
+          )}
         </div>
 
         <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
@@ -924,13 +946,24 @@ export function RiskAccountabilityTrackerTemplate({
           </div>
         </div>
 
-        <div className="mb-2">
+        <div className={`mb-2 ${isReportOnly ? 'text-center' : ''}`}>
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
             {isReportOnly ? '' : 'ATTACHMENT A: '}RISK TREATMENT ACCOUNTABILITY &amp; COMMITMENT TRACKER (RAT)
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             Monitoring Assigned Action Leads, Milestone Deadlines, and Operational Risk Statuses
           </p>
+          {isReportOnly && (
+            <div className="mt-1.5 flex items-center justify-center gap-4 text-[7.5pt] font-bold text-slate-800 uppercase tracking-tight border-y border-slate-300 py-1 bg-slate-50/80">
+              <span>
+                <strong>SITE/CAMPUS:</strong> {campusName || 'Main Campus'}
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                <strong>UNIT:</strong> {unitName || 'All Audited Units'}
+              </span>
+            </div>
+          )}
         </div>
 
         <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
@@ -1104,13 +1137,24 @@ export function RiskEffectivenessAuditTemplate({
           </div>
         </div>
 
-        <div className="mb-2">
+        <div className={`mb-2 ${isReportOnly ? 'text-center' : ''}`}>
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
             {isReportOnly ? '' : 'ATTACHMENT A: '}RISK TREATMENT EFFECTIVENESS AUDIT &amp; ISO COMPLIANCE DOSSIER (REA)
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             Pre vs Post Risk Comparison, Residual Severity Evaluation, and Quality Assurance Verification
           </p>
+          {isReportOnly && (
+            <div className="mt-1.5 flex items-center justify-center gap-4 text-[7.5pt] font-bold text-slate-800 uppercase tracking-tight border-y border-slate-300 py-1 bg-slate-50/80">
+              <span>
+                <strong>SITE/CAMPUS:</strong> {campusName || 'Main Campus'}
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                <strong>UNIT:</strong> {unitName || 'All Audited Units'}
+              </span>
+            </div>
+          )}
         </div>
 
         <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
@@ -1297,13 +1341,24 @@ export function OpportunityInnovationTemplate({
           </div>
         </div>
 
-        <div className="mb-2">
+        <div className={`mb-2 ${isReportOnly ? 'text-center' : ''}`}>
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
             {isReportOnly ? '' : 'ATTACHMENT A: '}OPPORTUNITY PURSUIT &amp; INNOVATION IMPACT SCORECARD (OIS)
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             ISO 21001:2018 Clause 6.1 (Positive Risk Pursuits, Institutional Innovation, and Strategic Gains)
           </p>
+          {isReportOnly && (
+            <div className="mt-1.5 flex items-center justify-center gap-4 text-[7.5pt] font-bold text-slate-800 uppercase tracking-tight border-y border-slate-300 py-1 bg-slate-50/80">
+              <span>
+                <strong>SITE/CAMPUS:</strong> {campusName || 'Main Campus'}
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                <strong>UNIT:</strong> {unitName || 'All Audited Units'}
+              </span>
+            </div>
+          )}
         </div>
 
         <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
@@ -1476,13 +1531,24 @@ export function RiskStatusReminderNoticeTemplate({
           </div>
         </div>
 
-        <div className="mb-2">
+        <div className={`mb-2 ${isReportOnly ? 'text-center' : ''}`}>
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
             {isReportOnly ? '' : 'ATTACHMENT A: '}SCHEDULE OF PENDING &amp; OVERDUE RISK TREATMENTS
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             Itemized Inventory of Active Risk Mitigation Commitments and Mandatory Compliance Milestones (AY {year})
           </p>
+          {isReportOnly && (
+            <div className="mt-1.5 flex items-center justify-center gap-4 text-[7.5pt] font-bold text-slate-800 uppercase tracking-tight border-y border-slate-300 py-1 bg-slate-50/80">
+              <span>
+                <strong>SITE/CAMPUS:</strong> {campusName || 'Main Campus'}
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                <strong>UNIT:</strong> {unitName || 'All Audited Units'}
+              </span>
+            </div>
+          )}
         </div>
 
         <table className="w-full border-collapse border border-slate-900 text-[7.2pt] mb-3">
@@ -1683,7 +1749,7 @@ export function UnitNonSubmissionAuditTemplate({
           </div>
         </div>
 
-        <div className="mb-2">
+        <div className={`mb-2 ${isReportOnly ? 'text-center' : ''}`}>
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
             {isReportOnly ? '' : 'ATTACHMENT A: '}EOMS &amp; RISK DIGITAL REGISTRY NON-SUBMISSION &amp; DEFICIENCY AUDIT
           </h2>
@@ -1691,6 +1757,17 @@ export function UnitNonSubmissionAuditTemplate({
             Auditing Unit Document Submissions in EOMS Submission Hub &amp; Digital Risk &amp; Opportunity Registry (FY{' '}
             {year})
           </p>
+          {isReportOnly && (
+            <div className="mt-1.5 flex items-center justify-center gap-4 text-[7.5pt] font-bold text-slate-800 uppercase tracking-tight border-y border-slate-300 py-1 bg-slate-50/80">
+              <span>
+                <strong>SITE/CAMPUS:</strong> {campusName || 'All Campuses (University-Wide)'}
+              </span>
+              <span className="text-slate-400">•</span>
+              <span>
+                <strong>UNIT:</strong> All Audited Units
+              </span>
+            </div>
+          )}
         </div>
 
         {/* SUMMARY METRICS */}

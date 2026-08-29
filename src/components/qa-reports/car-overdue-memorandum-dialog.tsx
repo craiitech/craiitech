@@ -290,12 +290,23 @@ export function CAROverdueMemorandumDialog({
       const printWindow = window.open('', '_blank');
       if (printWindow) {
         const isReportOnly = communicationType === 'Report Only';
+        const reportNameByStatus =
+          statusFilter === 'open'
+            ? 'Open CAR Report'
+            : statusFilter === 'ongoing'
+              ? 'Ongoing CAR Report'
+              : statusFilter === 'for_action'
+                ? 'Action-Required CAR Report'
+                : statusFilter === 'verification'
+                  ? 'CAR Verification Report'
+                  : 'Overdue CAR Report';
+
         printWindow.document.open();
         printWindow.document.write(`
           <!DOCTYPE html>
           <html>
             <head>
-              <title>${isReportOnly ? 'Overdue CAR Report' : communicationType} - Overdue CAR Responses (${memoRefNo})</title>
+              <title>${isReportOnly ? reportNameByStatus : communicationType} - ${reportNameByStatus} (${memoRefNo})</title>
               <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
               <style>
                 @page { 
@@ -381,7 +392,7 @@ export function CAROverdueMemorandumDialog({
             <body>
               <div class="no-print mb-6 flex justify-center">
                 <button onclick="window.print()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-sans font-black px-8 py-3 rounded-lg shadow-xl uppercase text-xs tracking-widest transition-all">
-                  Click to Print ${communicationType} (${paperSize.toUpperCase()} Format)
+                  Click to Print ${isReportOnly ? reportNameByStatus : communicationType} (${paperSize.toUpperCase()} Format)
                 </button>
               </div>
               <div id="print-content">
@@ -940,11 +951,24 @@ Head, Quality Management System (QMS)${notedSignatory}
                 <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2.5 border-b flex items-center justify-between">
                   <span className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
-                    {communicationType === 'Report Only'
-                      ? `Consolidated Overdue CAR Report (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
-                      : isConsolidatedBatch
-                        ? `Consolidated Folio ${communicationType} (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
-                        : `Printable Folio Preview: ${activeGroup?.unitName} (${activeGroup?.campusName})`}
+                    {(() => {
+                      const reportNameByStatus =
+                        statusFilter === 'open'
+                          ? 'Open CAR Report'
+                          : statusFilter === 'ongoing'
+                            ? 'Ongoing CAR Report'
+                            : statusFilter === 'for_action'
+                              ? 'Action-Required CAR Report'
+                              : statusFilter === 'verification'
+                                ? 'CAR Verification Report'
+                                : 'Overdue CAR Report';
+
+                      return communicationType === 'Report Only'
+                        ? `Consolidated ${reportNameByStatus} (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
+                        : isConsolidatedBatch
+                          ? `Consolidated Folio ${communicationType} (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
+                          : `Printable Folio Preview: ${activeGroup?.unitName} (${activeGroup?.campusName})`;
+                    })()}
                   </span>
                   <div className="flex items-center gap-2">
                     <Button

@@ -38,6 +38,8 @@ export interface CAROverdueMemorandumTemplateProps {
   includeNoted?: boolean;
   selectedQaoDirector?: string;
   selectedQmsHead?: string;
+  reportTitle?: string;
+  reportSubtitle?: string;
 }
 
 export function CAROverdueMemorandumTemplate({
@@ -56,6 +58,8 @@ export function CAROverdueMemorandumTemplate({
   includeNoted = true,
   selectedQaoDirector,
   selectedQmsHead,
+  reportTitle,
+  reportSubtitle,
 }: CAROverdueMemorandumTemplateProps) {
   const dateObj = memoDate instanceof Date ? memoDate : new Date(memoDate);
   const formattedDate = !isNaN(dateObj.getTime())
@@ -488,14 +492,60 @@ export function CAROverdueMemorandumTemplate({
             </div>
           </div>
 
-          <div className="mb-2">
-            <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
-              {isReportOnly ? '' : 'ATTACHMENT A: '}SCHEDULE OF OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
-            </h2>
-            <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
-              Itemized Inventory of Identified Audit Non-Conformances, Procedures, and Overdue Statuses
-            </p>
-          </div>
+          {(() => {
+            const dynamicTitle =
+              reportTitle ||
+              (statusCategory === 'open'
+                ? 'SCHEDULE OF OPEN CORRECTIVE ACTION REQUESTS (CAR)'
+                : statusCategory === 'ongoing'
+                  ? 'SCHEDULE OF ONGOING / IN-PROGRESS CORRECTIVE ACTION REQUESTS (CAR)'
+                  : statusCategory === 'for_action'
+                    ? 'SCHEDULE OF ACTION-REQUIRED CORRECTIVE ACTION REQUESTS (CAR)'
+                    : statusCategory === 'verification'
+                      ? 'SCHEDULE OF CORRECTIVE ACTION REQUESTS (CAR) FOR FINAL VERIFICATION'
+                      : 'SCHEDULE OF OVERDUE CORRECTIVE ACTION REQUESTS (CAR)');
+
+            const dynamicSubtitle =
+              reportSubtitle ||
+              (statusCategory === 'open'
+                ? 'Itemized Inventory of Identified Audit Non-Conformances Pending Initial Root Cause & Action Plan'
+                : statusCategory === 'ongoing'
+                  ? 'Itemized Inventory of Corrective Action Requests with Action Plans In Progress'
+                  : statusCategory === 'for_action'
+                    ? 'Itemized Inventory of Corrective Action Requests Requiring Immediate Unit Action and Updates'
+                    : statusCategory === 'verification'
+                      ? 'Itemized Inventory of Corrective Action Requests Awaiting Final Quality Assurance Verification'
+                      : 'Itemized Inventory of Identified Audit Non-Conformances, Procedures, and Overdue Statuses');
+
+            return (
+              <div className={`mb-2 ${isReportOnly ? 'text-center' : ''}`}>
+                <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
+                  {isReportOnly ? '' : 'ATTACHMENT A: '}
+                  {dynamicTitle}
+                </h2>
+                <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">{dynamicSubtitle}</p>
+                {isReportOnly && (
+                  <div className="mt-1.5 flex items-center justify-center gap-4 text-[7.5pt] font-bold text-slate-800 uppercase tracking-tight border-y border-slate-300 py-1 bg-slate-50/80">
+                    <span>
+                      <strong>SITE/CAMPUS:</strong>{' '}
+                      {unitGroup?.campusName ||
+                        (allUnitGroups && allUnitGroups.length === 1
+                          ? allUnitGroups[0].campusName
+                          : 'All Campuses (University-Wide)')}
+                    </span>
+                    <span className="text-slate-400">•</span>
+                    <span>
+                      <strong>UNIT:</strong>{' '}
+                      {unitGroup?.unitName ||
+                        (allUnitGroups && allUnitGroups.length === 1
+                          ? allUnitGroups[0].unitName
+                          : 'All Accountable Units')}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ATTACHMENT TABLE */}
           {allOverdueItems.length === 0 ? (
