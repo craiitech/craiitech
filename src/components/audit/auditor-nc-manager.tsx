@@ -23,6 +23,7 @@ import {
   User,
   Info,
   ArrowUpRight,
+  FileText,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
@@ -31,6 +32,7 @@ import { useRouter } from 'next/navigation';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from '@/components/qa-reports/car-print-template';
 import { getNextCarActionInfo } from '@/lib/car-utils';
+import { CAROverdueMemorandumDialog } from '@/components/qa-reports/car-overdue-memorandum-dialog';
 
 interface AuditorNCManagerProps {
   findings: AuditFinding[];
@@ -54,6 +56,7 @@ export function AuditorNCManager({
   searchTerm,
 }: AuditorNCManagerProps) {
   const router = useRouter();
+  const [isMemoDialogOpen, setIsMemoDialogOpen] = useState<boolean>(false);
 
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
@@ -211,12 +214,23 @@ export function AuditorNCManager({
             <div className="flex items-center gap-2">
               <ShieldAlert className="h-5 w-5 text-rose-600" />
               <CardTitle className="text-sm font-black uppercase tracking-tight">
-                Non-Conformance & CAR Bridge Registry
+                Non-Conformance &amp; CAR Bridge Registry
               </CardTitle>
             </div>
-            <Badge variant="outline" className="h-5 text-[9px] font-black uppercase border-primary/20 bg-white">
-              Scope: {campusFilter === 'all' ? 'System-Wide' : campusMap.get(campusFilter)}
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsMemoDialogOpen(true)}
+                className="h-7 text-[9px] font-black uppercase bg-white border-rose-300 text-rose-700 hover:bg-rose-50 gap-1.5 shadow-sm"
+                title="Generate Official Overdue Response Memorandum"
+              >
+                <FileText className="h-3 w-3 text-rose-600" /> Overdue Memo
+              </Button>
+              <Badge variant="outline" className="h-7 text-[9px] font-black uppercase border-primary/20 bg-white">
+                Scope: {campusFilter === 'all' ? 'System-Wide' : campusMap.get(campusFilter)}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -386,6 +400,16 @@ export function AuditorNCManager({
           </div>
         </CardFooter>
       </Card>
+
+      {/* OVERDUE CAR RESPONSE MEMORANDUM GENERATOR DIALOG */}
+      <CAROverdueMemorandumDialog
+        isOpen={isMemoDialogOpen}
+        onOpenChange={setIsMemoDialogOpen}
+        cars={cars || []}
+        units={units || []}
+        campuses={campuses || []}
+        signatories={signatories}
+      />
     </div>
   );
 }

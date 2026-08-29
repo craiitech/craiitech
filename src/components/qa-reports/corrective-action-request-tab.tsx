@@ -68,6 +68,7 @@ import {
   School,
   Bell,
   CalendarClock,
+  FileText,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -97,8 +98,9 @@ import { AuditorNCManager } from '@/components/audit/auditor-nc-manager';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CARPrintTemplate } from './car-print-template';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { getNextCarActionInfo, type CarNextActionInfo } from '@/lib/car-utils';
+import { getNextCarActionInfo, parseCarDate, type CarNextActionInfo } from '@/lib/car-utils';
 import { CARControlRegisterTemplate } from './car-control-register-template';
+import { CAROverdueMemorandumDialog } from './car-overdue-memorandum-dialog';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import {
   BarChart,
@@ -361,6 +363,17 @@ export function CorrectiveActionRequestTab({
   const [yearFilter, setYearFilter] = useState('all');
   const [notifyingCarId, setNotifyingCarId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'IQA' | 'EQA'>('IQA');
+
+  // Overdue Memorandum Dialog state
+  const [isOverdueMemoDialogOpen, setIsOverdueMemoDialogOpen] = useState<boolean>(false);
+  const [memoSelectedCarId, setMemoSelectedCarId] = useState<string | null>(null);
+  const [memoSelectedUnitId, setMemoSelectedUnitId] = useState<string | null>(null);
+
+  const handleOpenOverdueMemo = (carId?: string, unitId?: string) => {
+    setMemoSelectedCarId(carId || null);
+    setMemoSelectedUnitId(unitId || null);
+    setIsOverdueMemoDialogOpen(true);
+  };
 
   // When a specific audit type is enforced by the parent (e.g. the EQA tab), use it;
   // otherwise fall back to the in-page IQA/EQA/All toggle.
@@ -806,6 +819,19 @@ export function CorrectiveActionRequestTab({
 
   const closedCars = useMemo(() => {
     return filteredCars.filter((car) => car.status === 'Closed');
+  }, [filteredCars]);
+
+  const overdueCarsCount = useMemo(() => {
+    const today = new Date();
+    return filteredCars.filter((car) => {
+      if (car.status === 'Closed') return false;
+      const info = getNextCarActionInfo(car);
+      if (info.urgency === 'overdue') return true;
+      const replyDeadline = parseCarDate(car.timeLimitForReply);
+      return (
+        replyDeadline && replyDeadline < today && (car.status === 'Open' || car.status === 'Awaiting Response/Update')
+      );
+    }).length;
   }, [filteredCars]);
 
   const yearlyPerformance = useMemo(() => {
@@ -1986,7 +2012,7 @@ export function CorrectiveActionRequestTab({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5 md:col-span-3">
+            <div className="space-y-1.5 md:col-span-2">
               <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1">Campus Filter</label>
               <Select value={campusFilter} onValueChange={setCampusFilter}>
                 <SelectTrigger className="h-10 bg-white text-xs font-bold">
@@ -2002,13 +2028,29 @@ export function CorrectiveActionRequestTab({
                 </SelectContent>
               </Select>
             </div>
-            <div className="sm:col-span-2 md:col-span-3">
+            <div className="sm:col-span-1 md:col-span-2 flex items-end">
               <Button
                 variant="outline"
-                className="w-full h-10 bg-white border-primary/20 text-primary font-black text-[10px] uppercase gap-2"
+                className="w-full h-10 bg-white border-primary/20 text-primary font-black text-[10px] uppercase gap-1.5 shadow-sm truncate"
                 onClick={handlePrintRegistry}
+                title="Print CAR Control Register"
               >
-                <Printer className="h-4 w-4" /> Print Control Register
+                <Printer className="h-4 w-4 shrink-0" /> Print Register
+              </Button>
+            </div>
+            <div className="sm:col-span-1 md:col-span-2 flex items-end">
+              <Button
+                variant="outline"
+                className="w-full h-10 bg-white border-rose-300 text-rose-700 hover:bg-rose-50 font-black text-[10px] uppercase gap-1.5 shadow-sm truncate"
+                onClick={() => handleOpenOverdueMemo()}
+                title="Generate Official Overdue Response Memorandum"
+              >
+                <FileText className="h-4 w-4 text-rose-600 shrink-0" /> Overdue Memo
+                {overdueCarsCount > 0 && (
+                  <Badge className="ml-1 bg-rose-600 text-white text-[9px] px-1.5 py-0 h-4 shrink-0 font-mono">
+                    {overdueCarsCount}
+                  </Badge>
+                )}
               </Button>
             </div>
           </CardContent>
@@ -3778,14 +3820,29 @@ export function CorrectiveActionRequestTab({
               </Button>
               <div className="flex items-center gap-2">
                 {(editingCar || liveCar) && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => handlePrint((editingCar || liveCar)!)}
-                    className="h-10 text-[10px] font-black uppercase bg-white border-primary/20 text-primary hover:bg-primary/5 gap-1.5"
-                  >
-                    <Printer className="h-4 w-4" /> Print CAR
-                  </Button>
+                  <>
+                    {isAdmin && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          handleOpenOverdueMemo((editingCar || liveCar)?.id, (editingCar || liveCar)?.unitId)
+                        }
+                        className="h-10 text-[10px] font-black uppercase bg-white border-rose-300 text-rose-700 hover:bg-rose-50 gap-1.5"
+                        title="Generate Official Overdue Response Memorandum for this CAR"
+                      >
+                        <FileText className="h-4 w-4 text-rose-600" /> Overdue Memo
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => handlePrint((editingCar || liveCar)!)}
+                      className="h-10 text-[10px] font-black uppercase bg-white border-primary/20 text-primary hover:bg-primary/5 gap-1.5"
+                    >
+                      <Printer className="h-4 w-4" /> Print CAR
+                    </Button>
+                  </>
                 )}
                 {(isAdmin ||
                   isInstitutionalViewer ||
@@ -3814,6 +3871,19 @@ export function CorrectiveActionRequestTab({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* OVERDUE CAR RESPONSE MEMORANDUM GENERATOR DIALOG */}
+      <CAROverdueMemorandumDialog
+        isOpen={isOverdueMemoDialogOpen}
+        onOpenChange={setIsOverdueMemoDialogOpen}
+        cars={filteredCars}
+        units={units}
+        campuses={campuses}
+        signatories={currentSignatories || undefined}
+        selectedCarId={memoSelectedCarId}
+        selectedUnitId={memoSelectedUnitId}
+        year={yearFilter !== 'all' ? Number(yearFilter) : new Date().getFullYear()}
+      />
     </div>
   );
 }

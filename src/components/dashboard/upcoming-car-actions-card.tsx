@@ -28,6 +28,7 @@ import {
   Sparkles,
   ChevronRight,
   Loader2,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -35,6 +36,7 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, updateDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
+import { CAROverdueMemorandumDialog } from '@/components/qa-reports/car-overdue-memorandum-dialog';
 
 interface UpcomingCarActionsCardProps {
   cars: CorrectiveActionRequest[];
@@ -66,6 +68,7 @@ export function UpcomingCarActionsCard({
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [notifyingCarId, setNotifyingCarId] = useState<string | null>(null);
+  const [isMemoDialogOpen, setIsMemoDialogOpen] = useState<boolean>(false);
 
   const unitMap = useMemo(() => new Map(allUnits.map((u) => [u.id, u.name])), [allUnits]);
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
@@ -222,15 +225,28 @@ export function UpcomingCarActionsCard({
               </CardDescription>
             </div>
           </div>
-          <Link href="/qa-reports?tab=car" passHref>
-            <Button
-              size="sm"
-              variant="outline"
-              className="bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs font-black uppercase tracking-wider gap-1.5 h-8 shrink-0"
-            >
-              Open CAR Registry <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </Link>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            {isAdmin && metrics.overdue > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsMemoDialogOpen(true)}
+                className="bg-rose-500/20 text-rose-200 border-rose-400/40 hover:bg-rose-500/30 text-xs font-black uppercase tracking-wider gap-1.5 h-8 shrink-0 shadow-sm"
+                title="Generate and Release Official University Memorandum for Overdue CAR Responses"
+              >
+                <FileText className="h-3.5 w-3.5 text-rose-400" /> Overdue Memo ({metrics.overdue})
+              </Button>
+            )}
+            <Link href="/qa-reports?tab=car" passHref>
+              <Button
+                size="sm"
+                variant="outline"
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20 text-xs font-black uppercase tracking-wider gap-1.5 h-8 shrink-0"
+              >
+                Open CAR Registry <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Quick KPI Stat Tiles */}
@@ -542,6 +558,15 @@ export function UpcomingCarActionsCard({
           </Link>
         </CardFooter>
       )}
+      {/* OVERDUE CAR RESPONSE MEMORANDUM GENERATOR DIALOG */}
+      <CAROverdueMemorandumDialog
+        isOpen={isMemoDialogOpen}
+        onOpenChange={setIsMemoDialogOpen}
+        cars={cars || []}
+        units={allUnits || []}
+        campuses={campuses || []}
+        year={selectedYear || new Date().getFullYear()}
+      />
     </Card>
   );
 }
