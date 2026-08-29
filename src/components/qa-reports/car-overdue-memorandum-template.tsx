@@ -29,6 +29,7 @@ export interface CAROverdueMemorandumTemplateProps {
   signatories?: Signatories;
   year?: number;
   isBatchConsolidated?: boolean;
+  paperSize?: 'folio' | 'letter' | 'a4';
 }
 
 export function CAROverdueMemorandumTemplate({
@@ -41,6 +42,7 @@ export function CAROverdueMemorandumTemplate({
   signatories,
   year = new Date().getFullYear(),
   isBatchConsolidated = false,
+  paperSize = 'folio',
 }: CAROverdueMemorandumTemplateProps) {
   const dateObj = memoDate instanceof Date ? memoDate : new Date(memoDate);
   const formattedDate = !isNaN(dateObj.getTime())
@@ -78,271 +80,453 @@ export function CAROverdueMemorandumTemplate({
 
   return (
     <div
-      className="p-8 sm:p-12 text-black bg-white max-w-[8.5in] mx-auto font-sans leading-normal text-[10pt] print:p-0 print:max-w-full"
-      style={{ minHeight: '11in' }}
+      className="text-black bg-white mx-auto print:p-0 print:max-w-full flex flex-col justify-between"
+      style={{
+        width: '8.5in',
+        minHeight: paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in',
+        padding: '0.4in 0.5in 0.3in 0.5in',
+        boxSizing: 'border-box',
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      }}
     >
-      {/* 1. TOP-LEFT MEMORANDUM CLASSIFICATION & REF NO */}
-      <div className="mb-6">
-        <h1 className="text-[13pt] font-black text-slate-900 tracking-tight leading-tight m-0">QA Memorandum</h1>
-        <p className="text-[11pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
-      </div>
+      {/* ========================================================
+          PAGE 1: OFFICIAL 1-PAGE FOLIO MEMORANDUM
+          ======================================================== */}
+      <div
+        className="flex flex-col justify-between flex-1"
+        style={{ minHeight: paperSize === 'folio' ? '12.2in' : '10.2in' }}
+      >
+        <div>
+          {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
+          <div className="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-4">
+            <div className="flex items-center gap-3">
+              {/* RSU SEAL & QAO LOGO */}
+              <img
+                src="/rsulogo.png"
+                alt="RSU Official Seal"
+                style={{ height: '52px', width: '52px', objectFit: 'contain' }}
+              />
+              <img
+                src="/qa_logo.png"
+                alt="QAO Emblem"
+                style={{ height: '52px', width: '52px', objectFit: 'contain' }}
+              />
 
-      {/* 2. TABULAR METADATA BLOCK (MATCHING OFFICIAL QAO HEADER SAMPLE) */}
-      <div className="space-y-3 mb-6 text-[10pt] leading-snug">
-        {/* TO ROW */}
-        <div className="flex items-start">
-          <div className="w-24 font-bold uppercase text-slate-900 tracking-wider shrink-0">TO</div>
-          <div className="w-6 text-center font-bold text-slate-900 shrink-0">:</div>
-          <div className="flex-1 font-bold uppercase text-slate-900 space-y-0.5">
-            {recipientUnits.map((r, i) => (
-              <div key={i} className="tracking-tight">
-                {r.name.toUpperCase()}{' '}
-                {r.campus && !r.campus.toLowerCase().includes('main') ? `(${r.campus.toUpperCase()})` : ''}
+              {/* UNIVERSITY & OFFICE TITLES */}
+              <div>
+                <h1 className="text-[12.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                  ROMBLON STATE UNIVERSITY
+                </h1>
+                <h2 className="text-[9.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                  QUALITY ASSURANCE OFFICE
+                </h2>
+                <p className="text-[6.5pt] text-slate-600 leading-tight m-0 mt-0.5">
+                  3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
+                  <br />
+                  Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
+                </p>
               </div>
-            ))}
-            <div className="text-[9pt] font-semibold normal-case text-slate-600 pt-0.5">This University</div>
-          </div>
-        </div>
-
-        {/* FROM ROW */}
-        <div className="flex items-start pt-1">
-          <div className="w-24 font-bold uppercase text-slate-900 tracking-wider shrink-0">FROM</div>
-          <div className="w-6 text-center font-bold text-slate-900 shrink-0">:</div>
-          <div className="flex-1 font-bold text-slate-900">
-            <span className="uppercase block font-black">{qmsHead}</span>
-            <span className="text-[9pt] font-normal text-slate-700 block">Head, Quality Management System (QMS)</span>
-          </div>
-        </div>
-
-        {/* SUBJECT ROW */}
-        <div className="flex items-start pt-1">
-          <div className="w-24 font-bold uppercase text-slate-900 tracking-wider shrink-0">SUBJECT</div>
-          <div className="w-6 text-center font-bold text-slate-900 shrink-0">:</div>
-          <div className="flex-1 font-black uppercase text-slate-900 tracking-tight leading-snug">
-            COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR OVERDUE
-            CORRECTIVE ACTION REQUESTS (CAR)
-          </div>
-        </div>
-
-        {/* DATE ROW */}
-        <div className="flex items-start pt-1">
-          <div className="w-24 font-bold uppercase text-slate-900 tracking-wider shrink-0">DATE</div>
-          <div className="w-6 text-center font-bold text-slate-900 shrink-0">:</div>
-          <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
-        </div>
-      </div>
-
-      {/* 3. SOLID HORIZONTAL DIVIDING RULE */}
-      <hr className="border-t-2 border-slate-900 my-5" />
-
-      {/* 4. FORMAL MEMORANDUM BODY PARAGRAPHS */}
-      <div className="space-y-3.5 text-justify text-slate-900 leading-relaxed text-[10pt]">
-        <p>
-          In line with the mandatory requirements of{' '}
-          <strong>ISO 21001:2018 (Educational Organizations Management Systems) Clause 10.2</strong>,{' '}
-          <strong>ISO 9001:2015 Clause 10.2</strong>, and the{' '}
-          <strong>Romblon State University Educational Organizations Management System (RSU-EOMS) Manual</strong>, all
-          accountable academic and administrative units are directed to immediately submit their official{' '}
-          <em>Root Cause Analysis (RCA)</em> and <em>Corrective Action Plan (CAP)</em> for nonconformities identified
-          during quality audits.
-        </p>
-
-        <p>
-          Please be informed that records in the <strong>RSU EOMS Submission Portal</strong> indicate that as of{' '}
-          <strong>{formattedDate}</strong>, your office has <strong>unresolved Corrective Action Requests (CAR)</strong>{' '}
-          whose statutory reply deadlines have elapsed without submission of an approved action plan. The complete
-          inventory of delinquent items, committed dates, and non-conformance statements is detailed in the attached
-          schedule (<em>Attachment A</em>).
-        </p>
-
-        {customDirective && (
-          <p className="bg-slate-50 border-l-4 border-slate-900 p-2.5 my-2 text-[9.5pt]">
-            <strong>Specific Administrative Directive:</strong> {customDirective}
-          </p>
-        )}
-
-        <p>
-          Accountable Unit Heads, QMS Leads, and Process Owners are hereby instructed to log in to the{' '}
-          <strong>RSU EOMS Submission Portal</strong> (navigate to <em>QA Reports &gt; CAR Registry</em>) and complete
-          the following mandatory response workflow:
-        </p>
-
-        <ol className="list-decimal pl-5 space-y-1 text-[9.5pt] text-slate-800">
-          <li>
-            <strong>Root Cause Investigation (Section B):</strong> Document the systemic root cause using the 5-Whys or
-            Ishikawa Fishbone method.
-          </li>
-          <li>
-            <strong>Corrective Action Formulation:</strong> Detail both immediate containment measures and long-term
-            corrective actions with designated responsible owners.
-          </li>
-          <li>
-            <strong>Committed Timelines:</strong> Specify realistic milestone completion dates for every action step.
-          </li>
-          <li>
-            <strong>Submission &amp; Evidence:</strong> Click <em>"Submit Unit Response"</em> to alert the Quality
-            Assurance Office for verification scheduling.
-          </li>
-        </ol>
-
-        <p>
-          Your office is granted a strict compliance window of <strong>{gracePeriodDays} working days</strong> from
-          receipt of this memorandum to complete the submissions in the portal. Failure to comply within this final
-          grace period will constrain this Office to:
-        </p>
-
-        <ul className="list-disc pl-5 space-y-0.5 text-[9.5pt] text-slate-800">
-          <li>
-            Formally elevate the matter to the <strong>Office of the Vice Presidents</strong> and{' '}
-            <strong>University President</strong> for administrative intervention;
-          </li>
-          <li>
-            Reclassify the items as <strong>Major Systemic Nonconformities</strong> with adverse impact on the unit's
-            Performance-Based Bonus (PBB) and QA compliance ratings.
-          </li>
-        </ul>
-
-        <p className="pt-2">For your strict compliance and guidance.</p>
-      </div>
-
-      {/* 5. SIGNATORIES BLOCK (ISSUED BY QMS HEAD, NOTED BY QAO DIRECTOR) */}
-      <div className="grid grid-cols-2 gap-8 pt-8 text-[9.5pt]">
-        <div className="space-y-1">
-          <p className="font-bold text-slate-600 uppercase text-[8pt]">Issued by:</p>
-          <div className="pt-10">
-            <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[200px]">
-              {qmsHead}
-            </p>
-            <p className="text-[8.5pt] text-slate-800 font-bold mt-0.5">Head, Quality Management System (QMS)</p>
-            <p className="text-[8pt] text-slate-500">Lead Internal Quality Auditor, RSU</p>
-          </div>
-        </div>
-
-        <div className="space-y-1">
-          <p className="font-bold text-slate-600 uppercase text-[8pt]">Noted by:</p>
-          <div className="pt-10">
-            <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[200px]">
-              {qaoDirector}
-            </p>
-            <p className="text-[8.5pt] text-slate-800 font-bold mt-0.5">Director, Quality Assurance Office</p>
-            <p className="text-[8pt] text-slate-500">Romblon State University</p>
-          </div>
-        </div>
-      </div>
-
-      {/* 6. ATTACHMENT: IDENTIFIED ISSUES TABLE IN SCHEDULE FORMAT */}
-      <div className="mt-12 pt-6 border-t-2 border-slate-900" style={{ pageBreakBefore: 'always' }}>
-        <div className="mb-4">
-          <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2">
-            <div>
-              <h2 className="text-[12pt] font-black uppercase tracking-tight text-slate-900 m-0">
-                ATTACHMENT A: SCHEDULE OF OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
-              </h2>
-              <p className="text-[8.5pt] font-semibold text-slate-600 m-0 mt-0.5">
-                Official Inventory of Identified Audit Non-Conformances &amp; Overdue Statuses
-              </p>
             </div>
+
+            {/* ISO 9001:2015 CERTIFICATION BADGE */}
+            <div className="flex items-center pl-2">
+              <img
+                src="/ISOlogo.jpg"
+                alt="ISO 9001:2015 TÜV Rheinland Certified"
+                style={{ height: '48px', width: 'auto', objectFit: 'contain' }}
+              />
+            </div>
+          </div>
+
+          {/* 2. TWO-COLUMN FOLIO LAYOUT (LEFT SIDEBAR & RIGHT MEMORANDUM) */}
+          <div className="grid grid-cols-12 gap-5">
+            {/* LEFT SIDEBAR: RSU VISION, MISSION, QUALITY POLICY, CORE VALUES */}
+            <div
+              className="col-span-3 border-r border-slate-300 pr-3 text-[6.5pt] text-slate-500 italic leading-tight space-y-2.5 select-none"
+              style={{ fontFamily: 'Georgia, Cambria, serif' }}
+            >
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[7pt] mb-0.5">RSU Vision</strong>
+                <p className="m-0 text-justify">
+                  A research-based academic institution committed to excellence and service in nurturing globally
+                  competitive workforce towards sustainable development.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[7pt] mb-0.5">RSU Mission</strong>
+                <p className="m-0 text-justify">
+                  Romblon State University shall nurture an academic environment that provides advanced education,
+                  higher technological and professional instruction and technical expertise in agriculture and
+                  fisheries, forestry, engineering and technology, education, humanities, sciences and other relevant
+                  fields of study and collaborate with other institutions and communities through responsive, relevant
+                  and research-based extension services.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[7pt] mb-0.5">
+                  RSU Quality Policy
+                </strong>
+                <p className="m-0 text-justify">
+                  Romblon State University commits to provide higher education through quality instruction, research,
+                  production, and community-based extension services that meet or exceed the requirements and
+                  expectations of the university's stakeholders. It will comply with international standards, applicable
+                  statutory and regulatory requirements, and continually improve the Quality Management System's
+                  effectiveness through periodic monitoring and evaluation toward sustained remarkable outcomes.
+                </p>
+              </div>
+
+              <div>
+                <strong className="block not-italic font-bold text-slate-700 text-[7pt] mb-0.5">RSU Core Values</strong>
+                <div className="space-y-0.5 pl-1">
+                  <div>Stewardship</div>
+                  <div>Competence</div>
+                  <div>Resilience</div>
+                  <div>Integrity</div>
+                  <div>Balance</div>
+                  <div>Excellence</div>
+                  <div>Service</div>
+                </div>
+                <p className="m-0 mt-1 text-[6pt] text-slate-400 text-justify">
+                  These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
+                  recognized HEI in the region and beyond.
+                </p>
+              </div>
+            </div>
+
+            {/* RIGHT MAIN COLUMN: MEMORANDUM HEADER & NARRATIVE */}
+            <div className="col-span-9 space-y-3 text-[9pt] leading-normal text-slate-900">
+              {/* DOCUMENT CLASSIFICATION & REF NO */}
+              <div>
+                <h3 className="text-[12pt] font-black text-slate-900 tracking-tight leading-none m-0">QA Memorandum</h3>
+                <p className="text-[10pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
+              </div>
+
+              {/* TABULAR METADATA BLOCK (COLON-ALIGNED) */}
+              <div className="space-y-2 pt-1 text-[8.5pt]">
+                {/* TO ROW */}
+                <div className="flex items-start">
+                  <div className="w-16 font-bold uppercase text-slate-900 shrink-0">TO</div>
+                  <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold uppercase text-slate-900 space-y-0.5">
+                    {recipientUnits.slice(0, 10).map((r, i) => (
+                      <div key={i} className="leading-tight">
+                        {r.name.toUpperCase()}{' '}
+                        {r.campus && !r.campus.toLowerCase().includes('main') ? `(${r.campus.toUpperCase()})` : ''}
+                      </div>
+                    ))}
+                    {recipientUnits.length > 10 && (
+                      <div className="text-[7.5pt] font-semibold text-slate-600">
+                        (+ {recipientUnits.length - 10} other accountable academic &amp; administrative units)
+                      </div>
+                    )}
+                    <div className="text-[8pt] font-semibold normal-case text-slate-600 pt-0.5">This University</div>
+                  </div>
+                </div>
+
+                {/* FROM ROW */}
+                <div className="flex items-start">
+                  <div className="w-16 font-bold uppercase text-slate-900 shrink-0">FROM</div>
+                  <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold text-slate-900">
+                    <span className="uppercase block font-black">{qmsHead}</span>
+                    <span className="text-[8pt] font-normal text-slate-700 block">
+                      Head, Quality Management System (QMS)
+                    </span>
+                  </div>
+                </div>
+
+                {/* SUBJECT ROW */}
+                <div className="flex items-start">
+                  <div className="w-16 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
+                  <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900 leading-snug">
+                    COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR
+                    OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
+                  </div>
+                </div>
+
+                {/* DATE ROW */}
+                <div className="flex items-start">
+                  <div className="w-16 font-bold uppercase text-slate-900 shrink-0">DATE</div>
+                  <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
+                </div>
+              </div>
+
+              {/* HORIZONTAL RULE */}
+              <hr className="border-t-2 border-slate-900 my-2" />
+
+              {/* MEMORANDUM BODY PARAGRAPHS */}
+              <div className="space-y-2 text-justify leading-relaxed text-[8.5pt]">
+                <p>
+                  In line with the mandatory requirements of <strong>ISO 21001:2018 Clause 10.2</strong>,{' '}
+                  <strong>ISO 9001:2015 Clause 10.2</strong>, and the{' '}
+                  <strong>
+                    Romblon State University Educational Organizations Management System (RSU-EOMS) Manual
+                  </strong>
+                  , all accountable academic and administrative units are directed to immediately submit their official{' '}
+                  <em>Root Cause Analysis (RCA)</em> and <em>Corrective Action Plan (CAP)</em> for nonconformities
+                  identified during quality audits.
+                </p>
+
+                <p>
+                  Please be informed that records in the <strong>RSU EOMS Submission Portal</strong> indicate that as of{' '}
+                  <strong>{formattedDate}</strong>, your office has{' '}
+                  <strong>unresolved Corrective Action Requests (CAR)</strong> whose statutory reply deadlines have
+                  elapsed without an approved action plan. The complete inventory of delinquent items and
+                  non-conformance statements is detailed in <em>Attachment A</em>.
+                </p>
+
+                {customDirective && (
+                  <p className="bg-slate-50 border-l-4 border-slate-900 p-2 my-1 text-[8pt]">
+                    <strong>Specific Administrative Directive:</strong> {customDirective}
+                  </p>
+                )}
+
+                <p>
+                  Accountable Unit Heads, QMS Leads, and Process Owners are hereby instructed to log in to the{' '}
+                  <strong>RSU EOMS Submission Portal</strong> (navigate to <em>QA Reports &gt; CAR Registry</em>) and
+                  complete the following mandatory response workflow:
+                </p>
+
+                <ol className="list-decimal pl-4 space-y-0.5 text-[8pt] text-slate-800">
+                  <li>
+                    <strong>Root Cause Investigation (Section B):</strong> Document the systemic root cause using the
+                    5-Whys or Fishbone framework.
+                  </li>
+                  <li>
+                    <strong>Corrective Action Plan (CAP):</strong> Formulate immediate containment and long-term
+                    preventive actions with assigned leads and completion milestones.
+                  </li>
+                  <li>
+                    <strong>Submission &amp; Evidence:</strong> Click <em>"Submit Unit Response"</em> to commit updates
+                    and upload documentary proofs for QA verification.
+                  </li>
+                </ol>
+
+                <p>
+                  Your office is granted a strict compliance window of <strong>{gracePeriodDays} working days</strong>{' '}
+                  from receipt of this memorandum. Failure to comply will constrain this Office to:
+                </p>
+
+                <ul className="list-disc pl-4 space-y-0.5 text-[8pt] text-slate-800">
+                  <li>
+                    Formally elevate the matter to the <strong>Office of the Vice Presidents</strong> and{' '}
+                    <strong>University President</strong> for administrative intervention;
+                  </li>
+                  <li>
+                    Reclassify the items as <strong>Major Systemic Nonconformities</strong> with adverse impact on the
+                    unit's Performance-Based Bonus (PBB) and QA compliance ratings.
+                  </li>
+                </ul>
+
+                <p className="pt-1">For your strict compliance and guidance.</p>
+              </div>
+
+              {/* SIGNATORIES BLOCK */}
+              <div className="grid grid-cols-2 gap-6 pt-4 text-[8pt]">
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[7pt]">Issued by:</p>
+                  <div className="pt-7">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
+                      {qmsHead}
+                    </p>
+                    <p className="text-[7.5pt] text-slate-800 font-bold mt-0.5">
+                      Head, Quality Management System (QMS)
+                    </p>
+                    <p className="text-[7pt] text-slate-500">Lead Internal Quality Auditor, RSU</p>
+                  </div>
+                </div>
+
+                <div>
+                  <p className="font-bold text-slate-600 uppercase text-[7pt]">Noted by:</p>
+                  <div className="pt-7">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
+                      {qaoDirector}
+                    </p>
+                    <p className="text-[7.5pt] text-slate-800 font-bold mt-0.5">Director, Quality Assurance Office</p>
+                    <p className="text-[7pt] text-slate-500">Romblon State University</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. BOTTOM GREEN BANNER FOOTER */}
+        <div
+          className="mt-4 pt-1.5 pb-1 px-4 text-center rounded-sm shadow-sm"
+          style={{
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 50%, #ca8a04 100%)',
+          }}
+        >
+          <span
+            className="text-white text-[8pt] font-bold tracking-wide italic"
+            style={{ fontFamily: 'Georgia, Cambria, serif' }}
+          >
+            Serving with Honor and Excellence!
+          </span>
+        </div>
+      </div>
+
+      {/* ========================================================
+          PAGE 2: ATTACHMENT A - SCHEDULE OF OVERDUE ISSUES TABLE
+          ======================================================== */}
+      <div
+        className="pt-6 border-t-2 border-slate-900 flex flex-col justify-between"
+        style={{
+          pageBreakBefore: 'always',
+          minHeight: paperSize === 'folio' ? '12.2in' : '10.2in',
+          marginTop: '0.4in',
+        }}
+      >
+        <div>
+          {/* ATTACHMENT TOP HEADER */}
+          <div className="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-4">
+            <div className="flex items-center gap-3">
+              <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '42px', width: '42px', objectFit: 'contain' }} />
+              <img
+                src="/qa_logo.png"
+                alt="QAO Emblem"
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              />
+              <div>
+                <h2 className="text-[11pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                  ROMBLON STATE UNIVERSITY
+                </h2>
+                <h3 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                  QUALITY ASSURANCE OFFICE
+                </h3>
+              </div>
+            </div>
+
             <div className="text-right">
-              <span className="text-[9pt] font-mono font-bold text-slate-900 block">Ref: {generatedRefNo}</span>
-              <span className="text-[8pt] font-bold text-rose-700 font-mono">
-                {totalOverdueCount} Overdue Item{totalOverdueCount !== 1 ? 's' : ''}
+              <span className="text-[8.5pt] font-mono font-bold text-slate-900 block">Ref: {generatedRefNo}</span>
+              <span className="text-[7.5pt] font-bold text-rose-700 font-mono">
+                {totalOverdueCount} Overdue Item{totalOverdueCount !== 1 ? 's' : ''} Listed
               </span>
             </div>
           </div>
-        </div>
 
-        {allOverdueItems.length === 0 ? (
-          <div className="p-8 text-center border border-dashed rounded text-slate-500 italic text-xs">
-            No overdue Corrective Action Requests found.
+          <div className="mb-3">
+            <h2 className="text-[11pt] font-black uppercase tracking-tight text-slate-900 m-0">
+              ATTACHMENT A: SCHEDULE OF OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
+            </h2>
+            <p className="text-[8pt] font-semibold text-slate-600 m-0 mt-0.5">
+              Itemized Inventory of Identified Audit Non-Conformances, Procedures, and Overdue Statuses
+            </p>
           </div>
-        ) : (
-          <table className="w-full border-collapse border border-slate-900 text-[8.5pt]">
-            <thead>
-              <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-                <th className="border border-slate-900 p-2 text-center w-[5%]">#</th>
-                <th className="border border-slate-900 p-2 text-center w-[12%]">CAR No.</th>
-                <th className="border border-slate-900 p-2 text-left w-[20%]">Accountable Unit &amp; Campus</th>
-                <th className="border border-slate-900 p-2 text-left w-[23%]">Audit Scope / ISO Clause</th>
-                <th className="border border-slate-900 p-2 text-left w-[26%]">
-                  Identified Audit Issue / Non-Conformance
-                </th>
-                <th className="border border-slate-900 p-2 text-center w-[14%]">Deadline &amp; Delay</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allOverdueItems.map((item, idx) => {
-                const { car, daysOverdue, deadlineStr, unitName, campusName } = item;
-                return (
-                  <tr key={car.id || idx} className="hover:bg-slate-50">
-                    <td className="border border-slate-900 p-2 text-center font-bold text-slate-600">{idx + 1}</td>
-                    <td className="border border-slate-900 p-2 text-center font-mono font-bold text-slate-900">
-                      <div>{car.carNumber}</div>
-                      <span className="text-[7pt] px-1 py-0.2 rounded bg-slate-200 uppercase font-sans">
-                        {car.auditType === 'EQA' ? 'EQA' : 'IQA'}
-                      </span>
-                    </td>
-                    <td className="border border-slate-900 p-2">
-                      <strong className="block text-slate-900 uppercase text-[8.5pt]">
-                        {unitName || 'Unknown Unit'}
-                      </strong>
-                      <span className="text-[7.5pt] text-slate-600 block">{campusName || 'Main Campus'}</span>
-                    </td>
-                    <td className="border border-slate-900 p-2">
-                      <span className="font-bold text-slate-900 block leading-tight">
-                        {car.procedureTitle || 'General Standard Operating Procedure'}
-                      </span>
-                      <span className="text-[7.5pt] text-slate-600">
-                        Clause {car.concerningClause || '4.1'} (ISO 21001:2018)
-                      </span>
-                    </td>
-                    <td className="border border-slate-900 p-2 text-slate-800 leading-snug">
-                      <p className="line-clamp-4 m-0 text-[8pt]">
-                        {car.descriptionOfNonconformance ||
-                          'Non-conformance recorded during quality audit verification.'}
-                      </p>
-                    </td>
-                    <td className="border border-slate-900 p-2 text-center font-mono">
-                      <span className="font-bold text-rose-700 block text-[8pt]">{deadlineStr}</span>
-                      <span className="inline-block px-1.5 py-0.5 rounded text-[7pt] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300 mt-1">
-                        {daysOverdue > 0 ? `${daysOverdue}D OVERDUE` : 'DUE TODAY'}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
 
-        {/* ATTACHMENT FOOTER ENDORSEMENTS */}
-        <div className="grid grid-cols-2 gap-8 pt-8 mt-6 text-[8.5pt] border-t border-slate-300">
-          <div>
-            <p className="font-bold text-slate-600 uppercase text-[7.5pt]">Certified Accurate by:</p>
-            <div className="pt-8">
-              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[180px]">
-                {qmsHead}
-              </p>
-              <p className="text-[7.5pt] text-slate-700 font-bold mt-0.5">Head, Quality Management System (QMS)</p>
+          {/* ATTACHMENT TABLE */}
+          {allOverdueItems.length === 0 ? (
+            <div className="p-8 text-center border border-dashed rounded text-slate-500 italic text-xs">
+              No overdue Corrective Action Requests found for this scope.
+            </div>
+          ) : (
+            <table className="w-full border-collapse border border-slate-900 text-[8pt]">
+              <thead>
+                <tr className="bg-slate-100 font-black text-slate-900 uppercase">
+                  <th className="border border-slate-900 p-2 text-center w-[5%]">#</th>
+                  <th className="border border-slate-900 p-2 text-center w-[12%]">CAR No.</th>
+                  <th className="border border-slate-900 p-2 text-left w-[20%]">Accountable Unit &amp; Campus</th>
+                  <th className="border border-slate-900 p-2 text-left w-[23%]">Audit Scope / ISO Clause</th>
+                  <th className="border border-slate-900 p-2 text-left w-[26%]">Identified Audit Finding / Issue</th>
+                  <th className="border border-slate-900 p-2 text-center w-[14%]">Deadline &amp; Delay</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allOverdueItems.map((item, idx) => {
+                  const { car, daysOverdue, deadlineStr, unitName, campusName } = item;
+                  return (
+                    <tr key={car.id || idx} className="hover:bg-slate-50">
+                      <td className="border border-slate-900 p-1.5 text-center font-bold text-slate-600">{idx + 1}</td>
+                      <td className="border border-slate-900 p-1.5 text-center font-mono font-bold text-slate-900">
+                        <div>{car.carNumber}</div>
+                        <span className="text-[6.5pt] px-1 py-0.2 rounded bg-slate-200 uppercase font-sans">
+                          {car.auditType === 'EQA' ? 'EQA' : 'IQA'}
+                        </span>
+                      </td>
+                      <td className="border border-slate-900 p-1.5">
+                        <strong className="block text-slate-900 uppercase text-[8pt]">
+                          {unitName || 'Unknown Unit'}
+                        </strong>
+                        <span className="text-[7pt] text-slate-600 block">{campusName || 'Main Campus'}</span>
+                      </td>
+                      <td className="border border-slate-900 p-1.5">
+                        <span className="font-bold text-slate-900 block leading-tight">
+                          {car.procedureTitle || 'General Standard Operating Procedure'}
+                        </span>
+                        <span className="text-[7pt] text-slate-600">
+                          Clause {car.concerningClause || '4.1'} (ISO 21001:2018)
+                        </span>
+                      </td>
+                      <td className="border border-slate-900 p-1.5 text-slate-800 leading-snug">
+                        <p className="line-clamp-4 m-0 text-[7.5pt]">
+                          {car.descriptionOfNonconformance ||
+                            'Non-conformance recorded during quality audit verification.'}
+                        </p>
+                      </td>
+                      <td className="border border-slate-900 p-1.5 text-center font-mono">
+                        <span className="font-bold text-rose-700 block text-[7.5pt]">{deadlineStr}</span>
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[6.5pt] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300 mt-0.5">
+                          {daysOverdue > 0 ? `${daysOverdue}D OVERDUE` : 'DUE TODAY'}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+
+          {/* ATTACHMENT SIGNATORIES */}
+          <div className="grid grid-cols-2 gap-6 pt-6 mt-4 text-[8pt] border-t border-slate-300">
+            <div>
+              <p className="font-bold text-slate-600 uppercase text-[7pt]">Certified Accurate by:</p>
+              <div className="pt-6">
+                <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
+                  {qmsHead}
+                </p>
+                <p className="text-[7.5pt] text-slate-700 font-bold mt-0.5">Head, Quality Management System (QMS)</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="font-bold text-slate-600 uppercase text-[7pt]">Approved for Release by:</p>
+              <div className="pt-6">
+                <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
+                  {qaoDirector}
+                </p>
+                <p className="text-[7.5pt] text-slate-700 font-bold mt-0.5">Director, Quality Assurance Office</p>
+              </div>
             </div>
           </div>
-
-          <div>
-            <p className="font-bold text-slate-600 uppercase text-[7.5pt]">Approved for Release by:</p>
-            <div className="pt-8">
-              <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[180px]">
-                {qaoDirector}
-              </p>
-              <p className="text-[7.5pt] text-slate-700 font-bold mt-0.5">Director, Quality Assurance Office</p>
-            </div>
-          </div>
         </div>
 
-        {/* DOCUMENT FOOTER */}
-        <div className="border-t border-slate-300 pt-3 mt-4 text-[7pt] text-slate-500 flex justify-between items-center font-sans">
-          <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
-          <span className="font-mono font-bold text-slate-800">
-            Form Code: RSU-QAO-CAR-MEMO-01 (Attachment A) | Rev. 03
-          </span>
+        {/* ATTACHMENT FOOTER & GREEN BANNER */}
+        <div>
+          <div className="border-t border-slate-300 pt-2 mb-2 text-[6.5pt] text-slate-500 flex justify-between items-center font-sans">
+            <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
+            <span className="font-mono font-bold text-slate-800">
+              Form Code: RSU-QAO-CAR-MEMO-01 (Attachment A) | Rev. 03
+            </span>
+          </div>
+
+          <div
+            className="pt-1.5 pb-1 px-4 text-center rounded-sm shadow-sm"
+            style={{
+              background: 'linear-gradient(90deg, #15803d 0%, #16a34a 50%, #ca8a04 100%)',
+            }}
+          >
+            <span
+              className="text-white text-[8pt] font-bold tracking-wide italic"
+              style={{ fontFamily: 'Georgia, Cambria, serif' }}
+            >
+              Serving with Honor and Excellence!
+            </span>
+          </div>
         </div>
       </div>
     </div>

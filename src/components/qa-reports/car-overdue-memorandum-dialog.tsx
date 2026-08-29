@@ -76,6 +76,7 @@ export function CAROverdueMemorandumDialog({
     selectedCarId ? 'car' : selectedUnitId ? 'unit' : 'all',
   );
   const [batchMode, setBatchMode] = useState<'consolidated' | 'individual'>('consolidated');
+  const [paperSize, setPaperSize] = useState<'folio' | 'letter' | 'a4'>('folio');
   const [activeUnitFilter, setActiveUnitFilter] = useState<string>(selectedUnitId || 'all');
   const [activeCarFilter, setActiveCarFilter] = useState<string>(selectedCarId || 'all');
   const [campusFilter, setCampusFilter] = useState<string>('all');
@@ -205,9 +206,16 @@ export function CAROverdueMemorandumDialog({
   const activeGroup = targetUnitGroups[activePreviewIndex] || targetUnitGroups[0];
   const isConsolidatedBatch = targetScope === 'all' && batchMode === 'consolidated';
 
-  // Print function
+  // Print function with exact paper dimensions
   const handlePrintMemorandum = () => {
     if (targetUnitGroups.length === 0) return;
+
+    const pageSizeCss =
+      paperSize === 'folio'
+        ? 'size: 8.5in 13in !important;'
+        : paperSize === 'a4'
+          ? 'size: 8.27in 11.69in !important;'
+          : 'size: 8.5in 11in !important;';
 
     try {
       const markup = renderToStaticMarkup(
@@ -222,6 +230,7 @@ export function CAROverdueMemorandumDialog({
               customDirective={customDirective}
               signatories={signatories}
               year={year}
+              paperSize={paperSize}
             />
           ) : (
             targetUnitGroups.map((group, idx) => (
@@ -240,6 +249,7 @@ export function CAROverdueMemorandumDialog({
                   customDirective={customDirective}
                   signatories={signatories}
                   year={year}
+                  paperSize={paperSize}
                 />
               </div>
             ))
@@ -251,7 +261,7 @@ export function CAROverdueMemorandumDialog({
       if (printWindow) {
         printWindow.document.open();
         printWindow.document.write(
-          `<html><head><title>QA Memorandum - Overdue CAR Responses (${memoRefNo})</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 11in !important; margin: 0.6in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: ui-sans-serif, system-ui, sans-serif; background: #f9fafb; padding: 30px; color: black; }</style></head><body><div class="no-print mb-6 flex justify-center"><button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print Memorandum (${targetUnitGroups.length} Unit${targetUnitGroups.length > 1 ? 's' : ''})</button></div><div id="print-content">${markup}</div></body></html>`,
+          `<html><head><title>QA Memorandum - Overdue CAR Responses (${memoRefNo})</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { ${pageSizeCss} margin: 0.4in 0.5in 0.3in 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9fafb; padding: 20px; color: black; }</style></head><body><div class="no-print mb-6 flex justify-center"><button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print Memorandum (${paperSize.toUpperCase()} Format)</button></div><div id="print-content">${markup}</div></body></html>`,
         );
         printWindow.document.close();
       }
@@ -403,14 +413,14 @@ Director, Quality Assurance Office
                   QA Memorandum Generator
                   <Badge
                     variant="outline"
-                    className="bg-rose-500/20 text-rose-300 border-rose-400/40 text-[10px] font-black uppercase"
+                    className="bg-emerald-500/20 text-emerald-300 border-emerald-400/40 text-[10px] font-black uppercase"
                   >
-                    Overdue CAR Compliance
+                    1-Page Folio (8.5&quot; &times; 13&quot;) Standard
                   </Badge>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-slate-300 font-medium mt-0.5">
-                  Generate official QAO Memorandum with attached schedule of overdue issues, step-by-step submission
-                  instructions, and legal directives.
+                  Official RSU Folio letterhead with Vision, Mission, Quality Policy, Core Values sidebar, and
+                  Attachment A issues schedule.
                 </DialogDescription>
               </div>
             </div>
@@ -425,7 +435,7 @@ Director, Quality Assurance Office
         {/* DIALOG BODY */}
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
           {/* TOP CONTROLS & SCOPE SELECTOR */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm">
             <div className="space-y-1.5">
               <Label className="text-[10px] font-black uppercase text-slate-500">Memorandum Scope</Label>
               <Select value={targetScope} onValueChange={(v: any) => setTargetScope(v)}>
@@ -455,7 +465,7 @@ Director, Quality Assurance Office
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="consolidated" className="text-xs font-bold">
-                      Master Memorandum (Single List + All Issues)
+                      Master Memorandum (Single List + Attachment)
                     </SelectItem>
                     <SelectItem value="individual" className="text-xs font-bold">
                       Individual Notices (Separate Sheet per Unit)
@@ -508,7 +518,27 @@ Director, Quality Assurance Office
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase text-slate-500">Filter by Campus</Label>
+              <Label className="text-[10px] font-black uppercase text-slate-500">Paper Size</Label>
+              <Select value={paperSize} onValueChange={(v: any) => setPaperSize(v)}>
+                <SelectTrigger className="h-9 text-xs font-bold">
+                  <SelectValue placeholder="Paper Size" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="folio" className="text-xs font-bold">
+                    Folio (8.5&quot; &times; 13&quot;) — Official Standard
+                  </SelectItem>
+                  <SelectItem value="letter" className="text-xs">
+                    Letter (8.5&quot; &times; 11&quot;)
+                  </SelectItem>
+                  <SelectItem value="a4" className="text-xs">
+                    A4 (8.27&quot; &times; 11.69&quot;)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase text-slate-500">Filter Campus</Label>
               <Select value={campusFilter} onValueChange={setCampusFilter}>
                 <SelectTrigger className="h-9 text-xs font-bold">
                   <SelectValue placeholder="All Campuses" />
@@ -534,13 +564,13 @@ Director, Quality Assurance Office
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs font-bold">
-                    All Audit Types (IQA &amp; EQA)
+                    All Types (IQA &amp; EQA)
                   </SelectItem>
                   <SelectItem value="IQA" className="text-xs">
-                    Internal Quality Audit (IQA) Only
+                    IQA Only
                   </SelectItem>
                   <SelectItem value="EQA" className="text-xs">
-                    External Quality Audit (EQA) Only
+                    EQA Only
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -642,8 +672,8 @@ Director, Quality Assurance Office
                   <span className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
                     {isConsolidatedBatch
-                      ? `Consolidated Master Memorandum Preview (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
-                      : `Printable Document Preview: ${activeGroup?.unitName} (${activeGroup?.campusName})`}
+                      ? `Consolidated Folio Master Memorandum (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
+                      : `Printable Folio Preview: ${activeGroup?.unitName} (${activeGroup?.campusName})`}
                   </span>
                   <div className="flex items-center gap-2">
                     <Button
@@ -670,6 +700,7 @@ Director, Quality Assurance Office
                         customDirective={customDirective}
                         signatories={signatories}
                         year={year}
+                        paperSize={paperSize}
                       />
                     ) : (
                       activeGroup && (
@@ -681,6 +712,7 @@ Director, Quality Assurance Office
                           customDirective={customDirective}
                           signatories={signatories}
                           year={year}
+                          paperSize={paperSize}
                         />
                       )
                     )}
@@ -703,7 +735,12 @@ Director, Quality Assurance Office
               with{' '}
               <strong>
                 {overdueItems.length} Overdue Issue{overdueItems.length !== 1 ? 's' : ''}
-              </strong>
+              </strong>{' '}
+              • Format:{' '}
+              <span className="font-bold text-slate-900 uppercase">
+                {paperSize} (8.5&quot; &times; {paperSize === 'folio' ? '13' : paperSize === 'a4' ? '11.69' : '11'}
+                &quot;)
+              </span>
             </span>
           </div>
 
@@ -732,7 +769,7 @@ Director, Quality Assurance Office
               className="text-xs font-black uppercase tracking-wider gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-md"
             >
               <Printer className="h-4 w-4" />
-              Print / Save PDF ({targetUnitGroups.length})
+              Print / Save PDF ({paperSize.toUpperCase()})
             </Button>
           </div>
         </DialogFooter>
