@@ -437,12 +437,12 @@ export function CAROverdueMemorandumTemplate({
             <table className="w-full border-collapse border border-slate-900 text-[8pt]">
               <thead>
                 <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-                  <th className="border border-slate-900 p-2 text-center w-[5%]">#</th>
-                  <th className="border border-slate-900 p-2 text-center w-[12%]">CAR No.</th>
-                  <th className="border border-slate-900 p-2 text-left w-[20%]">Accountable Unit &amp; Campus</th>
-                  <th className="border border-slate-900 p-2 text-left w-[23%]">Audit Scope / ISO Clause</th>
-                  <th className="border border-slate-900 p-2 text-left w-[26%]">Identified Audit Finding / Issue</th>
-                  <th className="border border-slate-900 p-2 text-center w-[14%]">Deadline &amp; Delay</th>
+                  <th className="border border-slate-900 p-2 text-center w-[12%]">CAR No. &amp; Type</th>
+                  <th className="border border-slate-900 p-2 text-left w-[22%]">Campus &amp; Unit Involved</th>
+                  <th className="border border-slate-900 p-2 text-left w-[20%]">Procedure / ISO Clause</th>
+                  <th className="border border-slate-900 p-2 text-left w-[26%]">Finding Description / Issue</th>
+                  <th className="border border-slate-900 p-2 text-center w-[10%]">Reply Deadline</th>
+                  <th className="border border-slate-900 p-2 text-center w-[10%]">Status &amp; Delay</th>
                 </tr>
               </thead>
               <tbody>
@@ -450,9 +450,9 @@ export function CAROverdueMemorandumTemplate({
                   const { car, daysOverdue, deadlineStr, unitName, campusName } = item;
                   return (
                     <tr key={car.id || idx} className="hover:bg-slate-50">
-                      <td className="border border-slate-900 p-1.5 text-center font-bold text-slate-600">{idx + 1}</td>
+                      {/* Col 1: CAR No & Audit Type */}
                       <td className="border border-slate-900 p-1.5 text-center font-mono font-bold text-slate-900">
-                        <div>{car.carNumber}</div>
+                        <div className="font-bold text-[8.5pt]">{car.carNumber}</div>
                         <div className="flex flex-col items-center gap-0.5 mt-0.5">
                           <span className="text-[6.5pt] px-1 py-0.2 rounded bg-slate-200 uppercase font-sans">
                             {car.auditType === 'EQA' ? 'EQA' : 'IQA'}
@@ -480,30 +480,54 @@ export function CAROverdueMemorandumTemplate({
                           </span>
                         </div>
                       </td>
+
+                      {/* Col 2: Campus & Unit Involved */}
                       <td className="border border-slate-900 p-1.5">
-                        <strong className="block text-slate-900 uppercase text-[8pt]">
+                        <span className="text-[7.5pt] text-slate-600 font-bold uppercase tracking-wide block">
+                          {campusName || 'Main Campus, Odiongan'}
+                        </span>
+                        <strong className="block text-slate-900 uppercase text-[8.5pt] font-black leading-tight mt-0.5">
                           {unitName || 'Unknown Unit'}
                         </strong>
-                        <span className="text-[7pt] text-slate-600 block">{campusName || 'Main Campus'}</span>
+                        {car.unitHead && (
+                          <span className="text-[7pt] text-slate-500 italic block mt-0.5">Lead: {car.unitHead}</span>
+                        )}
                       </td>
+
+                      {/* Col 3: Procedure / ISO Clause */}
                       <td className="border border-slate-900 p-1.5">
                         <span className="font-bold text-slate-900 block leading-tight">
                           {car.procedureTitle || 'General Standard Operating Procedure'}
                         </span>
-                        <span className="text-[7pt] text-slate-600">
+                        <span className="text-[7pt] text-slate-600 block mt-0.5">
                           Clause {car.concerningClause || '4.1'} (ISO 21001:2018)
                         </span>
                       </td>
+
+                      {/* Col 4: Finding Description / Issue */}
                       <td className="border border-slate-900 p-1.5 text-slate-800 leading-snug">
                         <p className="line-clamp-4 m-0 text-[7.5pt]">
                           {car.descriptionOfNonconformance ||
                             'Non-conformance recorded during quality audit verification.'}
                         </p>
                       </td>
-                      <td className="border border-slate-900 p-1.5 text-center font-mono">
-                        <span className="font-bold text-rose-700 block text-[7.5pt]">{deadlineStr}</span>
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[6.5pt] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300 mt-0.5">
+
+                      {/* Col 5: Reply Deadline */}
+                      <td className="border border-slate-900 p-1.5 text-center font-mono font-bold text-rose-700 text-[8pt]">
+                        {deadlineStr}
+                      </td>
+
+                      {/* Col 6: Status & Delay */}
+                      <td className="border border-slate-900 p-1.5 text-center font-sans">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[6.5pt] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
                           {daysOverdue > 0 ? `${daysOverdue}D OVERDUE` : 'DUE TODAY'}
+                        </span>
+                        <span className="block text-[6.5pt] text-slate-500 mt-0.5 font-bold uppercase">
+                          {car.status === 'Open'
+                            ? 'Initial Response Due'
+                            : car.status === 'In Progress'
+                              ? 'Action Committed'
+                              : 'Update Required'}
                         </span>
                       </td>
                     </tr>
