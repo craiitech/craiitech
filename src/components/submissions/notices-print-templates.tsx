@@ -70,14 +70,13 @@ export function NoticeOfNonCompliance({
         style={{
           width: '8.5in',
           minHeight: '13in',
-          height: '13in',
-          maxHeight: '13in',
-          padding: '0.35in 0.45in 0.65in 0.45in',
+          padding: '0.35in 0.45in 0.75in 0.45in',
           boxSizing: 'border-box',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
           pageBreakAfter: 'always',
           breakAfter: 'page',
+          position: 'relative',
         }}
       >
         <div>
@@ -373,8 +372,12 @@ export function NoticeOfNonCompliance({
 
         {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
         <div
-          className="memo-footer-banner w-full"
+          className="memo-footer-banner"
           style={{
+            position: 'absolute',
+            bottom: '0.25in',
+            left: '0.45in',
+            right: '0.45in',
             height: '24px',
             background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
             display: 'flex',
@@ -435,14 +438,13 @@ export function NoticeOfCompliance({
         style={{
           width: '8.5in',
           minHeight: '13in',
-          height: '13in',
-          maxHeight: '13in',
-          padding: '0.35in 0.45in 0.65in 0.45in',
+          padding: '0.35in 0.45in 0.75in 0.45in',
           boxSizing: 'border-box',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
           pageBreakAfter: 'always',
           breakAfter: 'page',
+          position: 'relative',
         }}
       >
         <div>
@@ -677,8 +679,12 @@ export function NoticeOfCompliance({
 
         {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
         <div
-          className="memo-footer-banner w-full"
+          className="memo-footer-banner"
           style={{
+            position: 'absolute',
+            bottom: '0.25in',
+            left: '0.45in',
+            right: '0.45in',
             height: '24px',
             background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
             display: 'flex',
@@ -731,14 +737,13 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
         style={{
           width: '8.5in',
           minHeight: '13in',
-          height: '13in',
-          maxHeight: '13in',
-          padding: '0.35in 0.45in 0.65in 0.45in',
+          padding: '0.35in 0.45in 0.75in 0.45in',
           boxSizing: 'border-box',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
           pageBreakAfter: 'always',
           breakAfter: 'page',
+          position: 'relative',
         }}
       >
         <div>
@@ -975,8 +980,12 @@ export function CampusNoticeOfNonCompliance({ campusName, year, qaoDirector, qms
 
         {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
         <div
-          className="memo-footer-banner w-full"
+          className="memo-footer-banner"
           style={{
+            position: 'absolute',
+            bottom: '0.25in',
+            left: '0.45in',
+            right: '0.45in',
             height: '24px',
             background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
             display: 'flex',
@@ -1087,39 +1096,38 @@ export function MissingSubmissionsReport({
         style={{
           width: '8.5in',
           minHeight: pageHeight,
-          height: pageHeight,
-          maxHeight: pageHeight,
           padding: '0.35in 0.45in 0.65in 0.45in',
           boxSizing: 'border-box',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
           pageBreakAfter: 'always',
           breakAfter: 'page',
+          position: 'relative',
         }}
       >
         <div>
           {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
-          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2">
-            <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-1.5">
+            <div className="flex items-center gap-2">
               <img
                 src="/rsulogo.png"
                 alt="RSU Official Seal"
-                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+                style={{ height: '38px', width: '38px', objectFit: 'contain' }}
               />
               <img
                 src="/qa_logo.png"
                 alt="QAO Emblem"
-                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+                style={{ height: '38px', width: '38px', objectFit: 'contain' }}
               />
 
               <div>
-                <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                <h1 className="text-[11pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
                   ROMBLON STATE UNIVERSITY
                 </h1>
-                <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                <h2 className="text-[8pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
                   QUALITY ASSURANCE OFFICE
                 </h2>
-                <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
+                <p className="text-[5.5pt] text-slate-600 leading-tight m-0 mt-0.5">
                   3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
                   <br />
                   Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
@@ -1131,29 +1139,29 @@ export function MissingSubmissionsReport({
               <img
                 src="/ISOlogo.jpg"
                 alt="ISO 9001:2015 TÜV Rheinland Certified"
-                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+                style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
               />
             </div>
           </div>
 
           {/* 2. TWO-COLUMN FOLIO LAYOUT */}
-          <div className="grid grid-cols-12 gap-3.5 items-start">
+          <div className="grid grid-cols-12 gap-3 items-start">
             {/* LEFT SIDEBAR: RSU VISION, MISSION, QUALITY POLICY, CORE VALUES */}
             <div
-              className="col-span-3 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none pr-2"
+              className="col-span-3 text-[5.2pt] text-slate-500 italic leading-[1.15] space-y-1 select-none pr-1.5"
               style={{ fontFamily: 'Georgia, Cambria, serif' }}
             >
               <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Vision</strong>
-                <p className="m-0 text-justify leading-tight">
+                <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Vision</strong>
+                <p className="m-0 text-justify leading-[1.15]">
                   A research-based academic institution committed to excellence and service in nurturing globally
                   competitive workforce towards sustainable development.
                 </p>
               </div>
 
               <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Mission</strong>
-                <p className="m-0 text-justify leading-tight">
+                <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Mission</strong>
+                <p className="m-0 text-justify leading-[1.15]">
                   Romblon State University shall nurture an academic environment that provides advanced education,
                   higher technological and professional instruction and technical expertise in agriculture and
                   fisheries, forestry, engineering and technology, education, humanities, sciences and other relevant
@@ -1163,10 +1171,10 @@ export function MissingSubmissionsReport({
               </div>
 
               <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">
                   RSU Quality Policy
                 </strong>
-                <p className="m-0 text-justify leading-tight">
+                <p className="m-0 text-justify leading-[1.15]">
                   Romblon State University commits to provide higher education through quality instruction, research,
                   production, and community-based extension services that meet or exceed the requirements and
                   expectations of the university's stakeholders. It will comply with international standards, applicable
@@ -1176,10 +1184,8 @@ export function MissingSubmissionsReport({
               </div>
 
               <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
-                  RSU Core Values
-                </strong>
-                <div className="space-y-0 pl-1 text-[5.2pt]">
+                <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Core Values</strong>
+                <div className="space-y-0 pl-1 text-[5pt] leading-[1.15]">
                   <div>Stewardship</div>
                   <div>Competence</div>
                   <div>Resilience</div>
@@ -1188,7 +1194,7 @@ export function MissingSubmissionsReport({
                   <div>Excellence</div>
                   <div>Service</div>
                 </div>
-                <p className="m-0 mt-0.5 text-[5pt] text-slate-400 text-justify leading-tight">
+                <p className="m-0 mt-0.2 text-[4.8pt] text-slate-400 text-justify leading-[1.1]">
                   These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
                   recognized HEI in the region and beyond.
                 </p>
@@ -1196,24 +1202,24 @@ export function MissingSubmissionsReport({
             </div>
 
             {/* RIGHT MAIN COLUMN: MEMORANDUM HEADER & NARRATIVE */}
-            <div className="col-span-9 space-y-1 text-slate-900">
+            <div className="col-span-9 space-y-0.5 text-slate-900">
               {/* DOCUMENT CLASSIFICATION & REF NO */}
               <div>
-                <h3 className="text-[10pt] font-black text-slate-900 tracking-tight leading-none m-0">
+                <h3 className="text-[9.5pt] font-black text-slate-900 tracking-tight leading-none m-0">
                   {communicationType}
                 </h3>
-                <p className="text-[8.5pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
+                <p className="text-[8pt] font-bold font-mono text-slate-900 m-0 mt-0.2">{generatedRefNo}</p>
               </div>
 
               {/* TABULAR METADATA BLOCK (COLON-ALIGNED) */}
-              <div className="space-y-0.5 pt-0.5 text-[7.2pt]">
+              <div className="space-y-0.5 pt-0.2 text-[7pt]">
                 {/* TO ROW */}
                 <div className="flex items-start">
                   <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
                   <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                   <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
                     <div className="leading-tight">{recipientLine}</div>
-                    <div className="text-[7pt] font-semibold normal-case text-slate-600">{recipientSubline}</div>
+                    <div className="text-[6.8pt] font-semibold normal-case text-slate-600">{recipientSubline}</div>
                   </div>
                 </div>
 
@@ -1223,7 +1229,7 @@ export function MissingSubmissionsReport({
                   <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                   <div className="flex-1 font-bold text-slate-900">
                     <span className="uppercase block font-black">{qmsHead}</span>
-                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                    <span className="text-[6.5pt] font-normal text-slate-700 block">
                       Head, Quality Management System (QMS)
                     </span>
                   </div>
@@ -1236,7 +1242,7 @@ export function MissingSubmissionsReport({
                     <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                     <div className="flex-1 font-bold text-slate-900">
                       <span className="uppercase block font-black">{qaoDirector}</span>
-                      <span className="text-[6.8pt] font-normal text-slate-700 block">
+                      <span className="text-[6.5pt] font-normal text-slate-700 block">
                         Director, Quality Assurance Office
                       </span>
                     </div>
@@ -1262,10 +1268,10 @@ export function MissingSubmissionsReport({
               </div>
 
               {/* HORIZONTAL RULE */}
-              <hr className="border-t border-slate-900 my-1" />
+              <hr className="border-t border-slate-900 my-0.5" />
 
               {/* MEMORANDUM BODY PARAGRAPHS */}
-              <div className="space-y-1 text-justify leading-tight text-[7.2pt] text-slate-900">
+              <div className="space-y-0.5 text-justify leading-tight text-[7pt] text-slate-900">
                 <p className="m-0">
                   In accordance with the mandatory requirements of <strong>ISO 21001:2018 (EOMS)</strong>,{' '}
                   <strong>ISO 9001:2015</strong>, and the{' '}
@@ -1285,7 +1291,7 @@ export function MissingSubmissionsReport({
                   documents is detailed in <em>Attachment A</em>.
                 </p>
 
-                <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.5 text-[6.8pt] leading-tight">
+                <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.2 text-[6.5pt] leading-tight">
                   <strong>Specific Directive:</strong>{' '}
                   {customDirective ||
                     'Accountable Unit Heads, Program Chairs, and Campus Leads are directed to convene their respective QMS teams and upload all completed document requirements into the RSU EOMS Submission Portal without further delay.'}
@@ -1293,7 +1299,7 @@ export function MissingSubmissionsReport({
 
                 <p className="m-0">To complete your submission, please follow the standard portal workflow:</p>
 
-                <ol className="list-decimal pl-3.5 space-y-0 text-[6.8pt] text-slate-800 leading-tight">
+                <ol className="list-decimal pl-3.5 space-y-0 text-[6.5pt] text-slate-800 leading-tight">
                   <li>
                     <strong>Access the Portal:</strong> Log in to the <strong>RSU EOMS Submission Portal</strong> and
                     navigate to <em>Submissions &gt; Campus / Unit Matrix</em>.
@@ -1316,35 +1322,35 @@ export function MissingSubmissionsReport({
                   administrative intervention.
                 </p>
 
-                <p className="pt-0.5 m-0 font-semibold text-[7pt]">For your strict compliance and guidance.</p>
+                <p className="pt-0.2 m-0 font-semibold text-[6.8pt]">For your strict compliance and guidance.</p>
               </div>
 
               {/* SIGNATORIES BLOCK */}
-              <div className={includeNoted ? 'grid grid-cols-2 gap-4 pt-1.5 text-[7pt]' : 'pt-1.5 text-[7pt]'}>
+              <div className={includeNoted ? 'grid grid-cols-2 gap-4 pt-1 text-[6.8pt]' : 'pt-1 text-[6.8pt]'}>
                 <div>
-                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Issued by:</p>
-                  <div className="pt-3">
-                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                  <p className="font-bold text-slate-600 uppercase text-[5.8pt] m-0">Issued by:</p>
+                  <div className="pt-2">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7pt] m-0">
                       {qmsHead}
                     </p>
-                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                    <p className="text-[6.2pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
                       Head, Quality Management System (QMS)
                     </p>
-                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
+                    <p className="text-[5.5pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
                   </div>
                 </div>
 
                 {includeNoted && (
                   <div>
-                    <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Noted by:</p>
-                    <div className="pt-3">
-                      <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                    <p className="font-bold text-slate-600 uppercase text-[5.8pt] m-0">Noted by:</p>
+                    <div className="pt-2">
+                      <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7pt] m-0">
                         {qaoDirector}
                       </p>
-                      <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                      <p className="text-[6.2pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
                         Director, Quality Assurance Office
                       </p>
-                      <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
+                      <p className="text-[5.5pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
                     </div>
                   </div>
                 )}
@@ -1355,8 +1361,12 @@ export function MissingSubmissionsReport({
 
         {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
         <div
-          className="memo-footer-banner w-full"
+          className="memo-footer-banner"
           style={{
+            position: 'absolute',
+            bottom: '0.25in',
+            left: '0.45in',
+            right: '0.45in',
             height: '24px',
             background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
             display: 'flex',
@@ -1393,6 +1403,7 @@ export function MissingSubmissionsReport({
           boxSizing: 'border-box',
           pageBreakBefore: 'always',
           breakBefore: 'page',
+          position: 'relative',
         }}
       >
         <div>
@@ -1518,8 +1529,12 @@ export function MissingSubmissionsReport({
           </div>
 
           <div
-            className="memo-footer-banner w-full"
+            className="memo-footer-banner"
             style={{
+              position: 'absolute',
+              bottom: '0.25in',
+              left: '0.45in',
+              right: '0.45in',
               height: '24px',
               background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
               display: 'flex',
@@ -1572,14 +1587,13 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
         style={{
           width: '8.5in',
           minHeight: '13in',
-          height: '13in',
-          maxHeight: '13in',
-          padding: '0.35in 0.45in 0.65in 0.45in',
+          padding: '0.35in 0.45in 0.75in 0.45in',
           boxSizing: 'border-box',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
           pageBreakAfter: 'always',
           breakAfter: 'page',
+          position: 'relative',
         }}
       >
         <div>
@@ -1808,8 +1822,12 @@ export function CampusNoticeOfCompliance({ campusName, year, qaoDirector, qmsHea
 
         {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
         <div
-          className="memo-footer-banner w-full"
+          className="memo-footer-banner"
           style={{
+            position: 'absolute',
+            bottom: '0.25in',
+            left: '0.45in',
+            right: '0.45in',
             height: '24px',
             background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
             display: 'flex',

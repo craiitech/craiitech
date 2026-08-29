@@ -146,35 +146,34 @@ export function RiskDecisionMemorandumPage({
       style={{
         width: '8.5in',
         minHeight: pageHeight,
-        height: pageHeight,
-        maxHeight: pageHeight,
-        padding: '0.35in 0.45in 0.65in 0.45in',
+        padding: '0.35in 0.45in 0.75in 0.45in',
         boxSizing: 'border-box',
         pageBreakInside: 'avoid',
         breakInside: 'avoid',
         pageBreakAfter: 'always',
         breakAfter: 'page',
+        position: 'relative',
       }}
     >
       <div>
         {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
-        <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2">
-          <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-1.5">
+          <div className="flex items-center gap-2">
             <img
               src="/rsulogo.png"
               alt="RSU Official Seal"
-              style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+              style={{ height: '38px', width: '38px', objectFit: 'contain' }}
             />
-            <img src="/qa_logo.png" alt="QAO Emblem" style={{ height: '42px', width: '42px', objectFit: 'contain' }} />
+            <img src="/qa_logo.png" alt="QAO Emblem" style={{ height: '38px', width: '38px', objectFit: 'contain' }} />
 
             <div>
-              <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+              <h1 className="text-[11pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
                 ROMBLON STATE UNIVERSITY
               </h1>
-              <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+              <h2 className="text-[8pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
                 QUALITY ASSURANCE OFFICE
               </h2>
-              <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
+              <p className="text-[5.5pt] text-slate-600 leading-tight m-0 mt-0.5">
                 3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
                 <br />
                 Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
@@ -186,29 +185,29 @@ export function RiskDecisionMemorandumPage({
             <img
               src="/ISOlogo.jpg"
               alt="ISO 9001:2015 TÜV Rheinland Certified"
-              style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+              style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
             />
           </div>
         </div>
 
         {/* 2. TWO-COLUMN FOLIO LAYOUT */}
-        <div className="grid grid-cols-12 gap-3.5 items-start">
+        <div className="grid grid-cols-12 gap-3 items-start">
           {/* LEFT SIDEBAR: RSU VISION, MISSION, QUALITY POLICY, CORE VALUES */}
           <div
-            className="col-span-3 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none pr-2"
+            className="col-span-3 text-[5.2pt] text-slate-500 italic leading-[1.15] space-y-1 select-none pr-1.5"
             style={{ fontFamily: 'Georgia, Cambria, serif' }}
           >
             <div>
-              <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Vision</strong>
-              <p className="m-0 text-justify leading-tight">
+              <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Vision</strong>
+              <p className="m-0 text-justify leading-[1.15]">
                 A research-based academic institution committed to excellence and service in nurturing globally
                 competitive workforce towards sustainable development.
               </p>
             </div>
 
             <div>
-              <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Mission</strong>
-              <p className="m-0 text-justify leading-tight">
+              <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Mission</strong>
+              <p className="m-0 text-justify leading-[1.15]">
                 Romblon State University shall nurture an academic environment that provides advanced education, higher
                 technological and professional instruction and technical expertise in agriculture and fisheries,
                 forestry, engineering and technology, education, humanities, sciences and other relevant fields of study
@@ -218,10 +217,10 @@ export function RiskDecisionMemorandumPage({
             </div>
 
             <div>
-              <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+              <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">
                 RSU Quality Policy
               </strong>
-              <p className="m-0 text-justify leading-tight">
+              <p className="m-0 text-justify leading-[1.15]">
                 Romblon State University commits to provide higher education through quality instruction, research,
                 production, and community-based extension services that meet or exceed the requirements and expectations
                 of the university's stakeholders. It will comply with international standards, applicable statutory and
@@ -231,8 +230,8 @@ export function RiskDecisionMemorandumPage({
             </div>
 
             <div>
-              <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Core Values</strong>
-              <div className="space-y-0 pl-1 text-[5.2pt]">
+              <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Core Values</strong>
+              <div className="space-y-0 pl-1 text-[5pt] leading-[1.15]">
                 <div>Stewardship</div>
                 <div>Competence</div>
                 <div>Resilience</div>
@@ -241,7 +240,7 @@ export function RiskDecisionMemorandumPage({
                 <div>Excellence</div>
                 <div>Service</div>
               </div>
-              <p className="m-0 mt-0.5 text-[5pt] text-slate-400 text-justify leading-tight">
+              <p className="m-0 mt-0.2 text-[4.8pt] text-slate-400 text-justify leading-[1.1]">
                 These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
                 recognized HEI in the region and beyond.
               </p>
@@ -249,28 +248,26 @@ export function RiskDecisionMemorandumPage({
           </div>
 
           {/* RIGHT MAIN COLUMN: MEMORANDUM HEADER & NARRATIVE */}
-          <div className="col-span-9 space-y-1 text-slate-900">
+          <div className="col-span-9 space-y-0.5 text-slate-900">
             {/* DOCUMENT CLASSIFICATION & REF NO */}
             <div>
-              <h3 className="text-[10pt] font-black text-slate-900 tracking-tight leading-none m-0">
+              <h3 className="text-[9.5pt] font-black text-slate-900 tracking-tight leading-none m-0">
                 {communicationType}
               </h3>
-              <p className="text-[8.5pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
+              <p className="text-[8pt] font-bold font-mono text-slate-900 m-0 mt-0.2">{generatedRefNo}</p>
             </div>
 
-            {/* TABULAR METADATA BLOCK */}
-            <div className="space-y-0.5 pt-0.5 text-[7.2pt]">
+            {/* TABULAR METADATA BLOCK (COLON-ALIGNED) */}
+            <div className="space-y-0.5 pt-0.2 text-[7pt]">
               {/* TO ROW */}
               <div className="flex items-start">
                 <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
                 <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                 <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
-                  <div className="leading-tight">
-                    {unitName && unitName !== 'All Filtered Units' && !unitName.includes('All')
-                      ? `${unitName.toUpperCase()} (${campusName.toUpperCase()})`
-                      : 'ALL CONCERNED CAMPUS DIRECTORS, DEANS, PROGRAM CHAIRS, AND HEADS OF ACCOUNTABLE UNITS'}
+                  <div className="leading-tight">THE CONCERNED UNIT HEAD, DEAN, AND PROGRAM CHAIRS</div>
+                  <div className="text-[6.8pt] font-semibold normal-case text-slate-600">
+                    {unitName} ({campusName})
                   </div>
-                  <div className="text-[7pt] font-semibold normal-case text-slate-600">This University</div>
                 </div>
               </div>
 
@@ -280,7 +277,7 @@ export function RiskDecisionMemorandumPage({
                 <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                 <div className="flex-1 font-bold text-slate-900">
                   <span className="uppercase block font-black">{qmsHead}</span>
-                  <span className="text-[6.8pt] font-normal text-slate-700 block">
+                  <span className="text-[6.5pt] font-normal text-slate-700 block">
                     Head, Quality Management System (QMS)
                   </span>
                 </div>
@@ -293,7 +290,7 @@ export function RiskDecisionMemorandumPage({
                   <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                   <div className="flex-1 font-bold text-slate-900">
                     <span className="uppercase block font-black">{qaoDirector}</span>
-                    <span className="text-[6.8pt] font-normal text-slate-700 block">
+                    <span className="text-[6.5pt] font-normal text-slate-700 block">
                       Director, Quality Assurance Office
                     </span>
                   </div>
@@ -316,87 +313,72 @@ export function RiskDecisionMemorandumPage({
             </div>
 
             {/* HORIZONTAL RULE */}
-            <hr className="border-t border-slate-900 my-1" />
+            <hr className="border-t border-slate-900 my-0.5" />
 
             {/* MEMORANDUM BODY PARAGRAPHS */}
-            <div className="space-y-1 text-justify leading-tight text-[7.2pt] text-slate-900">
+            <div className="space-y-0.5 text-justify leading-tight text-[7pt] text-slate-900">
               <p className="m-0">
                 In strict compliance with{' '}
                 <strong>ISO 21001:2018 Clause 6.1 (Actions to Address Risks and Opportunities)</strong>,{' '}
-                <strong>ISO 9001:2015</strong>, and the{' '}
-                <strong>Romblon State University Educational Organizations Management System (RSU-EOMS) Manual</strong>,
-                this Office hereby releases the official decision-support report for Fiscal / Academic Year{' '}
-                <strong>{year}</strong> (
-                {cycle === 'first' ? '1st Monitoring Cycle' : 'Final / Annual Evaluation Cycle'}).
+                <strong>ISO 9001:2015 Clause 6.1</strong>, and the{' '}
+                <strong>Romblon State University Risk Management and Quality Assurance Manual</strong>, the Quality
+                Assurance Office transmits this official decision-support memorandum.
               </p>
 
               <p className="m-0">
-                {directiveNarrative} The complete itemized findings, data matrices, and resource allocations are
-                detailed in <em>Attachment A</em>.
+                This memorandum formally communicates the findings, assessments, and actionable recommendations compiled
+                for <strong>{unitName}</strong> ({campusName}) for Academic Year <strong>{year}</strong>
+                {cycle ? ` (${cycle})` : ''}.
               </p>
 
-              <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.5 text-[6.8pt] leading-tight">
-                <strong>Specific Directive:</strong>{' '}
-                {customDirective ||
-                  'All concerned administrative officers, academic deans, and risk owners are instructed to log in to the RSU EOMS Portal > Risk Intelligence Hub to execute action plans, commit resource allocations, and ensure timely submission of documentary proofs.'}
-              </p>
+              {customDirective ? (
+                <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.2 text-[6.5pt] leading-tight">
+                  <strong>Specific Executive Directive:</strong> {customDirective}
+                </p>
+              ) : (
+                <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.2 text-[6.5pt] leading-tight">
+                  <strong>Standard Directive:</strong> {directiveNarrative}
+                </p>
+              )}
 
               <p className="m-0">
-                Operating units and process owners are directed to observe the standard compliance workflow:
+                All concerned unit heads, process owners, and designated risk owners are directed to review the detailed
+                schedules, matrices, and directives provided in <em>Attachment A</em>, formulate necessary operational
+                adjustments, and execute compliance commitments within <strong>{gracePeriodDays} working days</strong>{' '}
+                from receipt hereof.
               </p>
 
-              <ol className="list-decimal pl-3.5 space-y-0 text-[6.8pt] text-slate-800 leading-tight">
-                <li>
-                  <strong>Review Findings:</strong> Examine all risk treatment commitments, budget allocations, and
-                  deficiency audit ratings itemized in Attachment A.
-                </li>
-                <li>
-                  <strong>Execute Mitigations:</strong> Complete immediate containment and long-term preventive actions
-                  with assigned milestone dates.
-                </li>
-                <li>
-                  <strong>Update Portal Records:</strong> Upload documentary evidence into the RSU EOMS Digital Registry
-                  for formal Quality Assurance audit validation.
-                </li>
-              </ol>
-
-              <p className="m-0">
-                All concerned units are granted a strict compliance window of{' '}
-                <strong>{gracePeriodDays} working days</strong> from receipt of this directive. Failure to comply shall
-                constrain this Office to formally elevate the matter to the{' '}
-                <strong>Office of the Vice Presidents</strong> and <strong>University President</strong> for
-                administrative intervention.
+              <p className="pt-0.2 m-0 font-semibold text-[6.8pt]">
+                For your guidance, strict compliance, and appropriate operational action.
               </p>
-
-              <p className="pt-0.5 m-0 font-semibold text-[7pt]">For your strict compliance and guidance.</p>
             </div>
 
             {/* SIGNATORIES BLOCK */}
-            <div className={includeNoted ? 'grid grid-cols-2 gap-4 pt-1.5 text-[7pt]' : 'pt-1.5 text-[7pt]'}>
+            <div className={includeNoted ? 'grid grid-cols-2 gap-4 pt-1 text-[6.8pt]' : 'pt-1 text-[6.8pt]'}>
               <div>
-                <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Issued by:</p>
-                <div className="pt-3">
-                  <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                <p className="font-bold text-slate-600 uppercase text-[5.8pt] m-0">Issued by:</p>
+                <div className="pt-2">
+                  <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7pt] m-0">
                     {qmsHead}
                   </p>
-                  <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                  <p className="text-[6.2pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
                     Head, Quality Management System (QMS)
                   </p>
-                  <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
+                  <p className="text-[5.5pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
                 </div>
               </div>
 
               {includeNoted && (
                 <div>
-                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Noted by:</p>
-                  <div className="pt-3">
-                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
+                  <p className="font-bold text-slate-600 uppercase text-[5.8pt] m-0">Noted by:</p>
+                  <div className="pt-2">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7pt] m-0">
                       {qaoDirector}
                     </p>
-                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                    <p className="text-[6.2pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
                       Director, Quality Assurance Office
                     </p>
-                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
+                    <p className="text-[5.5pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
                   </div>
                 </div>
               )}
@@ -407,8 +389,12 @@ export function RiskDecisionMemorandumPage({
 
       {/* 3. OFFICIAL BOTTOM FOOTER BANNER */}
       <div
-        className="memo-footer-banner w-full"
+        className="memo-footer-banner"
         style={{
+          position: 'absolute',
+          bottom: '0.25in',
+          left: '0.45in',
+          right: '0.45in',
           height: '24px',
           background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
           display: 'flex',

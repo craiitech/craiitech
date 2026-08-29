@@ -110,25 +110,24 @@ export function CAROverdueMemorandumTemplate({
         style={{
           width: '8.5in',
           minHeight: pageHeight,
-          height: pageHeight,
-          maxHeight: pageHeight,
-          padding: '0.35in 0.45in 0.65in 0.45in',
+          padding: '0.35in 0.45in 0.75in 0.45in',
           boxSizing: 'border-box',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
           pageBreakAfter: 'always',
           breakAfter: 'page',
+          position: 'relative',
         }}
       >
         <div>
           {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
-          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2">
-            <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-1.5">
+            <div className="flex items-center gap-2">
               {/* RSU SEAL & QAO LOGO */}
               <img
                 src="/rsulogo.png"
                 alt="RSU Official Seal"
-                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+                style={{ height: '38px', width: '38px', objectFit: 'contain' }}
               />
               <img
                 src="/qa_logo.png"
@@ -410,8 +409,12 @@ export function CAROverdueMemorandumTemplate({
 
         {/* 3. OFFICIAL BOTTOM FOOTER BANNER (FIXED AT THE VERY BOTTOM OF THE PAGE) */}
         <div
-          className="memo-footer-banner w-full"
+          className="memo-footer-banner"
           style={{
+            position: 'absolute',
+            bottom: '0.25in',
+            left: '0.45in',
+            right: '0.45in',
             height: '24px',
             background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
             display: 'flex',
