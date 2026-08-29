@@ -32,6 +32,7 @@ import {
   Loader2,
   ListFilter,
   FileCheck2,
+  Activity,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -76,6 +77,7 @@ export function CAROverdueMemorandumDialog({
     selectedCarId ? 'car' : selectedUnitId ? 'unit' : 'all',
   );
   const [batchMode, setBatchMode] = useState<'consolidated' | 'individual'>('consolidated');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'ongoing' | 'for_action' | 'verification'>('all');
   const [paperSize, setPaperSize] = useState<'folio' | 'letter' | 'a4'>('folio');
   const [activeUnitFilter, setActiveUnitFilter] = useState<string>(selectedUnitId || 'all');
   const [activeCarFilter, setActiveCarFilter] = useState<string>(selectedCarId || 'all');
@@ -108,6 +110,14 @@ export function CAROverdueMemorandumDialog({
 
         // Audit type filter
         if (auditTypeFilter !== 'all' && car.auditType !== auditTypeFilter) return false;
+
+        // CAR Status filter (OPEN, ONGOING, FOR ACTION, VERIFICATION)
+        if (statusFilter === 'open' && car.status !== 'Open') return false;
+        if (statusFilter === 'ongoing' && car.status !== 'In Progress' && car.status !== 'Awaiting Response/Update')
+          return false;
+        if (statusFilter === 'for_action' && car.status !== 'Open' && car.status !== 'Awaiting Response/Update')
+          return false;
+        if (statusFilter === 'verification' && car.status !== 'For Final Verification') return false;
 
         const info = getNextCarActionInfo(car);
         // We consider it overdue if urgency is overdue or if timeLimitForReply is in the past and unreplied
@@ -146,7 +156,7 @@ export function CAROverdueMemorandumDialog({
           actionLabel: info.actionLabel,
         };
       });
-  }, [cars, campusFilter, auditTypeFilter]);
+  }, [cars, campusFilter, auditTypeFilter, statusFilter]);
 
   // Group overdue items by Unit
   const overdueUnitGroups = useMemo<OverdueUnitGroup[]>(() => {
@@ -231,6 +241,7 @@ export function CAROverdueMemorandumDialog({
               signatories={signatories}
               year={year}
               paperSize={paperSize}
+              statusCategory={statusFilter}
             />
           ) : (
             targetUnitGroups.map((group, idx) => (
@@ -250,6 +261,7 @@ export function CAROverdueMemorandumDialog({
                   signatories={signatories}
                   year={year}
                   paperSize={paperSize}
+                  statusCategory={statusFilter}
                 />
               </div>
             ))
@@ -334,16 +346,27 @@ export function CAROverdueMemorandumDialog({
           .flatMap((g) =>
             g.overdueCars.map(
               (c, i) =>
-                `• [${g.unitName}] CAR No: ${c.car.carNumber} | Procedure: ${c.car.procedureTitle || 'General'} | Deadline: ${c.deadlineStr} (${c.daysOverdue} days past due)`,
+                `• [${g.unitName}] CAR No: ${c.car.carNumber} (${c.car.status.toUpperCase()}) | Procedure: ${c.car.procedureTitle || 'General'} | Deadline: ${c.deadlineStr} (${c.daysOverdue} days past due)`,
             ),
           )
           .join('\n')
       : activeGroup?.overdueCars
           .map(
             (c, i) =>
-              `${i + 1}. CAR No: ${c.car.carNumber} | Procedure: ${c.car.procedureTitle || 'General'} | Deadline: ${c.deadlineStr} (${c.daysOverdue} days past due)`,
+              `${i + 1}. CAR No: ${c.car.carNumber} (${c.car.status.toUpperCase()}) | Procedure: ${c.car.procedureTitle || 'General'} | Deadline: ${c.deadlineStr} (${c.daysOverdue} days past due)`,
           )
           .join('\n');
+
+    const subjectLine =
+      statusFilter === 'open'
+        ? 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS & ACTION PLAN FOR OVERDUE OPEN CAR(S)'
+        : statusFilter === 'ongoing'
+          ? 'COMPLIANCE DIRECTIVE: STATUS UPDATE & EVIDENCE SUBMISSION FOR OVERDUE ON-GOING CAR(S)'
+          : statusFilter === 'for_action'
+            ? 'COMPLIANCE DIRECTIVE: IMMEDIATE ACTION & COMPLIANCE ON OVERDUE CORRECTIVE ACTION REQUESTS (CAR)'
+            : statusFilter === 'verification'
+              ? 'COMPLIANCE DIRECTIVE: IMMEDIATE EVIDENCE SUBMISSION FOR CARS PENDING FINAL QUALITY VERIFICATION'
+              : 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR OVERDUE CORRECTIVE ACTION REQUESTS (CAR)';
 
     const text = `
 QA Memorandum
@@ -355,7 +378,7 @@ TO          :   ${recipients}
 FROM        :   ${signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)'}
                 Head, Quality Management System (QMS)
 
-SUBJECT     :   COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
+SUBJECT     :   ${subjectLine}
 
 DATE        :   ${format(new Date(memoDate), 'MMMM d, yyyy').toUpperCase()}
 
@@ -426,7 +449,7 @@ Director, Quality Assurance Office
             </div>
             <div className="flex items-center gap-2">
               <Badge className="bg-white/10 text-white text-xs font-black px-2.5 py-1">
-                {overdueItems.length} Overdue Issue{overdueItems.length !== 1 ? 's' : ''} Identified
+                {overdueItems.length} Overdue Issue{overdueItems.length !== 1 ? 's' : ''} Listed
               </Badge>
             </div>
           </div>
@@ -435,7 +458,7 @@ Director, Quality Assurance Office
         {/* DIALOG BODY */}
         <div className="flex-1 overflow-y-auto p-5 space-y-6">
           {/* TOP CONTROLS & SCOPE SELECTOR */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm">
             <div className="space-y-1.5">
               <Label className="text-[10px] font-black uppercase text-slate-500">Memorandum Scope</Label>
               <Select value={targetScope} onValueChange={(v: any) => setTargetScope(v)}>
@@ -451,6 +474,33 @@ Director, Quality Assurance Office
                   </SelectItem>
                   <SelectItem value="car" className="text-xs font-bold">
                     Target Specific CAR
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* CAR STATUS SELECTOR (OPEN, ONGOING, FOR ACTION, VERIFICATION) */}
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase text-slate-500">CAR Status</Label>
+              <Select value={statusFilter} onValueChange={(v: any) => setStatusFilter(v)}>
+                <SelectTrigger className="h-9 text-xs font-bold">
+                  <SelectValue placeholder="CAR Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs font-bold">
+                    All Active Overdue (Open &amp; Ongoing)
+                  </SelectItem>
+                  <SelectItem value="open" className="text-xs font-bold text-amber-700">
+                    OPEN CARs (Initial Response Pending)
+                  </SelectItem>
+                  <SelectItem value="ongoing" className="text-xs font-bold text-blue-700">
+                    ONGOING CARs (In Progress / Action Committed)
+                  </SelectItem>
+                  <SelectItem value="for_action" className="text-xs font-bold text-indigo-700">
+                    FOR ACTION (Awaiting Updates)
+                  </SelectItem>
+                  <SelectItem value="verification" className="text-xs font-bold text-purple-700">
+                    FOR FINAL VERIFICATION
                   </SelectItem>
                 </SelectContent>
               </Select>
@@ -642,7 +692,8 @@ Director, Quality Assurance Office
               <AlertTriangle className="h-10 w-10 mx-auto text-amber-500 mb-2 opacity-60" />
               <h3 className="text-sm font-black uppercase tracking-wide">No Overdue CAR Responses Found</h3>
               <p className="text-xs mt-1">
-                There are currently no overdue CAR responses matching the selected filters.
+                There are currently no overdue CAR responses matching the selected filters (Status:{' '}
+                <span className="font-bold uppercase text-slate-800 dark:text-slate-200">{statusFilter}</span>).
               </p>
             </div>
           ) : (
@@ -701,6 +752,7 @@ Director, Quality Assurance Office
                         signatories={signatories}
                         year={year}
                         paperSize={paperSize}
+                        statusCategory={statusFilter}
                       />
                     ) : (
                       activeGroup && (
@@ -713,6 +765,7 @@ Director, Quality Assurance Office
                           signatories={signatories}
                           year={year}
                           paperSize={paperSize}
+                          statusCategory={statusFilter}
                         />
                       )
                     )}
@@ -736,7 +789,7 @@ Director, Quality Assurance Office
               <strong>
                 {overdueItems.length} Overdue Issue{overdueItems.length !== 1 ? 's' : ''}
               </strong>{' '}
-              • Format:{' '}
+              • Status: <strong className="uppercase text-primary">{statusFilter}</strong> • Format:{' '}
               <span className="font-bold text-slate-900 uppercase">
                 {paperSize} (8.5&quot; &times; {paperSize === 'folio' ? '13' : paperSize === 'a4' ? '11.69' : '11'}
                 &quot;)

@@ -30,6 +30,7 @@ export interface CAROverdueMemorandumTemplateProps {
   year?: number;
   isBatchConsolidated?: boolean;
   paperSize?: 'folio' | 'letter' | 'a4';
+  statusCategory?: 'all' | 'open' | 'ongoing' | 'for_action' | 'verification';
 }
 
 export function CAROverdueMemorandumTemplate({
@@ -43,6 +44,7 @@ export function CAROverdueMemorandumTemplate({
   year = new Date().getFullYear(),
   isBatchConsolidated = false,
   paperSize = 'folio',
+  statusCategory = 'all',
 }: CAROverdueMemorandumTemplateProps) {
   const dateObj = memoDate instanceof Date ? memoDate : new Date(memoDate);
   const formattedDate = !isNaN(dateObj.getTime())
@@ -242,8 +244,15 @@ export function CAROverdueMemorandumTemplate({
                   <div className="w-16 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
                   <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
                   <div className="flex-1 font-black uppercase text-slate-900 leading-snug">
-                    COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR
-                    OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
+                    {statusCategory === 'open'
+                      ? 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS & ACTION PLAN FOR OVERDUE OPEN CAR(S)'
+                      : statusCategory === 'ongoing'
+                        ? 'COMPLIANCE DIRECTIVE: IMMEDIATE STATUS COMMITMENT & EVIDENCE SUBMISSION FOR OVERDUE ON-GOING CAR(S)'
+                        : statusCategory === 'for_action'
+                          ? 'COMPLIANCE DIRECTIVE: IMMEDIATE ACTION & COMPLIANCE ON OVERDUE CORRECTIVE ACTION REQUESTS (CAR)'
+                          : statusCategory === 'verification'
+                            ? 'COMPLIANCE DIRECTIVE: IMMEDIATE EVIDENCE SUBMISSION FOR CARS PENDING FINAL QUALITY VERIFICATION'
+                            : 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR OVERDUE CORRECTIVE ACTION REQUESTS (CAR)'}
                   </div>
                 </div>
 
@@ -444,9 +453,32 @@ export function CAROverdueMemorandumTemplate({
                       <td className="border border-slate-900 p-1.5 text-center font-bold text-slate-600">{idx + 1}</td>
                       <td className="border border-slate-900 p-1.5 text-center font-mono font-bold text-slate-900">
                         <div>{car.carNumber}</div>
-                        <span className="text-[6.5pt] px-1 py-0.2 rounded bg-slate-200 uppercase font-sans">
-                          {car.auditType === 'EQA' ? 'EQA' : 'IQA'}
-                        </span>
+                        <div className="flex flex-col items-center gap-0.5 mt-0.5">
+                          <span className="text-[6.5pt] px-1 py-0.2 rounded bg-slate-200 uppercase font-sans">
+                            {car.auditType === 'EQA' ? 'EQA' : 'IQA'}
+                          </span>
+                          <span
+                            className={
+                              car.status === 'Open'
+                                ? 'text-[6.5pt] px-1 py-0.2 rounded font-black uppercase bg-amber-100 text-amber-800 border border-amber-300 font-sans'
+                                : car.status === 'In Progress'
+                                  ? 'text-[6.5pt] px-1 py-0.2 rounded font-black uppercase bg-blue-100 text-blue-800 border border-blue-300 font-sans'
+                                  : car.status === 'Awaiting Response/Update'
+                                    ? 'text-[6.5pt] px-1 py-0.2 rounded font-black uppercase bg-indigo-100 text-indigo-800 border border-indigo-300 font-sans'
+                                    : 'text-[6.5pt] px-1 py-0.2 rounded font-black uppercase bg-slate-100 text-slate-700 border border-slate-300 font-sans'
+                            }
+                          >
+                            {car.status === 'Open'
+                              ? 'OPEN'
+                              : car.status === 'In Progress'
+                                ? 'ONGOING'
+                                : car.status === 'Awaiting Response/Update'
+                                  ? 'FOR ACTION'
+                                  : car.status === 'For Final Verification'
+                                    ? 'VERIFICATION'
+                                    : car.status}
+                          </span>
+                        </div>
                       </td>
                       <td className="border border-slate-900 p-1.5">
                         <strong className="block text-slate-900 uppercase text-[8pt]">
