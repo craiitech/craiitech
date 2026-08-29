@@ -477,6 +477,34 @@ export function CampusSubmissionsView({
                                 size: 8.5in 13in !important; 
                                 margin: 0 !important; 
                             }
+                            * { box-sizing: border-box !important; }
+                            body { 
+                                font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+                                background: #e2e8f0; 
+                                padding: 24px 0; 
+                                margin: 0;
+                                color: black; 
+                            }
+                            .memo-root-document { 
+                                margin: 0 auto !important; 
+                                width: 8.5in !important; 
+                            }
+                            .memo-page-1, .memo-attachment-page {
+                                width: 8.5in !important;
+                                min-height: 13in !important;
+                                background: white !important;
+                                position: relative !important;
+                                box-sizing: border-box !important;
+                                padding: 0.35in 0.45in 0.75in 0.45in !important;
+                                margin: 0 auto 30px auto !important;
+                                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+                            }
+                            .memo-footer-banner {
+                                position: absolute !important;
+                                bottom: 0.25in !important;
+                                left: 0.45in !important;
+                                right: 0.45in !important;
+                            }
                             @media print { 
                                 html, body { 
                                     margin: 0 !important; 
@@ -487,7 +515,7 @@ export function CampusSubmissionsView({
                                 } 
                                 .no-print { display: none !important; } 
                                 #print-content { padding: 0 !important; margin: 0 !important; width: 100% !important; }
-                                .memo-root-document { padding: 0 !important; width: 100% !important; }
+                                .memo-root-document { padding: 0 !important; margin: 0 !important; width: 100% !important; }
                                 .memo-page-1 {
                                     page-break-after: always !important;
                                     break-after: page !important;
@@ -495,14 +523,24 @@ export function CampusSubmissionsView({
                                     break-inside: avoid !important;
                                     position: relative !important;
                                     box-sizing: border-box !important;
-                                    padding: 0.35in 0.45in 0.65in 0.45in !important;
+                                    padding: 0.35in 0.45in 0.75in 0.45in !important;
+                                    margin: 0 !important;
+                                    box-shadow: none !important;
+                                    width: 8.5in !important;
+                                    height: 13in !important;
+                                    max-height: 13in !important;
+                                    overflow: hidden !important;
                                 }
                                 .memo-attachment-page {
                                     page-break-before: always !important;
                                     break-before: page !important;
                                     position: relative !important;
                                     box-sizing: border-box !important;
-                                    padding: 0.35in 0.45in 0.65in 0.45in !important;
+                                    padding: 0.35in 0.45in 0.75in 0.45in !important;
+                                    margin: 0 !important;
+                                    box-shadow: none !important;
+                                    width: 8.5in !important;
+                                    min-height: 13in !important;
                                 }
                                 .memo-footer-banner {
                                     position: absolute !important;
@@ -511,7 +549,8 @@ export function CampusSubmissionsView({
                                     right: 0.45in !important;
                                 }
                             } 
-                            body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; padding: 20px; color: black; }
+                            table { border-collapse: collapse !important; width: 100% !important; }
+                            td, th { overflow: hidden; word-wrap: break-word; }
                         </style>
                     </head>
                     <body>
@@ -572,6 +611,34 @@ export function CampusSubmissionsView({
                                 size: 8.5in 13in !important; 
                                 margin: 0 !important; 
                             }
+                            * { box-sizing: border-box !important; }
+                            body { 
+                                font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+                                background: #e2e8f0; 
+                                padding: 24px 0; 
+                                margin: 0;
+                                color: black; 
+                            }
+                            .memo-root-document { 
+                                margin: 0 auto !important; 
+                                width: 8.5in !important; 
+                            }
+                            .memo-page-1, .memo-attachment-page {
+                                width: 8.5in !important;
+                                min-height: 13in !important;
+                                background: white !important;
+                                position: relative !important;
+                                box-sizing: border-box !important;
+                                padding: 0.35in 0.45in 0.75in 0.45in !important;
+                                margin: 0 auto 30px auto !important;
+                                box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+                            }
+                            .memo-footer-banner {
+                                position: absolute !important;
+                                bottom: 0.25in !important;
+                                left: 0.45in !important;
+                                right: 0.45in !important;
+                            }
                             @media print { 
                                 html, body { 
                                     margin: 0 !important; 
@@ -582,7 +649,7 @@ export function CampusSubmissionsView({
                                 } 
                                 .no-print { display: none !important; } 
                                 #print-content { padding: 0 !important; margin: 0 !important; width: 100% !important; }
-                                .memo-root-document { padding: 0 !important; width: 100% !important; }
+                                .memo-root-document { padding: 0 !important; margin: 0 !important; width: 100% !important; }
                                 .memo-page-1 {
                                     page-break-after: always !important;
                                     break-after: page !important;
@@ -590,14 +657,24 @@ export function CampusSubmissionsView({
                                     break-inside: avoid !important;
                                     position: relative !important;
                                     box-sizing: border-box !important;
-                                    padding: 0.35in 0.45in 0.65in 0.45in !important;
+                                    padding: 0.35in 0.45in 0.75in 0.45in !important;
+                                    margin: 0 !important;
+                                    box-shadow: none !important;
+                                    width: 8.5in !important;
+                                    height: 13in !important;
+                                    max-height: 13in !important;
+                                    overflow: hidden !important;
                                 }
                                 .memo-attachment-page {
                                     page-break-before: always !important;
                                     break-before: page !important;
                                     position: relative !important;
                                     box-sizing: border-box !important;
-                                    padding: 0.35in 0.45in 0.65in 0.45in !important;
+                                    padding: 0.35in 0.45in 0.75in 0.45in !important;
+                                    margin: 0 !important;
+                                    box-shadow: none !important;
+                                    width: 8.5in !important;
+                                    min-height: 13in !important;
                                 }
                                 .memo-footer-banner {
                                     position: absolute !important;
@@ -606,7 +683,8 @@ export function CampusSubmissionsView({
                                     right: 0.45in !important;
                                 }
                             } 
-                            body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f1f5f9; padding: 20px; color: black; }
+                            table { border-collapse: collapse !important; width: 100% !important; }
+                            td, th { overflow: hidden; word-wrap: break-word; }
                         </style>
                     </head>
                     <body>

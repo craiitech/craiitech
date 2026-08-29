@@ -1096,7 +1096,7 @@ export function MissingSubmissionsReport({
         style={{
           width: '8.5in',
           minHeight: pageHeight,
-          padding: '0.35in 0.45in 0.65in 0.45in',
+          padding: '0.35in 0.45in 0.75in 0.45in',
           boxSizing: 'border-box',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
