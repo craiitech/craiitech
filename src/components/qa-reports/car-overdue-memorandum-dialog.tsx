@@ -40,7 +40,11 @@ import { useNotifications } from '@/hooks/use-notifications';
 import { useFirestore, useUser } from '@/firebase/provider';
 import { doc, updateDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { CAROverdueMemorandumTemplate, type OverdueUnitGroup } from './car-overdue-memorandum-template';
+import {
+  CAROverdueMemorandumTemplate,
+  type OverdueUnitGroup,
+  type CommunicationType,
+} from './car-overdue-memorandum-template';
 import { getNextCarActionInfo, parseCarDate } from '@/lib/car-utils';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +81,7 @@ export function CAROverdueMemorandumDialog({
     selectedCarId ? 'car' : selectedUnitId ? 'unit' : 'all',
   );
   const [batchMode, setBatchMode] = useState<'consolidated' | 'individual'>('consolidated');
+  const [communicationType, setCommunicationType] = useState<CommunicationType>('QA Memorandum');
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'ongoing' | 'for_action' | 'verification'>('all');
   const [paperSize, setPaperSize] = useState<'folio' | 'letter' | 'a4'>('folio');
   const [activeUnitFilter, setActiveUnitFilter] = useState<string>(selectedUnitId || 'all');
@@ -242,6 +247,7 @@ export function CAROverdueMemorandumDialog({
               year={year}
               paperSize={paperSize}
               statusCategory={statusFilter}
+              communicationType={communicationType}
             />
           ) : (
             targetUnitGroups.map((group, idx) => (
@@ -262,6 +268,7 @@ export function CAROverdueMemorandumDialog({
                   year={year}
                   paperSize={paperSize}
                   statusCategory={statusFilter}
+                  communicationType={communicationType}
                 />
               </div>
             ))
@@ -273,7 +280,7 @@ export function CAROverdueMemorandumDialog({
       if (printWindow) {
         printWindow.document.open();
         printWindow.document.write(
-          `<html><head><title>QA Memorandum - Overdue CAR Responses (${memoRefNo})</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { ${pageSizeCss} margin: 0.4in 0.5in 0.3in 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9fafb; padding: 20px; color: black; }</style></head><body><div class="no-print mb-6 flex justify-center"><button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print Memorandum (${paperSize.toUpperCase()} Format)</button></div><div id="print-content">${markup}</div></body></html>`,
+          `<html><head><title>${communicationType} - Overdue CAR Responses (${memoRefNo})</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { ${pageSizeCss} margin: 0.4in 0.5in 0.3in 0.5in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9fafb; padding: 20px; color: black; }</style></head><body><div class="no-print mb-6 flex justify-center"><button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print ${communicationType} (${paperSize.toUpperCase()} Format)</button></div><div id="print-content">${markup}</div></body></html>`,
         );
         printWindow.document.close();
       }
@@ -311,18 +318,18 @@ export function CAROverdueMemorandumDialog({
         }
 
         triggerLocalNotification(`[OFFICIAL MEMO: CAR NOTICE] ${group.unitName}`, {
-          body: `Official Memorandum (${memoRefNo}) issued for ${group.overdueCars.length} overdue CAR response(s). Compliance deadline: ${gracePeriodDays} days.`,
+          body: `Official ${communicationType} (${memoRefNo}) issued for ${group.overdueCars.length} overdue CAR response(s). Compliance deadline: ${gracePeriodDays} days.`,
           category: 'car',
           link: `/qa-reports?tab=car`,
         });
       }
 
       toast({
-        title: 'Memorandum Dispatched Successfully!',
-        description: `Official CAR response reminder memorandum issued to ${targetUnitGroups.length} unit(s) (${notifiedCount} CAR records updated).`,
+        title: 'Document Dispatched Successfully!',
+        description: `Official ${communicationType} issued to ${targetUnitGroups.length} unit(s) (${notifiedCount} CAR records updated).`,
       });
     } catch (err: any) {
-      console.error('Error dispatching memorandum notifications:', err);
+      console.error('Error dispatching notifications:', err);
       toast({
         title: 'Dispatch Failed',
         description: err?.message || 'Could not dispatch notifications.',
@@ -369,7 +376,7 @@ export function CAROverdueMemorandumDialog({
               : 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR OVERDUE CORRECTIVE ACTION REQUESTS (CAR)';
 
     const text = `
-QA Memorandum
+${communicationType}
 ${memoRefNo}
 
 TO          :   ${recipients}
@@ -416,7 +423,7 @@ Director, Quality Assurance Office
     setTimeout(() => setHasCopied(false), 2500);
 
     toast({
-      title: 'Memorandum Copied to Clipboard',
+      title: `${communicationType} Copied to Clipboard`,
       description: 'Official notice text copied and ready for email or distribution.',
     });
   };
@@ -433,7 +440,7 @@ Director, Quality Assurance Office
               </div>
               <div>
                 <DialogTitle className="text-lg font-black tracking-tight text-white flex items-center gap-2">
-                  QA Memorandum Generator
+                  {communicationType} Generator
                   <Badge
                     variant="outline"
                     className="bg-emerald-500/20 text-emerald-300 border-emerald-400/40 text-[10px] font-black uppercase"
@@ -515,7 +522,7 @@ Director, Quality Assurance Office
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="consolidated" className="text-xs font-bold">
-                      Master Memorandum (Single List + Attachment)
+                      Master Document (Single List + Attachment)
                     </SelectItem>
                     <SelectItem value="individual" className="text-xs font-bold">
                       Individual Notices (Separate Sheet per Unit)
@@ -628,9 +635,36 @@ Director, Quality Assurance Office
           </div>
 
           {/* MEMORANDUM PARAMETER CUSTOMIZATION */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm">
+            {/* COMMUNICATION TYPE SELECTOR */}
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase text-slate-500">Memo Reference Number</Label>
+              <Label className="text-[10px] font-black uppercase text-slate-500">Communication Type</Label>
+              <Select value={communicationType} onValueChange={(v: any) => setCommunicationType(v)}>
+                <SelectTrigger className="h-9 text-xs font-bold">
+                  <SelectValue placeholder="Select Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="QA Memorandum" className="text-xs font-bold">
+                    QA Memorandum
+                  </SelectItem>
+                  <SelectItem value="QA Office Memorandum" className="text-xs font-bold">
+                    QA Office Memorandum
+                  </SelectItem>
+                  <SelectItem value="QA Office Order" className="text-xs font-bold">
+                    QA Office Order
+                  </SelectItem>
+                  <SelectItem value="QA Advisory" className="text-xs font-bold">
+                    QA Advisory
+                  </SelectItem>
+                  <SelectItem value="QA Communication" className="text-xs font-bold">
+                    QA Communication
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase text-slate-500">Reference Number</Label>
               <Input
                 value={memoRefNo}
                 onChange={(e) => setMemoRefNo(e.target.value)}
@@ -672,7 +706,7 @@ Director, Quality Assurance Office
               </Select>
             </div>
 
-            <div className="md:col-span-3 space-y-1.5 pt-2 border-t">
+            <div className="md:col-span-4 space-y-1.5 pt-2 border-t">
               <Label className="text-[10px] font-black uppercase text-slate-500">
                 Additional Administrative Directive / Special Instruction (Optional)
               </Label>
@@ -723,7 +757,7 @@ Director, Quality Assurance Office
                   <span className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
                     {isConsolidatedBatch
-                      ? `Consolidated Folio Master Memorandum (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
+                      ? `Consolidated Folio ${communicationType} (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
                       : `Printable Folio Preview: ${activeGroup?.unitName} (${activeGroup?.campusName})`}
                   </span>
                   <div className="flex items-center gap-2">
@@ -753,6 +787,7 @@ Director, Quality Assurance Office
                         year={year}
                         paperSize={paperSize}
                         statusCategory={statusFilter}
+                        communicationType={communicationType}
                       />
                     ) : (
                       activeGroup && (
@@ -766,6 +801,7 @@ Director, Quality Assurance Office
                           year={year}
                           paperSize={paperSize}
                           statusCategory={statusFilter}
+                          communicationType={communicationType}
                         />
                       )
                     )}
@@ -789,7 +825,7 @@ Director, Quality Assurance Office
               <strong>
                 {overdueItems.length} Overdue Issue{overdueItems.length !== 1 ? 's' : ''}
               </strong>{' '}
-              • Status: <strong className="uppercase text-primary">{statusFilter}</strong> • Format:{' '}
+              • Type: <strong className="text-primary">{communicationType}</strong> • Format:{' '}
               <span className="font-bold text-slate-900 uppercase">
                 {paperSize} (8.5&quot; &times; {paperSize === 'folio' ? '13' : paperSize === 'a4' ? '11.69' : '11'}
                 &quot;)

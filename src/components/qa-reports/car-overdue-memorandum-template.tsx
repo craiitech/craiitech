@@ -19,6 +19,9 @@ export interface OverdueUnitGroup {
   }[];
 }
 
+export type CommunicationType =
+  'QA Memorandum' | 'QA Office Memorandum' | 'QA Office Order' | 'QA Advisory' | 'QA Communication';
+
 export interface CAROverdueMemorandumTemplateProps {
   unitGroup?: OverdueUnitGroup;
   allUnitGroups?: OverdueUnitGroup[];
@@ -31,6 +34,7 @@ export interface CAROverdueMemorandumTemplateProps {
   isBatchConsolidated?: boolean;
   paperSize?: 'folio' | 'letter' | 'a4';
   statusCategory?: 'all' | 'open' | 'ongoing' | 'for_action' | 'verification';
+  communicationType?: CommunicationType;
 }
 
 export function CAROverdueMemorandumTemplate({
@@ -45,6 +49,7 @@ export function CAROverdueMemorandumTemplate({
   isBatchConsolidated = false,
   paperSize = 'folio',
   statusCategory = 'all',
+  communicationType = 'QA Memorandum',
 }: CAROverdueMemorandumTemplateProps) {
   const dateObj = memoDate instanceof Date ? memoDate : new Date(memoDate);
   const formattedDate = !isNaN(dateObj.getTime())
@@ -201,7 +206,9 @@ export function CAROverdueMemorandumTemplate({
             <div className="col-span-9 space-y-3 text-[9pt] leading-normal text-slate-900">
               {/* DOCUMENT CLASSIFICATION & REF NO */}
               <div>
-                <h3 className="text-[12pt] font-black text-slate-900 tracking-tight leading-none m-0">QA Memorandum</h3>
+                <h3 className="text-[12pt] font-black text-slate-900 tracking-tight leading-none m-0">
+                  {communicationType}
+                </h3>
                 <p className="text-[10pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
               </div>
 
