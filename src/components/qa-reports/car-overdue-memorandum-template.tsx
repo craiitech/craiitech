@@ -45,8 +45,8 @@ export function CAROverdueMemorandumTemplate({
   const generatedRefNo =
     memoRefNo || `RSU-QAO-MEMO-CAR-${year}-${format(!isNaN(dateObj.getTime()) ? dateObj : new Date(), 'MMdd')}`;
 
-  const qaoDirector = signatories?.qaoDirector || 'DIR. QUALITY ASSURANCE';
-  const universityPresident = signatories?.universityPresident || 'DR. MERIAN C. CATAJAY-MANI';
+  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = signatories?.qaoDirector || 'DIR. QUALITY ASSURANCE OFFICE';
 
   const isMainCampus =
     unitGroup.campusName.toLowerCase().includes('main') || unitGroup.campusName.toLowerCase().includes('institutional');
@@ -128,9 +128,9 @@ export function CAROverdueMemorandumTemplate({
         <div className="grid grid-cols-12 border-b border-black">
           <div className="col-span-2 font-bold p-2 bg-slate-100 uppercase border-r border-black">FROM:</div>
           <div className="col-span-10 p-2 font-black uppercase text-slate-900">
-            {qaoDirector}
+            {qmsHead}
             <span className="font-normal normal-case block text-slate-600 text-[8.5pt]">
-              Director, Quality Assurance Office / Lead Internal Quality Auditor
+              Head, Quality Management System (QMS) / Lead Internal Quality Auditor
             </span>
           </div>
         </div>
@@ -327,20 +327,20 @@ export function CAROverdueMemorandumTemplate({
           <p className="font-bold text-slate-600 uppercase text-[8pt]">Issued by:</p>
           <div className="pt-8">
             <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[200px]">
-              {qaoDirector}
+              {qmsHead}
             </p>
-            <p className="text-[8pt] text-slate-700 font-bold mt-0.5">Director, Quality Assurance Office</p>
+            <p className="text-[8pt] text-slate-700 font-bold mt-0.5">Head, Quality Management System (QMS)</p>
             <p className="text-[7.5pt] text-slate-500">Lead Internal Quality Auditor, RSU</p>
           </div>
         </div>
 
         <div className="space-y-1">
-          <p className="font-bold text-slate-600 uppercase text-[8pt]">Noted &amp; Endorsed by:</p>
+          <p className="font-bold text-slate-600 uppercase text-[8pt]">Noted by:</p>
           <div className="pt-8">
             <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[200px]">
-              {universityPresident}
+              {qaoDirector}
             </p>
-            <p className="text-[8pt] text-slate-700 font-bold mt-0.5">University President</p>
+            <p className="text-[8pt] text-slate-700 font-bold mt-0.5">Director, Quality Assurance Office</p>
             <p className="text-[7.5pt] text-slate-500">Romblon State University</p>
           </div>
         </div>

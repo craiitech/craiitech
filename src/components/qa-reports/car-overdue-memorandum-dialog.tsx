@@ -301,7 +301,8 @@ MEMORANDUM: URGENT COMPLIANCE DIRECTIVE
 REF NO: ${memoRefNo}
 DATE: ${format(new Date(memoDate), 'MMMM d, yyyy')}
 FOR / TO: ${activeGroup.unitName.toUpperCase()} (${activeGroup.campusName})
-FROM: ${signatories?.qaoDirector || 'DIRECTOR, QUALITY ASSURANCE OFFICE'}
+FROM: ${signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)'}
+NOTED BY: ${signatories?.qaoDirector || 'DIRECTOR, QUALITY ASSURANCE OFFICE'}
 SUBJECT: FINAL NOTICE TO SUBMIT ROOT CAUSE ANALYSIS & CORRECTIVE ACTION PLAN FOR OVERDUE CAR(S)
 
 In accordance with ISO 21001:2018 Clause 10.2 and the Romblon State University Educational Organizations Management System (RSU-EOMS) Manual, please be informed that your unit has ${activeGroup.overdueCars.length} overdue Corrective Action Request(s):
