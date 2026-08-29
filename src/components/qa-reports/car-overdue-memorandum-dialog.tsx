@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import type { CorrectiveActionRequest, Unit, Campus, Signatories } from '@/lib/types';
 import {
   Dialog,
@@ -76,14 +76,37 @@ export function CAROverdueMemorandumDialog({
   const { toast } = useToast();
   const { triggerLocalNotification } = useNotifications();
   const firestore = useFirestore();
-  const { userProfile, isAdmin } = useUser();
+  const { userProfile, isAdmin, isVp, userRole } = useUser();
+
+  const canIssueQACommunication = useMemo(() => {
+    if (isAdmin || isVp) return true;
+    const roleLower = (userRole || '').toLowerCase();
+    if (
+      roleLower.includes('president') ||
+      roleLower.includes('qa director') ||
+      roleLower.includes('qao director') ||
+      roleLower.includes('director, quality') ||
+      roleLower.includes('qms head')
+    ) {
+      return true;
+    }
+    return false;
+  }, [isAdmin, isVp, userRole]);
 
   // Filter and Targeting Controls
   const [targetScope, setTargetScope] = useState<'all' | 'unit' | 'car'>(
     selectedCarId ? 'car' : selectedUnitId ? 'unit' : 'all',
   );
   const [batchMode, setBatchMode] = useState<'consolidated' | 'individual'>('consolidated');
-  const [communicationType, setCommunicationType] = useState<CommunicationType>('QA Memorandum');
+  const [communicationType, setCommunicationType] = useState<CommunicationType>(
+    canIssueQACommunication ? 'QA Memorandum' : 'Report Only',
+  );
+
+  useEffect(() => {
+    if (!canIssueQACommunication && communicationType !== 'Report Only') {
+      setCommunicationType('Report Only');
+    }
+  }, [canIssueQACommunication, communicationType]);
   const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'ongoing' | 'for_action' | 'verification'>('all');
   const [paperSize, setPaperSize] = useState<'folio' | 'letter' | 'a4'>('folio');
   const [activeUnitFilter, setActiveUnitFilter] = useState<string>(selectedUnitId || 'all');
@@ -787,26 +810,42 @@ Head, Quality Management System (QMS)${notedSignatory}
                   <SelectValue placeholder="Select Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="QA Memorandum" className="text-xs font-bold">
-                    QA Memorandum
-                  </SelectItem>
-                  <SelectItem value="QA Office Memorandum" className="text-xs font-bold">
-                    QA Office Memorandum
-                  </SelectItem>
-                  <SelectItem value="QA Office Order" className="text-xs font-bold">
-                    QA Office Order
-                  </SelectItem>
-                  <SelectItem value="QA Advisory" className="text-xs font-bold">
-                    QA Advisory
-                  </SelectItem>
-                  <SelectItem value="QA Communication" className="text-xs font-bold">
-                    QA Communication
-                  </SelectItem>
-                  <SelectItem value="Report Only" className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
-                    Report Only (Table Only)
-                  </SelectItem>
+                  {canIssueQACommunication ? (
+                    <>
+                      <SelectItem value="QA Memorandum" className="text-xs font-bold">
+                        QA Memorandum
+                      </SelectItem>
+                      <SelectItem value="QA Office Memorandum" className="text-xs font-bold">
+                        QA Office Memorandum
+                      </SelectItem>
+                      <SelectItem value="QA Office Order" className="text-xs font-bold">
+                        QA Office Order
+                      </SelectItem>
+                      <SelectItem value="QA Advisory" className="text-xs font-bold">
+                        QA Advisory
+                      </SelectItem>
+                      <SelectItem value="QA Communication" className="text-xs font-bold">
+                        QA Communication
+                      </SelectItem>
+                      <SelectItem
+                        value="Report Only"
+                        className="text-xs font-bold text-indigo-700 dark:text-indigo-400"
+                      >
+                        Report Only (Table Only)
+                      </SelectItem>
+                    </>
+                  ) : (
+                    <SelectItem value="Report Only" className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
+                      Report Only (Table Only)
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+              {!canIssueQACommunication && (
+                <p className="text-[9px] font-medium text-slate-500 italic m-0 pt-0.5">
+                  Official QA Memorandums are restricted to University QA Administration.
+                </p>
+              )}
             </div>
 
             {/* REFERENCE NUMBER */}

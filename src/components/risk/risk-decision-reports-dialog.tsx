@@ -51,6 +51,7 @@ import {
 import { cn, normalizeReportType } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { submissionTypes } from '@/lib/constants';
+import { useUser } from '@/firebase/provider';
 
 export type DecisionReportType =
   | 'non-submission-audit'
@@ -177,13 +178,13 @@ interface RiskDecisionReportsDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   filteredRisks: Risk[];
-  selectedYear?: string | number;
-  unitMap: Map<string, string>;
-  campusMap: Map<string, string>;
+  selectedYear?: number | string;
+  unitMap?: Map<string, string>;
+  campusMap?: Map<string, string>;
   allCampuses?: Campus[];
   allUnits?: Unit[];
   allSubmissions?: Submission[];
-  signatories?: Signatories | null;
+  signatories?: Signatories;
   currentCycle?: 'first' | 'final';
   defaultReportId?: DecisionReportType;
 }
@@ -191,10 +192,10 @@ interface RiskDecisionReportsDialogProps {
 export function RiskDecisionReportsDialog({
   isOpen,
   onOpenChange,
-  filteredRisks,
+  filteredRisks = [],
   selectedYear,
-  unitMap,
-  campusMap,
+  unitMap = new Map(),
+  campusMap = new Map(),
   allCampuses = [],
   allUnits = [],
   allSubmissions = [],
@@ -202,6 +203,23 @@ export function RiskDecisionReportsDialog({
   currentCycle = 'final',
   defaultReportId = 'non-submission-audit',
 }: RiskDecisionReportsDialogProps) {
+  const { isAdmin, isVp, userRole } = useUser();
+
+  const canIssueQACommunication = useMemo(() => {
+    if (isAdmin || isVp) return true;
+    const roleLower = (userRole || '').toLowerCase();
+    if (
+      roleLower.includes('president') ||
+      roleLower.includes('qa director') ||
+      roleLower.includes('qao director') ||
+      roleLower.includes('director, quality') ||
+      roleLower.includes('qms head')
+    ) {
+      return true;
+    }
+    return false;
+  }, [isAdmin, isVp, userRole]);
+
   // Scope & Distribution Controls
   const [targetScope, setTargetScope] = useState<'all' | 'campus' | 'unit'>('all');
   const [activeYear, setActiveYear] = useState<number>(Number(selectedYear) || new Date().getFullYear());
@@ -212,7 +230,16 @@ export function RiskDecisionReportsDialog({
   const [selectedStatusScope, setSelectedStatusScope] = useState<string>('all');
 
   // Communication & Signatory Controls
-  const [communicationType, setCommunicationType] = useState<string>('QA Memorandum');
+  const [communicationType, setCommunicationType] = useState<string>(
+    canIssueQACommunication ? 'QA Memorandum' : 'Report Only',
+  );
+
+  useEffect(() => {
+    if (!canIssueQACommunication && communicationType !== 'Report Only') {
+      setCommunicationType('Report Only');
+    }
+  }, [canIssueQACommunication, communicationType]);
+
   const [paperSize, setPaperSize] = useState<'folio' | 'letter' | 'a4'>('folio');
   const [memoRefNo, setMemoRefNo] = useState<string>(
     `${selectedYear || new Date().getFullYear()}-${format(new Date(), 'MMdd')}`,
@@ -1030,32 +1057,51 @@ export function RiskDecisionReportsDialog({
                     <SelectValue placeholder="Communication Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="QA Memorandum" className="text-xs font-bold">
-                      QA Memorandum
-                    </SelectItem>
-                    <SelectItem value="QA Office Memorandum" className="text-xs font-bold">
-                      QA Office Memorandum
-                    </SelectItem>
-                    <SelectItem value="QA Office Order" className="text-xs font-bold">
-                      QA Office Order
-                    </SelectItem>
-                    <SelectItem value="QA Advisory" className="text-xs font-bold">
-                      QA Advisory
-                    </SelectItem>
-                    <SelectItem value="QA Communication" className="text-xs font-bold">
-                      QA Communication
-                    </SelectItem>
-                    <SelectItem value="Office Memorandum" className="text-xs font-bold">
-                      Office Memorandum
-                    </SelectItem>
-                    <SelectItem value="Office Order" className="text-xs font-bold">
-                      Office Order
-                    </SelectItem>
-                    <SelectItem value="Report Only" className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
-                      Report Only (Table Only)
-                    </SelectItem>
+                    {canIssueQACommunication ? (
+                      <>
+                        <SelectItem value="QA Memorandum" className="text-xs font-bold">
+                          QA Memorandum
+                        </SelectItem>
+                        <SelectItem value="QA Office Memorandum" className="text-xs font-bold">
+                          QA Office Memorandum
+                        </SelectItem>
+                        <SelectItem value="QA Office Order" className="text-xs font-bold">
+                          QA Office Order
+                        </SelectItem>
+                        <SelectItem value="QA Advisory" className="text-xs font-bold">
+                          QA Advisory
+                        </SelectItem>
+                        <SelectItem value="QA Communication" className="text-xs font-bold">
+                          QA Communication
+                        </SelectItem>
+                        <SelectItem value="Office Memorandum" className="text-xs font-bold">
+                          Office Memorandum
+                        </SelectItem>
+                        <SelectItem value="Office Order" className="text-xs font-bold">
+                          Office Order
+                        </SelectItem>
+                        <SelectItem
+                          value="Report Only"
+                          className="text-xs font-bold text-indigo-700 dark:text-indigo-400"
+                        >
+                          Report Only (Table Only)
+                        </SelectItem>
+                      </>
+                    ) : (
+                      <SelectItem
+                        value="Report Only"
+                        className="text-xs font-bold text-indigo-700 dark:text-indigo-400"
+                      >
+                        Report Only (Table Only)
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
+                {!canIssueQACommunication && (
+                  <p className="text-[9px] font-medium text-slate-500 italic m-0 pt-0.5">
+                    Official QA Memorandums are restricted to University QA Administration.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">

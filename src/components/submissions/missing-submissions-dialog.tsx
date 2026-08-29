@@ -34,6 +34,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MissingSubmissionsReport, type MissingSubmissionRow } from './notices-print-templates';
 import { isCycleActive } from '@/lib/utils';
 import { submissionTypes } from '@/lib/constants';
+import { useUser } from '@/firebase/provider';
 
 export type EOMSCommunicationType =
   | 'QA Memorandum'
@@ -51,7 +52,7 @@ interface MissingSubmissionsDialogProps {
   allCampuses: Campus[] | null;
   allUnits: Unit[] | null;
   allSubmissions: Submission[] | null;
-  allCycles?: Cycle[] | null;
+  allCycles: Cycle[] | null;
   signatories?: Signatories | null;
   selectedYear?: string;
   defaultCampusId?: string;
@@ -70,6 +71,23 @@ export function MissingSubmissionsDialog({
   defaultCampusId,
   defaultUnitId,
 }: MissingSubmissionsDialogProps) {
+  const { isAdmin, isVp, userRole } = useUser();
+
+  const canIssueQACommunication = useMemo(() => {
+    if (isAdmin || isVp) return true;
+    const roleLower = (userRole || '').toLowerCase();
+    if (
+      roleLower.includes('president') ||
+      roleLower.includes('qa director') ||
+      roleLower.includes('qao director') ||
+      roleLower.includes('director, quality') ||
+      roleLower.includes('qms head')
+    ) {
+      return true;
+    }
+    return false;
+  }, [isAdmin, isVp, userRole]);
+
   // Document Scope & Filter Controls
   const [targetScope, setTargetScope] = useState<'all' | 'campus' | 'unit'>(
     defaultUnitId ? 'unit' : defaultCampusId ? 'campus' : 'all',
@@ -78,7 +96,15 @@ export function MissingSubmissionsDialog({
   const [submissionCycle, setSubmissionCycle] = useState<'all' | 'first' | 'final'>('all');
   const [campusFilter, setCampusFilter] = useState<string>(defaultCampusId || 'all');
   const [unitFilter, setUnitFilter] = useState<string>(defaultUnitId || 'all');
-  const [communicationType, setCommunicationType] = useState<EOMSCommunicationType>('QA Memorandum');
+  const [communicationType, setCommunicationType] = useState<EOMSCommunicationType>(
+    canIssueQACommunication ? 'QA Memorandum' : 'Report Only',
+  );
+
+  React.useEffect(() => {
+    if (!canIssueQACommunication && communicationType !== 'Report Only') {
+      setCommunicationType('Report Only');
+    }
+  }, [canIssueQACommunication, communicationType]);
   const [paperSize, setPaperSize] = useState<'folio' | 'letter' | 'a4'>('folio');
 
   // Signatory, Date, and Reference Controls
@@ -538,32 +564,51 @@ export function MissingSubmissionsDialog({
                     <SelectValue placeholder="Communication Type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="QA Memorandum" className="text-xs font-bold">
-                      QA Memorandum
-                    </SelectItem>
-                    <SelectItem value="QA Office Memorandum" className="text-xs font-bold">
-                      QA Office Memorandum
-                    </SelectItem>
-                    <SelectItem value="QA Office Order" className="text-xs font-bold">
-                      QA Office Order
-                    </SelectItem>
-                    <SelectItem value="QA Advisory" className="text-xs font-bold">
-                      QA Advisory
-                    </SelectItem>
-                    <SelectItem value="QA Communication" className="text-xs font-bold">
-                      QA Communication
-                    </SelectItem>
-                    <SelectItem value="Office Memorandum" className="text-xs font-bold">
-                      Office Memorandum
-                    </SelectItem>
-                    <SelectItem value="Office Order" className="text-xs font-bold">
-                      Office Order
-                    </SelectItem>
-                    <SelectItem value="Report Only" className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
-                      Report Only (Table Only)
-                    </SelectItem>
+                    {canIssueQACommunication ? (
+                      <>
+                        <SelectItem value="QA Memorandum" className="text-xs font-bold">
+                          QA Memorandum
+                        </SelectItem>
+                        <SelectItem value="QA Office Memorandum" className="text-xs font-bold">
+                          QA Office Memorandum
+                        </SelectItem>
+                        <SelectItem value="QA Office Order" className="text-xs font-bold">
+                          QA Office Order
+                        </SelectItem>
+                        <SelectItem value="QA Advisory" className="text-xs font-bold">
+                          QA Advisory
+                        </SelectItem>
+                        <SelectItem value="QA Communication" className="text-xs font-bold">
+                          QA Communication
+                        </SelectItem>
+                        <SelectItem value="Office Memorandum" className="text-xs font-bold">
+                          Office Memorandum
+                        </SelectItem>
+                        <SelectItem value="Office Order" className="text-xs font-bold">
+                          Office Order
+                        </SelectItem>
+                        <SelectItem
+                          value="Report Only"
+                          className="text-xs font-bold text-indigo-700 dark:text-indigo-400"
+                        >
+                          Report Only (Table Only)
+                        </SelectItem>
+                      </>
+                    ) : (
+                      <SelectItem
+                        value="Report Only"
+                        className="text-xs font-bold text-indigo-700 dark:text-indigo-400"
+                      >
+                        Report Only (Table Only)
+                      </SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
+                {!canIssueQACommunication && (
+                  <p className="text-[9px] font-medium text-slate-500 italic m-0 pt-0.5">
+                    Official QA Memorandums are restricted to University QA Administration.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
