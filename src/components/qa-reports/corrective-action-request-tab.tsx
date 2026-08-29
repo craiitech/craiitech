@@ -762,7 +762,10 @@ export function CorrectiveActionRequestTab({
     return rawCars.filter((car) => {
       if (effectiveTypeFilter === 'EQA' && car.auditType !== 'EQA') return false;
       if (effectiveTypeFilter === 'IQA' && car.auditType === 'EQA') return false;
-      if (!isInstitutionalViewer) {
+
+      // EQA CARs are institutional and university-wide (accessible by all units).
+      // Unit/Campus scoping only restricts internal audit (IQA) CARs.
+      if (!isInstitutionalViewer && car.auditType !== 'EQA') {
         const isCampusSupervisor =
           userRole === 'Campus Director' ||
           userRole === 'Campus ODIMO' ||
@@ -840,7 +843,7 @@ export function CorrectiveActionRequestTab({
     rawCars.forEach((car) => {
       if (effectiveTypeFilter === 'EQA' && car.auditType !== 'EQA') return;
       if (effectiveTypeFilter === 'IQA' && car.auditType === 'EQA') return;
-      if (!isInstitutionalViewer) {
+      if (!isInstitutionalViewer && car.auditType !== 'EQA') {
         const isCampusSupervisor =
           userRole === 'Campus Director' ||
           userRole === 'Campus ODIMO' ||
