@@ -91,6 +91,8 @@ export function CAROverdueMemorandumTemplate({
 
   const totalOverdueCount = allOverdueItems.length;
 
+  const pageHeight = paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in';
+
   return (
     <div
       className="memo-root-document text-black bg-white mx-auto print:p-0 print:max-w-full"
@@ -101,13 +103,16 @@ export function CAROverdueMemorandumTemplate({
       }}
     >
       {/* ========================================================
-          PAGE 1: OFFICIAL 1-PAGE FOLIO MEMORANDUM (STRICT 1-PAGE FIT)
+          PAGE 1: OFFICIAL 1-PAGE FOLIO MEMORANDUM
           ======================================================== */}
       <div
-        className="memo-page-1 flex flex-col justify-between"
+        className="memo-page-1 relative flex flex-col justify-between"
         style={{
-          minHeight: paperSize === 'folio' ? '12.3in' : '10.3in',
-          padding: '0.35in 0.45in 0.25in 0.45in',
+          width: '8.5in',
+          minHeight: pageHeight,
+          height: pageHeight,
+          maxHeight: pageHeight,
+          padding: '0.35in 0.45in 0.65in 0.45in',
           boxSizing: 'border-box',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
@@ -117,23 +122,23 @@ export function CAROverdueMemorandumTemplate({
       >
         <div>
           {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
-          <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1.5 mb-2">
+          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2">
             <div className="flex items-center gap-2.5">
               {/* RSU SEAL & QAO LOGO */}
               <img
                 src="/rsulogo.png"
                 alt="RSU Official Seal"
-                style={{ height: '40px', width: '40px', objectFit: 'contain' }}
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
               />
               <img
                 src="/qa_logo.png"
                 alt="QAO Emblem"
-                style={{ height: '40px', width: '40px', objectFit: 'contain' }}
+                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
               />
 
               {/* UNIVERSITY & OFFICE TITLES */}
               <div>
-                <h1 className="text-[11pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
                   ROMBLON STATE UNIVERSITY
                 </h1>
                 <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
@@ -152,16 +157,16 @@ export function CAROverdueMemorandumTemplate({
               <img
                 src="/ISOlogo.jpg"
                 alt="ISO 9001:2015 TÜV Rheinland Certified"
-                style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
+                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
               />
             </div>
           </div>
 
           {/* 2. TWO-COLUMN FOLIO LAYOUT (LEFT SIDEBAR & RIGHT MEMORANDUM) */}
-          <div className="grid grid-cols-12 gap-3.5">
+          <div className="grid grid-cols-12 gap-3.5 items-start">
             {/* LEFT SIDEBAR: RSU VISION, MISSION, QUALITY POLICY, CORE VALUES */}
             <div
-              className="col-span-3 border-r border-slate-300 pr-2.5 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none"
+              className="col-span-3 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none pr-2"
               style={{ fontFamily: 'Georgia, Cambria, serif' }}
             >
               <div>
@@ -300,7 +305,7 @@ export function CAROverdueMemorandumTemplate({
               </div>
 
               {/* HORIZONTAL RULE */}
-              <hr className="border-t-2 border-slate-900 my-1" />
+              <hr className="border-t border-slate-900 my-1" />
 
               {/* MEMORANDUM BODY PARAGRAPHS */}
               <div className="space-y-1 text-justify leading-tight text-[7.2pt] text-slate-900">
@@ -373,7 +378,7 @@ export function CAROverdueMemorandumTemplate({
               <div className={includeNoted ? 'grid grid-cols-2 gap-4 pt-1.5 text-[7pt]' : 'pt-1.5 text-[7pt]'}>
                 <div>
                   <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Issued by:</p>
-                  <div className="pt-3.5">
+                  <div className="pt-3">
                     <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
                       {qmsHead}
                     </p>
@@ -387,7 +392,7 @@ export function CAROverdueMemorandumTemplate({
                 {includeNoted && (
                   <div>
                     <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Noted by:</p>
-                    <div className="pt-3.5">
+                    <div className="pt-3">
                       <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
                         {qaoDirector}
                       </p>
@@ -403,16 +408,28 @@ export function CAROverdueMemorandumTemplate({
           </div>
         </div>
 
-        {/* 3. BOTTOM GREEN BANNER FOOTER */}
+        {/* 3. OFFICIAL BOTTOM FOOTER BANNER (FIXED AT THE VERY BOTTOM OF THE PAGE) */}
         <div
-          className="mt-1.5 py-0.5 px-3 text-center rounded-none shadow-sm"
+          className="memo-footer-banner w-full"
           style={{
-            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 50%, #ca8a04 100%)',
+            height: '24px',
+            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
           }}
         >
           <span
-            className="text-white text-[7pt] font-bold tracking-wide italic"
-            style={{ fontFamily: 'Georgia, Cambria, serif' }}
+            style={{
+              color: '#ffffff',
+              fontFamily: 'Georgia, Cambria, serif',
+              fontSize: '7.5pt',
+              fontWeight: 'bold',
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
           >
             Serving with Honor and Excellence!
           </span>
@@ -423,18 +440,19 @@ export function CAROverdueMemorandumTemplate({
           PAGE 2: ATTACHMENT A - SCHEDULE OF OVERDUE ISSUES TABLE
           ======================================================== */}
       <div
-        className="memo-attachment-page flex flex-col justify-between"
+        className="memo-attachment-page relative flex flex-col justify-between"
         style={{
+          width: '8.5in',
+          minHeight: pageHeight,
+          padding: '0.35in 0.45in 0.65in 0.45in',
+          boxSizing: 'border-box',
           pageBreakBefore: 'always',
           breakBefore: 'page',
-          minHeight: paperSize === 'folio' ? '12.3in' : '10.3in',
-          padding: '0.35in 0.45in 0.25in 0.45in',
-          boxSizing: 'border-box',
         }}
       >
         <div>
           {/* ATTACHMENT TOP HEADER */}
-          <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1.5 mb-2.5">
+          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-2.5">
             <div className="flex items-center gap-2.5">
               <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
               <img
@@ -588,7 +606,7 @@ export function CAROverdueMemorandumTemplate({
           >
             <div>
               <p className="font-bold text-slate-600 uppercase text-[6pt]">Certified Accurate by:</p>
-              <div className="pt-4">
+              <div className="pt-3">
                 <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt]">
                   {qmsHead}
                 </p>
@@ -599,7 +617,7 @@ export function CAROverdueMemorandumTemplate({
             {includeNoted && (
               <div>
                 <p className="font-bold text-slate-600 uppercase text-[6pt]">Approved for Release by:</p>
-                <div className="pt-4">
+                <div className="pt-3">
                   <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt]">
                     {qaoDirector}
                   </p>
@@ -610,7 +628,7 @@ export function CAROverdueMemorandumTemplate({
           </div>
         </div>
 
-        {/* ATTACHMENT FOOTER & GREEN BANNER */}
+        {/* ATTACHMENT FOOTER & GREEN BANNER (FIXED AT THE VERY BOTTOM OF THE PAGE) */}
         <div>
           <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
             <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
@@ -620,14 +638,26 @@ export function CAROverdueMemorandumTemplate({
           </div>
 
           <div
-            className="py-0.5 px-3 text-center rounded-none shadow-sm"
+            className="memo-footer-banner w-full"
             style={{
-              background: 'linear-gradient(90deg, #15803d 0%, #16a34a 50%, #ca8a04 100%)',
+              height: '24px',
+              background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
             }}
           >
             <span
-              className="text-white text-[7pt] font-bold tracking-wide italic"
-              style={{ fontFamily: 'Georgia, Cambria, serif' }}
+              style={{
+                color: '#ffffff',
+                fontFamily: 'Georgia, Cambria, serif',
+                fontSize: '7.5pt',
+                fontWeight: 'bold',
+                fontStyle: 'italic',
+                letterSpacing: '0.04em',
+              }}
             >
               Serving with Honor and Excellence!
             </span>
