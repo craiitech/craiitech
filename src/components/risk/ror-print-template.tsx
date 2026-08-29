@@ -10,7 +10,7 @@ interface RORPrintTemplateProps {
   unitName: string;
   campusName: string;
   year: number;
-  signatories?: Signatories;
+  signatories?: Signatories | null;
   cycle?: 'first' | 'final';
   unitMap?: Map<string, string>;
   campusMap?: Map<string, string>;

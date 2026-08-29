@@ -35,7 +35,7 @@ interface BasePrintProps {
   unitName: string;
   campusName: string;
   year: number;
-  signatories?: Signatories;
+  signatories?: Signatories | null;
   unitMap?: Map<string, string>;
   campusMap?: Map<string, string>;
 }
@@ -76,6 +76,12 @@ export function RiskDecisionMemorandumPage({
   totalItemsCount = 0,
   communicationType = 'QA Memorandum',
   includeNoted = true,
+  memoRefNo,
+  memoDate,
+  gracePeriodDays = 5,
+  customDirective,
+  customQaoDirector,
+  customQmsHead,
   paperSize = 'folio',
 }: {
   reportId: string;
@@ -83,19 +89,30 @@ export function RiskDecisionMemorandumPage({
   unitName: string;
   campusName: string;
   year: number;
-  signatories?: Signatories;
+  signatories?: Signatories | null;
   cycle?: 'first' | 'final';
   totalItemsCount?: number;
   communicationType?: string;
   includeNoted?: boolean;
+  memoRefNo?: string;
+  memoDate?: string;
+  gracePeriodDays?: number;
+  customDirective?: string;
+  customQaoDirector?: string;
+  customQmsHead?: string;
   paperSize?: 'folio' | 'letter' | 'a4';
 }) {
-  const formattedDate = format(new Date(), 'MMMM d, yyyy').toUpperCase();
-  const generatedRefNo = `RSU-QAO-RDS-${year}-${format(new Date(), 'MMdd')}`;
+  const parsedDate = memoDate ? new Date(memoDate) : new Date();
+  const formattedDate = format(isNaN(parsedDate.getTime()) ? new Date() : parsedDate, 'MMMM d, yyyy').toUpperCase();
+  const generatedRefNo = memoRefNo
+    ? memoRefNo.startsWith('RSU-QAO-')
+      ? memoRefNo
+      : `RSU-QAO-RDS-${memoRefNo}`
+    : `RSU-QAO-RDS-${year}-${format(new Date(), 'MMdd')}`;
   const pageHeight = paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in';
 
-  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
-  const qaoDirector = signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
+  const qmsHead = customQmsHead || signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = customQaoDirector || signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
 
   let subjectLine = `DECISION-SUPPORT DIRECTIVE: ${reportTitle.toUpperCase()} (AY ${year})`;
   let directiveNarrative = `The attached Attachment A contains the official ${reportTitle} synthesized from verified institutional risk management records and quality audit submissions.`;
@@ -319,9 +336,9 @@ export function RiskDecisionMemorandumPage({
               </p>
 
               <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.5 text-[6.8pt] leading-tight">
-                <strong>Specific Directive:</strong> All concerned administrative officers, academic deans, and risk
-                owners are instructed to log in to the <strong>RSU EOMS Portal &gt; Risk Intelligence Hub</strong> to
-                execute action plans, commit resource allocations, and ensure timely submission of documentary proofs.
+                <strong>Specific Directive:</strong>{' '}
+                {customDirective ||
+                  'All concerned administrative officers, academic deans, and risk owners are instructed to log in to the RSU EOMS Portal > Risk Intelligence Hub to execute action plans, commit resource allocations, and ensure timely submission of documentary proofs.'}
               </p>
 
               <p className="m-0">
@@ -344,9 +361,10 @@ export function RiskDecisionMemorandumPage({
               </ol>
 
               <p className="m-0">
-                All concerned units are granted a strict compliance window of <strong>5 working days</strong> from
-                receipt of this directive. Failure to comply shall constrain this Office to formally elevate the matter
-                to the <strong>Office of the Vice Presidents</strong> and <strong>University President</strong> for
+                All concerned units are granted a strict compliance window of{' '}
+                <strong>{gracePeriodDays} working days</strong> from receipt of this directive. Failure to comply shall
+                constrain this Office to formally elevate the matter to the{' '}
+                <strong>Office of the Vice Presidents</strong> and <strong>University President</strong> for
                 administrative intervention.
               </p>
 
@@ -1588,7 +1606,7 @@ interface UnitNonSubmissionAuditProps {
   auditUnits: UnitComplianceAuditItem[];
   campusName: string;
   year: number;
-  signatories?: Signatories;
+  signatories?: Signatories | null;
   currentCycle?: 'first' | 'final';
 }
 
