@@ -38,6 +38,7 @@ interface BasePrintProps {
   signatories?: Signatories | null;
   unitMap?: Map<string, string>;
   campusMap?: Map<string, string>;
+  isReportOnly?: boolean;
 }
 
 // Origin badge helper for rows
@@ -437,6 +438,7 @@ export function ExecutiveRiskBriefingTemplate({
   cycle = 'final',
   unitMap,
   campusMap,
+  isReportOnly = false,
 }: ExecutiveBriefingProps) {
   const today = new Date();
   const totalRisks = risks.filter((r) => r.type === 'Risk');
@@ -472,8 +474,8 @@ export function ExecutiveRiskBriefingTemplate({
         minHeight: '13in',
         padding: '0.35in 0.45in 0.65in 0.45in',
         boxSizing: 'border-box',
-        pageBreakBefore: 'always',
-        breakBefore: 'page',
+        pageBreakBefore: isReportOnly ? 'auto' : 'always',
+        breakBefore: isReportOnly ? 'auto' : 'page',
       }}
     >
       <div>
@@ -496,15 +498,18 @@ export function ExecutiveRiskBriefingTemplate({
             <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
               Ref: RSU-QAO-ERB-{year}-{format(today, 'MMdd')}
             </span>
-            <span className="text-[6.8pt] font-bold text-slate-700">
+            <span className="text-[6.8pt] font-bold text-slate-700 block">
               {unitName} ({campusName}) • {cycle === 'first' ? '1st Cycle' : 'Final Cycle'}
+            </span>
+            <span className="text-[6.5pt] font-semibold text-slate-600 block">
+              Date Printed/Updated: {format(today, 'MMMM d, yyyy')}
             </span>
           </div>
         </div>
 
         <div className="mb-2">
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
-            ATTACHMENT A: EXECUTIVE RISK PROFILE &amp; DECISION-SUPPORT BRIEFING
+            {isReportOnly ? '' : 'ATTACHMENT A: '}EXECUTIVE RISK PROFILE &amp; DECISION-SUPPORT BRIEFING
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             ISO 21001:2018 Clause 6.1 Strategic Intelligence, Magnitude Reduction, and Top Critical Vulnerabilities
@@ -693,6 +698,7 @@ export function RiskResourceAllocationTemplate({
   signatories,
   unitMap,
   campusMap,
+  isReportOnly = false,
 }: BasePrintProps) {
   const today = new Date();
   const treatmentPlans = risks.filter(
@@ -710,8 +716,8 @@ export function RiskResourceAllocationTemplate({
         minHeight: '13in',
         padding: '0.35in 0.45in 0.65in 0.45in',
         boxSizing: 'border-box',
-        pageBreakBefore: 'always',
-        breakBefore: 'page',
+        pageBreakBefore: isReportOnly ? 'auto' : 'always',
+        breakBefore: isReportOnly ? 'auto' : 'page',
       }}
     >
       <div>
@@ -734,15 +740,18 @@ export function RiskResourceAllocationTemplate({
             <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
               Ref: RSU-QAO-RAP-{year}-{format(today, 'MMdd')}
             </span>
-            <span className="text-[6.8pt] font-bold text-slate-700">
+            <span className="text-[6.8pt] font-bold text-slate-700 block">
               {unitName} ({campusName}) • FY {year}
+            </span>
+            <span className="text-[6.5pt] font-semibold text-slate-600 block">
+              Date Printed/Updated: {format(today, 'MMMM d, yyyy')}
             </span>
           </div>
         </div>
 
         <div className="mb-2">
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
-            ATTACHMENT A: RISK TREATMENT ACTION PLAN &amp; RESOURCE ALLOCATION BLUEPRINT (RAP)
+            {isReportOnly ? '' : 'ATTACHMENT A: '}RISK TREATMENT ACTION PLAN &amp; RESOURCE ALLOCATION BLUEPRINT (RAP)
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             Annual Procurement &amp; Resource Justification Schedule — Fiscal Year {year}
@@ -866,6 +875,7 @@ export function RiskAccountabilityTrackerTemplate({
   signatories,
   unitMap,
   campusMap,
+  isReportOnly = false,
 }: BasePrintProps) {
   const today = new Date();
   const actionableRisks = risks.filter((r) => r.status !== 'Closed' || r.treatmentAction);
@@ -881,8 +891,8 @@ export function RiskAccountabilityTrackerTemplate({
         minHeight: '13in',
         padding: '0.35in 0.45in 0.65in 0.45in',
         boxSizing: 'border-box',
-        pageBreakBefore: 'always',
-        breakBefore: 'page',
+        pageBreakBefore: isReportOnly ? 'auto' : 'always',
+        breakBefore: isReportOnly ? 'auto' : 'page',
       }}
     >
       <div>
@@ -905,15 +915,18 @@ export function RiskAccountabilityTrackerTemplate({
             <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
               Ref: RSU-QAO-RAT-{year}-{format(today, 'MMdd')}
             </span>
-            <span className="text-[6.8pt] font-bold text-slate-700">
+            <span className="text-[6.8pt] font-bold text-slate-700 block">
               {unitName} ({campusName}) • AY {year}
+            </span>
+            <span className="text-[6.5pt] font-semibold text-slate-600 block">
+              Date Printed/Updated: {format(today, 'MMMM d, yyyy')}
             </span>
           </div>
         </div>
 
         <div className="mb-2">
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
-            ATTACHMENT A: RISK TREATMENT ACCOUNTABILITY &amp; COMMITMENT TRACKER (RAT)
+            {isReportOnly ? '' : 'ATTACHMENT A: '}RISK TREATMENT ACCOUNTABILITY &amp; COMMITMENT TRACKER (RAT)
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             Monitoring Assigned Action Leads, Milestone Deadlines, and Operational Risk Statuses
@@ -1042,6 +1055,7 @@ export function RiskEffectivenessAuditTemplate({
   signatories,
   unitMap,
   campusMap,
+  isReportOnly = false,
 }: BasePrintProps) {
   const today = new Date();
   const treatedRisks = risks.filter((r) => r.postTreatment || r.status === 'Closed');
@@ -1057,8 +1071,8 @@ export function RiskEffectivenessAuditTemplate({
         minHeight: '13in',
         padding: '0.35in 0.45in 0.65in 0.45in',
         boxSizing: 'border-box',
-        pageBreakBefore: 'always',
-        breakBefore: 'page',
+        pageBreakBefore: isReportOnly ? 'auto' : 'always',
+        breakBefore: isReportOnly ? 'auto' : 'page',
       }}
     >
       <div>
@@ -1081,15 +1095,18 @@ export function RiskEffectivenessAuditTemplate({
             <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
               Ref: RSU-QAO-REA-{year}-{format(today, 'MMdd')}
             </span>
-            <span className="text-[6.8pt] font-bold text-slate-700">
+            <span className="text-[6.8pt] font-bold text-slate-700 block">
               {unitName} ({campusName}) • ISO 21001:2018 Clause 6.1
+            </span>
+            <span className="text-[6.5pt] font-semibold text-slate-600 block">
+              Date Printed/Updated: {format(today, 'MMMM d, yyyy')}
             </span>
           </div>
         </div>
 
         <div className="mb-2">
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
-            ATTACHMENT A: RISK TREATMENT EFFECTIVENESS AUDIT &amp; ISO COMPLIANCE DOSSIER (REA)
+            {isReportOnly ? '' : 'ATTACHMENT A: '}RISK TREATMENT EFFECTIVENESS AUDIT &amp; ISO COMPLIANCE DOSSIER (REA)
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             Pre vs Post Risk Comparison, Residual Severity Evaluation, and Quality Assurance Verification
@@ -1231,6 +1248,7 @@ export function OpportunityInnovationTemplate({
   signatories,
   unitMap,
   campusMap,
+  isReportOnly = false,
 }: BasePrintProps) {
   const today = new Date();
   const opportunities = risks.filter((r) => r.type === 'Opportunity');
@@ -1246,8 +1264,8 @@ export function OpportunityInnovationTemplate({
         minHeight: '13in',
         padding: '0.35in 0.45in 0.65in 0.45in',
         boxSizing: 'border-box',
-        pageBreakBefore: 'always',
-        breakBefore: 'page',
+        pageBreakBefore: isReportOnly ? 'auto' : 'always',
+        breakBefore: isReportOnly ? 'auto' : 'page',
       }}
     >
       <div>
@@ -1270,15 +1288,18 @@ export function OpportunityInnovationTemplate({
             <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
               Ref: RSU-QAO-OIS-{year}-{format(today, 'MMdd')}
             </span>
-            <span className="text-[6.8pt] font-bold text-slate-700">
+            <span className="text-[6.8pt] font-bold text-slate-700 block">
               {unitName} ({campusName}) • AY {year}
+            </span>
+            <span className="text-[6.5pt] font-semibold text-slate-600 block">
+              Date Printed/Updated: {format(today, 'MMMM d, yyyy')}
             </span>
           </div>
         </div>
 
         <div className="mb-2">
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
-            ATTACHMENT A: OPPORTUNITY PURSUIT &amp; INNOVATION IMPACT SCORECARD (OIS)
+            {isReportOnly ? '' : 'ATTACHMENT A: '}OPPORTUNITY PURSUIT &amp; INNOVATION IMPACT SCORECARD (OIS)
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             ISO 21001:2018 Clause 6.1 (Positive Risk Pursuits, Institutional Innovation, and Strategic Gains)
@@ -1403,6 +1424,7 @@ export function RiskStatusReminderNoticeTemplate({
   signatories,
   unitMap,
   campusMap,
+  isReportOnly = false,
 }: BasePrintProps) {
   const today = new Date();
   const pendingRisks = risks.filter((r) => r.status !== 'Closed');
@@ -1418,8 +1440,8 @@ export function RiskStatusReminderNoticeTemplate({
         minHeight: '13in',
         padding: '0.35in 0.45in 0.65in 0.45in',
         boxSizing: 'border-box',
-        pageBreakBefore: 'always',
-        breakBefore: 'page',
+        pageBreakBefore: isReportOnly ? 'auto' : 'always',
+        breakBefore: isReportOnly ? 'auto' : 'page',
       }}
     >
       <div>
@@ -1442,7 +1464,13 @@ export function RiskStatusReminderNoticeTemplate({
             <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
               Ref: RSU-QAO-REM-{year}-{format(today, 'MMdd')}
             </span>
-            <span className="text-[6.8pt] font-bold text-rose-700 font-mono">
+            <span className="text-[6.8pt] font-bold text-slate-700 block">
+              {unitName} ({campusName}) • FY {year}
+            </span>
+            <span className="text-[6.5pt] font-semibold text-slate-600 block">
+              Date Printed/Updated: {format(today, 'MMMM d, yyyy')}
+            </span>
+            <span className="text-[6.8pt] font-bold text-rose-700 font-mono block">
               {pendingRisks.length} Pending Treatment{pendingRisks.length !== 1 ? 's' : ''} Listed
             </span>
           </div>
@@ -1450,7 +1478,7 @@ export function RiskStatusReminderNoticeTemplate({
 
         <div className="mb-2">
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
-            ATTACHMENT A: SCHEDULE OF PENDING &amp; OVERDUE RISK TREATMENTS
+            {isReportOnly ? '' : 'ATTACHMENT A: '}SCHEDULE OF PENDING &amp; OVERDUE RISK TREATMENTS
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             Itemized Inventory of Active Risk Mitigation Commitments and Mandatory Compliance Milestones (AY {year})
@@ -1594,6 +1622,7 @@ interface UnitNonSubmissionAuditProps {
   year: number;
   signatories?: Signatories | null;
   currentCycle?: 'first' | 'final';
+  isReportOnly?: boolean;
 }
 
 export function UnitNonSubmissionAuditTemplate({
@@ -1602,6 +1631,7 @@ export function UnitNonSubmissionAuditTemplate({
   year,
   signatories,
   currentCycle = 'final',
+  isReportOnly = false,
 }: UnitNonSubmissionAuditProps) {
   const today = new Date();
   const totalUnits = auditUnits.length;
@@ -1620,8 +1650,8 @@ export function UnitNonSubmissionAuditTemplate({
         minHeight: '13in',
         padding: '0.35in 0.45in 0.65in 0.45in',
         boxSizing: 'border-box',
-        pageBreakBefore: 'always',
-        breakBefore: 'page',
+        pageBreakBefore: isReportOnly ? 'auto' : 'always',
+        breakBefore: isReportOnly ? 'auto' : 'page',
       }}
     >
       <div>
@@ -1644,15 +1674,18 @@ export function UnitNonSubmissionAuditTemplate({
             <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">
               Ref: RSU-QAO-DEF-{year}-{format(today, 'MMdd')}
             </span>
-            <span className="text-[6.8pt] font-bold text-slate-700">
+            <span className="text-[6.8pt] font-bold text-slate-700 block">
               {campusName} • {currentCycle === 'first' ? '1st Cycle' : 'Final Cycle'} (AY {year})
+            </span>
+            <span className="text-[6.5pt] font-semibold text-slate-600 block">
+              Date Printed/Updated: {format(today, 'MMMM d, yyyy')}
             </span>
           </div>
         </div>
 
         <div className="mb-2">
           <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
-            ATTACHMENT A: EOMS &amp; RISK DIGITAL REGISTRY NON-SUBMISSION &amp; DEFICIENCY AUDIT
+            {isReportOnly ? '' : 'ATTACHMENT A: '}EOMS &amp; RISK DIGITAL REGISTRY NON-SUBMISSION &amp; DEFICIENCY AUDIT
           </h2>
           <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
             Auditing Unit Document Submissions in EOMS Submission Hub &amp; Digital Risk &amp; Opportunity Registry (FY{' '}

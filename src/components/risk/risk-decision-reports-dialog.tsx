@@ -424,7 +424,9 @@ export function RiskDecisionReportsDialog({
             ? 'All Audited Units'
             : allUnits?.find((u) => u.id === selectedUnitScope)?.name || 'Audited Unit';
 
-        const memoPage = (
+        const isReportOnly = communicationType === 'Report Only';
+
+        const memoPage = !isReportOnly ? (
           <RiskDecisionMemorandumPage
             reportId={selectedReportId}
             reportTitle={reportTitle}
@@ -444,7 +446,7 @@ export function RiskDecisionReportsDialog({
             customQmsHead={selectedQmsHead}
             paperSize={paperSize}
           />
-        );
+        ) : null;
 
         const templateNode = (
           <UnitNonSubmissionAuditTemplate
@@ -453,6 +455,7 @@ export function RiskDecisionReportsDialog({
             year={activeYear}
             signatories={signatories}
             currentCycle={cycle}
+            isReportOnly={isReportOnly}
           />
         );
 
@@ -464,6 +467,8 @@ export function RiskDecisionReportsDialog({
         )}</div>`;
       } else {
         if (targetUnitGroups.length === 0) return;
+
+        const isReportOnly = communicationType === 'Report Only';
 
         reportsHtml = targetUnitGroups
           .map(({ unitName, campusName, risks: uRisks, unitId }) => {
@@ -480,6 +485,7 @@ export function RiskDecisionReportsDialog({
                     signatories={signatories}
                     unitMap={unitMap}
                     campusMap={campusMap}
+                    isReportOnly={isReportOnly}
                   />
                 );
                 break;
@@ -494,6 +500,7 @@ export function RiskDecisionReportsDialog({
                     cycle={cycle}
                     unitMap={unitMap}
                     campusMap={campusMap}
+                    isReportOnly={isReportOnly}
                   />
                 );
                 break;
@@ -507,6 +514,7 @@ export function RiskDecisionReportsDialog({
                     signatories={signatories}
                     unitMap={unitMap}
                     campusMap={campusMap}
+                    isReportOnly={isReportOnly}
                   />
                 );
                 break;
@@ -520,6 +528,7 @@ export function RiskDecisionReportsDialog({
                     signatories={signatories}
                     unitMap={unitMap}
                     campusMap={campusMap}
+                    isReportOnly={isReportOnly}
                   />
                 );
                 break;
@@ -533,6 +542,7 @@ export function RiskDecisionReportsDialog({
                     signatories={signatories}
                     unitMap={unitMap}
                     campusMap={campusMap}
+                    isReportOnly={isReportOnly}
                   />
                 );
                 break;
@@ -546,6 +556,7 @@ export function RiskDecisionReportsDialog({
                     signatories={signatories}
                     unitMap={unitMap}
                     campusMap={campusMap}
+                    isReportOnly={isReportOnly}
                   />
                 );
                 break;
@@ -566,7 +577,7 @@ export function RiskDecisionReportsDialog({
                 break;
             }
 
-            const memoPage = (
+            const memoPage = !isReportOnly ? (
               <RiskDecisionMemorandumPage
                 reportId={selectedReportId}
                 reportTitle={reportTitle}
@@ -586,7 +597,7 @@ export function RiskDecisionReportsDialog({
                 customQmsHead={selectedQmsHead}
                 paperSize={paperSize}
               />
-            );
+            ) : null;
 
             return `<div key="${unitId}" class="memo-root-document text-black bg-white mx-auto print:p-0 print:max-w-full" style="width: 8.5in; margin-bottom: 30px;">${renderToStaticMarkup(
               <div>
@@ -600,12 +611,13 @@ export function RiskDecisionReportsDialog({
 
       const printWindow = window.open('', '_blank');
       if (printWindow) {
+        const isReportOnly = communicationType === 'Report Only';
         printWindow.document.open();
         printWindow.document.write(`
           <!DOCTYPE html>
           <html>
           <head>
-              <title>${communicationType} - ${reportTitle} (AY ${activeYear})</title>
+              <title>${isReportOnly ? reportTitle : communicationType} - ${reportTitle} (AY ${activeYear})</title>
               <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
               <style>
                   @page { 
@@ -690,7 +702,7 @@ export function RiskDecisionReportsDialog({
           </head>
           <body>
               <div class="no-print mb-6 flex justify-center">
-                  <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print QA Memorandum (Folio 8.5x13 Format)</button>
+                  <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print ${isReportOnly ? 'Report' : communicationType} (${paperSize === 'folio' ? 'Folio 8.5x13' : paperSize.toUpperCase()} Format)</button>
               </div>
               <div id="print-content">
                   ${reportsHtml}
@@ -1027,11 +1039,20 @@ export function RiskDecisionReportsDialog({
                     <SelectItem value="QA Office Order" className="text-xs font-bold">
                       QA Office Order
                     </SelectItem>
+                    <SelectItem value="QA Advisory" className="text-xs font-bold">
+                      QA Advisory
+                    </SelectItem>
+                    <SelectItem value="QA Communication" className="text-xs font-bold">
+                      QA Communication
+                    </SelectItem>
                     <SelectItem value="Office Memorandum" className="text-xs font-bold">
                       Office Memorandum
                     </SelectItem>
                     <SelectItem value="Office Order" className="text-xs font-bold">
                       Office Order
+                    </SelectItem>
+                    <SelectItem value="Report Only" className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
+                      Report Only (Table Only)
                     </SelectItem>
                   </SelectContent>
                 </Select>

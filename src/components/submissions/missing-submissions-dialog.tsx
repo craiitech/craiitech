@@ -36,7 +36,14 @@ import { isCycleActive } from '@/lib/utils';
 import { submissionTypes } from '@/lib/constants';
 
 export type EOMSCommunicationType =
-  'QA Memorandum' | 'QA Office Memorandum' | 'QA Office Order' | 'Office Memorandum' | 'Office Order';
+  | 'QA Memorandum'
+  | 'QA Office Memorandum'
+  | 'QA Office Order'
+  | 'QA Advisory'
+  | 'QA Communication'
+  | 'Office Memorandum'
+  | 'Office Order'
+  | 'Report Only';
 
 interface MissingSubmissionsDialogProps {
   isOpen: boolean;
@@ -213,12 +220,13 @@ export function MissingSubmissionsDialog({
 
       const printWindow = window.open('', '_blank');
       if (printWindow) {
+        const isReportOnly = communicationType === 'Report Only';
         printWindow.document.open();
         printWindow.document.write(`
           <!DOCTYPE html>
           <html>
             <head>
-              <title>${communicationType} - Missing EOMS Submissions (AY ${academicYear})</title>
+              <title>${isReportOnly ? 'Missing EOMS Submissions Report' : communicationType} - Missing EOMS Submissions (AY ${academicYear})</title>
               <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
               <style>
                 @page { 
@@ -304,7 +312,7 @@ export function MissingSubmissionsDialog({
             <body>
               <div class="no-print mb-6 flex justify-center">
                 <button onclick="window.print()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-sans font-black px-8 py-3 rounded-lg shadow-xl uppercase text-xs tracking-widest transition-all">
-                  Click to Print QA Memorandum (Folio 8.5x13 Format)
+                  Click to Print ${isReportOnly ? 'Report' : communicationType} (${paperSize === 'folio' ? 'Folio 8.5x13' : paperSize.toUpperCase()} Format)
                 </button>
               </div>
               <div id="print-content">
@@ -539,11 +547,20 @@ export function MissingSubmissionsDialog({
                     <SelectItem value="QA Office Order" className="text-xs font-bold">
                       QA Office Order
                     </SelectItem>
+                    <SelectItem value="QA Advisory" className="text-xs font-bold">
+                      QA Advisory
+                    </SelectItem>
+                    <SelectItem value="QA Communication" className="text-xs font-bold">
+                      QA Communication
+                    </SelectItem>
                     <SelectItem value="Office Memorandum" className="text-xs font-bold">
                       Office Memorandum
                     </SelectItem>
                     <SelectItem value="Office Order" className="text-xs font-bold">
                       Office Order
+                    </SelectItem>
+                    <SelectItem value="Report Only" className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
+                      Report Only (Table Only)
                     </SelectItem>
                   </SelectContent>
                 </Select>
@@ -713,7 +730,7 @@ export function MissingSubmissionsDialog({
               className="h-9 text-xs font-black uppercase tracking-wider bg-emerald-600 hover:bg-emerald-700 text-white shadow-md gap-1.5"
             >
               <Printer className="h-4 w-4" />
-              Generate &amp; Print Memorandum
+              Generate &amp; Print {communicationType === 'Report Only' ? 'Report' : 'Memorandum'}
             </Button>
           </div>
         </DialogFooter>

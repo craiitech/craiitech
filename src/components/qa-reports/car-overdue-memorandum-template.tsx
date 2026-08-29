@@ -20,7 +20,7 @@ export interface OverdueUnitGroup {
 }
 
 export type CommunicationType =
-  'QA Memorandum' | 'QA Office Memorandum' | 'QA Office Order' | 'QA Advisory' | 'QA Communication';
+  'QA Memorandum' | 'QA Office Memorandum' | 'QA Office Order' | 'QA Advisory' | 'QA Communication' | 'Report Only';
 
 export interface CAROverdueMemorandumTemplateProps {
   unitGroup?: OverdueUnitGroup;
@@ -90,6 +90,7 @@ export function CAROverdueMemorandumTemplate({
         : [];
 
   const totalOverdueCount = allOverdueItems.length;
+  const isReportOnly = communicationType === 'Report Only';
 
   const pageHeight = paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in';
 
@@ -105,335 +106,342 @@ export function CAROverdueMemorandumTemplate({
       {/* ========================================================
           PAGE 1: OFFICIAL 1-PAGE FOLIO MEMORANDUM
           ======================================================== */}
-      <div
-        className="memo-page-1 relative flex flex-col justify-between"
-        style={{
-          width: '8.5in',
-          minHeight: pageHeight,
-          padding: '0.35in 0.45in 0.75in 0.45in',
-          boxSizing: 'border-box',
-          pageBreakInside: 'avoid',
-          breakInside: 'avoid',
-          pageBreakAfter: 'always',
-          breakAfter: 'page',
-          position: 'relative',
-        }}
-      >
-        <div>
-          {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
-          <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-1.5">
-            <div className="flex items-center gap-2">
-              {/* RSU SEAL & QAO LOGO */}
-              <img
-                src="/rsulogo.png"
-                alt="RSU Official Seal"
-                style={{ height: '38px', width: '38px', objectFit: 'contain' }}
-              />
-              <img
-                src="/qa_logo.png"
-                alt="QAO Emblem"
-                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
-              />
+      {!isReportOnly && (
+        <div
+          className="memo-page-1 relative flex flex-col justify-between"
+          style={{
+            width: '8.5in',
+            minHeight: pageHeight,
+            padding: '0.35in 0.45in 0.75in 0.45in',
+            boxSizing: 'border-box',
+            pageBreakInside: 'avoid',
+            breakInside: 'avoid',
+            pageBreakAfter: 'always',
+            breakAfter: 'page',
+            position: 'relative',
+          }}
+        >
+          <div>
+            {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
+            <div className="flex items-center justify-between border-b border-slate-900 pb-1.5 mb-1.5">
+              <div className="flex items-center gap-2">
+                {/* RSU SEAL & QAO LOGO */}
+                <img
+                  src="/rsulogo.png"
+                  alt="RSU Official Seal"
+                  style={{ height: '38px', width: '38px', objectFit: 'contain' }}
+                />
+                <img
+                  src="/qa_logo.png"
+                  alt="QAO Emblem"
+                  style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+                />
 
-              {/* UNIVERSITY & OFFICE TITLES */}
-              <div>
-                <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
-                  ROMBLON STATE UNIVERSITY
-                </h1>
-                <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
-                  QUALITY ASSURANCE OFFICE
-                </h2>
-                <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
-                  3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
-                  <br />
-                  Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
-                </p>
-              </div>
-            </div>
-
-            {/* ISO 9001:2015 CERTIFICATION BADGE */}
-            <div className="flex items-center pl-2">
-              <img
-                src="/ISOlogo.jpg"
-                alt="ISO 9001:2015 TÜV Rheinland Certified"
-                style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
-              />
-            </div>
-          </div>
-
-          {/* 2. TWO-COLUMN FOLIO LAYOUT (LEFT SIDEBAR & RIGHT MEMORANDUM) */}
-          <div className="grid grid-cols-12 gap-3 items-start">
-            {/* LEFT SIDEBAR: RSU VISION, MISSION, QUALITY POLICY, CORE VALUES */}
-            <div
-              className="col-span-3 text-[5.2pt] text-slate-500 italic leading-[1.15] space-y-1 select-none pr-1.5"
-              style={{ fontFamily: 'Georgia, Cambria, serif' }}
-            >
-              <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Vision</strong>
-                <p className="m-0 text-justify leading-[1.15]">
-                  A research-based academic institution committed to excellence and service in nurturing globally
-                  competitive workforce towards sustainable development.
-                </p>
-              </div>
-
-              <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Mission</strong>
-                <p className="m-0 text-justify leading-[1.15]">
-                  Romblon State University shall nurture an academic environment that provides advanced education,
-                  higher technological and professional instruction and technical expertise in agriculture and
-                  fisheries, forestry, engineering and technology, education, humanities, sciences and other relevant
-                  fields of study and collaborate with other institutions and communities through responsive, relevant
-                  and research-based extension services.
-                </p>
-              </div>
-
-              <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">
-                  RSU Quality Policy
-                </strong>
-                <p className="m-0 text-justify leading-[1.15]">
-                  Romblon State University commits to provide higher education through quality instruction, research,
-                  production, and community-based extension services that meet or exceed the requirements and
-                  expectations of the university's stakeholders. It will comply with international standards, applicable
-                  statutory and regulatory requirements, and continually improve the Quality Management System's
-                  effectiveness through periodic monitoring and evaluation toward sustained remarkable outcomes.
-                </p>
-              </div>
-
-              <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Core Values</strong>
-                <div className="space-y-0 pl-1 text-[5pt] leading-[1.15]">
-                  <div>Stewardship</div>
-                  <div>Competence</div>
-                  <div>Resilience</div>
-                  <div>Integrity</div>
-                  <div>Balance</div>
-                  <div>Excellence</div>
-                  <div>Service</div>
+                {/* UNIVERSITY & OFFICE TITLES */}
+                <div>
+                  <h1 className="text-[11.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                    ROMBLON STATE UNIVERSITY
+                  </h1>
+                  <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                    QUALITY ASSURANCE OFFICE
+                  </h2>
+                  <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
+                    3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
+                    <br />
+                    Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
+                  </p>
                 </div>
-                <p className="m-0 mt-0.2 text-[4.8pt] text-slate-400 text-justify leading-[1.1]">
-                  These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
-                  recognized HEI in the region and beyond.
-                </p>
+              </div>
+
+              {/* ISO 9001:2015 CERTIFICATION BADGE */}
+              <div className="flex items-center pl-2">
+                <img
+                  src="/ISOlogo.jpg"
+                  alt="ISO 9001:2015 TÜV Rheinland Certified"
+                  style={{ height: '38px', width: 'auto', objectFit: 'contain' }}
+                />
               </div>
             </div>
 
-            {/* RIGHT MAIN COLUMN: MEMORANDUM HEADER & NARRATIVE */}
-            <div className="col-span-9 space-y-0.5 text-slate-900">
-              {/* DOCUMENT CLASSIFICATION & REF NO */}
-              <div>
-                <h3 className="text-[9.5pt] font-black text-slate-900 tracking-tight leading-none m-0">
-                  {communicationType}
-                </h3>
-                <p className="text-[8pt] font-bold font-mono text-slate-900 m-0 mt-0.2">{generatedRefNo}</p>
+            {/* 2. TWO-COLUMN FOLIO LAYOUT (LEFT SIDEBAR & RIGHT MEMORANDUM) */}
+            <div className="grid grid-cols-12 gap-3 items-start">
+              {/* LEFT SIDEBAR: RSU VISION, MISSION, QUALITY POLICY, CORE VALUES */}
+              <div
+                className="col-span-3 text-[5.2pt] text-slate-500 italic leading-[1.15] space-y-1 select-none pr-1.5"
+                style={{ fontFamily: 'Georgia, Cambria, serif' }}
+              >
+                <div>
+                  <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Vision</strong>
+                  <p className="m-0 text-justify leading-[1.15]">
+                    A research-based academic institution committed to excellence and service in nurturing globally
+                    competitive workforce towards sustainable development.
+                  </p>
+                </div>
+
+                <div>
+                  <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">RSU Mission</strong>
+                  <p className="m-0 text-justify leading-[1.15]">
+                    Romblon State University shall nurture an academic environment that provides advanced education,
+                    higher technological and professional instruction and technical expertise in agriculture and
+                    fisheries, forestry, engineering and technology, education, humanities, sciences and other relevant
+                    fields of study and collaborate with other institutions and communities through responsive, relevant
+                    and research-based extension services.
+                  </p>
+                </div>
+
+                <div>
+                  <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">
+                    RSU Quality Policy
+                  </strong>
+                  <p className="m-0 text-justify leading-[1.15]">
+                    Romblon State University commits to provide higher education through quality instruction, research,
+                    production, and community-based extension services that meet or exceed the requirements and
+                    expectations of the university's stakeholders. It will comply with international standards,
+                    applicable statutory and regulatory requirements, and continually improve the Quality Management
+                    System's effectiveness through periodic monitoring and evaluation toward sustained remarkable
+                    outcomes.
+                  </p>
+                </div>
+
+                <div>
+                  <strong className="block not-italic font-bold text-slate-700 text-[6pt] mb-0.2">
+                    RSU Core Values
+                  </strong>
+                  <div className="space-y-0 pl-1 text-[5pt] leading-[1.15]">
+                    <div>Stewardship</div>
+                    <div>Competence</div>
+                    <div>Resilience</div>
+                    <div>Integrity</div>
+                    <div>Balance</div>
+                    <div>Excellence</div>
+                    <div>Service</div>
+                  </div>
+                  <p className="m-0 mt-0.2 text-[4.8pt] text-slate-400 text-justify leading-[1.1]">
+                    These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
+                    recognized HEI in the region and beyond.
+                  </p>
+                </div>
               </div>
 
-              {/* TABULAR METADATA BLOCK (COLON-ALIGNED) */}
-              <div className="space-y-0.5 pt-0.2 text-[7pt]">
-                {/* TO ROW */}
-                <div className="flex items-start">
-                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
-                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
-                  <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
-                    {recipientUnits.length === 1 ? (
-                      <div className="leading-tight">
-                        THE UNIT HEAD / PROGRAM CHAIR, {recipientUnits[0].name.toUpperCase()}{' '}
-                        {recipientUnits[0].campus && !recipientUnits[0].campus.toLowerCase().includes('main')
-                          ? `(${recipientUnits[0].campus.toUpperCase()})`
-                          : ''}
+              {/* RIGHT MAIN COLUMN: MEMORANDUM HEADER & NARRATIVE */}
+              <div className="col-span-9 space-y-0.5 text-slate-900">
+                {/* DOCUMENT CLASSIFICATION & REF NO */}
+                <div>
+                  <h3 className="text-[9.5pt] font-black text-slate-900 tracking-tight leading-none m-0">
+                    {communicationType}
+                  </h3>
+                  <p className="text-[8pt] font-bold font-mono text-slate-900 m-0 mt-0.2">{generatedRefNo}</p>
+                </div>
+
+                {/* TABULAR METADATA BLOCK (COLON-ALIGNED) */}
+                <div className="space-y-0.5 pt-0.2 text-[7pt]">
+                  {/* TO ROW */}
+                  <div className="flex items-start">
+                    <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
+                    <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                    <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
+                      {recipientUnits.length === 1 ? (
+                        <div className="leading-tight">
+                          THE UNIT HEAD / PROGRAM CHAIR, {recipientUnits[0].name.toUpperCase()}{' '}
+                          {recipientUnits[0].campus && !recipientUnits[0].campus.toLowerCase().includes('main')
+                            ? `(${recipientUnits[0].campus.toUpperCase()})`
+                            : ''}
+                        </div>
+                      ) : (
+                        <div className="leading-tight">
+                          ALL CONCERNED CAMPUS DIRECTORS, DEANS, PROGRAM CHAIRS, AND HEADS OF ACCOUNTABLE UNITS
+                        </div>
+                      )}
+                      <div className="text-[6.8pt] font-semibold normal-case text-slate-600">
+                        {recipientUnits.length === 1
+                          ? `${recipientUnits[0].campus || 'Romblon State University'}`
+                          : 'Romblon State University (All Operating Campuses & Units)'}
                       </div>
-                    ) : (
-                      <div className="leading-tight">
-                        ALL CONCERNED CAMPUS DIRECTORS, DEANS, PROGRAM CHAIRS, AND HEADS OF ACCOUNTABLE UNITS
-                      </div>
-                    )}
-                    <div className="text-[6.8pt] font-semibold normal-case text-slate-600">
-                      {recipientUnits.length === 1
-                        ? `${recipientUnits[0].campus || 'Romblon State University'}`
-                        : 'Romblon State University (All Operating Campuses & Units)'}
                     </div>
                   </div>
-                </div>
 
-                {/* FROM ROW */}
-                <div className="flex items-start">
-                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">FROM</div>
-                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
-                  <div className="flex-1 font-bold text-slate-900">
-                    <span className="uppercase block font-black">{qmsHead}</span>
-                    <span className="text-[6.5pt] font-normal text-slate-700 block">
-                      Head, Quality Management System (QMS)
-                    </span>
-                  </div>
-                </div>
-
-                {/* NOTED ROW (WHEN includeNoted IS TRUE) */}
-                {includeNoted && (
+                  {/* FROM ROW */}
                   <div className="flex items-start">
-                    <div className="w-14 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
+                    <div className="w-14 font-bold uppercase text-slate-900 shrink-0">FROM</div>
                     <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                     <div className="flex-1 font-bold text-slate-900">
-                      <span className="uppercase block font-black">{qaoDirector}</span>
+                      <span className="uppercase block font-black">{qmsHead}</span>
                       <span className="text-[6.5pt] font-normal text-slate-700 block">
-                        Director, Quality Assurance Office
+                        Head, Quality Management System (QMS)
                       </span>
                     </div>
                   </div>
-                )}
 
-                {/* SUBJECT ROW */}
-                <div className="flex items-start">
-                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
-                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
-                  <div className="flex-1 font-black uppercase text-slate-900 leading-snug">
-                    {statusCategory === 'open'
-                      ? 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS & ACTION PLAN FOR OVERDUE OPEN CAR(S)'
-                      : statusCategory === 'ongoing'
-                        ? 'COMPLIANCE DIRECTIVE: IMMEDIATE STATUS COMMITMENT & EVIDENCE SUBMISSION FOR OVERDUE ON-GOING CAR(S)'
-                        : statusCategory === 'for_action'
-                          ? 'COMPLIANCE DIRECTIVE: IMMEDIATE ACTION & COMPLIANCE ON OVERDUE CORRECTIVE ACTION REQUESTS (CAR)'
-                          : statusCategory === 'verification'
-                            ? 'COMPLIANCE DIRECTIVE: IMMEDIATE EVIDENCE SUBMISSION FOR CARS PENDING FINAL QUALITY VERIFICATION'
-                            : 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR OVERDUE CORRECTIVE ACTION REQUESTS (CAR)'}
-                  </div>
-                </div>
+                  {/* NOTED ROW (WHEN includeNoted IS TRUE) */}
+                  {includeNoted && (
+                    <div className="flex items-start">
+                      <div className="w-14 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
+                      <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                      <div className="flex-1 font-bold text-slate-900">
+                        <span className="uppercase block font-black">{qaoDirector}</span>
+                        <span className="text-[6.5pt] font-normal text-slate-700 block">
+                          Director, Quality Assurance Office
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
-                {/* DATE ROW */}
-                <div className="flex items-start">
-                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">DATE</div>
-                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
-                  <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
-                </div>
-              </div>
-
-              {/* HORIZONTAL RULE */}
-              <hr className="border-t border-slate-900 my-0.5" />
-
-              {/* MEMORANDUM BODY PARAGRAPHS */}
-              <div className="space-y-0.5 text-justify leading-tight text-[7pt] text-slate-900">
-                <p className="m-0">
-                  In line with the mandatory requirements of <strong>ISO 21001:2018 Clause 10.2</strong>,{' '}
-                  <strong>ISO 9001:2015 Clause 10.2</strong>, and the{' '}
-                  <strong>
-                    Romblon State University Educational Organizations Management System (RSU-EOMS) Manual
-                  </strong>
-                  , all accountable academic and administrative units are directed to immediately submit their official{' '}
-                  <em>Root Cause Analysis (RCA)</em> and <em>Corrective Action Plan (CAP)</em> for nonconformities
-                  identified during quality audits.
-                </p>
-
-                <p className="m-0">
-                  Records in the <strong>RSU EOMS Submission Portal</strong> indicate that as of{' '}
-                  <strong>{formattedDate}</strong>, your office has{' '}
-                  <strong>unresolved Corrective Action Requests (CAR)</strong> whose statutory reply deadlines have
-                  elapsed without an approved action plan. The complete inventory of delinquent items and
-                  non-conformance statements is detailed in <em>Attachment A</em>.
-                </p>
-
-                {customDirective && (
-                  <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.2 text-[6.5pt] leading-tight">
-                    <strong>Specific Administrative Directive:</strong> {customDirective}
-                  </p>
-                )}
-
-                <p className="m-0">
-                  Accountable Unit Heads, QMS Leads, and Process Owners are hereby instructed to log in to the{' '}
-                  <strong>RSU EOMS Submission Portal</strong> (navigate to <em>QA Reports &gt; CAR Registry</em>) and
-                  complete the following mandatory response workflow:
-                </p>
-
-                <ol className="list-decimal pl-3.5 space-y-0 text-[6.5pt] text-slate-800 leading-tight">
-                  <li>
-                    <strong>Root Cause Investigation (Section B):</strong> Document systemic root cause using
-                    5-Whys/Fishbone.
-                  </li>
-                  <li>
-                    <strong>Corrective Action Plan (CAP):</strong> Formulate containment and preventive actions with
-                    milestone dates.
-                  </li>
-                  <li>
-                    <strong>Submission &amp; Evidence:</strong> Click <em>"Submit Unit Response"</em> and upload
-                    documentary proofs.
-                  </li>
-                </ol>
-
-                <p className="m-0">
-                  Your office is granted a strict compliance window of <strong>{gracePeriodDays} working days</strong>{' '}
-                  from receipt hereof. Non-compliance shall constrain this Office to formally elevate the matter to the{' '}
-                  <strong>Office of the Vice Presidents</strong> and <strong>University President</strong> for
-                  administrative intervention.
-                </p>
-
-                <p className="pt-0.2 m-0 font-semibold text-[6.8pt]">
-                  For your guidance, strict compliance, and appropriate operational action.
-                </p>
-              </div>
-
-              {/* SIGNATORIES BLOCK */}
-              <div className={includeNoted ? 'grid grid-cols-2 gap-4 pt-1 text-[6.8pt]' : 'pt-1 text-[6.8pt]'}>
-                <div>
-                  <p className="font-bold text-slate-600 uppercase text-[5.8pt] m-0">Issued by:</p>
-                  <div className="pt-2">
-                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7pt] m-0">
-                      {qmsHead}
-                    </p>
-                    <p className="text-[6.2pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
-                      Head, Quality Management System (QMS)
-                    </p>
-                    <p className="text-[5.5pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
-                  </div>
-                </div>
-
-                {includeNoted && (
-                  <div>
-                    <p className="font-bold text-slate-600 uppercase text-[5.8pt] m-0">Noted by:</p>
-                    <div className="pt-2">
-                      <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7pt] m-0">
-                        {qaoDirector}
-                      </p>
-                      <p className="text-[6.2pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
-                        Director, Quality Assurance Office
-                      </p>
-                      <p className="text-[5.5pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
+                  {/* SUBJECT ROW */}
+                  <div className="flex items-start">
+                    <div className="w-14 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
+                    <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                    <div className="flex-1 font-black uppercase text-slate-900 leading-snug">
+                      {statusCategory === 'open'
+                        ? 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS & ACTION PLAN FOR OVERDUE OPEN CAR(S)'
+                        : statusCategory === 'ongoing'
+                          ? 'COMPLIANCE DIRECTIVE: IMMEDIATE STATUS COMMITMENT & EVIDENCE SUBMISSION FOR OVERDUE ON-GOING CAR(S)'
+                          : statusCategory === 'for_action'
+                            ? 'COMPLIANCE DIRECTIVE: IMMEDIATE ACTION & COMPLIANCE ON OVERDUE CORRECTIVE ACTION REQUESTS (CAR)'
+                            : statusCategory === 'verification'
+                              ? 'COMPLIANCE DIRECTIVE: IMMEDIATE EVIDENCE SUBMISSION FOR CARS PENDING FINAL QUALITY VERIFICATION'
+                              : 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR OVERDUE CORRECTIVE ACTION REQUESTS (CAR)'}
                     </div>
                   </div>
-                )}
+
+                  {/* DATE ROW */}
+                  <div className="flex items-start">
+                    <div className="w-14 font-bold uppercase text-slate-900 shrink-0">DATE</div>
+                    <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                    <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
+                  </div>
+                </div>
+
+                {/* HORIZONTAL RULE */}
+                <hr className="border-t border-slate-900 my-0.5" />
+
+                {/* MEMORANDUM BODY PARAGRAPHS */}
+                <div className="space-y-0.5 text-justify leading-tight text-[7pt] text-slate-900">
+                  <p className="m-0">
+                    In line with the mandatory requirements of <strong>ISO 21001:2018 Clause 10.2</strong>,{' '}
+                    <strong>ISO 9001:2015 Clause 10.2</strong>, and the{' '}
+                    <strong>
+                      Romblon State University Educational Organizations Management System (RSU-EOMS) Manual
+                    </strong>
+                    , all accountable academic and administrative units are directed to immediately submit their
+                    official <em>Root Cause Analysis (RCA)</em> and <em>Corrective Action Plan (CAP)</em> for
+                    nonconformities identified during quality audits.
+                  </p>
+
+                  <p className="m-0">
+                    Records in the <strong>RSU EOMS Submission Portal</strong> indicate that as of{' '}
+                    <strong>{formattedDate}</strong>, your office has{' '}
+                    <strong>unresolved Corrective Action Requests (CAR)</strong> whose statutory reply deadlines have
+                    elapsed without an approved action plan. The complete inventory of delinquent items and
+                    non-conformance statements is detailed in <em>Attachment A</em>.
+                  </p>
+
+                  {customDirective && (
+                    <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.2 text-[6.5pt] leading-tight">
+                      <strong>Specific Administrative Directive:</strong> {customDirective}
+                    </p>
+                  )}
+
+                  <p className="m-0">
+                    Accountable Unit Heads, QMS Leads, and Process Owners are hereby instructed to log in to the{' '}
+                    <strong>RSU EOMS Submission Portal</strong> (navigate to <em>QA Reports &gt; CAR Registry</em>) and
+                    complete the following mandatory response workflow:
+                  </p>
+
+                  <ol className="list-decimal pl-3.5 space-y-0 text-[6.5pt] text-slate-800 leading-tight">
+                    <li>
+                      <strong>Root Cause Investigation (Section B):</strong> Document systemic root cause using
+                      5-Whys/Fishbone.
+                    </li>
+                    <li>
+                      <strong>Corrective Action Plan (CAP):</strong> Formulate containment and preventive actions with
+                      milestone dates.
+                    </li>
+                    <li>
+                      <strong>Submission &amp; Evidence:</strong> Click <em>"Submit Unit Response"</em> and upload
+                      documentary proofs.
+                    </li>
+                  </ol>
+
+                  <p className="m-0">
+                    Your office is granted a strict compliance window of <strong>{gracePeriodDays} working days</strong>{' '}
+                    from receipt hereof. Non-compliance shall constrain this Office to formally elevate the matter to
+                    the <strong>Office of the Vice Presidents</strong> and <strong>University President</strong> for
+                    administrative intervention.
+                  </p>
+
+                  <p className="pt-0.2 m-0 font-semibold text-[6.8pt]">
+                    For your guidance, strict compliance, and appropriate operational action.
+                  </p>
+                </div>
+
+                {/* SIGNATORIES BLOCK */}
+                <div className={includeNoted ? 'grid grid-cols-2 gap-4 pt-1 text-[6.8pt]' : 'pt-1 text-[6.8pt]'}>
+                  <div>
+                    <p className="font-bold text-slate-600 uppercase text-[5.8pt] m-0">Issued by:</p>
+                    <div className="pt-2">
+                      <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7pt] m-0">
+                        {qmsHead}
+                      </p>
+                      <p className="text-[6.2pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                        Head, Quality Management System (QMS)
+                      </p>
+                      <p className="text-[5.5pt] text-slate-500 m-0 leading-tight">
+                        Lead Internal Quality Auditor, RSU
+                      </p>
+                    </div>
+                  </div>
+
+                  {includeNoted && (
+                    <div>
+                      <p className="font-bold text-slate-600 uppercase text-[5.8pt] m-0">Noted by:</p>
+                      <div className="pt-2">
+                        <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7pt] m-0">
+                          {qaoDirector}
+                        </p>
+                        <p className="text-[6.2pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                          Director, Quality Assurance Office
+                        </p>
+                        <p className="text-[5.5pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* 3. OFFICIAL BOTTOM FOOTER BANNER (FIXED AT THE VERY BOTTOM OF THE PAGE) */}
-        <div
-          className="memo-footer-banner"
-          style={{
-            position: 'absolute',
-            bottom: '0.25in',
-            left: '0.45in',
-            right: '0.45in',
-            height: '24px',
-            background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
-          }}
-        >
-          <span
+          {/* 3. OFFICIAL BOTTOM FOOTER BANNER (FIXED AT THE VERY BOTTOM OF THE PAGE) */}
+          <div
+            className="memo-footer-banner"
             style={{
-              color: '#ffffff',
-              fontFamily: 'Georgia, Cambria, serif',
-              fontSize: '7.5pt',
-              fontWeight: 'bold',
-              fontStyle: 'italic',
-              letterSpacing: '0.04em',
+              position: 'absolute',
+              bottom: '0.25in',
+              left: '0.45in',
+              right: '0.45in',
+              height: '24px',
+              background: 'linear-gradient(90deg, #15803d 0%, #16a34a 60%, #ca8a04 88%, #eab308 100%)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
             }}
           >
-            Serving with Honor and Excellence!
-          </span>
+            <span
+              style={{
+                color: '#ffffff',
+                fontFamily: 'Georgia, Cambria, serif',
+                fontSize: '7.5pt',
+                fontWeight: 'bold',
+                fontStyle: 'italic',
+                letterSpacing: '0.04em',
+              }}
+            >
+              Serving with Honor and Excellence!
+            </span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ========================================================
           PAGE 2: ATTACHMENT A - SCHEDULE OF OVERDUE ISSUES TABLE
@@ -445,8 +453,8 @@ export function CAROverdueMemorandumTemplate({
           minHeight: pageHeight,
           padding: '0.35in 0.45in 0.65in 0.45in',
           boxSizing: 'border-box',
-          pageBreakBefore: 'always',
-          breakBefore: 'page',
+          pageBreakBefore: isReportOnly ? 'auto' : 'always',
+          breakBefore: isReportOnly ? 'auto' : 'page',
         }}
       >
         <div>
@@ -470,8 +478,11 @@ export function CAROverdueMemorandumTemplate({
             </div>
 
             <div className="text-right">
-              <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">Ref: {generatedRefNo}</span>
-              <span className="text-[6.8pt] font-bold text-rose-700 font-mono">
+              {!isReportOnly && (
+                <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">Ref: {generatedRefNo}</span>
+              )}
+              <span className="text-[7pt] font-bold text-slate-700 block">Date Printed/Updated: {formattedDate}</span>
+              <span className="text-[6.8pt] font-bold text-rose-700 font-mono block">
                 {totalOverdueCount} Overdue Item{totalOverdueCount !== 1 ? 's' : ''} Listed
               </span>
             </div>
@@ -479,7 +490,7 @@ export function CAROverdueMemorandumTemplate({
 
           <div className="mb-2">
             <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
-              ATTACHMENT A: SCHEDULE OF OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
+              {isReportOnly ? '' : 'ATTACHMENT A: '}SCHEDULE OF OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
             </h2>
             <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
               Itemized Inventory of Identified Audit Non-Conformances, Procedures, and Overdue Statuses
@@ -632,7 +643,8 @@ export function CAROverdueMemorandumTemplate({
           <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
             <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
             <span className="font-mono font-bold text-slate-800">
-              Form Code: RSU-QAO-CAR-MEMO-01 (Attachment A) | Rev. 03
+              Form Code: RSU-QAO-CAR-{isReportOnly ? 'REPORT' : 'MEMO'}-01{isReportOnly ? '' : ' (Attachment A)'} | Rev.
+              03
             </span>
           </div>
 

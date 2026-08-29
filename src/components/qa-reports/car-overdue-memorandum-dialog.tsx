@@ -289,12 +289,13 @@ export function CAROverdueMemorandumDialog({
 
       const printWindow = window.open('', '_blank');
       if (printWindow) {
+        const isReportOnly = communicationType === 'Report Only';
         printWindow.document.open();
         printWindow.document.write(`
           <!DOCTYPE html>
           <html>
             <head>
-              <title>${communicationType} - Overdue CAR Responses (${memoRefNo})</title>
+              <title>${isReportOnly ? 'Overdue CAR Report' : communicationType} - Overdue CAR Responses (${memoRefNo})</title>
               <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
               <style>
                 @page { 
@@ -490,7 +491,27 @@ export function CAROverdueMemorandumDialog({
       ? `\n\nNoted by:\n${selectedQaoDirector || signatories?.qaoDirector || 'SARAH JANE F. FALLARIA'}\nDirector, Quality Assurance Office`
       : '';
 
-    const text = `
+    const isReportOnly = communicationType === 'Report Only';
+
+    const text = isReportOnly
+      ? `
+ROMBLON STATE UNIVERSITY
+QUALITY ASSURANCE OFFICE
+SCHEDULE OF OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
+Date Printed/Updated: ${format(new Date(memoDate), 'MMMM d, yyyy').toUpperCase()}
+Target Units        : ${recipients}
+Total Overdue Items : ${overdueItems.length}
+
+--------------------------------------------------------------------------------
+ITEMIZED INVENTORY:
+${carsList}
+--------------------------------------------------------------------------------
+
+Certified Accurate by:
+${signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)'}
+Head, Quality Management System (QMS)${notedSignatory}
+      `.trim()
+      : `
 ${communicationType}
 ${memoRefNo}
 
@@ -534,7 +555,7 @@ Head, Quality Management System (QMS)${notedSignatory}
     setTimeout(() => setHasCopied(false), 2500);
 
     toast({
-      title: `${communicationType} Copied to Clipboard`,
+      title: `${isReportOnly ? 'CAR Report' : communicationType} Copied to Clipboard`,
       description: 'Official notice text copied and ready for email or distribution.',
     });
   };
@@ -770,6 +791,9 @@ Head, Quality Management System (QMS)${notedSignatory}
                   <SelectItem value="QA Communication" className="text-xs font-bold">
                     QA Communication
                   </SelectItem>
+                  <SelectItem value="Report Only" className="text-xs font-bold text-indigo-700 dark:text-indigo-400">
+                    Report Only (Table Only)
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -916,9 +940,11 @@ Head, Quality Management System (QMS)${notedSignatory}
                 <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2.5 border-b flex items-center justify-between">
                   <span className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
-                    {isConsolidatedBatch
-                      ? `Consolidated Folio ${communicationType} (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
-                      : `Printable Folio Preview: ${activeGroup?.unitName} (${activeGroup?.campusName})`}
+                    {communicationType === 'Report Only'
+                      ? `Consolidated Overdue CAR Report (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
+                      : isConsolidatedBatch
+                        ? `Consolidated Folio ${communicationType} (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
+                        : `Printable Folio Preview: ${activeGroup?.unitName} (${activeGroup?.campusName})`}
                   </span>
                   <div className="flex items-center gap-2">
                     <Button
