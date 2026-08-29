@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -33,6 +34,7 @@ import {
   ListFilter,
   FileCheck2,
   Activity,
+  UserCheck,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -89,6 +91,11 @@ export function CAROverdueMemorandumDialog({
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [auditTypeFilter, setAuditTypeFilter] = useState<string>('all');
 
+  // Signatory and Document Controls
+  const [includeNoted, setIncludeNoted] = useState<boolean>(true);
+  const [selectedQaoDirector, setSelectedQaoDirector] = useState<string>(
+    signatories?.qaoDirector || 'SARAH JANE F. FALLARIA',
+  );
   const [memoRefNo, setMemoRefNo] = useState<string>(`${year}-${format(new Date(), 'MMdd')}`);
   const [memoDate, setMemoDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [gracePeriodDays, setGracePeriodDays] = useState<number>(5);
@@ -248,6 +255,8 @@ export function CAROverdueMemorandumDialog({
               paperSize={paperSize}
               statusCategory={statusFilter}
               communicationType={communicationType}
+              includeNoted={includeNoted}
+              selectedQaoDirector={selectedQaoDirector}
             />
           ) : (
             targetUnitGroups.map((group, idx) => (
@@ -269,6 +278,8 @@ export function CAROverdueMemorandumDialog({
                   paperSize={paperSize}
                   statusCategory={statusFilter}
                   communicationType={communicationType}
+                  includeNoted={includeNoted}
+                  selectedQaoDirector={selectedQaoDirector}
                 />
               </div>
             ))
@@ -375,6 +386,13 @@ export function CAROverdueMemorandumDialog({
               ? 'COMPLIANCE DIRECTIVE: IMMEDIATE EVIDENCE SUBMISSION FOR CARS PENDING FINAL QUALITY VERIFICATION'
               : 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR OVERDUE CORRECTIVE ACTION REQUESTS (CAR)';
 
+    const notedSection = includeNoted
+      ? `
+Noted by:
+${selectedQaoDirector || signatories?.qaoDirector || 'SARAH JANE F. FALLARIA'}
+Director, Quality Assurance Office`
+      : '';
+
     const text = `
 ${communicationType}
 ${memoRefNo}
@@ -411,11 +429,7 @@ For your strict compliance and guidance.
 
 Issued by:
 ${signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)'}
-Head, Quality Management System (QMS)
-
-Noted by:
-${signatories?.qaoDirector || 'SARAH JANE F. FALLARIA'}
-Director, Quality Assurance Office
+Head, Quality Management System (QMS)${notedSection}
     `.trim();
 
     navigator.clipboard.writeText(text);
@@ -467,7 +481,7 @@ Director, Quality Assurance Office
           {/* TOP CONTROLS & SCOPE SELECTOR */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-6 gap-3 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm">
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase text-slate-500">Memorandum Scope</Label>
+              <Label className="text-[10px] font-black uppercase text-slate-500">Document Scope</Label>
               <Select value={targetScope} onValueChange={(v: any) => setTargetScope(v)}>
                 <SelectTrigger className="h-9 text-xs font-bold">
                   <SelectValue placeholder="Select Scope" />
@@ -635,7 +649,7 @@ Director, Quality Assurance Office
           </div>
 
           {/* MEMORANDUM PARAMETER CUSTOMIZATION */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3.5 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm items-start">
             {/* COMMUNICATION TYPE SELECTOR */}
             <div className="space-y-1.5">
               <Label className="text-[10px] font-black uppercase text-slate-500">Communication Type</Label>
@@ -663,6 +677,7 @@ Director, Quality Assurance Office
               </Select>
             </div>
 
+            {/* REFERENCE NUMBER */}
             <div className="space-y-1.5">
               <Label className="text-[10px] font-black uppercase text-slate-500">Reference Number</Label>
               <Input
@@ -673,6 +688,53 @@ Director, Quality Assurance Office
               />
             </div>
 
+            {/* NOTED BY CHECKBOX & QA DIRECTOR DROPDOWN (RIGHT AFTER REF NO) */}
+            <div className="space-y-1.5 bg-slate-50 dark:bg-slate-900/60 p-2 rounded-lg border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="needs-noted"
+                  checked={includeNoted}
+                  onCheckedChange={(checked) => setIncludeNoted(Boolean(checked))}
+                />
+                <label
+                  htmlFor="needs-noted"
+                  className="text-xs font-black uppercase cursor-pointer select-none text-slate-800 dark:text-slate-200 flex items-center gap-1"
+                >
+                  <UserCheck className="h-3.5 w-3.5 text-primary" />
+                  Needs &quot;NOTED BY&quot;
+                </label>
+              </div>
+
+              {includeNoted ? (
+                <div className="space-y-1 mt-1">
+                  <Label className="text-[9px] font-bold uppercase text-slate-500">QA Director</Label>
+                  <Select value={selectedQaoDirector} onValueChange={setSelectedQaoDirector}>
+                    <SelectTrigger className="h-7 text-[11px] font-bold">
+                      <SelectValue placeholder="Select QA Director" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="SARAH JANE F. FALLARIA" className="text-xs font-bold">
+                        SARAH JANE F. FALLARIA
+                      </SelectItem>
+                      <SelectItem value="DR. SARAH JANE F. FALLARIA" className="text-xs">
+                        DR. SARAH JANE F. FALLARIA
+                      </SelectItem>
+                      {signatories?.qaoDirector &&
+                        signatories.qaoDirector !== 'SARAH JANE F. FALLARIA' &&
+                        signatories.qaoDirector !== 'DR. SARAH JANE F. FALLARIA' && (
+                          <SelectItem value={signatories.qaoDirector} className="text-xs font-bold">
+                            {signatories.qaoDirector}
+                          </SelectItem>
+                        )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <p className="text-[9.5px] text-slate-400 italic m-0 pt-0.5">Directly issued by QMS Head only</p>
+              )}
+            </div>
+
+            {/* ISSUANCE DATE */}
             <div className="space-y-1.5">
               <Label className="text-[10px] font-black uppercase text-slate-500">Issuance Date</Label>
               <Input
@@ -683,6 +745,7 @@ Director, Quality Assurance Office
               />
             </div>
 
+            {/* COMPLIANCE GRACE PERIOD */}
             <div className="space-y-1.5">
               <Label className="text-[10px] font-black uppercase text-slate-500">Compliance Grace Period</Label>
               <Select value={gracePeriodDays.toString()} onValueChange={(v) => setGracePeriodDays(parseInt(v, 10))}>
@@ -706,7 +769,7 @@ Director, Quality Assurance Office
               </Select>
             </div>
 
-            <div className="md:col-span-4 space-y-1.5 pt-2 border-t">
+            <div className="md:col-span-5 space-y-1.5 pt-2 border-t">
               <Label className="text-[10px] font-black uppercase text-slate-500">
                 Additional Administrative Directive / Special Instruction (Optional)
               </Label>
@@ -788,6 +851,8 @@ Director, Quality Assurance Office
                         paperSize={paperSize}
                         statusCategory={statusFilter}
                         communicationType={communicationType}
+                        includeNoted={includeNoted}
+                        selectedQaoDirector={selectedQaoDirector}
                       />
                     ) : (
                       activeGroup && (
@@ -802,6 +867,8 @@ Director, Quality Assurance Office
                           paperSize={paperSize}
                           statusCategory={statusFilter}
                           communicationType={communicationType}
+                          includeNoted={includeNoted}
+                          selectedQaoDirector={selectedQaoDirector}
                         />
                       )
                     )}
@@ -825,11 +892,10 @@ Director, Quality Assurance Office
               <strong>
                 {overdueItems.length} Overdue Issue{overdueItems.length !== 1 ? 's' : ''}
               </strong>{' '}
-              • Type: <strong className="text-primary">{communicationType}</strong> • Format:{' '}
-              <span className="font-bold text-slate-900 uppercase">
-                {paperSize} (8.5&quot; &times; {paperSize === 'folio' ? '13' : paperSize === 'a4' ? '11.69' : '11'}
-                &quot;)
-              </span>
+              • Type: <strong className="text-primary">{communicationType}</strong> • Noted by:{' '}
+              <strong className="text-slate-800 dark:text-slate-200">
+                {includeNoted ? selectedQaoDirector : 'None (Direct Issue)'}
+              </strong>
             </span>
           </div>
 

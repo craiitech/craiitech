@@ -35,6 +35,9 @@ export interface CAROverdueMemorandumTemplateProps {
   paperSize?: 'folio' | 'letter' | 'a4';
   statusCategory?: 'all' | 'open' | 'ongoing' | 'for_action' | 'verification';
   communicationType?: CommunicationType;
+  includeNoted?: boolean;
+  selectedQaoDirector?: string;
+  selectedQmsHead?: string;
 }
 
 export function CAROverdueMemorandumTemplate({
@@ -50,6 +53,9 @@ export function CAROverdueMemorandumTemplate({
   paperSize = 'folio',
   statusCategory = 'all',
   communicationType = 'QA Memorandum',
+  includeNoted = true,
+  selectedQaoDirector,
+  selectedQmsHead,
 }: CAROverdueMemorandumTemplateProps) {
   const dateObj = memoDate instanceof Date ? memoDate : new Date(memoDate);
   const formattedDate = !isNaN(dateObj.getTime())
@@ -58,8 +64,8 @@ export function CAROverdueMemorandumTemplate({
 
   const generatedRefNo = memoRefNo || `${year}-${format(!isNaN(dateObj.getTime()) ? dateObj : new Date(), 'MMdd')}`;
 
-  const qmsHead = signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
-  const qaoDirector = signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
+  const qmsHead = selectedQmsHead || signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)';
+  const qaoDirector = selectedQaoDirector || signatories?.qaoDirector || 'SARAH JANE F. FALLARIA';
 
   // Determine recipients list
   const recipientUnits: { name: string; campus?: string }[] =
@@ -342,7 +348,7 @@ export function CAROverdueMemorandumTemplate({
               </div>
 
               {/* SIGNATORIES BLOCK */}
-              <div className="grid grid-cols-2 gap-6 pt-4 text-[8pt]">
+              <div className={includeNoted ? 'grid grid-cols-2 gap-6 pt-4 text-[8pt]' : 'pt-4 text-[8pt]'}>
                 <div>
                   <p className="font-bold text-slate-600 uppercase text-[7pt]">Issued by:</p>
                   <div className="pt-7">
@@ -356,16 +362,18 @@ export function CAROverdueMemorandumTemplate({
                   </div>
                 </div>
 
-                <div>
-                  <p className="font-bold text-slate-600 uppercase text-[7pt]">Noted by:</p>
-                  <div className="pt-7">
-                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
-                      {qaoDirector}
-                    </p>
-                    <p className="text-[7.5pt] text-slate-800 font-bold mt-0.5">Director, Quality Assurance Office</p>
-                    <p className="text-[7pt] text-slate-500">Romblon State University</p>
+                {includeNoted && (
+                  <div>
+                    <p className="font-bold text-slate-600 uppercase text-[7pt]">Noted by:</p>
+                    <div className="pt-7">
+                      <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
+                        {qaoDirector}
+                      </p>
+                      <p className="text-[7.5pt] text-slate-800 font-bold mt-0.5">Director, Quality Assurance Office</p>
+                      <p className="text-[7pt] text-slate-500">Romblon State University</p>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
@@ -545,7 +553,13 @@ export function CAROverdueMemorandumTemplate({
           )}
 
           {/* ATTACHMENT SIGNATORIES */}
-          <div className="grid grid-cols-2 gap-6 pt-6 mt-4 text-[8pt] border-t border-slate-300">
+          <div
+            className={
+              includeNoted
+                ? 'grid grid-cols-2 gap-6 pt-6 mt-4 text-[8pt] border-t border-slate-300'
+                : 'pt-6 mt-4 text-[8pt] border-t border-slate-300'
+            }
+          >
             <div>
               <p className="font-bold text-slate-600 uppercase text-[7pt]">Certified Accurate by:</p>
               <div className="pt-6">
@@ -556,15 +570,17 @@ export function CAROverdueMemorandumTemplate({
               </div>
             </div>
 
-            <div>
-              <p className="font-bold text-slate-600 uppercase text-[7pt]">Approved for Release by:</p>
-              <div className="pt-6">
-                <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
-                  {qaoDirector}
-                </p>
-                <p className="text-[7.5pt] text-slate-700 font-bold mt-0.5">Director, Quality Assurance Office</p>
+            {includeNoted && (
+              <div>
+                <p className="font-bold text-slate-600 uppercase text-[7pt]">Approved for Release by:</p>
+                <div className="pt-6">
+                  <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
+                    {qaoDirector}
+                  </p>
+                  <p className="text-[7.5pt] text-slate-700 font-bold mt-0.5">Director, Quality Assurance Office</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
 
