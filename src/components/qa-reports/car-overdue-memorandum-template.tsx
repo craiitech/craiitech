@@ -93,47 +93,53 @@ export function CAROverdueMemorandumTemplate({
 
   return (
     <div
-      className="text-black bg-white mx-auto print:p-0 print:max-w-full flex flex-col justify-between"
+      className="memo-root-document text-black bg-white mx-auto print:p-0 print:max-w-full"
       style={{
         width: '8.5in',
-        minHeight: paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in',
-        padding: '0.4in 0.5in 0.3in 0.5in',
         boxSizing: 'border-box',
         fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       }}
     >
       {/* ========================================================
-          PAGE 1: OFFICIAL 1-PAGE FOLIO MEMORANDUM
+          PAGE 1: OFFICIAL 1-PAGE FOLIO MEMORANDUM (STRICT 1-PAGE FIT)
           ======================================================== */}
       <div
-        className="flex flex-col justify-between flex-1"
-        style={{ minHeight: paperSize === 'folio' ? '12.2in' : '10.2in' }}
+        className="memo-page-1 flex flex-col justify-between"
+        style={{
+          minHeight: paperSize === 'folio' ? '12.3in' : '10.3in',
+          padding: '0.35in 0.45in 0.25in 0.45in',
+          boxSizing: 'border-box',
+          pageBreakInside: 'avoid',
+          breakInside: 'avoid',
+          pageBreakAfter: 'always',
+          breakAfter: 'page',
+        }}
       >
         <div>
           {/* 1. TOP INSTITUTIONAL UNIVERSITY LETTERHEAD */}
-          <div className="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-4">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1.5 mb-2">
+            <div className="flex items-center gap-2.5">
               {/* RSU SEAL & QAO LOGO */}
               <img
                 src="/rsulogo.png"
                 alt="RSU Official Seal"
-                style={{ height: '52px', width: '52px', objectFit: 'contain' }}
+                style={{ height: '40px', width: '40px', objectFit: 'contain' }}
               />
               <img
                 src="/qa_logo.png"
                 alt="QAO Emblem"
-                style={{ height: '52px', width: '52px', objectFit: 'contain' }}
+                style={{ height: '40px', width: '40px', objectFit: 'contain' }}
               />
 
               {/* UNIVERSITY & OFFICE TITLES */}
               <div>
-                <h1 className="text-[12.5pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                <h1 className="text-[11pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
                   ROMBLON STATE UNIVERSITY
                 </h1>
-                <h2 className="text-[9.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                <h2 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
                   QUALITY ASSURANCE OFFICE
                 </h2>
-                <p className="text-[6.5pt] text-slate-600 leading-tight m-0 mt-0.5">
+                <p className="text-[5.8pt] text-slate-600 leading-tight m-0 mt-0.5">
                   3/F Multi-Purpose Building, RSU-Main Campus, Liwanag, Odiongan, Romblon 5505
                   <br />
                   Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
@@ -146,29 +152,29 @@ export function CAROverdueMemorandumTemplate({
               <img
                 src="/ISOlogo.jpg"
                 alt="ISO 9001:2015 TÜV Rheinland Certified"
-                style={{ height: '48px', width: 'auto', objectFit: 'contain' }}
+                style={{ height: '36px', width: 'auto', objectFit: 'contain' }}
               />
             </div>
           </div>
 
           {/* 2. TWO-COLUMN FOLIO LAYOUT (LEFT SIDEBAR & RIGHT MEMORANDUM) */}
-          <div className="grid grid-cols-12 gap-5">
+          <div className="grid grid-cols-12 gap-3.5">
             {/* LEFT SIDEBAR: RSU VISION, MISSION, QUALITY POLICY, CORE VALUES */}
             <div
-              className="col-span-3 border-r border-slate-300 pr-3 text-[6.5pt] text-slate-500 italic leading-tight space-y-2.5 select-none"
+              className="col-span-3 border-r border-slate-300 pr-2.5 text-[5.5pt] text-slate-500 italic leading-tight space-y-1.5 select-none"
               style={{ fontFamily: 'Georgia, Cambria, serif' }}
             >
               <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[7pt] mb-0.5">RSU Vision</strong>
-                <p className="m-0 text-justify">
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Vision</strong>
+                <p className="m-0 text-justify leading-tight">
                   A research-based academic institution committed to excellence and service in nurturing globally
                   competitive workforce towards sustainable development.
                 </p>
               </div>
 
               <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[7pt] mb-0.5">RSU Mission</strong>
-                <p className="m-0 text-justify">
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">RSU Mission</strong>
+                <p className="m-0 text-justify leading-tight">
                   Romblon State University shall nurture an academic environment that provides advanced education,
                   higher technological and professional instruction and technical expertise in agriculture and
                   fisheries, forestry, engineering and technology, education, humanities, sciences and other relevant
@@ -178,10 +184,10 @@ export function CAROverdueMemorandumTemplate({
               </div>
 
               <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[7pt] mb-0.5">
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
                   RSU Quality Policy
                 </strong>
-                <p className="m-0 text-justify">
+                <p className="m-0 text-justify leading-tight">
                   Romblon State University commits to provide higher education through quality instruction, research,
                   production, and community-based extension services that meet or exceed the requirements and
                   expectations of the university's stakeholders. It will comply with international standards, applicable
@@ -191,8 +197,10 @@ export function CAROverdueMemorandumTemplate({
               </div>
 
               <div>
-                <strong className="block not-italic font-bold text-slate-700 text-[7pt] mb-0.5">RSU Core Values</strong>
-                <div className="space-y-0.5 pl-1">
+                <strong className="block not-italic font-bold text-slate-700 text-[6.2pt] mb-0.5">
+                  RSU Core Values
+                </strong>
+                <div className="space-y-0 pl-1 text-[5.2pt]">
                   <div>Stewardship</div>
                   <div>Competence</div>
                   <div>Resilience</div>
@@ -201,7 +209,7 @@ export function CAROverdueMemorandumTemplate({
                   <div>Excellence</div>
                   <div>Service</div>
                 </div>
-                <p className="m-0 mt-1 text-[6pt] text-slate-400 text-justify">
+                <p className="m-0 mt-0.5 text-[5pt] text-slate-400 text-justify leading-tight">
                   These Core Values serve as our guiding principle in our efforts to make ROMBLON STATE UNIVERSITY a
                   recognized HEI in the region and beyond.
                 </p>
@@ -209,44 +217,44 @@ export function CAROverdueMemorandumTemplate({
             </div>
 
             {/* RIGHT MAIN COLUMN: MEMORANDUM HEADER & NARRATIVE */}
-            <div className="col-span-9 space-y-3 text-[9pt] leading-normal text-slate-900">
+            <div className="col-span-9 space-y-1 text-slate-900">
               {/* DOCUMENT CLASSIFICATION & REF NO */}
               <div>
-                <h3 className="text-[12pt] font-black text-slate-900 tracking-tight leading-none m-0">
+                <h3 className="text-[10pt] font-black text-slate-900 tracking-tight leading-none m-0">
                   {communicationType}
                 </h3>
-                <p className="text-[10pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
+                <p className="text-[8.5pt] font-bold font-mono text-slate-900 m-0 mt-0.5">{generatedRefNo}</p>
               </div>
 
               {/* TABULAR METADATA BLOCK (COLON-ALIGNED) */}
-              <div className="space-y-2 pt-1 text-[8.5pt]">
+              <div className="space-y-0.5 pt-0.5 text-[7.2pt]">
                 {/* TO ROW */}
                 <div className="flex items-start">
-                  <div className="w-16 font-bold uppercase text-slate-900 shrink-0">TO</div>
-                  <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
-                  <div className="flex-1 font-bold uppercase text-slate-900 space-y-0.5">
-                    {recipientUnits.slice(0, 10).map((r, i) => (
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">TO</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="flex-1 font-bold uppercase text-slate-900 space-y-0">
+                    {recipientUnits.slice(0, 8).map((r, i) => (
                       <div key={i} className="leading-tight">
                         {r.name.toUpperCase()}{' '}
                         {r.campus && !r.campus.toLowerCase().includes('main') ? `(${r.campus.toUpperCase()})` : ''}
                       </div>
                     ))}
-                    {recipientUnits.length > 10 && (
-                      <div className="text-[7.5pt] font-semibold text-slate-600">
-                        (+ {recipientUnits.length - 10} other accountable academic &amp; administrative units)
+                    {recipientUnits.length > 8 && (
+                      <div className="text-[6.5pt] font-semibold text-slate-600">
+                        (+ {recipientUnits.length - 8} other accountable academic &amp; administrative units)
                       </div>
                     )}
-                    <div className="text-[8pt] font-semibold normal-case text-slate-600 pt-0.5">This University</div>
+                    <div className="text-[7pt] font-semibold normal-case text-slate-600">This University</div>
                   </div>
                 </div>
 
                 {/* FROM ROW */}
                 <div className="flex items-start">
-                  <div className="w-16 font-bold uppercase text-slate-900 shrink-0">FROM</div>
-                  <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">FROM</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                   <div className="flex-1 font-bold text-slate-900">
                     <span className="uppercase block font-black">{qmsHead}</span>
-                    <span className="text-[8pt] font-normal text-slate-700 block">
+                    <span className="text-[6.8pt] font-normal text-slate-700 block">
                       Head, Quality Management System (QMS)
                     </span>
                   </div>
@@ -255,11 +263,11 @@ export function CAROverdueMemorandumTemplate({
                 {/* NOTED ROW (WHEN includeNoted IS TRUE) */}
                 {includeNoted && (
                   <div className="flex items-start">
-                    <div className="w-16 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
-                    <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
+                    <div className="w-14 font-bold uppercase text-slate-900 shrink-0">NOTED</div>
+                    <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                     <div className="flex-1 font-bold text-slate-900">
                       <span className="uppercase block font-black">{qaoDirector}</span>
-                      <span className="text-[8pt] font-normal text-slate-700 block">
+                      <span className="text-[6.8pt] font-normal text-slate-700 block">
                         Director, Quality Assurance Office
                       </span>
                     </div>
@@ -268,8 +276,8 @@ export function CAROverdueMemorandumTemplate({
 
                 {/* SUBJECT ROW */}
                 <div className="flex items-start">
-                  <div className="w-16 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
-                  <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">SUBJECT</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                   <div className="flex-1 font-black uppercase text-slate-900 leading-snug">
                     {statusCategory === 'open'
                       ? 'COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS & ACTION PLAN FOR OVERDUE OPEN CAR(S)'
@@ -285,18 +293,18 @@ export function CAROverdueMemorandumTemplate({
 
                 {/* DATE ROW */}
                 <div className="flex items-start">
-                  <div className="w-16 font-bold uppercase text-slate-900 shrink-0">DATE</div>
-                  <div className="w-4 text-center font-bold text-slate-900 shrink-0">:</div>
+                  <div className="w-14 font-bold uppercase text-slate-900 shrink-0">DATE</div>
+                  <div className="w-3 text-center font-bold text-slate-900 shrink-0">:</div>
                   <div className="flex-1 font-black uppercase text-slate-900">{formattedDate}</div>
                 </div>
               </div>
 
               {/* HORIZONTAL RULE */}
-              <hr className="border-t-2 border-slate-900 my-2" />
+              <hr className="border-t-2 border-slate-900 my-1" />
 
               {/* MEMORANDUM BODY PARAGRAPHS */}
-              <div className="space-y-2 text-justify leading-relaxed text-[8.5pt]">
-                <p>
+              <div className="space-y-1 text-justify leading-tight text-[7.2pt] text-slate-900">
+                <p className="m-0">
                   In line with the mandatory requirements of <strong>ISO 21001:2018 Clause 10.2</strong>,{' '}
                   <strong>ISO 9001:2015 Clause 10.2</strong>, and the{' '}
                   <strong>
@@ -307,7 +315,7 @@ export function CAROverdueMemorandumTemplate({
                   identified during quality audits.
                 </p>
 
-                <p>
+                <p className="m-0">
                   Please be informed that records in the <strong>RSU EOMS Submission Portal</strong> indicate that as of{' '}
                   <strong>{formattedDate}</strong>, your office has{' '}
                   <strong>unresolved Corrective Action Requests (CAR)</strong> whose statutory reply deadlines have
@@ -316,18 +324,18 @@ export function CAROverdueMemorandumTemplate({
                 </p>
 
                 {customDirective && (
-                  <p className="bg-slate-50 border-l-4 border-slate-900 p-2 my-1 text-[8pt]">
+                  <p className="bg-slate-50 border-l-2 border-slate-900 p-1 my-0.5 text-[6.8pt] leading-tight">
                     <strong>Specific Administrative Directive:</strong> {customDirective}
                   </p>
                 )}
 
-                <p>
+                <p className="m-0">
                   Accountable Unit Heads, QMS Leads, and Process Owners are hereby instructed to log in to the{' '}
                   <strong>RSU EOMS Submission Portal</strong> (navigate to <em>QA Reports &gt; CAR Registry</em>) and
                   complete the following mandatory response workflow:
                 </p>
 
-                <ol className="list-decimal pl-4 space-y-0.5 text-[8pt] text-slate-800">
+                <ol className="list-decimal pl-3.5 space-y-0 text-[6.8pt] text-slate-800 leading-tight">
                   <li>
                     <strong>Root Cause Investigation (Section B):</strong> Document the systemic root cause using the
                     5-Whys or Fishbone framework.
@@ -342,12 +350,12 @@ export function CAROverdueMemorandumTemplate({
                   </li>
                 </ol>
 
-                <p>
+                <p className="m-0">
                   Your office is granted a strict compliance window of <strong>{gracePeriodDays} working days</strong>{' '}
                   from receipt of this memorandum. Failure to comply will constrain this Office to:
                 </p>
 
-                <ul className="list-disc pl-4 space-y-0.5 text-[8pt] text-slate-800">
+                <ul className="list-disc pl-3.5 space-y-0 text-[6.8pt] text-slate-800 leading-tight">
                   <li>
                     Formally elevate the matter to the <strong>Office of the Vice Presidents</strong> and{' '}
                     <strong>University President</strong> for administrative intervention;
@@ -358,33 +366,35 @@ export function CAROverdueMemorandumTemplate({
                   </li>
                 </ul>
 
-                <p className="pt-1">For your strict compliance and guidance.</p>
+                <p className="pt-0.5 m-0 font-semibold text-[7pt]">For your strict compliance and guidance.</p>
               </div>
 
               {/* SIGNATORIES BLOCK */}
-              <div className={includeNoted ? 'grid grid-cols-2 gap-6 pt-4 text-[8pt]' : 'pt-4 text-[8pt]'}>
+              <div className={includeNoted ? 'grid grid-cols-2 gap-4 pt-1.5 text-[7pt]' : 'pt-1.5 text-[7pt]'}>
                 <div>
-                  <p className="font-bold text-slate-600 uppercase text-[7pt]">Issued by:</p>
-                  <div className="pt-7">
-                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
+                  <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Issued by:</p>
+                  <div className="pt-3.5">
+                    <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
                       {qmsHead}
                     </p>
-                    <p className="text-[7.5pt] text-slate-800 font-bold mt-0.5">
+                    <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
                       Head, Quality Management System (QMS)
                     </p>
-                    <p className="text-[7pt] text-slate-500">Lead Internal Quality Auditor, RSU</p>
+                    <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Lead Internal Quality Auditor, RSU</p>
                   </div>
                 </div>
 
                 {includeNoted && (
                   <div>
-                    <p className="font-bold text-slate-600 uppercase text-[7pt]">Noted by:</p>
-                    <div className="pt-7">
-                      <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
+                    <p className="font-bold text-slate-600 uppercase text-[6pt] m-0">Noted by:</p>
+                    <div className="pt-3.5">
+                      <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[140px] text-[7.2pt] m-0">
                         {qaoDirector}
                       </p>
-                      <p className="text-[7.5pt] text-slate-800 font-bold mt-0.5">Director, Quality Assurance Office</p>
-                      <p className="text-[7pt] text-slate-500">Romblon State University</p>
+                      <p className="text-[6.5pt] text-slate-800 font-bold mt-0.5 m-0 leading-tight">
+                        Director, Quality Assurance Office
+                      </p>
+                      <p className="text-[5.8pt] text-slate-500 m-0 leading-tight">Romblon State University</p>
                     </div>
                   </div>
                 )}
@@ -395,13 +405,13 @@ export function CAROverdueMemorandumTemplate({
 
         {/* 3. BOTTOM GREEN BANNER FOOTER */}
         <div
-          className="mt-4 pt-1.5 pb-1 px-4 text-center rounded-sm shadow-sm"
+          className="mt-1.5 py-0.5 px-3 text-center rounded-none shadow-sm"
           style={{
             background: 'linear-gradient(90deg, #15803d 0%, #16a34a 50%, #ca8a04 100%)',
           }}
         >
           <span
-            className="text-white text-[8pt] font-bold tracking-wide italic"
+            className="text-white text-[7pt] font-bold tracking-wide italic"
             style={{ fontFamily: 'Georgia, Cambria, serif' }}
           >
             Serving with Honor and Excellence!
@@ -413,46 +423,48 @@ export function CAROverdueMemorandumTemplate({
           PAGE 2: ATTACHMENT A - SCHEDULE OF OVERDUE ISSUES TABLE
           ======================================================== */}
       <div
-        className="pt-6 border-t-2 border-slate-900 flex flex-col justify-between"
+        className="memo-attachment-page flex flex-col justify-between"
         style={{
           pageBreakBefore: 'always',
-          minHeight: paperSize === 'folio' ? '12.2in' : '10.2in',
-          marginTop: '0.4in',
+          breakBefore: 'page',
+          minHeight: paperSize === 'folio' ? '12.3in' : '10.3in',
+          padding: '0.35in 0.45in 0.25in 0.45in',
+          boxSizing: 'border-box',
         }}
       >
         <div>
           {/* ATTACHMENT TOP HEADER */}
-          <div className="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-4">
-            <div className="flex items-center gap-3">
-              <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '42px', width: '42px', objectFit: 'contain' }} />
+          <div className="flex items-center justify-between border-b-2 border-slate-900 pb-1.5 mb-2.5">
+            <div className="flex items-center gap-2.5">
+              <img src="/rsulogo.png" alt="RSU Seal" style={{ height: '36px', width: '36px', objectFit: 'contain' }} />
               <img
                 src="/qa_logo.png"
                 alt="QAO Emblem"
-                style={{ height: '42px', width: '42px', objectFit: 'contain' }}
+                style={{ height: '36px', width: '36px', objectFit: 'contain' }}
               />
               <div>
-                <h2 className="text-[11pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
+                <h2 className="text-[10pt] font-black uppercase tracking-tight text-slate-900 leading-none m-0 font-serif">
                   ROMBLON STATE UNIVERSITY
                 </h2>
-                <h3 className="text-[8.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
+                <h3 className="text-[7.5pt] font-bold uppercase tracking-wider text-slate-800 leading-tight m-0 mt-0.5">
                   QUALITY ASSURANCE OFFICE
                 </h3>
               </div>
             </div>
 
             <div className="text-right">
-              <span className="text-[8.5pt] font-mono font-bold text-slate-900 block">Ref: {generatedRefNo}</span>
-              <span className="text-[7.5pt] font-bold text-rose-700 font-mono">
+              <span className="text-[7.5pt] font-mono font-bold text-slate-900 block">Ref: {generatedRefNo}</span>
+              <span className="text-[6.8pt] font-bold text-rose-700 font-mono">
                 {totalOverdueCount} Overdue Item{totalOverdueCount !== 1 ? 's' : ''} Listed
               </span>
             </div>
           </div>
 
-          <div className="mb-3">
-            <h2 className="text-[11pt] font-black uppercase tracking-tight text-slate-900 m-0">
+          <div className="mb-2">
+            <h2 className="text-[9.5pt] font-black uppercase tracking-tight text-slate-900 m-0">
               ATTACHMENT A: SCHEDULE OF OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
             </h2>
-            <p className="text-[8pt] font-semibold text-slate-600 m-0 mt-0.5">
+            <p className="text-[7pt] font-semibold text-slate-600 m-0 mt-0.5">
               Itemized Inventory of Identified Audit Non-Conformances, Procedures, and Overdue Statuses
             </p>
           </div>
@@ -463,15 +475,15 @@ export function CAROverdueMemorandumTemplate({
               No overdue Corrective Action Requests found for this scope.
             </div>
           ) : (
-            <table className="w-full border-collapse border border-slate-900 text-[8pt]">
+            <table className="w-full border-collapse border border-slate-900 text-[7.5pt]">
               <thead>
-                <tr className="bg-slate-100 font-black text-slate-900 uppercase">
-                  <th className="border border-slate-900 p-2 text-center w-[12%]">CAR No. &amp; Type</th>
-                  <th className="border border-slate-900 p-2 text-left w-[22%]">Campus &amp; Unit Involved</th>
-                  <th className="border border-slate-900 p-2 text-left w-[20%]">Procedure / ISO Clause</th>
-                  <th className="border border-slate-900 p-2 text-left w-[26%]">Finding Description / Issue</th>
-                  <th className="border border-slate-900 p-2 text-center w-[10%]">Reply Deadline</th>
-                  <th className="border border-slate-900 p-2 text-center w-[10%]">Status &amp; Delay</th>
+                <tr className="bg-slate-100 font-black text-slate-900 uppercase text-[7pt]">
+                  <th className="border border-slate-900 p-1.5 text-center w-[12%]">CAR No. &amp; Type</th>
+                  <th className="border border-slate-900 p-1.5 text-left w-[22%]">Campus &amp; Unit Involved</th>
+                  <th className="border border-slate-900 p-1.5 text-left w-[20%]">Procedure / ISO Clause</th>
+                  <th className="border border-slate-900 p-1.5 text-left w-[26%]">Finding Description / Issue</th>
+                  <th className="border border-slate-900 p-1.5 text-center w-[10%]">Reply Deadline</th>
+                  <th className="border border-slate-900 p-1.5 text-center w-[10%]">Status &amp; Delay</th>
                 </tr>
               </thead>
               <tbody>
@@ -480,21 +492,21 @@ export function CAROverdueMemorandumTemplate({
                   return (
                     <tr key={car.id || idx} className="hover:bg-slate-50">
                       {/* Col 1: CAR No & Audit Type */}
-                      <td className="border border-slate-900 p-1.5 text-center font-mono font-bold text-slate-900">
-                        <div className="font-bold text-[8.5pt]">{car.carNumber}</div>
+                      <td className="border border-slate-900 p-1 text-center font-mono font-bold text-slate-900">
+                        <div className="font-bold text-[7.8pt]">{car.carNumber}</div>
                         <div className="flex flex-col items-center gap-0.5 mt-0.5">
-                          <span className="text-[6.5pt] px-1 py-0.2 rounded bg-slate-200 uppercase font-sans">
+                          <span className="text-[6pt] px-1 py-0.2 rounded bg-slate-200 uppercase font-sans">
                             {car.auditType === 'EQA' ? 'EQA' : 'IQA'}
                           </span>
                           <span
                             className={
                               car.status === 'Open'
-                                ? 'text-[6.5pt] px-1 py-0.2 rounded font-black uppercase bg-amber-100 text-amber-800 border border-amber-300 font-sans'
+                                ? 'text-[6pt] px-1 py-0.2 rounded font-black uppercase bg-amber-100 text-amber-800 border border-amber-300 font-sans'
                                 : car.status === 'In Progress'
-                                  ? 'text-[6.5pt] px-1 py-0.2 rounded font-black uppercase bg-blue-100 text-blue-800 border border-blue-300 font-sans'
+                                  ? 'text-[6pt] px-1 py-0.2 rounded font-black uppercase bg-blue-100 text-blue-800 border border-blue-300 font-sans'
                                   : car.status === 'Awaiting Response/Update'
-                                    ? 'text-[6.5pt] px-1 py-0.2 rounded font-black uppercase bg-indigo-100 text-indigo-800 border border-indigo-300 font-sans'
-                                    : 'text-[6.5pt] px-1 py-0.2 rounded font-black uppercase bg-slate-100 text-slate-700 border border-slate-300 font-sans'
+                                    ? 'text-[6pt] px-1 py-0.2 rounded font-black uppercase bg-indigo-100 text-indigo-800 border border-indigo-300 font-sans'
+                                    : 'text-[6pt] px-1 py-0.2 rounded font-black uppercase bg-slate-100 text-slate-700 border border-slate-300 font-sans'
                             }
                           >
                             {car.status === 'Open'
@@ -511,47 +523,47 @@ export function CAROverdueMemorandumTemplate({
                       </td>
 
                       {/* Col 2: Campus & Unit Involved */}
-                      <td className="border border-slate-900 p-1.5">
-                        <span className="text-[7.5pt] text-slate-600 font-bold uppercase tracking-wide block">
+                      <td className="border border-slate-900 p-1">
+                        <span className="text-[6.8pt] text-slate-600 font-bold uppercase tracking-wide block">
                           {campusName || 'Main Campus, Odiongan'}
                         </span>
-                        <strong className="block text-slate-900 uppercase text-[8.5pt] font-black leading-tight mt-0.5">
+                        <strong className="block text-slate-900 uppercase text-[7.8pt] font-black leading-tight mt-0.5">
                           {unitName || 'Unknown Unit'}
                         </strong>
                         {car.unitHead && (
-                          <span className="text-[7pt] text-slate-500 italic block mt-0.5">Lead: {car.unitHead}</span>
+                          <span className="text-[6.5pt] text-slate-500 italic block mt-0.5">Lead: {car.unitHead}</span>
                         )}
                       </td>
 
                       {/* Col 3: Procedure / ISO Clause */}
-                      <td className="border border-slate-900 p-1.5">
-                        <span className="font-bold text-slate-900 block leading-tight">
+                      <td className="border border-slate-900 p-1">
+                        <span className="font-bold text-slate-900 block leading-tight text-[7.2pt]">
                           {car.procedureTitle || 'General Standard Operating Procedure'}
                         </span>
-                        <span className="text-[7pt] text-slate-600 block mt-0.5">
+                        <span className="text-[6.5pt] text-slate-600 block mt-0.5">
                           Clause {car.concerningClause || '4.1'} (ISO 21001:2018)
                         </span>
                       </td>
 
                       {/* Col 4: Finding Description / Issue */}
-                      <td className="border border-slate-900 p-1.5 text-slate-800 leading-snug">
-                        <p className="line-clamp-4 m-0 text-[7.5pt]">
+                      <td className="border border-slate-900 p-1 text-slate-800 leading-snug">
+                        <p className="line-clamp-4 m-0 text-[7pt]">
                           {car.descriptionOfNonconformance ||
                             'Non-conformance recorded during quality audit verification.'}
                         </p>
                       </td>
 
                       {/* Col 5: Reply Deadline */}
-                      <td className="border border-slate-900 p-1.5 text-center font-mono font-bold text-rose-700 text-[8pt]">
+                      <td className="border border-slate-900 p-1 text-center font-mono font-bold text-rose-700 text-[7.2pt]">
                         {deadlineStr}
                       </td>
 
                       {/* Col 6: Status & Delay */}
-                      <td className="border border-slate-900 p-1.5 text-center font-sans">
-                        <span className="inline-block px-1.5 py-0.5 rounded text-[6.5pt] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
+                      <td className="border border-slate-900 p-1 text-center font-sans">
+                        <span className="inline-block px-1 py-0.2 rounded text-[6pt] font-black uppercase bg-rose-100 text-rose-800 border border-rose-300">
                           {daysOverdue > 0 ? `${daysOverdue}D OVERDUE` : 'DUE TODAY'}
                         </span>
-                        <span className="block text-[6.5pt] text-slate-500 mt-0.5 font-bold uppercase">
+                        <span className="block text-[5.8pt] text-slate-500 mt-0.5 font-bold uppercase">
                           {car.status === 'Open'
                             ? 'Initial Response Due'
                             : car.status === 'In Progress'
@@ -570,28 +582,28 @@ export function CAROverdueMemorandumTemplate({
           <div
             className={
               includeNoted
-                ? 'grid grid-cols-2 gap-6 pt-6 mt-4 text-[8pt] border-t border-slate-300'
-                : 'pt-6 mt-4 text-[8pt] border-t border-slate-300'
+                ? 'grid grid-cols-2 gap-6 pt-4 mt-3 text-[7.2pt] border-t border-slate-300'
+                : 'pt-4 mt-3 text-[7.2pt] border-t border-slate-300'
             }
           >
             <div>
-              <p className="font-bold text-slate-600 uppercase text-[7pt]">Certified Accurate by:</p>
-              <div className="pt-6">
-                <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
+              <p className="font-bold text-slate-600 uppercase text-[6pt]">Certified Accurate by:</p>
+              <div className="pt-4">
+                <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt]">
                   {qmsHead}
                 </p>
-                <p className="text-[7.5pt] text-slate-700 font-bold mt-0.5">Head, Quality Management System (QMS)</p>
+                <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5">Head, Quality Management System (QMS)</p>
               </div>
             </div>
 
             {includeNoted && (
               <div>
-                <p className="font-bold text-slate-600 uppercase text-[7pt]">Approved for Release by:</p>
-                <div className="pt-6">
-                  <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.5 min-w-[170px]">
+                <p className="font-bold text-slate-600 uppercase text-[6pt]">Approved for Release by:</p>
+                <div className="pt-4">
+                  <p className="font-black uppercase text-slate-900 border-b border-black inline-block pb-0.2 min-w-[150px] text-[7.2pt]">
                     {qaoDirector}
                   </p>
-                  <p className="text-[7.5pt] text-slate-700 font-bold mt-0.5">Director, Quality Assurance Office</p>
+                  <p className="text-[6.8pt] text-slate-700 font-bold mt-0.5">Director, Quality Assurance Office</p>
                 </div>
               </div>
             )}
@@ -600,7 +612,7 @@ export function CAROverdueMemorandumTemplate({
 
         {/* ATTACHMENT FOOTER & GREEN BANNER */}
         <div>
-          <div className="border-t border-slate-300 pt-2 mb-2 text-[6.5pt] text-slate-500 flex justify-between items-center font-sans">
+          <div className="border-t border-slate-300 pt-1 mb-1 text-[6pt] text-slate-500 flex justify-between items-center font-sans">
             <span>Romblon State University • Quality Assurance Office • RSU EOMS Submission Portal</span>
             <span className="font-mono font-bold text-slate-800">
               Form Code: RSU-QAO-CAR-MEMO-01 (Attachment A) | Rev. 03
@@ -608,13 +620,13 @@ export function CAROverdueMemorandumTemplate({
           </div>
 
           <div
-            className="pt-1.5 pb-1 px-4 text-center rounded-sm shadow-sm"
+            className="py-0.5 px-3 text-center rounded-none shadow-sm"
             style={{
               background: 'linear-gradient(90deg, #15803d 0%, #16a34a 50%, #ca8a04 100%)',
             }}
           >
             <span
-              className="text-white text-[8pt] font-bold tracking-wide italic"
+              className="text-white text-[7pt] font-bold tracking-wide italic"
               style={{ fontFamily: 'Georgia, Cambria, serif' }}
             >
               Serving with Honor and Excellence!
