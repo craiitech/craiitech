@@ -1,48 +1,47 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-import type { CorrectiveActionRequest, Signatories, Unit, Campus } from '@/lib/types';
-import { getNextCarActionInfo, parseCarDate } from '@/lib/car-utils';
+import React, { useMemo, useState } from 'react';
+import type { CorrectiveActionRequest, Unit, Campus, Signatories } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   FileText,
   Printer,
-  Bell,
-  CheckCircle2,
-  AlertTriangle,
   Send,
+  Download,
+  AlertTriangle,
   Building2,
-  School,
-  Copy,
   Clock,
-  Sparkles,
-  Search,
   Check,
+  Copy,
+  Calendar,
+  Sparkles,
   Loader2,
-  ExternalLink,
+  ListFilter,
+  FileCheck2,
 } from 'lucide-react';
-import { format, differenceInDays } from 'date-fns';
-import { useNotifications } from '@/hooks/use-notifications';
+import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { useFirestore, useUser } from '@/firebase';
+import { useNotifications } from '@/hooks/use-notifications';
+import { useFirestore, useUser } from '@/firebase/provider';
 import { doc, updateDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { CAROverdueMemorandumTemplate, type OverdueUnitGroup } from './car-overdue-memorandum-template';
+import { getNextCarActionInfo, parseCarDate } from '@/lib/car-utils';
+import { cn } from '@/lib/utils';
 
 interface CAROverdueMemorandumDialogProps {
   isOpen: boolean;
@@ -51,9 +50,9 @@ interface CAROverdueMemorandumDialogProps {
   units: Unit[];
   campuses: Campus[];
   signatories?: Signatories;
-  selectedCarId?: string | null;
-  selectedUnitId?: string | null;
   year?: number;
+  selectedUnitId?: string;
+  selectedCarId?: string;
 }
 
 export function CAROverdueMemorandumDialog({
@@ -63,24 +62,26 @@ export function CAROverdueMemorandumDialog({
   units,
   campuses,
   signatories,
-  selectedCarId,
-  selectedUnitId,
   year = new Date().getFullYear(),
+  selectedUnitId,
+  selectedCarId,
 }: CAROverdueMemorandumDialogProps) {
+  const { toast } = useToast();
+  const { triggerLocalNotification } = useNotifications();
   const firestore = useFirestore();
   const { userProfile, isAdmin } = useUser();
-  const { triggerLocalNotification } = useNotifications();
-  const { toast } = useToast();
 
+  // Filter and Targeting Controls
   const [targetScope, setTargetScope] = useState<'all' | 'unit' | 'car'>(
     selectedCarId ? 'car' : selectedUnitId ? 'unit' : 'all',
   );
+  const [batchMode, setBatchMode] = useState<'consolidated' | 'individual'>('consolidated');
   const [activeUnitFilter, setActiveUnitFilter] = useState<string>(selectedUnitId || 'all');
   const [activeCarFilter, setActiveCarFilter] = useState<string>(selectedCarId || 'all');
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [auditTypeFilter, setAuditTypeFilter] = useState<string>('all');
 
-  const [memoRefNo, setMemoRefNo] = useState<string>(`RSU-QAO-MEMO-CAR-${year}-${format(new Date(), 'MMdd')}`);
+  const [memoRefNo, setMemoRefNo] = useState<string>(`${year}-${format(new Date(), 'MMdd')}`);
   const [memoDate, setMemoDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [gracePeriodDays, setGracePeriodDays] = useState<number>(5);
   const [customDirective, setCustomDirective] = useState<string>(
@@ -125,12 +126,16 @@ export function CAROverdueMemorandumDialog({
       .map((car) => {
         const info = getNextCarActionInfo(car);
         const replyDeadline = parseCarDate(car.timeLimitForReply);
-        const targetDate = info.date || replyDeadline || new Date();
-        const daysOverdue = Math.max(differenceInDays(new Date(), targetDate), 0);
+        let daysOverdue = 0;
+
+        if (replyDeadline) {
+          const diffMs = today.getTime() - replyDeadline.getTime();
+          daysOverdue = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+        }
 
         return {
           car,
-          daysOverdue: daysOverdue === 0 ? 1 : daysOverdue,
+          daysOverdue,
           deadlineStr:
             info.formattedDate !== '--'
               ? info.formattedDate
@@ -195,9 +200,10 @@ export function CAROverdueMemorandumDialog({
     }
 
     return overdueUnitGroups;
-  }, [overdueUnitGroups, targetScope, activeCarFilter, activeUnitFilter, overdueItems, unitMap, campusMap]);
+  }, [targetScope, activeUnitFilter, activeCarFilter, overdueUnitGroups, overdueItems, unitMap, campusMap]);
 
   const activeGroup = targetUnitGroups[activePreviewIndex] || targetUnitGroups[0];
+  const isConsolidatedBatch = targetScope === 'all' && batchMode === 'consolidated';
 
   // Print function
   const handlePrintMemorandum = () => {
@@ -206,25 +212,38 @@ export function CAROverdueMemorandumDialog({
     try {
       const markup = renderToStaticMarkup(
         <div>
-          {targetUnitGroups.map((group, idx) => (
-            <div
-              key={group.unitId || idx}
-              style={{
-                pageBreakBefore: idx > 0 ? 'always' : 'auto',
-                marginBottom: idx < targetUnitGroups.length - 1 ? '40px' : '0',
-              }}
-            >
-              <CAROverdueMemorandumTemplate
-                unitGroup={group}
-                memoRefNo={memoRefNo}
-                memoDate={memoDate}
-                gracePeriodDays={gracePeriodDays}
-                customDirective={customDirective}
-                signatories={signatories}
-                year={year}
-              />
-            </div>
-          ))}
+          {isConsolidatedBatch ? (
+            <CAROverdueMemorandumTemplate
+              allUnitGroups={targetUnitGroups}
+              isBatchConsolidated={true}
+              memoRefNo={memoRefNo}
+              memoDate={memoDate}
+              gracePeriodDays={gracePeriodDays}
+              customDirective={customDirective}
+              signatories={signatories}
+              year={year}
+            />
+          ) : (
+            targetUnitGroups.map((group, idx) => (
+              <div
+                key={group.unitId || idx}
+                style={{
+                  pageBreakBefore: idx > 0 ? 'always' : 'auto',
+                  marginBottom: idx < targetUnitGroups.length - 1 ? '40px' : '0',
+                }}
+              >
+                <CAROverdueMemorandumTemplate
+                  unitGroup={group}
+                  memoRefNo={memoRefNo}
+                  memoDate={memoDate}
+                  gracePeriodDays={gracePeriodDays}
+                  customDirective={customDirective}
+                  signatories={signatories}
+                  year={year}
+                />
+              </div>
+            ))
+          )}
         </div>,
       );
 
@@ -232,7 +251,7 @@ export function CAROverdueMemorandumDialog({
       if (printWindow) {
         printWindow.document.open();
         printWindow.document.write(
-          `<html><head><title>Memorandum - Overdue CAR Responses (${memoRefNo})</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 11in !important; margin: 0.6in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: serif; background: #f9fafb; padding: 30px; color: black; }</style></head><body><div class="no-print mb-6 flex justify-center"><button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print Memorandum (${targetUnitGroups.length} Unit${targetUnitGroups.length > 1 ? 's' : ''})</button></div><div id="print-content">${markup}</div></body></html>`,
+          `<html><head><title>QA Memorandum - Overdue CAR Responses (${memoRefNo})</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 8.5in 11in !important; margin: 0.6in !important; } @media print { body { margin: 0 !important; padding: 0 !important; background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } } body { font-family: ui-sans-serif, system-ui, sans-serif; background: #f9fafb; padding: 30px; color: black; }</style></head><body><div class="no-print mb-6 flex justify-center"><button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print Memorandum (${targetUnitGroups.length} Unit${targetUnitGroups.length > 1 ? 's' : ''})</button></div><div id="print-content">${markup}</div></body></html>`,
         );
         printWindow.document.close();
       }
@@ -294,25 +313,50 @@ export function CAROverdueMemorandumDialog({
 
   // Copy plain text memo
   const handleCopyMemoText = () => {
-    if (!activeGroup) return;
+    if (targetUnitGroups.length === 0) return;
+
+    const recipients = isConsolidatedBatch
+      ? targetUnitGroups.map((g) => g.unitName.toUpperCase()).join('\n')
+      : activeGroup?.unitName.toUpperCase() || 'ALL UNITS';
+
+    const carsList = isConsolidatedBatch
+      ? targetUnitGroups
+          .flatMap((g) =>
+            g.overdueCars.map(
+              (c, i) =>
+                `• [${g.unitName}] CAR No: ${c.car.carNumber} | Procedure: ${c.car.procedureTitle || 'General'} | Deadline: ${c.deadlineStr} (${c.daysOverdue} days past due)`,
+            ),
+          )
+          .join('\n')
+      : activeGroup?.overdueCars
+          .map(
+            (c, i) =>
+              `${i + 1}. CAR No: ${c.car.carNumber} | Procedure: ${c.car.procedureTitle || 'General'} | Deadline: ${c.deadlineStr} (${c.daysOverdue} days past due)`,
+          )
+          .join('\n');
 
     const text = `
-MEMORANDUM: URGENT COMPLIANCE DIRECTIVE
-REF NO: ${memoRefNo}
-DATE: ${format(new Date(memoDate), 'MMMM d, yyyy')}
-FOR / TO: ${activeGroup.unitName.toUpperCase()} (${activeGroup.campusName})
-FROM: ${signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)'}
-NOTED BY: ${signatories?.qaoDirector || 'DIRECTOR, QUALITY ASSURANCE OFFICE'}
-SUBJECT: FINAL NOTICE TO SUBMIT ROOT CAUSE ANALYSIS & CORRECTIVE ACTION PLAN FOR OVERDUE CAR(S)
+QA Memorandum
+${memoRefNo}
 
-In accordance with ISO 21001:2018 Clause 10.2 and the Romblon State University Educational Organizations Management System (RSU-EOMS) Manual, please be informed that your unit has ${activeGroup.overdueCars.length} overdue Corrective Action Request(s):
+TO          :   ${recipients}
+                This University
 
-${activeGroup.overdueCars
-  .map(
-    (c, i) =>
-      `${i + 1}. CAR No: ${c.car.carNumber} | Procedure: ${c.car.procedureTitle || 'General'} | Deadline: ${c.deadlineStr} (${c.daysOverdue} days past due)`,
-  )
-  .join('\n')}
+FROM        :   ${signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)'}
+                Head, Quality Management System (QMS)
+
+SUBJECT     :   COMPLIANCE DIRECTIVE: IMMEDIATE SUBMISSION OF ROOT CAUSE ANALYSIS AND CORRECTIVE ACTION PLAN FOR OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
+
+DATE        :   ${format(new Date(memoDate), 'MMMM d, yyyy').toUpperCase()}
+
+--------------------------------------------------------------------------------
+
+In line with the mandatory requirements of ISO 21001:2018 Clause 10.2, ISO 9001:2015 Clause 10.2, and the Romblon State University Educational Organizations Management System (RSU-EOMS) Manual, all accountable academic and administrative units are directed to immediately submit their official Root Cause Analysis (RCA) and Corrective Action Plan (CAP) for nonconformities identified during quality audits.
+
+Please be informed that records in the RSU EOMS Submission Portal indicate that statutory reply deadlines have elapsed without submission of an approved action plan.
+
+ATTACHMENT A: SCHEDULE OF OVERDUE CORRECTIVE ACTION REQUESTS (CAR)
+${carsList}
 
 INSTRUCTIONS TO RESPOND IN RSU EOMS SUBMISSION PORTAL:
 1. Log in to the RSU EOMS Submission Portal (QA Reports > CAR Registry).
@@ -322,6 +366,16 @@ INSTRUCTIONS TO RESPOND IN RSU EOMS SUBMISSION PORTAL:
 5. Click "Submit Unit Response".
 
 STRICT COMPLIANCE DEADLINE: ${gracePeriodDays} working days from receipt of this notice.
+
+For your strict compliance and guidance.
+
+Issued by:
+${signatories?.qmsHead || 'HEAD, QUALITY MANAGEMENT SYSTEM (QMS)'}
+Head, Quality Management System (QMS)
+
+Noted by:
+${signatories?.qaoDirector || 'SARAH JANE F. FALLARIA'}
+Director, Quality Assurance Office
     `.trim();
 
     navigator.clipboard.writeText(text);
@@ -345,28 +399,31 @@ STRICT COMPLIANCE DEADLINE: ${gracePeriodDays} working days from receipt of this
                 <FileText className="h-6 w-6 animate-pulse" />
               </div>
               <div>
-                <DialogTitle className="text-base sm:text-lg font-black uppercase tracking-tight text-white flex items-center gap-2">
-                  Official CAR Overdue Response Memorandum Generator
+                <DialogTitle className="text-lg font-black tracking-tight text-white flex items-center gap-2">
+                  QA Memorandum Generator
+                  <Badge
+                    variant="outline"
+                    className="bg-rose-500/20 text-rose-300 border-rose-400/40 text-[10px] font-black uppercase"
+                  >
+                    Overdue CAR Compliance
+                  </Badge>
                 </DialogTitle>
-                <DialogDescription className="text-xs text-indigo-200/80 font-medium mt-0.5">
-                  Generate, customize, and issue formal University Compliance Memorandums with step-by-step response
-                  instructions for units with overdue CARs.
+                <DialogDescription className="text-xs text-slate-300 font-medium mt-0.5">
+                  Generate official QAO Memorandum with attached schedule of overdue issues, step-by-step submission
+                  instructions, and legal directives.
                 </DialogDescription>
               </div>
             </div>
-
             <div className="flex items-center gap-2">
-              <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 text-xs font-black uppercase px-2.5 py-1">
-                <AlertTriangle className="h-3.5 w-3.5 mr-1" />
-                {overdueItems.length} Overdue CAR{overdueItems.length !== 1 ? 's' : ''} ({overdueUnitGroups.length}{' '}
-                Units)
+              <Badge className="bg-white/10 text-white text-xs font-black px-2.5 py-1">
+                {overdueItems.length} Overdue Issue{overdueItems.length !== 1 ? 's' : ''} Identified
               </Badge>
             </div>
           </div>
         </DialogHeader>
 
-        {/* DIALOG CONTENT TABS */}
-        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        {/* DIALOG BODY */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
           {/* TOP CONTROLS & SCOPE SELECTOR */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm">
             <div className="space-y-1.5">
@@ -377,7 +434,7 @@ STRICT COMPLIANCE DEADLINE: ${gracePeriodDays} working days from receipt of this
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs font-bold">
-                    All Overdue Units (Batch Release — {overdueUnitGroups.length} Units)
+                    All Overdue Units (Batch — {overdueUnitGroups.length} Units)
                   </SelectItem>
                   <SelectItem value="unit" className="text-xs font-bold">
                     Target Specific Unit
@@ -388,6 +445,25 @@ STRICT COMPLIANCE DEADLINE: ${gracePeriodDays} working days from receipt of this
                 </SelectContent>
               </Select>
             </div>
+
+            {targetScope === 'all' && (
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase text-slate-500">Batch Format</Label>
+                <Select value={batchMode} onValueChange={(v: any) => setBatchMode(v)}>
+                  <SelectTrigger className="h-9 text-xs font-bold">
+                    <SelectValue placeholder="Batch Format" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="consolidated" className="text-xs font-bold">
+                      Master Memorandum (Single List + All Issues)
+                    </SelectItem>
+                    <SelectItem value="individual" className="text-xs font-bold">
+                      Individual Notices (Separate Sheet per Unit)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {targetScope === 'unit' && (
               <div className="space-y-1.5">
@@ -461,105 +537,90 @@ STRICT COMPLIANCE DEADLINE: ${gracePeriodDays} working days from receipt of this
                     All Audit Types (IQA &amp; EQA)
                   </SelectItem>
                   <SelectItem value="IQA" className="text-xs">
-                    Internal Quality Audit (IQA)
+                    Internal Quality Audit (IQA) Only
                   </SelectItem>
                   <SelectItem value="EQA" className="text-xs">
-                    External Quality Audit (EQA)
+                    External Quality Audit (EQA) Only
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* MEMO CUSTOMIZATION COLLAPSIBLE/CARD */}
-          <Card className="border shadow-sm bg-white dark:bg-slate-800">
-            <CardHeader className="py-3 px-4 bg-muted/30 border-b">
-              <CardTitle className="text-xs font-black uppercase tracking-wider flex items-center justify-between">
-                <span>Official Memorandum Parameters &amp; Directive Details</span>
-                <span className="text-[10px] font-normal text-muted-foreground">
-                  Standard University Form RSU-QAO-CAR-MEMO-01
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-black uppercase text-slate-500">Memo Reference Number</Label>
-                  <Input
-                    value={memoRefNo}
-                    onChange={(e) => setMemoRefNo(e.target.value)}
-                    className="h-8 text-xs font-mono font-bold"
-                    placeholder="RSU-QAO-MEMO-CAR-2026-XXXX"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-black uppercase text-slate-500">Issuance Date</Label>
-                  <Input
-                    type="date"
-                    value={memoDate}
-                    onChange={(e) => setMemoDate(e.target.value)}
-                    className="h-8 text-xs font-bold"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-[10px] font-black uppercase text-slate-500">
-                    Compliance Grace Window (Working Days)
-                  </Label>
-                  <Select value={String(gracePeriodDays)} onValueChange={(v) => setGracePeriodDays(Number(v))}>
-                    <SelectTrigger className="h-8 text-xs font-bold">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="3" className="text-xs">
-                        3 Working Days (Urgent / Critical)
-                      </SelectItem>
-                      <SelectItem value="5" className="text-xs">
-                        5 Working Days (Standard Directive)
-                      </SelectItem>
-                      <SelectItem value="7" className="text-xs">
-                        7 Working Days
-                      </SelectItem>
-                      <SelectItem value="10" className="text-xs">
-                        10 Working Days (Final Extension)
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+          {/* MEMORANDUM PARAMETER CUSTOMIZATION */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-slate-800 p-4 rounded-xl border shadow-sm">
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase text-slate-500">Memo Reference Number</Label>
+              <Input
+                value={memoRefNo}
+                onChange={(e) => setMemoRefNo(e.target.value)}
+                placeholder="2026-007"
+                className="h-9 font-mono text-xs font-bold"
+              />
+            </div>
 
-              <div className="space-y-1">
-                <Label className="text-[10px] font-black uppercase text-slate-500">
-                  Custom Administrative Directive / Instruction (Appears in Memo Body)
-                </Label>
-                <Textarea
-                  value={customDirective}
-                  onChange={(e) => setCustomDirective(e.target.value)}
-                  rows={2}
-                  className="text-xs leading-snug"
-                  placeholder="Enter specific instructions or directives for the non-responsive units..."
-                />
-              </div>
-            </CardContent>
-          </Card>
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase text-slate-500">Issuance Date</Label>
+              <Input
+                type="date"
+                value={memoDate}
+                onChange={(e) => setMemoDate(e.target.value)}
+                className="h-9 text-xs font-bold"
+              />
+            </div>
 
-          {/* UNIT TABS & PREVIEW SECTION */}
+            <div className="space-y-1.5">
+              <Label className="text-[10px] font-black uppercase text-slate-500">Compliance Grace Period</Label>
+              <Select value={gracePeriodDays.toString()} onValueChange={(v) => setGracePeriodDays(parseInt(v, 10))}>
+                <SelectTrigger className="h-9 text-xs font-bold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3" className="text-xs">
+                    3 Working Days (Urgent)
+                  </SelectItem>
+                  <SelectItem value="5" className="text-xs font-bold">
+                    5 Working Days (Standard)
+                  </SelectItem>
+                  <SelectItem value="7" className="text-xs">
+                    7 Working Days
+                  </SelectItem>
+                  <SelectItem value="10" className="text-xs">
+                    10 Working Days
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="md:col-span-3 space-y-1.5 pt-2 border-t">
+              <Label className="text-[10px] font-black uppercase text-slate-500">
+                Additional Administrative Directive / Special Instruction (Optional)
+              </Label>
+              <Textarea
+                rows={2}
+                value={customDirective}
+                onChange={(e) => setCustomDirective(e.target.value)}
+                placeholder="Enter specific instruction or administrative remark..."
+                className="text-xs leading-relaxed"
+              />
+            </div>
+          </div>
+
+          {/* RECIPIENT PREVIEW SELECTOR (FOR INDIVIDUAL NOTICES) */}
           {targetUnitGroups.length === 0 ? (
-            <div className="border border-dashed rounded-xl p-12 text-center bg-white dark:bg-slate-800">
-              <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto mb-3 opacity-80" />
-              <h4 className="text-sm font-black uppercase text-slate-800 dark:text-slate-200">
-                No Overdue CAR Responses Found
-              </h4>
-              <p className="text-xs text-muted-foreground mt-1 max-w-md mx-auto">
-                All units are currently compliant with their CAR response deadlines under the selected filter criteria.
+            <div className="p-12 text-center bg-white dark:bg-slate-800 rounded-xl border border-dashed text-muted-foreground">
+              <AlertTriangle className="h-10 w-10 mx-auto text-amber-500 mb-2 opacity-60" />
+              <h3 className="text-sm font-black uppercase tracking-wide">No Overdue CAR Responses Found</h3>
+              <p className="text-xs mt-1">
+                There are currently no overdue CAR responses matching the selected filters.
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {/* Unit switcher tabs when multiple units are present */}
-              {targetUnitGroups.length > 1 && (
-                <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                  <span className="text-[10px] font-black uppercase text-slate-500 shrink-0">
-                    Preview Unit ({targetUnitGroups.length}):
+              {!isConsolidatedBatch && targetUnitGroups.length > 1 && (
+                <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                  <span className="text-[10px] font-black uppercase text-slate-500 shrink-0 flex items-center gap-1">
+                    <Building2 className="h-3.5 w-3.5" /> Unit Notice:
                   </span>
                   {targetUnitGroups.map((g, idx) => (
                     <Button
@@ -580,7 +641,9 @@ STRICT COMPLIANCE DEADLINE: ${gracePeriodDays} working days from receipt of this
                 <div className="bg-slate-100 dark:bg-slate-800 px-4 py-2.5 border-b flex items-center justify-between">
                   <span className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 flex items-center gap-2">
                     <FileText className="h-4 w-4 text-primary" />
-                    Printable Document Preview: {activeGroup?.unitName} ({activeGroup?.campusName})
+                    {isConsolidatedBatch
+                      ? `Consolidated Master Memorandum Preview (${targetUnitGroups.length} Units, ${overdueItems.length} Issues)`
+                      : `Printable Document Preview: ${activeGroup?.unitName} (${activeGroup?.campusName})`}
                   </span>
                   <div className="flex items-center gap-2">
                     <Button
@@ -597,9 +660,10 @@ STRICT COMPLIANCE DEADLINE: ${gracePeriodDays} working days from receipt of this
 
                 <div className="p-4 sm:p-8 overflow-x-auto bg-slate-100/50 flex justify-center">
                   <div className="bg-white shadow-xl rounded-none border border-slate-200 w-full max-w-[8.5in]">
-                    {activeGroup && (
+                    {isConsolidatedBatch ? (
                       <CAROverdueMemorandumTemplate
-                        unitGroup={activeGroup}
+                        allUnitGroups={targetUnitGroups}
+                        isBatchConsolidated={true}
                         memoRefNo={memoRefNo}
                         memoDate={memoDate}
                         gracePeriodDays={gracePeriodDays}
@@ -607,6 +671,18 @@ STRICT COMPLIANCE DEADLINE: ${gracePeriodDays} working days from receipt of this
                         signatories={signatories}
                         year={year}
                       />
+                    ) : (
+                      activeGroup && (
+                        <CAROverdueMemorandumTemplate
+                          unitGroup={activeGroup}
+                          memoRefNo={memoRefNo}
+                          memoDate={memoDate}
+                          gracePeriodDays={gracePeriodDays}
+                          customDirective={customDirective}
+                          signatories={signatories}
+                          year={year}
+                        />
+                      )
                     )}
                   </div>
                 </div>
@@ -626,7 +702,7 @@ STRICT COMPLIANCE DEADLINE: ${gracePeriodDays} working days from receipt of this
               </strong>{' '}
               with{' '}
               <strong>
-                {overdueItems.length} Overdue CAR{overdueItems.length !== 1 ? 's' : ''}
+                {overdueItems.length} Overdue Issue{overdueItems.length !== 1 ? 's' : ''}
               </strong>
             </span>
           </div>

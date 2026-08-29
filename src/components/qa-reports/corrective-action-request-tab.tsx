@@ -3880,8 +3880,8 @@ export function CorrectiveActionRequestTab({
         units={units}
         campuses={campuses}
         signatories={currentSignatories || undefined}
-        selectedCarId={memoSelectedCarId}
-        selectedUnitId={memoSelectedUnitId}
+        selectedCarId={memoSelectedCarId ?? undefined}
+        selectedUnitId={memoSelectedUnitId ?? undefined}
         year={yearFilter !== 'all' ? Number(yearFilter) : new Date().getFullYear()}
       />
     </div>
