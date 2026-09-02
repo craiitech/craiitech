@@ -56,7 +56,7 @@ import { OrgStructureDirectoryView } from '@/components/submissions/org-structur
 import { SubmissionDashboard } from '@/components/submissions/submission-dashboard';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
-import { cn, normalizeReportType } from '@/lib/utils';
+import { cn, normalizeReportType, getSupervisedUnitIds, isVpOffice } from '@/lib/utils';
 import { submissionTypes } from '@/lib/constants';
 import Link from 'next/link';
 
@@ -106,7 +106,18 @@ const safeFormatDate = (date: any) => {
 };
 
 export default function SubmissionsPage() {
-  const { user, userProfile, isAdmin, isAuditor, isSupervisor, isVp, userRole, isUserLoading, can } = useUser();
+  const {
+    user,
+    userProfile,
+    isAdmin,
+    isAuditor,
+    isSupervisor,
+    isVp,
+    isVpOffice: contextIsVpOffice,
+    userRole,
+    isUserLoading,
+    can,
+  } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
@@ -135,35 +146,57 @@ export default function SubmissionsPage() {
   );
   const { data: signatories } = useDoc<Signatories>(signatoriesDocRef);
 
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
+  const isUserVpOffice = useMemo(() => {
+    return (
+      isVp ||
+      contextIsVpOffice ||
+      isVpOffice(userProfile?.unitId, allUnits || undefined) ||
+      isVpOffice(userProfile?.unitName, allUnits || undefined)
+    );
+  }, [isVp, contextIsVpOffice, userProfile?.unitId, userProfile?.unitName, allUnits]);
+
+  const supervisedUnitIds = useMemo(() => {
+    if (!isUserVpOffice || !allUnits) return [];
+    return getSupervisedUnitIds(userProfile?.unitId, allUnits);
+  }, [isUserVpOffice, userProfile?.unitId, allUnits]);
+
   const isInstitutionalViewer =
     isAdmin ||
     isAuditor ||
     isVp ||
+    isUserVpOffice ||
+    can('submissions.view_all') ||
     userRole?.toLowerCase().includes('president') ||
     userRole?.toLowerCase().includes('quality management') ||
     userRole?.toLowerCase().includes('qms');
 
   const roleLower = userRole?.toLowerCase() || '';
   const isUnitRole =
-    roleLower.includes('coordinator') ||
-    roleLower.includes('head') ||
-    userRole === 'Unit ODIMO' ||
-    !!userProfile?.unitId;
+    !isUserVpOffice &&
+    (roleLower.includes('coordinator') ||
+      roleLower.includes('head') ||
+      userRole === 'Unit ODIMO' ||
+      !!userProfile?.unitId);
 
   useEffect(() => {
     if (userProfile && !isUserLoading) {
-      if (!isInstitutionalViewer) {
+      if (!isInstitutionalViewer && !isUserVpOffice) {
         setCampusFilter(userProfile.campusId);
         if (!isSupervisor || isUnitRole) {
           setUnitFilter(userProfile.unitId);
         }
       }
     }
-  }, [userProfile, isInstitutionalViewer, isSupervisor, isUnitRole, userRole, isUserLoading]);
+  }, [userProfile, isInstitutionalViewer, isUserVpOffice, isSupervisor, isUnitRole, userRole, isUserLoading]);
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
-    if (isInstitutionalViewer) return collection(firestore, 'submissions');
+    if (isInstitutionalViewer || isUserVpOffice || can('submissions.view_all') || can('submissions.view_supervised')) {
+      return collection(firestore, 'submissions');
+    }
     if (isSupervisor && !isUnitRole && userProfile.campusId) {
       return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
@@ -172,13 +205,25 @@ export default function SubmissionsPage() {
       where('unitId', '==', userProfile.unitId),
       where('campusId', '==', userProfile.campusId),
     );
-  }, [firestore, isInstitutionalViewer, isSupervisor, isUnitRole, userRole, userProfile, isUserLoading]);
+  }, [
+    firestore,
+    isInstitutionalViewer,
+    isUserVpOffice,
+    isSupervisor,
+    isUnitRole,
+    userRole,
+    userProfile,
+    isUserLoading,
+    can,
+  ]);
 
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
-    if (isInstitutionalViewer) return collection(firestore, 'risks');
+    if (isInstitutionalViewer || isUserVpOffice || can('risks.view_all')) {
+      return collection(firestore, 'risks');
+    }
     if (isSupervisor && !isUnitRole && userProfile.campusId) {
       return query(collection(firestore, 'risks'), where('campusId', '==', userProfile.campusId));
     }
@@ -187,29 +232,41 @@ export default function SubmissionsPage() {
       where('unitId', '==', userProfile.unitId),
       where('campusId', '==', userProfile.campusId),
     );
-  }, [firestore, isInstitutionalViewer, isSupervisor, isUnitRole, userRole, userProfile, isUserLoading]);
+  }, [
+    firestore,
+    isInstitutionalViewer,
+    isUserVpOffice,
+    isSupervisor,
+    isUnitRole,
+    userRole,
+    userProfile,
+    isUserLoading,
+    can,
+  ]);
 
   const { data: allRisks } = useCollection<Risk>(risksQuery);
 
   const normalizedSubmissions = useMemo(() => {
     if (!rawSubmissions) return [];
-    return rawSubmissions.map((s) => ({
+    let list = rawSubmissions;
+    if (isUserVpOffice && supervisedUnitIds.length > 0 && !isAdmin && !isAuditor && !can('submissions.view_all')) {
+      list = list.filter((s) => supervisedUnitIds.includes(s.unitId));
+    }
+    return list.map((s) => ({
       ...s,
       reportType: normalizeReportType(s.reportType),
     }));
-  }, [rawSubmissions]);
+  }, [rawSubmissions, isUserVpOffice, supervisedUnitIds, isAdmin, isAuditor, can]);
 
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
   const usersQuery = useMemoFirebase(
-    () => (firestore && (isInstitutionalViewer || isSupervisor) ? collection(firestore, 'users') : null),
-    [firestore, isInstitutionalViewer, isSupervisor],
+    () =>
+      firestore && (isInstitutionalViewer || isSupervisor || isUserVpOffice) ? collection(firestore, 'users') : null,
+    [firestore, isInstitutionalViewer, isSupervisor, isUserVpOffice],
   );
   const { data: allUsers } = useCollection<AppUser>(usersQuery);
-
-  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const campusesQuery = useMemoFirebase(
     () => (firestore && user ? collection(firestore, 'campuses') : null),
@@ -226,9 +283,13 @@ export default function SubmissionsPage() {
 
   const filteredUnitsList = useMemo(() => {
     if (!allUnits) return [];
-    if (campusFilter === 'all') return allUnits;
-    return allUnits.filter((u) => u.campusIds?.includes(campusFilter));
-  }, [allUnits, campusFilter]);
+    let list = allUnits;
+    if (isUserVpOffice && supervisedUnitIds.length > 0 && !isAdmin && !isAuditor && !can('submissions.view_all')) {
+      list = allUnits.filter((u) => supervisedUnitIds.includes(u.id));
+    }
+    if (campusFilter === 'all') return list;
+    return list.filter((u) => u.campusIds?.includes(campusFilter));
+  }, [allUnits, campusFilter, isUserVpOffice, supervisedUnitIds, isAdmin, isAuditor, can]);
 
   const availableYears = useMemo(() => {
     if (!normalizedSubmissions) return [new Date().getFullYear().toString()];
@@ -244,8 +305,8 @@ export default function SubmissionsPage() {
   }, [cycles, yearFilter]);
 
   useEffect(() => {
-    if (isInstitutionalViewer) setUnitFilter('all');
-  }, [campusFilter, isInstitutionalViewer]);
+    if (isInstitutionalViewer || isUserVpOffice) setUnitFilter('all');
+  }, [campusFilter, isInstitutionalViewer, isUserVpOffice]);
 
   useEffect(() => {
     setCycleFilter('all');
@@ -263,7 +324,9 @@ export default function SubmissionsPage() {
   const dashboardUnits = useMemo(() => {
     if (!allUnits || !userProfile) return [];
     let filtered = [...allUnits];
-    if (!isInstitutionalViewer) {
+    if (isUserVpOffice && supervisedUnitIds.length > 0 && !isAdmin && !isAuditor && !can('submissions.view_all')) {
+      filtered = filtered.filter((u) => supervisedUnitIds.includes(u.id));
+    } else if (!isInstitutionalViewer) {
       if (isSupervisor && userRole !== 'Unit ODIMO') {
         filtered = filtered.filter((u) => u.campusIds?.includes(userProfile.campusId));
       } else {
@@ -273,7 +336,20 @@ export default function SubmissionsPage() {
     if (campusFilter !== 'all') filtered = filtered.filter((u) => u.campusIds?.includes(campusFilter));
     if (unitFilter !== 'all') filtered = filtered.filter((u) => u.id === unitFilter);
     return filtered;
-  }, [allUnits, isInstitutionalViewer, isSupervisor, userRole, userProfile, campusFilter, unitFilter]);
+  }, [
+    allUnits,
+    isInstitutionalViewer,
+    isUserVpOffice,
+    supervisedUnitIds,
+    isSupervisor,
+    userRole,
+    userProfile,
+    campusFilter,
+    unitFilter,
+    isAdmin,
+    isAuditor,
+    can,
+  ]);
 
   const tableSubmissionsData = useMemo(() => {
     if (!normalizedSubmissions) return [];
@@ -441,7 +517,7 @@ export default function SubmissionsPage() {
                 >
                   <List className="h-4 w-4" /> Detailed Audit Log
                 </TabsTrigger>
-                {!isInstitutionalViewer && (
+                {!isInstitutionalViewer && !isUserVpOffice && (
                   <TabsTrigger
                     value="by-unit"
                     className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8"
@@ -449,7 +525,7 @@ export default function SubmissionsPage() {
                     Unit Status
                   </TabsTrigger>
                 )}
-                {isInstitutionalViewer && (
+                {(isInstitutionalViewer || isUserVpOffice) && (
                   <TabsTrigger
                     value="by-campus"
                     className="data-[state=active]:shadow-sm text-[10px] font-black uppercase tracking-widest px-6 h-8"
@@ -494,12 +570,16 @@ export default function SubmissionsPage() {
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                       <School className="h-2.5 w-2.5" /> Campus Site
                     </label>
-                    <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!isInstitutionalViewer}>
+                    <Select
+                      value={campusFilter}
+                      onValueChange={setCampusFilter}
+                      disabled={!isInstitutionalViewer && !isUserVpOffice}
+                    >
                       <SelectTrigger className="h-9 text-xs bg-white">
                         <SelectValue placeholder="All Campuses" />
                       </SelectTrigger>
                       <SelectContent>
-                        {isInstitutionalViewer && <SelectItem value="all">All Campuses</SelectItem>}
+                        {(isInstitutionalViewer || isUserVpOffice) && <SelectItem value="all">All Campuses</SelectItem>}
                         {campuses?.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
                             {c.name}
@@ -516,13 +596,17 @@ export default function SubmissionsPage() {
                     <Select
                       value={unitFilter}
                       onValueChange={setUnitFilter}
-                      disabled={!isInstitutionalViewer && (!isSupervisor || userRole === 'Unit ODIMO')}
+                      disabled={
+                        !isInstitutionalViewer && !isUserVpOffice && (!isSupervisor || userRole === 'Unit ODIMO')
+                      }
                     >
                       <SelectTrigger className="h-9 text-xs bg-white">
                         <SelectValue placeholder="All Units" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(isInstitutionalViewer || isSupervisor) && <SelectItem value="all">All Units</SelectItem>}
+                        {(isInstitutionalViewer || isUserVpOffice || isSupervisor) && (
+                          <SelectItem value="all">All Units</SelectItem>
+                        )}
                         {filteredUnitsList.map((u) => (
                           <SelectItem key={u.id} value={u.id}>
                             {u.name}

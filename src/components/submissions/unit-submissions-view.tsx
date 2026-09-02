@@ -48,7 +48,7 @@ import {
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { cn, isCycleActive } from '@/lib/utils';
+import { cn, isCycleActive, isVpOffice, getSupervisedUnitIds } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -97,7 +97,7 @@ const getYearCycleRowColor = (year: number, cycle: string) => {
     },
     2028: {
       first: 'bg-rose-50/20 hover:bg-rose-100/40',
-      final: 'bg-rose-100/40 hover:bg-rose-200/50',
+      final: 'bg-rose-100/40 hover:bg-blue-200/50',
     },
   };
 
@@ -133,6 +133,17 @@ export function UnitSubmissionsView({
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
 
+  const isUserVpOffice = useMemo(() => {
+    return (
+      isVpOffice(userProfile?.unitId, allUnits || undefined) || isVpOffice(userProfile?.role, allUnits || undefined)
+    );
+  }, [userProfile?.unitId, userProfile?.role, allUnits]);
+
+  const supervisedUnitIds = useMemo(() => {
+    if (!isUserVpOffice || !allUnits) return [];
+    return getSupervisedUnitIds(userProfile?.unitId, allUnits);
+  }, [isUserVpOffice, userProfile?.unitId, allUnits]);
+
   useEffect(() => {
     if (userProfile?.unitId && !selectedUnitId) {
       setSelectedUnitId(userProfile.unitId);
@@ -141,13 +152,18 @@ export function UnitSubmissionsView({
 
   const unitsToShow = useMemo(() => {
     if (!allUnits || !userProfile?.campusId) return [];
-    let filtered = allUnits.filter((u) => u.campusIds?.includes(userProfile.campusId));
-    const isUnitLevelOnly = userProfile.role === 'Unit Coordinator' || userProfile.role === 'Unit ODIMO';
-    if (isUnitLevelOnly && userProfile.unitId) {
-      filtered = filtered.filter((u) => u.id === userProfile.unitId);
+    let filtered = allUnits;
+    if (isUserVpOffice && supervisedUnitIds.length > 0) {
+      filtered = allUnits.filter((u) => supervisedUnitIds.includes(u.id));
+    } else {
+      filtered = allUnits.filter((u) => u.campusIds?.includes(userProfile.campusId));
+      const isUnitLevelOnly = userProfile.role === 'Unit Coordinator' || userProfile.role === 'Unit ODIMO';
+      if (isUnitLevelOnly && userProfile.unitId) {
+        filtered = filtered.filter((u) => u.id === userProfile.unitId);
+      }
     }
     return filtered.sort((a, b) => a.name.localeCompare(b.name));
-  }, [allUnits, userProfile]);
+  }, [allUnits, userProfile, isUserVpOffice, supervisedUnitIds]);
 
   // Fetch contextual data for SWOT analysis
   const risksQuery = useMemoFirebase(() => {

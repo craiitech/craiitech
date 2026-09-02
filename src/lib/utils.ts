@@ -278,3 +278,143 @@ export function isCycleActive(
     return true;
   }
 }
+
+/**
+ * Checks if a unit or unit name is an Executive / Vice President Supervising Office.
+ */
+export function isVpOffice(
+  unitOrNameOrId?: { id?: string; name?: string } | string | null,
+  allUnits?: Array<{ id: string; name: string; vicePresidentId?: string; category?: string }>,
+): boolean {
+  if (!unitOrNameOrId) return false;
+  let name = '';
+  if (typeof unitOrNameOrId === 'object') {
+    name = unitOrNameOrId.name || '';
+    if (!name && unitOrNameOrId.id && allUnits) {
+      name = allUnits.find((u) => u.id === unitOrNameOrId.id)?.name || '';
+    }
+  } else {
+    name = unitOrNameOrId;
+    if (allUnits) {
+      const match = allUnits.find(
+        (u) => u.id === unitOrNameOrId || u.name.toLowerCase() === unitOrNameOrId.toLowerCase(),
+      );
+      if (match?.name) name = match.name;
+    }
+  }
+
+  const lower = name.toLowerCase().trim();
+  return (
+    lower.includes('vice president') ||
+    lower.includes('president') ||
+    lower.includes('ovpaa') ||
+    lower.includes('ovpaf') ||
+    lower.includes('ovpredi') ||
+    lower.includes('ovpsas') ||
+    lower === 'vpaa' ||
+    lower === 'vpaf' ||
+    lower === 'vpredi' ||
+    lower === 'vpsas' ||
+    lower === 'op'
+  );
+}
+
+/**
+ * Resolves the target unit category supervised by a Vice President Office.
+ */
+export function getVpCategory(
+  unitOrNameOrId?: { id?: string; name?: string } | string | null,
+  allUnits?: Array<{ id: string; name: string; vicePresidentId?: string; category?: string }>,
+): 'Academic' | 'Administrative' | 'Research' | 'Support' | null {
+  if (!unitOrNameOrId) return null;
+  let name = '';
+  if (typeof unitOrNameOrId === 'object') {
+    name = unitOrNameOrId.name || '';
+    if (!name && unitOrNameOrId.id && allUnits) {
+      name = allUnits.find((u) => u.id === unitOrNameOrId.id)?.name || '';
+    }
+  } else {
+    name = unitOrNameOrId;
+    if (allUnits) {
+      const match = allUnits.find(
+        (u) => u.id === unitOrNameOrId || u.name.toLowerCase() === unitOrNameOrId.toLowerCase(),
+      );
+      if (match?.name) name = match.name;
+    }
+  }
+
+  const lower = name.toLowerCase().trim();
+  if (lower.includes('academic') || lower.includes('ovpaa') || lower.includes('vpaa')) {
+    return 'Academic';
+  }
+  if (lower.includes('admin') || lower.includes('finance') || lower.includes('ovpaf') || lower.includes('vpaf')) {
+    return 'Administrative';
+  }
+  if (
+    lower.includes('research') ||
+    lower.includes('extension') ||
+    lower.includes('innovation') ||
+    lower.includes('development') ||
+    lower.includes('ovpredi') ||
+    lower.includes('vpredi')
+  ) {
+    return 'Research';
+  }
+  if (
+    lower.includes('student') ||
+    lower.includes('services') ||
+    lower.includes('affairs') ||
+    lower.includes('ovpsas') ||
+    lower.includes('vpsas') ||
+    lower.includes('vsas')
+  ) {
+    return 'Support';
+  }
+  return null;
+}
+
+/**
+ * Resolves all unit IDs under the supervisory authority of a given Vice President Office.
+ * Includes the VP office unit itself, all units with matching vicePresidentId,
+ * and units matching the VP office's functional category.
+ */
+export function getSupervisedUnitIds(
+  vpUnitOrNameOrId?: { id?: string; name?: string } | string | null,
+  allUnits?: Array<{ id: string; name: string; vicePresidentId?: string; category?: string }>,
+): string[] {
+  if (!vpUnitOrNameOrId || !allUnits || allUnits.length === 0) return [];
+
+  let vpUnitId = '';
+  if (typeof vpUnitOrNameOrId === 'object') {
+    vpUnitId = vpUnitOrNameOrId.id || '';
+    if (!vpUnitId && vpUnitOrNameOrId.name) {
+      const match = allUnits.find((u) => u.name.toLowerCase() === vpUnitOrNameOrId.name?.toLowerCase());
+      if (match) vpUnitId = match.id;
+    }
+  } else {
+    const match = allUnits.find(
+      (u) => u.id === vpUnitOrNameOrId || u.name.toLowerCase() === vpUnitOrNameOrId.toLowerCase(),
+    );
+    if (match) vpUnitId = match.id;
+    else vpUnitId = vpUnitOrNameOrId;
+  }
+
+  const vpUnit = allUnits.find((u) => u.id === vpUnitId);
+  const vpCategory = getVpCategory(vpUnit || vpUnitOrNameOrId, allUnits);
+
+  const supervisedIds = new Set<string>();
+  if (vpUnitId) supervisedIds.add(vpUnitId);
+
+  allUnits.forEach((u) => {
+    // 1. Direct linkage via vicePresidentId
+    if (vpUnitId && u.vicePresidentId === vpUnitId) {
+      supervisedIds.add(u.id);
+    }
+    // 2. Category fallback matching if category is set
+    else if (vpCategory && u.category === vpCategory) {
+      supervisedIds.add(u.id);
+    }
+  });
+
+  return Array.from(supervisedIds);
+}

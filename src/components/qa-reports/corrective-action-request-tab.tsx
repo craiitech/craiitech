@@ -90,7 +90,7 @@ import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { cn, getSupervisingUnitDisplay } from '@/lib/utils';
+import { cn, getSupervisingUnitDisplay, isVpOffice, getSupervisedUnitIds } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -541,6 +541,20 @@ export function CorrectiveActionRequestTab({
     );
   };
 
+  const isUserVpOffice = useMemo(() => {
+    return (
+      (userRole?.toLowerCase().includes('vice president') ?? false) ||
+      isVpOffice(userProfile?.unitId, units) ||
+      isVpOffice(userProfile?.unitName, units) ||
+      isVpOffice(userRole, units)
+    );
+  }, [userRole, userProfile?.unitId, userProfile?.unitName, units]);
+
+  const supervisedUnitIds = useMemo(() => {
+    if (!isUserVpOffice || !units) return [];
+    return getSupervisedUnitIds(userProfile?.unitId, units);
+  }, [isUserVpOffice, userProfile?.unitId, units]);
+
   const isInstitutionalViewer =
     isAdmin ||
     isAuditor ||
@@ -766,18 +780,24 @@ export function CorrectiveActionRequestTab({
       // EQA CARs are institutional and university-wide (accessible by all units).
       // Unit/Campus scoping only restricts internal audit (IQA) CARs.
       if (!isInstitutionalViewer && car.auditType !== 'EQA') {
-        const isCampusSupervisor =
-          userRole === 'Campus Director' ||
-          userRole === 'Campus ODIMO' ||
-          userRole?.toLowerCase().includes('vice president');
-        if (isCampusSupervisor) {
-          const campusAccess = car.campusId === userProfile?.campusId;
-          const campusInAssignments = (car.assignedUnits || []).some((a) => a.campusId === userProfile?.campusId);
-          if (!campusAccess && !campusInAssignments) return false;
+        if (isUserVpOffice && supervisedUnitIds.length > 0) {
+          const supervisedOwn = supervisedUnitIds.includes(car.unitId);
+          const supervisedInAssignments = (car.assignedUnits || []).some((a) => supervisedUnitIds.includes(a.unitId));
+          if (!supervisedOwn && !supervisedInAssignments) return false;
         } else {
-          const unitOwn = car.unitId === userProfile?.unitId;
-          const unitInAssignments = (car.assignedUnits || []).some((a) => a.unitId === userProfile?.unitId);
-          if (!unitOwn && !unitInAssignments) return false;
+          const isCampusSupervisor =
+            userRole === 'Campus Director' ||
+            userRole === 'Campus ODIMO' ||
+            userRole?.toLowerCase().includes('vice president');
+          if (isCampusSupervisor) {
+            const campusAccess = car.campusId === userProfile?.campusId;
+            const campusInAssignments = (car.assignedUnits || []).some((a) => a.campusId === userProfile?.campusId);
+            if (!campusAccess && !campusInAssignments) return false;
+          } else {
+            const unitOwn = car.unitId === userProfile?.unitId;
+            const unitInAssignments = (car.assignedUnits || []).some((a) => a.unitId === userProfile?.unitId);
+            if (!unitOwn && !unitInAssignments) return false;
+          }
         }
       }
 
@@ -803,6 +823,8 @@ export function CorrectiveActionRequestTab({
     searchTerm,
     unitMap,
     isInstitutionalViewer,
+    isUserVpOffice,
+    supervisedUnitIds,
     userRole,
     userProfile,
     effectiveTypeFilter,

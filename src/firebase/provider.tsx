@@ -46,6 +46,8 @@ export interface FirebaseContextState {
   isSupervisor: boolean;
   isAuditor: boolean;
   isVp: boolean;
+  isVpOffice: boolean;
+  isSupervisoryViewer: boolean;
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
   isDoi: boolean;
@@ -77,6 +79,8 @@ export interface UseFirebaseResult {
   isSupervisor: boolean;
   isAuditor: boolean;
   isVp: boolean;
+  isVpOffice: boolean;
+  isSupervisoryViewer: boolean;
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
   isDoi: boolean;
@@ -102,6 +106,8 @@ export interface UseUserResult {
   userRole: string | null;
   isSupervisor: boolean;
   isVp: boolean;
+  isVpOffice: boolean;
+  isSupervisoryViewer: boolean;
   isMainCampusCoordinator: boolean;
   isMainCampusDOI: boolean;
   isDoi: boolean;
@@ -239,6 +245,30 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
       roleLower.includes('head') ||
       isDOI;
 
+    const isVpOffice =
+      isVp ||
+      unitLower.includes('vice president') ||
+      unitLower.includes('president') ||
+      unitLower.includes('ovpaa') ||
+      unitLower.includes('ovpaf') ||
+      unitLower.includes('ovpredi') ||
+      unitLower.includes('ovpsas') ||
+      unitLower === 'vpaa' ||
+      unitLower === 'vpaf' ||
+      unitLower === 'vpredi' ||
+      unitLower === 'vpsas';
+
+    const isSupervisoryViewer =
+      isAdmin ||
+      isAuditor ||
+      isVp ||
+      isVpOffice ||
+      isDOI ||
+      roleLower.includes('president') ||
+      roleLower.includes('director') ||
+      roleLower.includes('odimo') ||
+      roleLower.includes('head');
+
     // FIAMO-specific role detection
     const isUnitCoordinator = roleLower.includes('unit coordinator');
     const isUnitOdimo = roleLower.includes('unit odimo') || (roleLower.includes('odimo') && roleLower.includes('unit'));
@@ -293,6 +323,8 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
       userRole,
       isSupervisor,
       isVp,
+      isVpOffice,
+      isSupervisoryViewer,
       isMainCampusCoordinator,
       isMainCampusDOI,
       isDoi: isDOI,
@@ -384,6 +416,8 @@ export const useFirebase = (): UseFirebaseResult | { areServicesAvailable: false
     userRole: context.userRole,
     isSupervisor: context.isSupervisor,
     isVp: context.isVp,
+    isVpOffice: context.isVpOffice,
+    isSupervisoryViewer: context.isSupervisoryViewer,
     isMainCampusCoordinator: context.isMainCampusCoordinator,
     isMainCampusDOI: context.isMainCampusDOI,
     isDoi: context.isDoi,
@@ -444,6 +478,8 @@ export const useUser = (): UseUserResult => {
       userRole: null,
       isSupervisor: false,
       isVp: false,
+      isVpOffice: false,
+      isSupervisoryViewer: false,
       isMainCampusCoordinator: false,
       isMainCampusDOI: false,
       isDoi: false,
@@ -469,6 +505,8 @@ export const useUser = (): UseUserResult => {
     userRole,
     isSupervisor,
     isVp,
+    isVpOffice,
+    isSupervisoryViewer,
     firestore,
     isMainCampusCoordinator,
     isMainCampusDOI,
@@ -493,7 +531,8 @@ export const useUser = (): UseUserResult => {
     userRole,
     isSupervisor,
     isVp,
-    firestore,
+    isVpOffice,
+    isSupervisoryViewer,
     isMainCampusCoordinator,
     isMainCampusDOI,
     isDoi,
@@ -505,6 +544,7 @@ export const useUser = (): UseUserResult => {
     isUnitHead,
     isDriverMechanic,
     systemSettings,
+    firestore,
     can,
   };
 };

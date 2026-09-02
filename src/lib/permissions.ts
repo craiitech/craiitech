@@ -9,6 +9,7 @@ export const PERMISSION_GROUPS: Record<string, PermissionGroup> = {
     permissions: {
       'submissions.create': 'Create',
       'submissions.view_all': 'View All (Cross-Unit)',
+      'submissions.view_supervised': 'View Supervised Units (Cross-Campus)',
       'submissions.edit': 'Edit',
       'submissions.delete': 'Delete',
       'submissions.approve': 'Approve / Reject',
@@ -76,6 +77,7 @@ export const PERMISSION_GROUPS: Record<string, PermissionGroup> = {
     permissions: {
       'car.create': 'Create',
       'car.view_all': 'View All (Cross-Unit)',
+      'car.view_supervised': 'View Supervised Units (Cross-Campus)',
       'car.edit': 'Edit',
       'car.delete': 'Delete',
       'car.verify': 'Verify / Close',
@@ -147,6 +149,7 @@ export const PERMISSION_GROUPS: Record<string, PermissionGroup> = {
     label: 'Unit Monitoring',
     permissions: {
       'monitoring.view_all': 'View All Records',
+      'monitoring.view_supervised': 'View Supervised Units Records',
       'monitoring.create': 'Create Records',
     },
   },
@@ -249,6 +252,7 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
 
   if (isSupervisor) {
     perms['submissions.view_all'] = true;
+    perms['submissions.view_supervised'] = true;
     perms['submissions.approve'] = true;
     perms['submissions.edit'] = true;
     perms['submissions.delete'] = true;
@@ -257,12 +261,14 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
     perms['risks.edit'] = true;
     perms['risks.delete'] = true;
     perms['car.view_all'] = true;
+    perms['car.view_supervised'] = true;
     perms['car.verify'] = true;
     perms['car.edit'] = true;
     perms['car.delete'] = true;
     perms['reports.view'] = true;
     perms['reports.export'] = true;
     perms['monitoring.view_all'] = true;
+    perms['monitoring.view_supervised'] = true;
     perms['monitoring.create'] = true;
     perms['gad.view_all'] = true;
     perms['strategic.view'] = true;

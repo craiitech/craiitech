@@ -68,7 +68,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
+import { cn, isVpOffice, getSupervisedUnitIds, getVpCategory } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -249,6 +249,25 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     return Array.from(years).sort((a, b) => b.localeCompare(a));
   }, [reviews]);
 
+  const isUserVpOffice = useMemo(() => {
+    return (
+      (userRole?.toLowerCase().includes('vice president') ?? false) ||
+      isVpOffice(userProfile?.unitId, units) ||
+      isVpOffice(userProfile?.unitName, units) ||
+      isVpOffice(userRole, units)
+    );
+  }, [userRole, userProfile?.unitId, userProfile?.unitName, units]);
+
+  const supervisedUnitIds = useMemo(() => {
+    if (!isUserVpOffice || !units) return [];
+    return getSupervisedUnitIds(userProfile?.unitId, units);
+  }, [isUserVpOffice, userProfile?.unitId, units]);
+
+  const vpCategory = useMemo(() => {
+    if (!isUserVpOffice || !units) return null;
+    return getVpCategory(userProfile?.unitId, units);
+  }, [isUserVpOffice, userProfile?.unitId, units]);
+
   /**
    * DATA PROCESSING PIPELINE
    */
@@ -273,6 +292,18 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
           if (isInstitutionalViewer) return true;
           const isInstitutionalTarget = a.campusId === 'university-wide';
           const isMyCampus = a.campusId === userProfile.campusId;
+
+          if (isUserVpOffice && supervisedUnitIds.length > 0) {
+            if (isInstitutionalTarget) return true;
+            if (a.unitId === ALL_UNITS_ID) return true;
+            if (a.unitId === ALL_ACADEMIC_ID && (vpCategory === 'Academic' || myUnit?.category === 'Academic'))
+              return true;
+            if (a.unitId === ALL_ADMIN_ID && (vpCategory === 'Administrative' || myUnit?.category === 'Administrative'))
+              return true;
+            if (a.unitId === ALL_REDI_ID && (vpCategory === 'Research' || myUnit?.category === 'Research')) return true;
+            if (supervisedUnitIds.includes(a.unitId)) return true;
+          }
+
           if (isCampusSupervisor) return isInstitutionalTarget || isMyCampus;
           if (isUnitLevel) {
             if (!isInstitutionalTarget && !isMyCampus) return false;

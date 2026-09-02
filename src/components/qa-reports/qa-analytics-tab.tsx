@@ -48,7 +48,7 @@ import {
   Eye,
   Search,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, isVpOffice, getSupervisedUnitIds } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 
 const CAR_STATUS_COLORS: Record<string, string> = {
@@ -78,9 +78,29 @@ export function QaAnalyticsTab() {
   const firestore = useFirestore();
   const [selectedYear, setSelectedYear] = useState<string>('all');
 
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const { data: units } = useCollection<any>(unitsQuery);
+  const unitMap = useMemo(() => new Map((units || []).map((u: any) => [u.id, u.name])), [units]);
+
+  const isUserVpOffice = useMemo(() => {
+    return (
+      (userRole?.toLowerCase().includes('vice president') ?? false) ||
+      isVpOffice(userProfile?.unitId, units || undefined) ||
+      isVpOffice(userProfile?.unitName, units || undefined) ||
+      isVpOffice(userRole, units || undefined)
+    );
+  }, [userRole, userProfile?.unitId, userProfile?.unitName, units]);
+
+  const supervisedUnitIds = useMemo(() => {
+    if (!isUserVpOffice || !units) return [];
+    return getSupervisedUnitIds(userProfile?.unitId, units || undefined);
+  }, [isUserVpOffice, userProfile?.unitId, units]);
+
   const isInstitutionalViewer =
     isAdmin ||
     userRole === 'Auditor' ||
+    userRole?.toLowerCase().includes('vice president') ||
+    isUserVpOffice ||
     userRole?.toLowerCase().includes('president') ||
     userRole?.toLowerCase().includes('quality management') ||
     userRole?.toLowerCase().includes('qms');
@@ -89,11 +109,19 @@ export function QaAnalyticsTab() {
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
     const baseRef = collection(firestore, 'correctiveActionRequests');
-    if (isInstitutionalViewer) return baseRef;
+    if (isInstitutionalViewer || isUserVpOffice) return baseRef;
     if (userProfile.unitId) return query(baseRef, where('unitId', '==', userProfile.unitId));
     return query(baseRef, where('campusId', '==', userProfile.campusId));
-  }, [firestore, userProfile, isInstitutionalViewer]);
-  const { data: cars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carQuery);
+  }, [firestore, userProfile, isInstitutionalViewer, isUserVpOffice]);
+  const { data: rawCars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carQuery);
+
+  const cars = useMemo(() => {
+    if (!rawCars) return [];
+    if (isUserVpOffice && supervisedUnitIds.length > 0 && !isAdmin && userRole !== 'Auditor') {
+      return rawCars.filter((c) => supervisedUnitIds.includes(c.unitId));
+    }
+    return rawCars;
+  }, [rawCars, isUserVpOffice, supervisedUnitIds, isAdmin, userRole]);
 
   const mrQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviews') : null), [firestore]);
   const { data: mrs } = useCollection<ManagementReview>(mrQuery);
@@ -111,10 +139,6 @@ export function QaAnalyticsTab() {
     return query(baseRef, where('campusIds', 'array-contains', userProfile.campusId));
   }, [firestore, userProfile, isInstitutionalViewer]);
   const { data: auditReports } = useCollection<QaAuditReport>(reportsQuery);
-
-  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
-  const { data: units } = useCollection<any>(unitsQuery);
-  const unitMap = useMemo(() => new Map((units || []).map((u: any) => [u.id, u.name])), [units]);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<any>(campusesQuery);
