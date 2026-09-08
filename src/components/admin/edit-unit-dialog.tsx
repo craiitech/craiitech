@@ -24,7 +24,7 @@ import type { Unit, Campus } from '@/lib/types';
 import { Loader2, Check, ChevronsUpDown, Link as LinkIcon, Search } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
-import { cn } from '@/lib/utils';
+import { cn, getUnitEstablishedYear } from '@/lib/utils';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 
@@ -40,6 +40,7 @@ const editUnitSchema = z.object({
   category: z.enum(['Academic', 'Administrative', 'Research', 'Support']),
   campusIds: z.array(z.string()).optional(),
   vicePresidentId: z.string().optional(),
+  establishedYear: z.coerce.number().int().min(1900).max(2099).optional().nullable(),
   formsDriveLink: z.string().url('Invalid Google Drive URL').optional().or(z.literal('')),
 });
 
@@ -83,6 +84,7 @@ export function EditUnitDialog({ unit, isOpen, onOpenChange, allCampuses }: Edit
       category: 'Administrative',
       campusIds: [],
       vicePresidentId: '',
+      establishedYear: null,
       formsDriveLink: '',
     },
   });
@@ -94,6 +96,7 @@ export function EditUnitDialog({ unit, isOpen, onOpenChange, allCampuses }: Edit
         category: unit.category || 'Administrative',
         campusIds: unit.campusIds || [],
         vicePresidentId: unit.vicePresidentId || '',
+        establishedYear: getUnitEstablishedYear(unit) || null,
         formsDriveLink: unit.formsDriveLink || '',
       });
     }
@@ -106,11 +109,12 @@ export function EditUnitDialog({ unit, isOpen, onOpenChange, allCampuses }: Edit
 
     const unitRef = doc(firestore, 'units', activeUnit.id);
 
-    const updateData = {
+    const updateData: any = {
       name: values.name,
       category: values.category,
       campusIds: values.campusIds || [],
       vicePresidentId: values.vicePresidentId === 'none' ? '' : values.vicePresidentId || '',
+      establishedYear: values.establishedYear ? Number(values.establishedYear) : null,
       formsDriveLink: values.formsDriveLink || '',
     };
 
@@ -250,6 +254,36 @@ export function EditUnitDialog({ unit, isOpen, onOpenChange, allCampuses }: Edit
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="establishedYear"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-bold flex items-center justify-between">
+                        <span>Established / Operating Year</span>
+                        {field.value && Number(field.value) >= 2026 && (
+                          <Badge className="bg-emerald-600 hover:bg-emerald-700 text-[9px] uppercase tracking-wider text-white">
+                            New Unit Exempt (AY 2025 Waived)
+                          </Badge>
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g. 2026"
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                        />
+                      </FormControl>
+                      <FormDescription className="text-[10px]">
+                        Units established in 2026 or later are automatically exempt from previous year (2025) compliance
+                        requirements.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

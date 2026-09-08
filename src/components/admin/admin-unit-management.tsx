@@ -26,13 +26,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { EditUnitDialog } from './edit-unit-dialog';
 import { Badge } from '../ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, getUnitEstablishedYear } from '@/lib/utils';
 
 const formSchema = z.object({
   name: z.string().min(3, 'Unit name must be at least 3 characters.'),
   category: z.enum(['Academic', 'Administrative', 'Research', 'Support']),
   campusId: z.string().min(1, 'Please select a campus for the unit.'),
   vicePresidentId: z.string().optional(),
+  establishedYear: z.coerce.number().int().min(1900).max(2099).optional(),
 });
 
 type UnitFormValues = z.infer<typeof formSchema>;
@@ -96,7 +97,13 @@ export function AdminUnitManagement() {
 
   const form = useForm<UnitFormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', campusId: '', category: 'Administrative', vicePresidentId: 'none' },
+    defaultValues: {
+      name: '',
+      campusId: '',
+      category: 'Administrative',
+      vicePresidentId: 'none',
+      establishedYear: new Date().getFullYear(),
+    },
   });
 
   const getCampusNamesString = (campusIds: string[] | undefined) => {
@@ -181,6 +188,7 @@ export function AdminUnitManagement() {
       category: values.category,
       createdAt: serverTimestamp(),
       campusIds: [values.campusId],
+      establishedYear: values.establishedYear || new Date().getFullYear(),
     };
 
     if (values.vicePresidentId && values.vicePresidentId !== 'none') {
@@ -192,7 +200,13 @@ export function AdminUnitManagement() {
     addDoc(unitsCollectionRef, newUnitData)
       .then(() => {
         toast({ title: 'Success', description: 'New unit created.' });
-        form.reset({ name: '', campusId: '', category: 'Administrative', vicePresidentId: 'none' });
+        form.reset({
+          name: '',
+          campusId: '',
+          category: 'Administrative',
+          vicePresidentId: 'none',
+          establishedYear: new Date().getFullYear(),
+        });
       })
       .catch((error) => {
         console.error('Error creating unit:', error);
@@ -331,6 +345,29 @@ export function AdminUnitManagement() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="establishedYear"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center justify-between">
+                        <span>Established Year</span>
+                        {field.value && Number(field.value) >= 2026 && (
+                          <Badge className="bg-emerald-600 text-white text-[8px] h-4 py-0">New Unit Exempt</Badge>
+                        )}
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="e.g. 2026"
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
               <CardFooter>
                 <Button type="submit" disabled={isSubmitting} className="w-full">
@@ -465,7 +502,21 @@ export function AdminUnitManagement() {
                           key={unit.id}
                           className={cn('transition-colors', isConfirming && 'bg-rose-50/50 hover:bg-rose-100/50')}
                         >
-                          <TableCell className="font-medium text-xs max-w-[200px]">{unit.name}</TableCell>
+                          <TableCell className="font-medium text-xs max-w-[200px]">
+                            <div className="flex flex-col gap-0.5">
+                              <span>{unit.name}</span>
+                              {getUnitEstablishedYear(unit) && (
+                                <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+                                  Est. {getUnitEstablishedYear(unit)}
+                                  {getUnitEstablishedYear(unit)! >= 2026 && (
+                                    <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white text-[8px] h-3.5 px-1 py-0 font-bold uppercase">
+                                      New
+                                    </Badge>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
                           <TableCell className="text-xs">
                             {vpName ? (
                               <div className="flex items-center gap-1.5" title={vpName}>

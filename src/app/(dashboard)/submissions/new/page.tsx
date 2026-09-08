@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, addDoc } from '@/firebase/firestore-wrapper';
+import { collection, query, where, addDoc, doc, updateDoc } from '@/firebase/firestore-wrapper';
 import type { Submission, Comment, Unit, Cycle, Risk } from '@/lib/types';
 import { OrgStructureUploadCard } from '@/components/submissions/org-structure-upload-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,6 +29,7 @@ import {
   ExternalLink,
   ArrowRight,
   Building2,
+  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -46,7 +47,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import Link from 'next/link';
-import { cn } from '@/lib/utils';
+import { cn, getUnitEstablishedYear, isUnitExemptFromPriorYear } from '@/lib/utils';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -68,11 +69,12 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 export default function NewSubmissionPage() {
-  const { user, userProfile, userRole } = useUser();
+  const { user, userProfile, userRole, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
 
+  const [isUpdatingUnitYear, setIsUpdatingUnitYear] = useState(false);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedCycle, setSelectedCycle] = useState<'first' | 'final' | null>(null);
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
@@ -162,10 +164,24 @@ export default function NewSubmissionPage() {
   }, [firestore, userProfile?.unitId, userProfile?.campusId, selectedYear]);
   const { data: prevYearRisks } = useCollection<Risk>(prevYearRisksQuery);
 
+  const currentUnit = useMemo(() => {
+    if (!units || !userProfile?.unitId) return null;
+    return units.find((u) => u.id === userProfile.unitId) || null;
+  }, [units, userProfile?.unitId]);
+
+  const unitEstablishedYear = useMemo(() => {
+    return getUnitEstablishedYear(currentUnit);
+  }, [currentUnit]);
+
+  const isNewUnitForSelectedYear = useMemo(() => {
+    return isUnitExemptFromPriorYear(currentUnit, selectedYear || 0);
+  }, [currentUnit, selectedYear]);
+
   const hasPrevYearConfig = useMemo(() => {
     if (!selectedYear || selectedYear <= 2025) return false;
+    if (isNewUnitForSelectedYear) return false;
     return years.includes(selectedYear - 1);
-  }, [years, selectedYear]);
+  }, [years, selectedYear, isNewUnitForSelectedYear]);
 
   const missingPrevYearSubmissions = useMemo(() => {
     if (!prevYearSubmissions || !selectedYear || !hasPrevYearConfig) return [];
@@ -233,6 +249,27 @@ export default function NewSubmissionPage() {
       (hasRequiredMissingPrevYearSubmissions || openPrevYearRisks.length > 0)
     );
   }, [selectedYear, hasPrevYearConfig, missingPrevYearSubmissions, openPrevYearRisks]);
+
+  const handleMarkAsNewUnit = async () => {
+    if (!firestore || !userProfile?.unitId || !selectedYear) return;
+    setIsUpdatingUnitYear(true);
+    try {
+      const unitRef = doc(firestore, 'units', userProfile.unitId);
+      await updateDoc(unitRef, { establishedYear: selectedYear });
+      toast({
+        title: 'Unit Established Year Updated',
+        description: `This office is now registered as established in ${selectedYear}. Compliance checks for ${selectedYear - 1} are now waived.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Update Failed',
+        description: err.message || 'Could not update unit established year.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUpdatingUnitYear(false);
+    }
+  };
 
   const { firstCycleStatusMap, finalCycleStatusMap } = useMemo(() => {
     if (!rawSubmissions) {
@@ -549,6 +586,21 @@ export default function NewSubmissionPage() {
           </Alert>
         )}
 
+      {/* Newly Established Unit Notice */}
+      {selectedYear && isNewUnitForSelectedYear && (
+        <Alert className="bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 shadow-sm">
+          <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <AlertTitle className="font-extrabold uppercase text-xs tracking-wider text-emerald-700 dark:text-emerald-400">
+            Newly Established Office / Unit (AY {unitEstablishedYear || selectedYear})
+          </AlertTitle>
+          <AlertDescription className="mt-1 text-xs font-semibold leading-relaxed text-slate-800 dark:text-slate-200">
+            This office was established in {unitEstablishedYear || selectedYear} and is exempt from AY{' '}
+            {selectedYear - 1} prior-year compliance checks. You may proceed directly with submitting your AY{' '}
+            {selectedYear} documents.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Previous Year Compliance Warnings */}
       {selectedYear &&
         hasPrevYearConfig &&
@@ -690,6 +742,40 @@ export default function NewSubmissionPage() {
                       </Button>
                     </div>
                   )}
+
+                  <div className="bg-white/90 dark:bg-slate-900/90 p-3 rounded-xl border border-amber-200 dark:border-amber-900/60 space-y-2 shadow-sm col-span-1 md:col-span-2">
+                    <p className="font-black text-[10px] uppercase text-amber-700 dark:text-amber-400 tracking-wider flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-amber-600" /> Resolution 3: Office / Unit Newly Established
+                      in {selectedYear}
+                    </p>
+                    <p className="text-slate-700 dark:text-slate-300 font-medium text-[11px] leading-relaxed">
+                      If this office was newly established in <strong>{selectedYear}</strong> and did not operate in{' '}
+                      {selectedYear - 1}, it is exempt from submitting {selectedYear - 1} documents and closing prior
+                      risks.
+                    </p>
+                    {isAdmin ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleMarkAsNewUnit}
+                        disabled={isUpdatingUnitYear}
+                        className="w-full text-[10px] h-7 font-black text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950 uppercase tracking-wider mt-1"
+                      >
+                        {isUpdatingUnitYear ? (
+                          <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-1.5 h-3 w-3" />
+                        )}
+                        Mark Unit as Established in {selectedYear} (1-Click Exemption)
+                      </Button>
+                    ) : (
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 italic">
+                        Please contact your Quality Assurance Administrator or Campus Director to update your unit's{' '}
+                        <strong>Established Year</strong> to <strong>{selectedYear}</strong> in Settings &gt; Units to
+                        waive prior year checks.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </AlertDescription>
@@ -1258,6 +1344,38 @@ export default function NewSubmissionPage() {
                                     </Button>
                                   </div>
                                 )}
+
+                                <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/50 space-y-1.5">
+                                  <p className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+                                    <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                                    3. Newly Established Unit Exemption
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground leading-normal">
+                                    If this office was newly established in <strong>{selectedYear}</strong>, it is
+                                    exempt from {selectedYear - 1} document requirements.
+                                  </p>
+                                  {isAdmin ? (
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={handleMarkAsNewUnit}
+                                      disabled={isUpdatingUnitYear}
+                                      className="w-full text-[10px] h-7 font-black text-emerald-700 border-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-950 uppercase tracking-wider"
+                                    >
+                                      {isUpdatingUnitYear ? (
+                                        <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <Sparkles className="mr-1.5 h-3 w-3" />
+                                      )}
+                                      Mark Unit as Established in {selectedYear}
+                                    </Button>
+                                  ) : (
+                                    <p className="text-[9px] font-medium text-slate-500 italic">
+                                      Ask your Administrator or Campus Director to set this unit's Established Year to{' '}
+                                      {selectedYear} in Settings &gt; Units.
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </AlertDescription>

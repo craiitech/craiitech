@@ -201,6 +201,8 @@ export type Unit = {
   category?: UnitCategory;
   vicePresidentId?: string;
   campusIds?: string[];
+  establishedYear?: number; // Academic/Calendar year the unit was established (units established >= selectedYear are exempt from prior year requirements)
+  createdAt?: any;
   formsDriveLink?: string; // Admin-set Google Drive area for registered forms
   formsDriveRevision?: string;
   formsDriveUpdatedAt?: string;

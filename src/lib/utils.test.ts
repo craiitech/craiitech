@@ -6,6 +6,8 @@ import {
   parseDate,
   isCycleActive,
   getDirectDriveLink,
+  getUnitEstablishedYear,
+  isUnitExemptFromPriorYear,
 } from './utils';
 
 describe('cn', () => {
@@ -33,9 +35,7 @@ describe('normalizeReportType', () => {
     expect(normalizeReportType('Needs and Expectation of Interested Parties')).toBe(
       'Needs and Expectation of Interested Parties',
     );
-    expect(normalizeReportType('needs assessment')).toBe(
-      'Needs and Expectation of Interested Parties',
-    );
+    expect(normalizeReportType('needs assessment')).toBe('Needs and Expectation of Interested Parties');
     expect(normalizeReportType('expectation of interested parties')).toBe(
       'Needs and Expectation of Interested Parties',
     );
@@ -47,21 +47,13 @@ describe('normalizeReportType', () => {
   });
 
   it('normalizes Quality Objectives Monitoring', () => {
-    expect(normalizeReportType('Quality Objectives Monitoring')).toBe(
-      'Quality Objectives Monitoring',
-    );
-    expect(normalizeReportType('objectives monitoring')).toBe(
-      'Quality Objectives Monitoring',
-    );
+    expect(normalizeReportType('Quality Objectives Monitoring')).toBe('Quality Objectives Monitoring');
+    expect(normalizeReportType('objectives monitoring')).toBe('Quality Objectives Monitoring');
   });
 
   it('distinguishes Risk Action Plan from Registry', () => {
-    expect(normalizeReportType('Risk and Opportunity Action Plan')).toBe(
-      'Risk and Opportunity Action Plan',
-    );
-    expect(normalizeReportType('Risk and Opportunity Registry')).toBe(
-      'Risk and Opportunity Registry',
-    );
+    expect(normalizeReportType('Risk and Opportunity Action Plan')).toBe('Risk and Opportunity Action Plan');
+    expect(normalizeReportType('Risk and Opportunity Registry')).toBe('Risk and Opportunity Registry');
     expect(normalizeReportType('action plan risk')).toBe('Risk and Opportunity Action Plan');
     expect(normalizeReportType('registry risk')).toBe('Risk and Opportunity Registry');
   });
@@ -151,11 +143,23 @@ describe('isCycleActive', () => {
   });
 
   it('returns true when cycle not found', () => {
-    expect(isCycleActive('first', 2026, [{ id: '1', name: 'final', year: 2026, startDate: new Date(), endDate: new Date() }])).toBe(true);
+    expect(
+      isCycleActive('first', 2026, [
+        { id: '1', name: 'final', year: 2026, startDate: new Date(), endDate: new Date() },
+      ]),
+    ).toBe(true);
   });
 
   it('returns true when start date is in the past', () => {
-    const cycles = [{ id: '1', name: 'first' as const, year: 2026, startDate: new Date('2026-01-01'), endDate: new Date('2026-06-30') }];
+    const cycles = [
+      {
+        id: '1',
+        name: 'first' as const,
+        year: 2026,
+        startDate: new Date('2026-01-01'),
+        endDate: new Date('2026-06-30'),
+      },
+    ];
     expect(isCycleActive('first', 2026, cycles)).toBe(true);
   });
 });
@@ -171,8 +175,55 @@ describe('getDirectDriveLink', () => {
   });
 
   it('returns original URL for non-drive links', () => {
-    expect(getDirectDriveLink('https://example.com/image.png')).toBe(
-      'https://example.com/image.png',
-    );
+    expect(getDirectDriveLink('https://example.com/image.png')).toBe('https://example.com/image.png');
+  });
+});
+
+describe('getUnitEstablishedYear', () => {
+  it('returns null for null or undefined unit', () => {
+    expect(getUnitEstablishedYear(null)).toBeNull();
+    expect(getUnitEstablishedYear(undefined)).toBeNull();
+  });
+
+  it('prefers establishedYear if explicitly present', () => {
+    expect(getUnitEstablishedYear({ establishedYear: 2026 })).toBe(2026);
+    expect(getUnitEstablishedYear({ establishedYear: '2026' as any })).toBe(2026);
+  });
+
+  it('extracts year from Firestore Timestamp with toDate()', () => {
+    const mockTimestamp = {
+      toDate: () => new Date('2026-03-15T00:00:00Z'),
+    };
+    expect(getUnitEstablishedYear({ createdAt: mockTimestamp })).toBe(2026);
+  });
+
+  it('extracts year from seconds timestamp', () => {
+    const seconds = Math.floor(new Date('2026-06-01T00:00:00Z').getTime() / 1000);
+    expect(getUnitEstablishedYear({ createdAt: { seconds } })).toBe(2026);
+  });
+
+  it('extracts year from ISO string or Date object', () => {
+    expect(getUnitEstablishedYear({ createdAt: '2026-01-01' })).toBe(2026);
+    expect(getUnitEstablishedYear({ createdAt: new Date('2025-12-01') })).toBe(2025);
+  });
+});
+
+describe('isUnitExemptFromPriorYear', () => {
+  it('returns false if unit or targetYear is missing', () => {
+    expect(isUnitExemptFromPriorYear(null, 2026)).toBe(false);
+    expect(isUnitExemptFromPriorYear({ establishedYear: 2026 }, 0)).toBe(false);
+  });
+
+  it('returns true if unit was established in targetYear', () => {
+    expect(isUnitExemptFromPriorYear({ establishedYear: 2026 }, 2026)).toBe(true);
+  });
+
+  it('returns true if unit was established in a future year', () => {
+    expect(isUnitExemptFromPriorYear({ establishedYear: 2027 }, 2026)).toBe(true);
+  });
+
+  it('returns false if unit was established before targetYear (did exist in prior year)', () => {
+    expect(isUnitExemptFromPriorYear({ establishedYear: 2025 }, 2026)).toBe(false);
+    expect(isUnitExemptFromPriorYear({ establishedYear: 2024 }, 2026)).toBe(false);
   });
 });

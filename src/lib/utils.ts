@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Cycle } from './types';
+import { Cycle, Unit } from './types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -417,4 +417,41 @@ export function getSupervisedUnitIds(
   });
 
   return Array.from(supervisedIds);
+}
+
+/**
+ * Extracts the establishment / initial operating year of a unit.
+ * Checks unit.establishedYear first, then falls back to createdAt timestamp.
+ */
+export function getUnitEstablishedYear(unit?: (Partial<Unit> & { createdAt?: any }) | null): number | null {
+  if (!unit) return null;
+  if (unit.establishedYear) return Number(unit.establishedYear);
+  if (unit.createdAt) {
+    try {
+      if (typeof unit.createdAt?.toDate === 'function') {
+        return unit.createdAt.toDate().getFullYear();
+      }
+      if (unit.createdAt?.seconds) {
+        return new Date(unit.createdAt.seconds * 1000).getFullYear();
+      }
+      const d = new Date(unit.createdAt);
+      if (!isNaN(d.getTime())) return d.getFullYear();
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Checks whether a unit is exempt from prior-year compliance (e.g. 2025 requirements for 2026).
+ * If a unit was established in targetYear or later, it did not exist in targetYear - 1.
+ */
+export function isUnitExemptFromPriorYear(
+  unit: (Partial<Unit> & { createdAt?: any }) | null | undefined,
+  targetYear: number,
+): boolean {
+  if (!unit || !targetYear) return false;
+  const estYear = getUnitEstablishedYear(unit);
+  return estYear !== null && estYear >= targetYear;
 }
