@@ -25,7 +25,7 @@ import type {
   AuditSchedule,
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -861,7 +861,18 @@ export function CorrectiveActionRequestTab({
 
   const yearlyPerformance = useMemo(() => {
     if (!rawCars) return [];
-    const stats: Record<number, { year: number; NC: number; Open: number; 'On-Going': number; Closed: number }> = {};
+    const stats: Record<
+      number,
+      {
+        year: number;
+        NC: number;
+        Open: number;
+        'On-Going': number;
+        Closed: number;
+        iqaCount: number;
+        eqaCount: number;
+      }
+    > = {};
     rawCars.forEach((car) => {
       if (effectiveTypeFilter === 'EQA' && car.auditType !== 'EQA') return;
       if (effectiveTypeFilter === 'IQA' && car.auditType === 'EQA') return;
@@ -888,14 +899,50 @@ export function CorrectiveActionRequestTab({
         return;
       }
       const validYear = getCarYear(car) || new Date().getFullYear();
-      if (!stats[validYear]) stats[validYear] = { year: validYear, NC: 0, Open: 0, 'On-Going': 0, Closed: 0 };
+      if (!stats[validYear]) {
+        stats[validYear] = {
+          year: validYear,
+          NC: 0,
+          Open: 0,
+          'On-Going': 0,
+          Closed: 0,
+          iqaCount: 0,
+          eqaCount: 0,
+        };
+      }
       stats[validYear].NC++;
+      if (car.auditType === 'EQA') {
+        stats[validYear].eqaCount++;
+      } else {
+        stats[validYear].iqaCount++;
+      }
       if (car.status === 'Open') stats[validYear].Open++;
       else if (car.status === 'Closed') stats[validYear].Closed++;
       else stats[validYear]['On-Going']++;
     });
     return Object.values(stats).sort((a, b) => a.year - b.year);
   }, [rawCars, campusFilter, isInstitutionalViewer, userRole, userProfile, effectiveTypeFilter]);
+
+  const yearlyPerformanceTotals = useMemo(() => {
+    return yearlyPerformance.reduce(
+      (acc, row) => {
+        acc.NC += row.NC;
+        acc.Open += row.Open;
+        acc['On-Going'] += row['On-Going'];
+        acc.Closed += row.Closed;
+        acc.iqaCount += row.iqaCount;
+        acc.eqaCount += row.eqaCount;
+        return acc;
+      },
+      { year: 0, NC: 0, Open: 0, 'On-Going': 0, Closed: 0, iqaCount: 0, eqaCount: 0 },
+    );
+  }, [yearlyPerformance]);
+
+  const formatCarPct = (val: number, total: number) => {
+    if (!total || total <= 0) return '0.0%';
+    const pct = (val / total) * 100;
+    return `${pct.toFixed(1)}%`;
+  };
 
   const chartConfig = {
     Open: { label: 'Open', color: 'hsl(var(--destructive))' },
@@ -1885,7 +1932,19 @@ export function CorrectiveActionRequestTab({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="text-[10px] font-black uppercase">Year</TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase">NC</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase">
+                      {effectiveTypeFilter === 'ALL' ? 'Total NC' : 'NC'}
+                    </TableHead>
+                    {effectiveTypeFilter === 'ALL' && (
+                      <>
+                        <TableHead className="text-right text-[10px] font-black uppercase text-blue-600 dark:text-blue-400">
+                          IQA
+                        </TableHead>
+                        <TableHead className="text-right text-[10px] font-black uppercase text-violet-600 dark:text-violet-400">
+                          EQA
+                        </TableHead>
+                      </>
+                    )}
                     <TableHead className="text-right text-[10px] font-black uppercase text-rose-600">Open</TableHead>
                     <TableHead className="text-right text-[10px] font-black uppercase text-amber-600">
                       On-Going
@@ -1896,16 +1955,108 @@ export function CorrectiveActionRequestTab({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {yearlyPerformance.map((row) => (
-                    <TableRow key={row.year} className="hover:bg-muted/20">
-                      <TableCell className="font-black text-xs">{row.year}</TableCell>
-                      <TableCell className="text-right font-bold text-xs">{row.NC}</TableCell>
-                      <TableCell className="text-right font-bold text-xs text-rose-600">{row.Open}</TableCell>
-                      <TableCell className="text-right font-bold text-xs text-amber-600">{row['On-Going']}</TableCell>
-                      <TableCell className="text-right font-bold text-xs text-emerald-600">{row.Closed}</TableCell>
+                  {yearlyPerformance.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={effectiveTypeFilter === 'ALL' ? 7 : 5}
+                        className="h-24 text-center text-muted-foreground text-xs"
+                      >
+                        No CAR performance records available.
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    yearlyPerformance.map((row) => (
+                      <TableRow key={row.year} className="hover:bg-muted/20">
+                        <TableCell className="font-black text-xs">{row.year}</TableCell>
+                        <TableCell className="text-right font-bold text-xs whitespace-nowrap">
+                          <span>{row.NC}</span>
+                          <span className="text-[10px] font-semibold text-muted-foreground ml-1">
+                            ({formatCarPct(row.NC, yearlyPerformanceTotals.NC)})
+                          </span>
+                        </TableCell>
+                        {effectiveTypeFilter === 'ALL' && (
+                          <>
+                            <TableCell className="text-right font-bold text-xs text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                              <span>{row.iqaCount}</span>
+                              <span className="text-[10px] font-semibold text-blue-600/80 dark:text-blue-400/80 ml-1">
+                                ({formatCarPct(row.iqaCount, row.NC)})
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-xs text-violet-600 dark:text-violet-400 whitespace-nowrap">
+                              <span>{row.eqaCount}</span>
+                              <span className="text-[10px] font-semibold text-violet-600/80 dark:text-violet-400/80 ml-1">
+                                ({formatCarPct(row.eqaCount, row.NC)})
+                              </span>
+                            </TableCell>
+                          </>
+                        )}
+                        <TableCell className="text-right font-bold text-xs text-rose-600 whitespace-nowrap">
+                          <span>{row.Open}</span>
+                          <span className="text-[10px] font-semibold text-rose-600/80 ml-1">
+                            ({formatCarPct(row.Open, row.NC)})
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-xs text-amber-600 whitespace-nowrap">
+                          <span>{row['On-Going']}</span>
+                          <span className="text-[10px] font-semibold text-amber-600/80 ml-1">
+                            ({formatCarPct(row['On-Going'], row.NC)})
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-bold text-xs text-emerald-600 whitespace-nowrap">
+                          <span>{row.Closed}</span>
+                          <span className="text-[10px] font-semibold text-emerald-600/80 ml-1">
+                            ({formatCarPct(row.Closed, row.NC)})
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
+                {yearlyPerformance.length > 0 && (
+                  <TableFooter className="bg-muted/50 border-t-2">
+                    <TableRow className="hover:bg-muted/60">
+                      <TableCell className="font-black text-xs uppercase">Total</TableCell>
+                      <TableCell className="text-right font-black text-xs whitespace-nowrap">
+                        <span>{yearlyPerformanceTotals.NC}</span>
+                        <span className="text-[10px] font-semibold text-muted-foreground ml-1">(100.0%)</span>
+                      </TableCell>
+                      {effectiveTypeFilter === 'ALL' && (
+                        <>
+                          <TableCell className="text-right font-black text-xs text-blue-600 dark:text-blue-400 whitespace-nowrap">
+                            <span>{yearlyPerformanceTotals.iqaCount}</span>
+                            <span className="text-[10px] font-semibold text-blue-600/80 dark:text-blue-400/80 ml-1">
+                              ({formatCarPct(yearlyPerformanceTotals.iqaCount, yearlyPerformanceTotals.NC)})
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right font-black text-xs text-violet-600 dark:text-violet-400 whitespace-nowrap">
+                            <span>{yearlyPerformanceTotals.eqaCount}</span>
+                            <span className="text-[10px] font-semibold text-violet-600/80 dark:text-violet-400/80 ml-1">
+                              ({formatCarPct(yearlyPerformanceTotals.eqaCount, yearlyPerformanceTotals.NC)})
+                            </span>
+                          </TableCell>
+                        </>
+                      )}
+                      <TableCell className="text-right font-black text-xs text-rose-600 whitespace-nowrap">
+                        <span>{yearlyPerformanceTotals.Open}</span>
+                        <span className="text-[10px] font-semibold text-rose-600/80 ml-1">
+                          ({formatCarPct(yearlyPerformanceTotals.Open, yearlyPerformanceTotals.NC)})
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-black text-xs text-amber-600 whitespace-nowrap">
+                        <span>{yearlyPerformanceTotals['On-Going']}</span>
+                        <span className="text-[10px] font-semibold text-amber-600/80 ml-1">
+                          ({formatCarPct(yearlyPerformanceTotals['On-Going'], yearlyPerformanceTotals.NC)})
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-black text-xs text-emerald-600 whitespace-nowrap">
+                        <span>{yearlyPerformanceTotals.Closed}</span>
+                        <span className="text-[10px] font-semibold text-emerald-600/80 ml-1">
+                          ({formatCarPct(yearlyPerformanceTotals.Closed, yearlyPerformanceTotals.NC)})
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  </TableFooter>
+                )}
               </Table>
             </div>
             <div>
@@ -2088,6 +2239,9 @@ export function CorrectiveActionRequestTab({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
+                    {effectiveTypeFilter === 'ALL' && (
+                      <TableHead className="text-center text-[10px] font-black uppercase">CAR Type</TableHead>
+                    )}
                     <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Next Action Date</TableHead>
@@ -2098,7 +2252,10 @@ export function CorrectiveActionRequestTab({
                 <TableBody>
                   {filteredCars.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-xs">
+                      <TableCell
+                        colSpan={effectiveTypeFilter === 'ALL' ? 7 : 6}
+                        className="h-32 text-center text-muted-foreground text-xs"
+                      >
                         No Corrective Action Requests found matching the selected filters.
                       </TableCell>
                     </TableRow>
@@ -2109,15 +2266,16 @@ export function CorrectiveActionRequestTab({
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                              {car.auditType === 'EQA' ? (
-                                <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
-                                  EQA
-                                </Badge>
-                              ) : (
-                                <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
-                                  IQA
-                                </Badge>
-                              )}
+                              {effectiveTypeFilter !== 'ALL' &&
+                                (car.auditType === 'EQA' ? (
+                                  <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                    EQA
+                                  </Badge>
+                                ) : (
+                                  <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                    IQA
+                                  </Badge>
+                                ))}
                             </div>
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                               {car.procedureTitle}
@@ -2136,6 +2294,19 @@ export function CorrectiveActionRequestTab({
                             )}
                           </div>
                         </TableCell>
+                        {effectiveTypeFilter === 'ALL' && (
+                          <TableCell className="text-center">
+                            {car.auditType === 'EQA' ? (
+                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200 shadow-sm">
+                                EQA
+                              </Badge>
+                            ) : (
+                              <Badge className="text-[8px] font-black uppercase bg-blue-50 text-blue-700 border-blue-200 shadow-sm">
+                                IQA
+                              </Badge>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -2227,6 +2398,9 @@ export function CorrectiveActionRequestTab({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
+                    {effectiveTypeFilter === 'ALL' && (
+                      <TableHead className="text-center text-[10px] font-black uppercase">CAR Type</TableHead>
+                    )}
                     <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Next Action Date</TableHead>
@@ -2237,7 +2411,10 @@ export function CorrectiveActionRequestTab({
                 <TableBody>
                   {openOngoingCars.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-xs">
+                      <TableCell
+                        colSpan={effectiveTypeFilter === 'ALL' ? 7 : 6}
+                        className="h-32 text-center text-muted-foreground text-xs"
+                      >
                         No Open or On-going Corrective Action Requests found.
                       </TableCell>
                     </TableRow>
@@ -2248,15 +2425,16 @@ export function CorrectiveActionRequestTab({
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                              {car.auditType === 'EQA' ? (
-                                <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
-                                  EQA
-                                </Badge>
-                              ) : (
-                                <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
-                                  IQA
-                                </Badge>
-                              )}
+                              {effectiveTypeFilter !== 'ALL' &&
+                                (car.auditType === 'EQA' ? (
+                                  <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                    EQA
+                                  </Badge>
+                                ) : (
+                                  <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                    IQA
+                                  </Badge>
+                                ))}
                             </div>
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                               {car.procedureTitle}
@@ -2275,6 +2453,19 @@ export function CorrectiveActionRequestTab({
                             )}
                           </div>
                         </TableCell>
+                        {effectiveTypeFilter === 'ALL' && (
+                          <TableCell className="text-center">
+                            {car.auditType === 'EQA' ? (
+                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200 shadow-sm">
+                                EQA
+                              </Badge>
+                            ) : (
+                              <Badge className="text-[8px] font-black uppercase bg-blue-50 text-blue-700 border-blue-200 shadow-sm">
+                                IQA
+                              </Badge>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -2362,6 +2553,9 @@ export function CorrectiveActionRequestTab({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
+                    {effectiveTypeFilter === 'ALL' && (
+                      <TableHead className="text-center text-[10px] font-black uppercase">CAR Type</TableHead>
+                    )}
                     <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Next Action Date</TableHead>
@@ -2372,7 +2566,10 @@ export function CorrectiveActionRequestTab({
                 <TableBody>
                   {closedCars.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-xs">
+                      <TableCell
+                        colSpan={effectiveTypeFilter === 'ALL' ? 7 : 6}
+                        className="h-32 text-center text-muted-foreground text-xs"
+                      >
                         No Closed Non-Conformance records found.
                       </TableCell>
                     </TableRow>
@@ -2383,15 +2580,16 @@ export function CorrectiveActionRequestTab({
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                              {car.auditType === 'EQA' ? (
-                                <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
-                                  EQA
-                                </Badge>
-                              ) : (
-                                <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
-                                  IQA
-                                </Badge>
-                              )}
+                              {effectiveTypeFilter !== 'ALL' &&
+                                (car.auditType === 'EQA' ? (
+                                  <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                    EQA
+                                  </Badge>
+                                ) : (
+                                  <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                    IQA
+                                  </Badge>
+                                ))}
                             </div>
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                               {car.procedureTitle}
@@ -2410,6 +2608,19 @@ export function CorrectiveActionRequestTab({
                             )}
                           </div>
                         </TableCell>
+                        {effectiveTypeFilter === 'ALL' && (
+                          <TableCell className="text-center">
+                            {car.auditType === 'EQA' ? (
+                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200 shadow-sm">
+                                EQA
+                              </Badge>
+                            ) : (
+                              <Badge className="text-[8px] font-black uppercase bg-blue-50 text-blue-700 border-blue-200 shadow-sm">
+                                IQA
+                              </Badge>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
@@ -2498,6 +2709,9 @@ export function CorrectiveActionRequestTab({
                 <TableHeader className="bg-muted/50">
                   <TableRow>
                     <TableHead className="text-[10px] font-black uppercase pl-6 py-4">CAR No. & Procedure</TableHead>
+                    {effectiveTypeFilter === 'ALL' && (
+                      <TableHead className="text-center text-[10px] font-black uppercase">CAR Type</TableHead>
+                    )}
                     <TableHead className="text-[10px] font-black uppercase">Accountable Unit</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Reply Deadline</TableHead>
                     <TableHead className="text-center text-[10px] font-black uppercase">Next Action Date</TableHead>
@@ -2508,7 +2722,10 @@ export function CorrectiveActionRequestTab({
                 <TableBody>
                   {carsForAction.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-32 text-center text-muted-foreground text-xs">
+                      <TableCell
+                        colSpan={effectiveTypeFilter === 'ALL' ? 7 : 6}
+                        className="h-32 text-center text-muted-foreground text-xs"
+                      >
                         No items currently requiring active update or closure verification.
                       </TableCell>
                     </TableRow>
@@ -2519,15 +2736,16 @@ export function CorrectiveActionRequestTab({
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-black text-xs text-primary">{car.carNumber}</span>
-                              {car.auditType === 'EQA' ? (
-                                <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
-                                  EQA
-                                </Badge>
-                              ) : (
-                                <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
-                                  IQA
-                                </Badge>
-                              )}
+                              {effectiveTypeFilter !== 'ALL' &&
+                                (car.auditType === 'EQA' ? (
+                                  <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200">
+                                    EQA
+                                  </Badge>
+                                ) : (
+                                  <Badge className="text-[8px] font-black uppercase bg-primary/10 text-primary border-primary/20">
+                                    IQA
+                                  </Badge>
+                                ))}
                             </div>
                             <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 truncate max-w-[250px]">
                               {car.procedureTitle}
@@ -2546,6 +2764,19 @@ export function CorrectiveActionRequestTab({
                             )}
                           </div>
                         </TableCell>
+                        {effectiveTypeFilter === 'ALL' && (
+                          <TableCell className="text-center">
+                            {car.auditType === 'EQA' ? (
+                              <Badge className="text-[8px] font-black uppercase bg-violet-100 text-violet-800 border-violet-200 shadow-sm">
+                                EQA
+                              </Badge>
+                            ) : (
+                              <Badge className="text-[8px] font-black uppercase bg-blue-50 text-blue-700 border-blue-200 shadow-sm">
+                                IQA
+                              </Badge>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex flex-col gap-0.5">
                             <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
