@@ -30,6 +30,26 @@ export function getDirectDriveLink(url: string | undefined): string {
 }
 
 /**
+ * Transforms a Google Drive URL into an embeddable preview URL for iframes.
+ */
+export function getGoogleDriveEmbedUrl(url: string | undefined | null): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  // Match /file/d/{fileId}
+  const matchFile = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchFile && matchFile[1]) {
+    return `https://drive.google.com/file/d/${matchFile[1]}/preview`;
+  }
+  // Match ?id={fileId} or &id={fileId}
+  const matchId = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (matchId && matchId[1]) {
+    return `https://drive.google.com/file/d/${matchId[1]}/preview`;
+  }
+  // Replace view with preview
+  return trimmed.replace(/\/view(\?.*)?$/, '/preview').replace('?usp=sharing', '');
+}
+
+/**
  * Fuzzy Report Normalizer
  * Centralizes the logic for identifying EOMS reports despite minor naming variations.
  */

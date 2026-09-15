@@ -723,6 +723,28 @@ export const helpContent: Record<string, PageHelp> = {
     ],
     buttons: [{ label: 'Section', labelShort: 'Open', action: 'Loads the official policy document for review.' }],
   },
+  '/university-documents': {
+    title: 'University Documents Repository',
+    description: 'Centralized repository of official university-wide orders, policies, and institutional directives.',
+    steps: [
+      {
+        title: 'Browse & Search',
+        desc: 'Filter documents by category or search by document title to find relevant university-wide issuances.',
+      },
+      {
+        title: 'Auto Preview Display',
+        desc: 'Click on any document in the list to immediately preview its contents and open in Google Drive.',
+      },
+      {
+        title: 'Admin Management',
+        desc: 'Authorized administrators can register new documents, edit release dates, and maintain links.',
+      },
+    ],
+    buttons: [
+      { label: 'Preview', labelShort: 'View', action: 'Displays the document auto-preview in the right pane.' },
+      { label: 'Open in Drive', labelShort: 'Drive', action: 'Opens the source file directly in Google Drive.' },
+    ],
+  },
 
   // --- COMMUNICATIONS ---
   '/communications': {

@@ -1370,6 +1370,25 @@ export type Communication = {
   targetAudience?: CommunicationTargetAudience;
   complianceDeadline?: string;
   actionStatus?: 'Pending Action' | 'Under Action' | 'Complied / Closed' | 'For Information Only';
+  isUniversityDocument?: boolean;
+  universityDocumentId?: string;
+};
+
+// --- UNIVERSITY DOCUMENTS REPOSITORY TYPES ---
+
+export type UniversityDocument = {
+  id: string;
+  title: string;
+  releaseDate: string; // "YYYY-MM-DD"
+  googleDriveLink: string;
+  category?: string; // e.g. 'Memorandum Order', 'Office Order', 'Policy & Guidelines', 'Board Resolution', 'Transmittal Document', 'General'
+  description?: string;
+  uploadedBy?: string;
+  uploadedByRole?: string;
+  createdAt: any;
+  updatedAt?: any;
+  sourceCommunicationId?: string; // If imported/toggled from communication
+  sourceCommunicationRefNum?: string;
 };
 
 // --- UNIT ACTIVITY ATTENDANCE & DEVICE BINDING TYPES ---

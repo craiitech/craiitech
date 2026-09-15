@@ -32,6 +32,7 @@ import {
   Wrench,
   Building2,
   Copy,
+  FolderArchive,
 } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
@@ -441,6 +442,12 @@ export function SidebarNav({
       label: 'RSU EOMS Manual',
       active: pathname.startsWith('/eoms-policy-manual'),
       icon: <BookMarked />,
+    },
+    {
+      href: '/university-documents',
+      label: 'University Documents',
+      active: pathname.startsWith('/university-documents'),
+      icon: <FolderArchive />,
     },
     {
       href: '/unit-forms',

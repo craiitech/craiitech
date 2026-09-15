@@ -374,6 +374,14 @@ service cloud.firestore {
     match /isoClauses/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
     match /procedureManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
     match /eomsPolicyManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
+    match /universityDocuments/{id} { 
+      allow get, list: if isSignedIn(); 
+      allow write: if isSignedIn() && (
+        isAdmin() || 
+        isSupervisor() || 
+        (hasProfile() && profile().get('role', '').matches('(?i).*(odimo|director|president|vice president|coordinator).*'))
+      ); 
+    }
 
     match /system/csmSettings {
       allow read: if isSignedIn();

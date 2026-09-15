@@ -16,6 +16,7 @@ import {
   where,
   limit,
   deleteDoc,
+  serverTimestamp,
 } from '@/firebase/firestore-wrapper';
 import type {
   Campus,
@@ -27,11 +28,13 @@ import type {
   CommunicationActionType,
   CommunicationUrgency,
   CommunicationTargetAudience,
+  UniversityDocument,
 } from '@/lib/types';
 import { CommunicationAnalytics } from '@/components/communications/communication-analytics';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -73,6 +76,7 @@ import {
   ShieldCheck,
   GraduationCap,
   Users,
+  FolderArchive,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -130,6 +134,7 @@ export default function CommunicationsPage() {
   const [customDate, setCustomDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [subject, setSubject] = useState('');
   const [driveLink, setDriveLink] = useState('');
+  const [addToUniversityDocs, setAddToUniversityDocs] = useState(false);
 
   // ISO 21001:2025 Clause 7.4 Form Metadata
   const [communicationScope, setCommunicationScope] = useState<CommunicationScope>('Internal');
@@ -366,6 +371,7 @@ export default function CommunicationsPage() {
     setUrgencyLevel('Routine');
     setTargetAudience('Campus / Unit Heads');
     setComplianceDeadline('');
+    setAddToUniversityDocs(false);
   };
 
   // Google Drive preview URL parser
@@ -772,6 +778,9 @@ export default function CommunicationsPage() {
         }
       }
 
+      payload.isUniversityDocument = Boolean(addToUniversityDocs && driveLink.trim());
+
+      let savedCommId = editingCommId;
       if (editingCommId) {
         await updateDoc(doc(firestore, 'communications', editingCommId), payload);
         toast({
@@ -779,11 +788,61 @@ export default function CommunicationsPage() {
           description: `Successfully updated Reference Sequence: ${payload.senderRefNum || payload.recipientRefNums?.[receivingKey] || 'N/A'}`,
         });
       } else {
-        await addDoc(collection(firestore, 'communications'), payload);
+        const newDocRef = await addDoc(collection(firestore, 'communications'), payload);
+        savedCommId = newDocRef.id;
         toast({
           title: 'Communication Logged',
           description: `Successfully logged under Reference Sequence: ${payload.senderRefNum || payload.recipientRefNums?.[receivingKey] || 'N/A'}`,
         });
+      }
+
+      // Sync with University Documents repository
+      if (addToUniversityDocs && driveLink.trim() && savedCommId) {
+        try {
+          const uploaderName = userProfile
+            ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'Administrator'
+            : 'Administrator';
+          const existingComm = editingCommId ? rawComms?.find((c) => c.id === editingCommId) : null;
+
+          const univDocPayload: any = {
+            title: subject.trim(),
+            releaseDate: customDate || format(new Date(), 'yyyy-MM-dd'),
+            googleDriveLink: driveLink.trim(),
+            category: kind,
+            description: `Official Issuance from Communication: ${payload.senderRefNum || payload.recipientRefNums?.[receivingKey] || subject.trim()}`,
+            sourceCommunicationId: savedCommId,
+            sourceCommunicationRefNum: payload.senderRefNum || payload.recipientRefNums?.[receivingKey] || undefined,
+            uploadedBy: uploaderName,
+            uploadedByRole: userRole || 'Admin',
+            updatedAt: serverTimestamp(),
+          };
+
+          if (existingComm?.universityDocumentId) {
+            await updateDoc(doc(firestore, 'universityDocuments', existingComm.universityDocumentId), univDocPayload);
+          } else {
+            univDocPayload.createdAt = serverTimestamp();
+            const createdDocRef = await addDoc(collection(firestore, 'universityDocuments'), univDocPayload);
+            await updateDoc(doc(firestore, 'communications', savedCommId), {
+              universityDocumentId: createdDocRef.id,
+              isUniversityDocument: true,
+            });
+          }
+        } catch (syncErr) {
+          console.error('Failed to sync university document:', syncErr);
+        }
+      } else if (!addToUniversityDocs && editingCommId) {
+        const existingComm = rawComms?.find((c) => c.id === editingCommId);
+        if (existingComm?.universityDocumentId) {
+          try {
+            await deleteDoc(doc(firestore, 'universityDocuments', existingComm.universityDocumentId));
+            await updateDoc(doc(firestore, 'communications', editingCommId), {
+              universityDocumentId: null,
+              isUniversityDocument: false,
+            });
+          } catch (delErr) {
+            console.error('Failed to remove unlinked university document:', delErr);
+          }
+        }
       }
 
       setIsLogFormOpen(false);
@@ -1195,6 +1254,7 @@ export default function CommunicationsPage() {
     setUrgencyLevel(comm.urgencyLevel || 'Routine');
     setTargetAudience(comm.targetAudience || 'Campus / Unit Heads');
     setComplianceDeadline(comm.complianceDeadline || '');
+    setAddToUniversityDocs(Boolean(comm.isUniversityDocument));
 
     if (comm.manual) {
       setCommsMode('manual');
@@ -1240,6 +1300,76 @@ export default function CommunicationsPage() {
       toast({
         title: 'Error Deleting Record',
         description: e.message || 'Failed to delete communication.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleToggleUniversityDocument = async (comm: Communication) => {
+    if (!firestore || !comm.driveLink) {
+      toast({
+        title: 'Action Unavailable',
+        description: 'Communication must have a valid Google Drive link to publish.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    try {
+      if (comm.isUniversityDocument && comm.universityDocumentId) {
+        await deleteDoc(doc(firestore, 'universityDocuments', comm.universityDocumentId));
+        await updateDoc(doc(firestore, 'communications', comm.id), {
+          isUniversityDocument: false,
+          universityDocumentId: null,
+        });
+        setSelectedComm((prev) =>
+          prev ? { ...prev, isUniversityDocument: false, universityDocumentId: undefined } : null,
+        );
+        toast({
+          title: 'Removed from Repository',
+          description: 'Document has been removed from University Documents.',
+        });
+      } else {
+        const uploaderName = userProfile
+          ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'Administrator'
+          : 'Administrator';
+        const formattedDate = comm.createdAt?.toDate
+          ? format(comm.createdAt.toDate(), 'yyyy-MM-dd')
+          : comm.createdAt?.seconds
+            ? format(new Date(comm.createdAt.seconds * 1000), 'yyyy-MM-dd')
+            : format(new Date(), 'yyyy-MM-dd');
+
+        const univDocPayload: any = {
+          title: comm.subject.trim(),
+          releaseDate: formattedDate,
+          googleDriveLink: comm.driveLink.trim(),
+          category: comm.kind,
+          description: `Official Issuance from Communication: ${comm.senderRefNum || comm.subject.trim()}`,
+          sourceCommunicationId: comm.id,
+          sourceCommunicationRefNum: comm.senderRefNum || undefined,
+          uploadedBy: uploaderName,
+          uploadedByRole: userRole || 'Admin',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        };
+
+        const createdDocRef = await addDoc(collection(firestore, 'universityDocuments'), univDocPayload);
+        await updateDoc(doc(firestore, 'communications', comm.id), {
+          isUniversityDocument: true,
+          universityDocumentId: createdDocRef.id,
+        });
+        setSelectedComm((prev) =>
+          prev ? { ...prev, isUniversityDocument: true, universityDocumentId: createdDocRef.id } : null,
+        );
+        toast({
+          title: 'Published to Repository',
+          description: 'Document has been published to University Documents.',
+        });
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast({
+        title: 'Action Failed',
+        description: e.message || 'Failed to update University Document status.',
         variant: 'destructive',
       });
     }
@@ -1374,6 +1504,15 @@ export default function CommunicationsPage() {
                             className="h-3.5 text-[6.5px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 px-1.5 rounded"
                           >
                             External
+                          </Badge>
+                        )}
+                        {comm.isUniversityDocument && (
+                          <Badge
+                            variant="outline"
+                            className="h-3.5 text-[6.5px] font-black uppercase bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700 px-1.5 rounded flex items-center gap-0.5"
+                          >
+                            <FolderArchive className="h-2 w-2" />
+                            Univ Doc
                           </Badge>
                         )}
                       </div>
@@ -2475,6 +2614,37 @@ export default function CommunicationsPage() {
                 />
               </div>
 
+              {/* UNIVERSITY DOCUMENTS REPOSITORY TOGGLE */}
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+                <div className="space-y-0.5 pr-4">
+                  <div className="flex items-center gap-1.5">
+                    <FolderArchive className="h-4 w-4 text-emerald-600" />
+                    <label
+                      htmlFor="univ-doc-toggle"
+                      className="text-xs font-black uppercase tracking-wider text-emerald-900 dark:text-emerald-300 cursor-pointer"
+                    >
+                      Add as University-Wide Document
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    Publish this communication to the University Documents repository so all campus units can access and
+                    auto-preview it.
+                    {!driveLink.trim() && (
+                      <span className="text-amber-600 dark:text-amber-400 block font-medium mt-0.5">
+                        * Provide a Google Drive Link above to enable publishing.
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <Switch
+                  id="univ-doc-toggle"
+                  checked={addToUniversityDocs}
+                  onCheckedChange={setAddToUniversityDocs}
+                  disabled={!driveLink.trim()}
+                  className="data-[state=checked]:bg-emerald-700"
+                />
+              </div>
+
               <div className="flex justify-end gap-2 pt-4 border-t">
                 <Button
                   type="button"
@@ -2865,6 +3035,40 @@ export default function CommunicationsPage() {
                       </div>
                     )}
                   </div>
+
+                  {selectedComm.driveLink && canManageComm(selectedComm) && (
+                    <div className="pt-4 border-t space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400">
+                          University Repository
+                        </h5>
+                        {selectedComm.isUniversityDocument ? (
+                          <Badge className="bg-emerald-600 hover:bg-emerald-600 text-white text-[9px] font-black uppercase">
+                            Published
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] text-muted-foreground uppercase font-bold">
+                            Not Published
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={() => handleToggleUniversityDocument(selectedComm)}
+                        className={cn(
+                          'w-full h-9 text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center justify-center gap-1.5 transition-all shadow-xs',
+                          selectedComm.isUniversityDocument
+                            ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800'
+                            : 'bg-emerald-700 hover:bg-emerald-800 text-white',
+                        )}
+                      >
+                        <FolderArchive className="h-3.5 w-3.5" />
+                        {selectedComm.isUniversityDocument
+                          ? 'Remove from Repository'
+                          : 'Publish to University Documents'}
+                      </Button>
+                    </div>
+                  )}
 
                   {detailContext === 'incoming' && isOdimo && !selectedComm.recipientRefNums?.[receivingKey] && (
                     <div className="pt-4 border-t space-y-2">
