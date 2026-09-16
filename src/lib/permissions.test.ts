@@ -44,10 +44,27 @@ describe('getDefaultPermissions', () => {
     expect(perms['audit.manage_findings']).toBe(true);
   });
 
-  it('grants VP permissions for vice president roles', () => {
+  it('grants VP permissions for vice president roles without submissions.view_all', () => {
     const perms = getDefaultPermissions('Vice President for Academic Affairs');
     expect(perms['programs.create']).toBe(true);
     expect(perms['eval.manage_cycles']).toBe(true);
+    expect(perms['submissions.view_supervised']).toBe(true);
+    expect(perms['submissions.view_all']).toBeUndefined();
+  });
+
+  it('restricts unit coordinators and unit heads from submissions.view_all', () => {
+    const coordPerms = getDefaultPermissions('Unit Coordinator');
+    expect(coordPerms['submissions.create']).toBe(true);
+    expect(coordPerms['submissions.view_all']).toBeUndefined();
+    expect(coordPerms['submissions.view_supervised']).toBeUndefined();
+
+    const headPerms = getDefaultPermissions('Unit Head');
+    expect(headPerms['submissions.create']).toBe(true);
+    expect(headPerms['submissions.view_all']).toBeUndefined();
+
+    const odimoPerms = getDefaultPermissions('Unit ODIMO');
+    expect(odimoPerms['submissions.create']).toBe(true);
+    expect(odimoPerms['submissions.view_all']).toBeUndefined();
   });
 
   it('handles case-insensitive matching', () => {

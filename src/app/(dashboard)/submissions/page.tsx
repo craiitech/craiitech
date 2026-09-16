@@ -163,29 +163,38 @@ export default function SubmissionsPage() {
     return getSupervisedUnitIds(userProfile?.unitId, allUnits);
   }, [isUserVpOffice, userProfile?.unitId, allUnits]);
 
+  const roleLower = userRole?.toLowerCase() || '';
+
+  // Strictly identify unit-level roles (Unit Coordinator, Unit Head, Unit ODIMO)
+  const isUnitRole =
+    !isAdmin &&
+    !isAuditor &&
+    !isUserVpOffice &&
+    (roleLower.includes('coordinator') ||
+      roleLower.includes('unit') ||
+      roleLower.includes('head') ||
+      userRole === 'Unit ODIMO' ||
+      (!can('submissions.view_all') && !can('submissions.view_supervised')));
+
+  // Institutional viewers are university-wide executives/auditors ONLY (not VPs or coordinators)
   const isInstitutionalViewer =
     isAdmin ||
     isAuditor ||
-    isVp ||
-    isUserVpOffice ||
-    can('submissions.view_all') ||
-    userRole?.toLowerCase().includes('president') ||
-    userRole?.toLowerCase().includes('quality management') ||
-    userRole?.toLowerCase().includes('qms');
-
-  const roleLower = userRole?.toLowerCase() || '';
-  const isUnitRole =
-    !isUserVpOffice &&
-    (roleLower.includes('coordinator') ||
-      roleLower.includes('head') ||
-      userRole === 'Unit ODIMO' ||
-      !!userProfile?.unitId);
+    (!isUnitRole &&
+      !isUserVpOffice &&
+      (can('submissions.view_all') ||
+        roleLower.includes('president') ||
+        roleLower.includes('quality management') ||
+        roleLower.includes('qms')));
 
   useEffect(() => {
     if (userProfile && !isUserLoading) {
-      if (!isInstitutionalViewer && !isUserVpOffice) {
+      if (isUnitRole) {
+        setCampusFilter(userProfile.campusId || 'all');
+        setUnitFilter(userProfile.unitId);
+      } else if (!isInstitutionalViewer && !isUserVpOffice) {
         setCampusFilter(userProfile.campusId);
-        if (!isSupervisor || isUnitRole) {
+        if (!isSupervisor || userRole === 'Unit ODIMO') {
           setUnitFilter(userProfile.unitId);
         }
       }
@@ -194,10 +203,20 @@ export default function SubmissionsPage() {
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
-    if (isInstitutionalViewer || isUserVpOffice || can('submissions.view_all') || can('submissions.view_supervised')) {
+    if (isUnitRole && userProfile.unitId) {
+      return query(
+        collection(firestore, 'submissions'),
+        where('unitId', '==', userProfile.unitId),
+        where('campusId', '==', userProfile.campusId),
+      );
+    }
+    if (isInstitutionalViewer) {
       return collection(firestore, 'submissions');
     }
-    if (isSupervisor && !isUnitRole && userProfile.campusId) {
+    if (isUserVpOffice || can('submissions.view_supervised')) {
+      return collection(firestore, 'submissions');
+    }
+    if (isSupervisor && userProfile.campusId) {
       return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
     return query(
@@ -207,10 +226,10 @@ export default function SubmissionsPage() {
     );
   }, [
     firestore,
+    isUnitRole,
     isInstitutionalViewer,
     isUserVpOffice,
     isSupervisor,
-    isUnitRole,
     userRole,
     userProfile,
     isUserLoading,
@@ -249,23 +268,27 @@ export default function SubmissionsPage() {
   const normalizedSubmissions = useMemo(() => {
     if (!rawSubmissions) return [];
     let list = rawSubmissions;
-    if (isUserVpOffice && supervisedUnitIds.length > 0 && !isAdmin && !isAuditor && !can('submissions.view_all')) {
+    if (isUnitRole && userProfile?.unitId) {
+      list = list.filter((s) => s.unitId === userProfile.unitId);
+    } else if (
+      isUserVpOffice &&
+      supervisedUnitIds.length > 0 &&
+      !isAdmin &&
+      !isAuditor &&
+      !can('submissions.view_all')
+    ) {
       list = list.filter((s) => supervisedUnitIds.includes(s.unitId));
     }
     return list.map((s) => ({
       ...s,
       reportType: normalizeReportType(s.reportType),
     }));
-  }, [rawSubmissions, isUserVpOffice, supervisedUnitIds, isAdmin, isAuditor, can]);
+  }, [rawSubmissions, isUnitRole, userProfile?.unitId, isUserVpOffice, supervisedUnitIds, isAdmin, isAuditor, can]);
 
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: cycles, isLoading: isLoadingCycles } = useCollection<Cycle>(cyclesQuery);
 
-  const usersQuery = useMemoFirebase(
-    () =>
-      firestore && (isInstitutionalViewer || isSupervisor || isUserVpOffice) ? collection(firestore, 'users') : null,
-    [firestore, isInstitutionalViewer, isSupervisor, isUserVpOffice],
-  );
+  const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
   const { data: allUsers } = useCollection<AppUser>(usersQuery);
 
   const campusesQuery = useMemoFirebase(
@@ -284,12 +307,31 @@ export default function SubmissionsPage() {
   const filteredUnitsList = useMemo(() => {
     if (!allUnits) return [];
     let list = allUnits;
-    if (isUserVpOffice && supervisedUnitIds.length > 0 && !isAdmin && !isAuditor && !can('submissions.view_all')) {
+    if (isUnitRole && userProfile?.unitId) {
+      list = allUnits.filter((u) => u.id === userProfile.unitId);
+    } else if (
+      isUserVpOffice &&
+      supervisedUnitIds.length > 0 &&
+      !isAdmin &&
+      !isAuditor &&
+      !can('submissions.view_all')
+    ) {
       list = allUnits.filter((u) => supervisedUnitIds.includes(u.id));
     }
+    if (isUnitRole) return list;
     if (campusFilter === 'all') return list;
     return list.filter((u) => u.campusIds?.includes(campusFilter));
-  }, [allUnits, campusFilter, isUserVpOffice, supervisedUnitIds, isAdmin, isAuditor, can]);
+  }, [
+    allUnits,
+    campusFilter,
+    isUnitRole,
+    userProfile?.unitId,
+    isUserVpOffice,
+    supervisedUnitIds,
+    isAdmin,
+    isAuditor,
+    can,
+  ]);
 
   const availableYears = useMemo(() => {
     if (!normalizedSubmissions) return [new Date().getFullYear().toString()];
@@ -316,15 +358,25 @@ export default function SubmissionsPage() {
     if (!normalizedSubmissions) return [];
     let filtered = [...normalizedSubmissions];
     if (yearFilter !== 'all') filtered = filtered.filter((s) => String(s.year) === yearFilter);
-    if (campusFilter !== 'all') filtered = filtered.filter((s) => s.campusId === campusFilter);
-    if (unitFilter !== 'all') filtered = filtered.filter((s) => s.unitId === unitFilter);
+    if (!isUnitRole) {
+      if (campusFilter !== 'all') filtered = filtered.filter((s) => s.campusId === campusFilter);
+      if (unitFilter !== 'all') filtered = filtered.filter((s) => s.unitId === unitFilter);
+    }
     return filtered;
-  }, [normalizedSubmissions, yearFilter, campusFilter, unitFilter]);
+  }, [normalizedSubmissions, isUnitRole, yearFilter, campusFilter, unitFilter]);
 
   const dashboardUnits = useMemo(() => {
     if (!allUnits || !userProfile) return [];
     let filtered = [...allUnits];
-    if (isUserVpOffice && supervisedUnitIds.length > 0 && !isAdmin && !isAuditor && !can('submissions.view_all')) {
+    if (isUnitRole && userProfile.unitId) {
+      filtered = filtered.filter((u) => u.id === userProfile.unitId);
+    } else if (
+      isUserVpOffice &&
+      supervisedUnitIds.length > 0 &&
+      !isAdmin &&
+      !isAuditor &&
+      !can('submissions.view_all')
+    ) {
       filtered = filtered.filter((u) => supervisedUnitIds.includes(u.id));
     } else if (!isInstitutionalViewer) {
       if (isSupervisor && userRole !== 'Unit ODIMO') {
@@ -333,11 +385,14 @@ export default function SubmissionsPage() {
         filtered = filtered.filter((u) => u.id === userProfile.unitId);
       }
     }
-    if (campusFilter !== 'all') filtered = filtered.filter((u) => u.campusIds?.includes(campusFilter));
-    if (unitFilter !== 'all') filtered = filtered.filter((u) => u.id === unitFilter);
+    if (!isUnitRole) {
+      if (campusFilter !== 'all') filtered = filtered.filter((u) => u.campusIds?.includes(campusFilter));
+      if (unitFilter !== 'all') filtered = filtered.filter((u) => u.id === unitFilter);
+    }
     return filtered;
   }, [
     allUnits,
+    isUnitRole,
     isInstitutionalViewer,
     isUserVpOffice,
     supervisedUnitIds,
@@ -548,8 +603,12 @@ export default function SubmissionsPage() {
               submissions={dashboardSubmissions}
               cycles={cycles || []}
               allUnits={dashboardUnits}
+              allUsers={allUsers || []}
               isLoading={isLoadingSubmissions || isLoadingCycles || isLoadingUnits}
               selectedYear={yearFilter}
+              isUnitRole={isUnitRole}
+              isUserVpOffice={isUserVpOffice}
+              userUnitId={userProfile?.unitId}
             />
           </TabsContent>
 
@@ -559,13 +618,14 @@ export default function SubmissionsPage() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search by document type, unit, or control number..."
+                    placeholder="Search by report type, document control no., or submitter..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-9 h-11 shadow-sm bg-white border-primary/10 font-medium"
+                    className="pl-9 bg-white"
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                       <School className="h-2.5 w-2.5" /> Campus Site
@@ -573,13 +633,15 @@ export default function SubmissionsPage() {
                     <Select
                       value={campusFilter}
                       onValueChange={setCampusFilter}
-                      disabled={!isInstitutionalViewer && !isUserVpOffice}
+                      disabled={isUnitRole || (!isInstitutionalViewer && !isUserVpOffice)}
                     >
                       <SelectTrigger className="h-9 text-xs bg-white">
                         <SelectValue placeholder="All Campuses" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(isInstitutionalViewer || isUserVpOffice) && <SelectItem value="all">All Campuses</SelectItem>}
+                        {!isUnitRole && (isInstitutionalViewer || isUserVpOffice) && (
+                          <SelectItem value="all">All Campuses</SelectItem>
+                        )}
                         {campuses?.map((c) => (
                           <SelectItem key={c.id} value={c.id}>
                             {c.name}
@@ -596,15 +658,13 @@ export default function SubmissionsPage() {
                     <Select
                       value={unitFilter}
                       onValueChange={setUnitFilter}
-                      disabled={
-                        !isInstitutionalViewer && !isUserVpOffice && (!isSupervisor || userRole === 'Unit ODIMO')
-                      }
+                      disabled={isUnitRole || (!isInstitutionalViewer && !isUserVpOffice && !isSupervisor)}
                     >
                       <SelectTrigger className="h-9 text-xs bg-white">
                         <SelectValue placeholder="All Units" />
                       </SelectTrigger>
                       <SelectContent>
-                        {(isInstitutionalViewer || isUserVpOffice || isSupervisor) && (
+                        {!isUnitRole && (isInstitutionalViewer || isUserVpOffice || isSupervisor) && (
                           <SelectItem value="all">All Units</SelectItem>
                         )}
                         {filteredUnitsList.map((u) => (

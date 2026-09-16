@@ -220,15 +220,23 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
   const isUnitHead = lower.includes('unit head');
   const isDriverMechanic = lower.includes('driver') || lower.includes('mechanic') || lower.includes('operator');
 
-  const isSupervisor =
-    isAdminRole ||
-    isVp ||
-    lower.includes('director') ||
-    lower.includes('odimo') ||
-    lower.includes('president') ||
-    lower.includes('head') ||
-    lower.includes('dean of instruction') ||
-    lower === 'doi';
+  const isUnitLevel =
+    isUnitCoordinator ||
+    isUnitOdimo ||
+    isUnitHead ||
+    (lower.includes('coordinator') && !lower.includes('campus') && !lower.includes('csm'));
+
+  const isCampusSupervisor =
+    !isUnitLevel &&
+    (isAdminRole ||
+      lower.includes('director') ||
+      (lower.includes('president') && !isVp) ||
+      lower.includes('dean of instruction') ||
+      lower === 'doi' ||
+      (lower.includes('odimo') && !lower.includes('unit')) ||
+      (lower.includes('head') && !lower.includes('unit')));
+
+  const isSupervisor = !isUnitLevel && (isCampusSupervisor || isVp);
 
   if (isAdminRole) {
     const all: Record<string, boolean> = {};
@@ -251,7 +259,9 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
   };
 
   if (isSupervisor) {
-    perms['submissions.view_all'] = true;
+    if (isCampusSupervisor) {
+      perms['submissions.view_all'] = true;
+    }
     perms['submissions.view_supervised'] = true;
     perms['submissions.approve'] = true;
     perms['submissions.edit'] = true;
