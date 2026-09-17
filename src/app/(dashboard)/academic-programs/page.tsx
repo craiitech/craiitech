@@ -21,12 +21,14 @@ import {
   Filter,
   Info,
   Megaphone,
+  Award,
 } from 'lucide-react';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
 import { BatchDataHub } from '@/components/programs/batch-data-hub';
 import { ChedAnnouncements } from '@/components/programs/ched-announcements';
-import { ChedProgramMonitoringTable } from '@/components/programs/ched-program-monitoring-table';
+import { ChedMonitoringView } from '@/components/programs/ched-monitoring-view';
+import { AccreditationMonitoringView } from '@/components/programs/accreditation-monitoring-view';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -54,7 +56,8 @@ export default function AcademicProgramsPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const currentTab = searchParams.get('tab') || 'analytics';
+  const tabParam = searchParams.get('tab');
+  const currentTab = tabParam === 'analytics' ? 'ched-monitoring' : tabParam || 'ched-monitoring';
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<AcademicProgram | null>(null);
@@ -286,10 +289,22 @@ export default function AcademicProgramsPage() {
           <ScrollArea className="w-full">
             <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md h-10 w-max min-w-max">
               <TabsTrigger
-                value="analytics"
+                value="ched-monitoring"
                 className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
               >
-                <BarChart3 className="h-4 w-4" /> Decision Support
+                <GraduationCap className="h-4 w-4 text-primary" /> CHED Monitoring
+              </TabsTrigger>
+              <TabsTrigger
+                value="accreditation-monitoring"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+              >
+                <Award className="h-4 w-4 text-indigo-600" /> Accreditation Monitoring
+              </TabsTrigger>
+              <TabsTrigger
+                value="decision-support"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+              >
+                <BarChart3 className="h-4 w-4 text-emerald-600" /> Decision Support
               </TabsTrigger>
               <TabsTrigger
                 value="batch-hub"
@@ -382,14 +397,27 @@ export default function AcademicProgramsPage() {
           </Card>
         )}
 
-        <TabsContent value="analytics" className="animate-in fade-in duration-500 space-y-6">
-          <ChedProgramMonitoringTable
+        <TabsContent value="ched-monitoring" className="animate-in fade-in duration-500 space-y-6">
+          <ChedMonitoringView
             programs={filteredPrograms}
             compliances={rawCompliances || []}
             campuses={campuses || []}
             units={units || []}
             selectedYear={selectedYear}
           />
+        </TabsContent>
+
+        <TabsContent value="accreditation-monitoring" className="animate-in fade-in duration-500 space-y-6">
+          <AccreditationMonitoringView
+            programs={filteredPrograms}
+            compliances={rawCompliances || []}
+            campuses={campuses || []}
+            units={units || []}
+            selectedYear={selectedYear}
+          />
+        </TabsContent>
+
+        <TabsContent value="decision-support" className="animate-in fade-in duration-500 space-y-6">
           <ProgramAnalytics
             programs={filteredPrograms}
             compliances={rawCompliances || []}

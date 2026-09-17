@@ -346,6 +346,41 @@ export const helpContent: Record<string, PageHelp> = {
       { label: 'Workspace', labelShort: 'Open', action: 'Enters the 5-module compliance dashboard for a program.' },
     ],
   },
+  '/academic-programs?tab=ched-monitoring': {
+    title: 'CHED Program Monitoring',
+    description: 'Monitor Certificate of Program Compliance (COPC), CMO linkage, and RQAT inspection status.',
+    steps: [
+      { title: 'COPC Status', desc: 'Identify programs With COPC, In Progress, or No COPC across campuses.' },
+      {
+        title: 'Trend Analysis',
+        desc: 'Review year-over-year COPC compliance rates and print official compliance reports.',
+      },
+    ],
+    buttons: [{ label: 'Print Trend', labelShort: 'Print', action: 'Generates printable CHED compliance report.' }],
+  },
+  '/academic-programs?tab=accreditation-monitoring': {
+    title: 'Accreditation Monitoring',
+    description: 'Track AACCUP accreditation levels, survey schedules, validity expiration, and recommendations.',
+    steps: [
+      { title: 'Level Tracking', desc: 'Filter programs by Candidate, Level I, II, III, or IV accreditation.' },
+      {
+        title: 'Validity Expiration',
+        desc: 'Identify accreditations expiring or expired needing re-survey preparation.',
+      },
+    ],
+    buttons: [
+      { label: 'Print Report', labelShort: 'Print', action: 'Generates printable accreditation survey status report.' },
+    ],
+  },
+  '/academic-programs?tab=decision-support': {
+    title: 'Programs: Decision Support',
+    description: 'High-level maturity profiles, quality scores, and longitudinal achievement trends.',
+    steps: [
+      { title: 'Maturity Radar', desc: 'Verify the balance across Authority, Faculty, and Outcome pillars.' },
+      { title: 'Survey Pipeline', desc: 'Review the roadmap to prepare for upcoming accreditation years.' },
+    ],
+    buttons: [{ label: 'AY Filter', labelShort: 'AY', action: 'Scopes analytics to a specific academic year.' }],
+  },
   '/academic-programs?tab=analytics': {
     title: 'Programs: Decision Support',
     description: 'High-level maturity profiles and longitudinal achievement trends.',
