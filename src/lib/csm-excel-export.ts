@@ -1,6 +1,35 @@
 import * as XLSX from 'xlsx-js-style';
 import { format } from 'date-fns';
 
+/**
+ * Safely parses and formats any date representation (Firestore Timestamp,
+ * Date object, ISO string, or numeric epoch) without throwing RangeErrors.
+ */
+export function safeFormatDate(raw: any, formatPattern: string = 'yyyy-MM-dd HH:mm'): string {
+  if (!raw) return '—';
+  try {
+    let dateObj: Date;
+    if (typeof raw?.toDate === 'function') {
+      dateObj = raw.toDate();
+    } else if (typeof raw?.toMillis === 'function') {
+      dateObj = new Date(raw.toMillis());
+    } else if (raw?.seconds !== undefined && typeof raw.seconds === 'number') {
+      dateObj = new Date(raw.seconds * 1000);
+    } else if (raw instanceof Date) {
+      dateObj = raw;
+    } else {
+      dateObj = new Date(raw);
+    }
+
+    if (isNaN(dateObj.getTime())) {
+      return '—';
+    }
+    return format(dateObj, formatPattern);
+  } catch {
+    return '—';
+  }
+}
+
 export interface CsmExcelExportParams {
   year: number;
   campusName: string;
@@ -246,14 +275,20 @@ export function exportCsmReportToExcel(params: CsmExcelExportParams): string {
   applyRowStyles(wsSummary, 4, 0, 1, boldLabelStyle);
   applyRowStyles(wsSummary, 11, 0, 3, headerStyle);
 
-  // Style KPI rows
-  for (let r = 12; r <= 18; r++) {
+  // Style KPI rows dynamically
+  const kpiCount = 6 + (npsScore !== undefined ? 1 : 0);
+  const kpiEndRow = 11 + kpiCount;
+  for (let r = 12; r <= kpiEndRow; r++) {
     applyRowStyles(wsSummary, r, 0, 2, cellStyle);
     const statusCell = XLSX.utils.encode_cell({ r, c: 3 });
     if (wsSummary[statusCell]) {
       const val = String(wsSummary[statusCell].v || '');
       wsSummary[statusCell].s =
-        val.includes('ACHIEVED') || val.includes('COMPLETED') || val.includes('HIGH') || val.includes('VERY')
+        val.includes('ACHIEVED') ||
+        val.includes('COMPLETED') ||
+        val.includes('HIGH') ||
+        val.includes('VERY') ||
+        val.includes('EXCELLENT')
           ? passBadgeStyle
           : alertBadgeStyle;
     }
@@ -508,28 +543,28 @@ export function exportCsmReportToExcel(params: CsmExcelExportParams): string {
     ];
 
     rawResponses.forEach((r) => {
-      const dateVal = r.createdAt ? format(new Date(r.createdAt), 'yyyy-MM-dd HH:mm') : '—';
+      const dateVal = safeFormatDate(r.createdAt, 'yyyy-MM-dd HH:mm');
       rawAoa.push([
-        r.id || '—',
+        String(r.id || '—'),
         dateVal,
-        r.clientType || 'Student',
-        r.sex || '—',
-        r.ageGroup || '—',
-        r.campusId || '—',
-        r.purpose || '—',
-        r.cc1 || 0,
-        r.cc2 || 0,
-        r.cc3 || 0,
-        r.sqd0 || 0,
-        r.sqd1 || 0,
-        r.sqd2 || 0,
-        r.sqd3 || 0,
-        r.sqd4 || 0,
-        r.sqd5 || 0,
-        r.sqd6 || 0,
-        r.sqd7 || 0,
-        r.sqd8 || 0,
-        r.comments || '',
+        String(r.clientType || 'Student'),
+        String(r.sex || '—'),
+        String(r.ageGroup || '—'),
+        String(r.campusId || '—'),
+        String(r.purpose || '—'),
+        r.cc1 ?? 0,
+        r.cc2 ?? 0,
+        r.cc3 ?? 0,
+        r.sqd0 ?? 0,
+        r.sqd1 ?? 0,
+        r.sqd2 ?? 0,
+        r.sqd3 ?? 0,
+        r.sqd4 ?? 0,
+        r.sqd5 ?? 0,
+        r.sqd6 ?? 0,
+        r.sqd7 ?? 0,
+        r.sqd8 ?? 0,
+        String(r.comments || ''),
       ]);
     });
 

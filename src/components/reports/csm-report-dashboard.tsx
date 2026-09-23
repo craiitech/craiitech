@@ -1398,11 +1398,11 @@ export function CsmReportDashboard({
         title: 'Excel Export Complete',
         description: `Successfully generated ${filename}`,
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to export CSM Excel:', error);
       toast({
         title: 'Export Failed',
-        description: 'An error occurred while generating the Excel workbook.',
+        description: error?.message || 'An error occurred while generating the Excel workbook.',
         variant: 'destructive',
       });
     }

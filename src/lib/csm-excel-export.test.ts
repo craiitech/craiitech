@@ -85,4 +85,83 @@ describe('exportCsmReportToExcel', () => {
     expect(filename.endsWith('.xlsx')).toBe(true);
     expect(XLSX.writeFile).toHaveBeenCalled();
   });
+
+  it('handles live survey responses with Firestore Timestamps without throwing', () => {
+    const filename = exportCsmReportToExcel({
+      year: 2026,
+      campusName: 'Site 1 - Main Campus',
+      unitName: 'All Units',
+      dataSource: 'live',
+      totalResponses: 1,
+      totalVisitors: 2,
+      overallSatisfactionRate: 100,
+      ccStats: {
+        cc1AwarePercent: 95,
+        cc2VisibilityPercent: 80,
+        cc3HelpfulnessPercent: 85,
+        cc1: [0, 1, 0, 0, 0],
+        cc2: [0, 1, 0, 0, 0, 0],
+        cc3: [0, 1, 0, 0, 0],
+      },
+      sqdData: [
+        {
+          id: 0,
+          name: 'Overall Satisfaction',
+          avg: 5.0,
+          positivePercent: 100,
+          counts: [0, 0, 0, 0, 0, 1],
+          totalValid: 1,
+        },
+      ],
+      services: [
+        {
+          name: 'Registrar Assistance',
+          campus: 'Site 1 - Main Campus',
+          count: 1,
+          avgRating: 5.0,
+          satisfactionRate: 100,
+        },
+      ],
+      comments: [
+        {
+          visitorName: 'M**K L***S',
+          comments: 'Friendly staff',
+          category: 'Outcome (SQD8)',
+          campus: 'Site 1 - Main Campus',
+          type: 'Student',
+        },
+      ],
+      rawResponses: [
+        {
+          id: 'test-doc-123',
+          createdAt: {
+            seconds: 1727103823,
+            nanoseconds: 0,
+            toDate: () => new Date('2026-09-23T15:00:00Z'),
+          },
+          clientType: 'Student',
+          sex: 'Male',
+          ageGroup: '20-34',
+          campusId: 'site-1',
+          purpose: 'Registrar Assistance',
+          cc1: 1,
+          cc2: 1,
+          cc3: 1,
+          sqd0: 5,
+          sqd1: 5,
+          sqd2: 5,
+          sqd3: 5,
+          sqd4: 5,
+          sqd5: 5,
+          sqd6: 5,
+          sqd7: 5,
+          sqd8: 5,
+          comments: 'Friendly staff',
+        },
+      ],
+    });
+
+    expect(filename).toContain('RSU_CSM_Report_Site_1_-_Main_Campus_2026');
+    expect(filename.endsWith('.xlsx')).toBe(true);
+  });
 });
