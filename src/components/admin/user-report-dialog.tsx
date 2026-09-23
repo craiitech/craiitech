@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Printer, ZoomIn, ZoomOut, RotateCcw, Users, ShieldCheck, Filter } from 'lucide-react';
+import { Printer, ZoomIn, ZoomOut, RotateCcw, Users, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { UserReportPrintTemplate } from './user-report-print-template';
 
 interface UserReportDialogProps {
@@ -48,44 +48,34 @@ export function UserReportDialog({
   // Scope: 'all' | 'filtered'
   const [scope, setScope] = useState<'all' | 'filtered'>('all');
   const [selectedCampusId, setSelectedCampusId] = useState<string>('all');
-  const [selectedStatus, setSelectedStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [zoomScale, setZoomScale] = useState<number>(90);
+
+  // Exclude unapproved accounts: only bona fide users (verified === true) are included
+  const approvedAllUsers = useMemo(() => allUsers.filter((u) => Boolean(u.verified)), [allUsers]);
+  const approvedFilteredUsers = useMemo(() => filteredUsers.filter((u) => Boolean(u.verified)), [filteredUsers]);
 
   // Compute users to display in report
   const displayUsers = useMemo(() => {
-    let baseList = scope === 'filtered' ? [...filteredUsers] : [...allUsers];
+    let baseList = scope === 'filtered' ? [...approvedFilteredUsers] : [...approvedAllUsers];
 
     // Additional campus filter inside dialog
     if (selectedCampusId !== 'all') {
       baseList = baseList.filter((u) => u.campusId === selectedCampusId);
     }
 
-    // Additional status filter inside dialog
-    if (selectedStatus === 'active') {
-      baseList = baseList.filter((u) => u.verified);
-    } else if (selectedStatus === 'inactive') {
-      baseList = baseList.filter((u) => !u.verified);
-    }
-
     return baseList;
-  }, [scope, allUsers, filteredUsers, selectedCampusId, selectedStatus]);
+  }, [scope, approvedAllUsers, approvedFilteredUsers, selectedCampusId]);
 
   const selectedCampusName = useMemo(() => {
     if (selectedCampusId === 'all') return 'All Campuses';
     return campuses.find((c) => c.id === selectedCampusId)?.name || 'Specified Campus';
   }, [selectedCampusId, campuses]);
 
-  const selectedStatusName = useMemo(() => {
-    if (selectedStatus === 'active') return 'Active & Verified Only';
-    if (selectedStatus === 'inactive') return 'Inactive & Pending NDA Only';
-    return 'All User Statuses';
-  }, [selectedStatus]);
-
   const scopeTitle = useMemo(() => {
-    if (scope === 'all') return 'Institutional Registry (All Registered Accounts)';
+    if (scope === 'all') return `Approved Bona Fide Accounts (${displayUsers.length} Users)`;
     const searchNote = currentSearchTerm ? ` matching "${currentSearchTerm}"` : '';
     const tabNote = currentFilterTab !== 'all' ? ` [Tab: ${currentFilterTab}]` : '';
-    return `Filtered View: ${displayUsers.length} Users${searchNote}${tabNote}`;
+    return `Filtered Approved View: ${displayUsers.length} Users${searchNote}${tabNote}`;
   }, [scope, displayUsers.length, currentSearchTerm, currentFilterTab]);
 
   const handleZoomIn = () => setZoomScale((prev) => Math.min(prev + 10, 140));
@@ -104,7 +94,7 @@ export function UserReportDialog({
           generatedBy={adminName}
           scopeTitle={scopeTitle}
           selectedCampusName={selectedCampusName}
-          selectedStatusName={selectedStatusName}
+          selectedStatusName="Approved / Verified Accounts Only"
         />,
       );
 
@@ -115,7 +105,7 @@ export function UserReportDialog({
           <!DOCTYPE html>
           <html>
           <head>
-            <title>RSU User Directory & Access Registry - Quality Assurance Office</title>
+            <title>RSU Bona Fide User Directory - Quality Assurance Office</title>
             <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
             <style>
               @page {
@@ -187,7 +177,7 @@ export function UserReportDialog({
               <div className="flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
                 <DialogTitle className="text-base font-black uppercase tracking-tight">
-                  User Management • Official Registry Report
+                  User Management • Bona Fide Registry Report
                 </DialogTitle>
                 <Badge variant="outline" className="text-[10px] uppercase font-bold text-primary border-primary/30">
                   <ShieldCheck className="h-3 w-3 mr-1" />
@@ -195,7 +185,7 @@ export function UserReportDialog({
                 </Badge>
               </div>
               <DialogDescription className="text-xs text-muted-foreground">
-                Official Romblon State University user directory and authorization registry.
+                Official Romblon State University directory of approved and active bona fide personnel.
               </DialogDescription>
             </div>
 
@@ -214,7 +204,7 @@ export function UserReportDialog({
           </div>
 
           {/* FILTER & CONFIGURATION CONTROLS */}
-          <div className="mt-3 pt-3 border-t grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
+          <div className="mt-3 pt-3 border-t grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs items-center">
             {/* Scope Selector */}
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-muted-foreground whitespace-nowrap">Scope:</span>
@@ -223,8 +213,8 @@ export function UserReportDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Registered Users ({allUsers.length})</SelectItem>
-                  <SelectItem value="filtered">Filtered / Searched View ({filteredUsers.length})</SelectItem>
+                  <SelectItem value="all">All Approved Users ({approvedAllUsers.length})</SelectItem>
+                  <SelectItem value="filtered">Filtered Approved Users ({approvedFilteredUsers.length})</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -247,19 +237,15 @@ export function UserReportDialog({
               </Select>
             </div>
 
-            {/* Status Selector */}
-            <div className="flex items-center gap-1.5">
-              <span className="font-bold text-muted-foreground whitespace-nowrap">Status:</span>
-              <Select value={selectedStatus} onValueChange={(val: any) => setSelectedStatus(val)}>
-                <SelectTrigger className="h-7 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="active">Active Only</SelectItem>
-                  <SelectItem value="inactive">Inactive Only</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Status Scope Indicator */}
+            <div className="flex items-center">
+              <Badge
+                variant="secondary"
+                className="text-emerald-700 bg-emerald-50 border-emerald-200 text-[10px] font-bold py-1 px-2.5 flex items-center gap-1"
+              >
+                <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                Bona Fide (Approved Only)
+              </Badge>
             </div>
 
             {/* Zoom Controls */}
@@ -312,7 +298,7 @@ export function UserReportDialog({
                 generatedBy={adminName}
                 scopeTitle={scopeTitle}
                 selectedCampusName={selectedCampusName}
-                selectedStatusName={selectedStatusName}
+                selectedStatusName="Approved / Verified Accounts Only"
               />
             </div>
           </div>
@@ -322,7 +308,7 @@ export function UserReportDialog({
         <DialogFooter className="p-3 bg-white dark:bg-slate-950 border-t flex flex-row items-center justify-between flex-shrink-0">
           <div className="text-xs text-muted-foreground flex items-center gap-2">
             <span>
-              Total records listed: <strong className="text-foreground">{displayUsers.length}</strong>
+              Approved bona fide records: <strong className="text-foreground">{displayUsers.length}</strong>
             </span>
           </div>
           <div className="flex items-center gap-2">
