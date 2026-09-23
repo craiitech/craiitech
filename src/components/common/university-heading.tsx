@@ -10,6 +10,7 @@ export interface UniversityHeadingProps {
   reportSubtitle?: string;
   refNo?: string;
   datePrinted?: string | Date;
+  updatedAsOf?: string | Date;
   campusLocation?: string;
   contactDetails?: string;
   showIsoLogo?: boolean;
@@ -29,6 +30,7 @@ export interface UniversityHeadingProps {
  * - Romblon State University Seal
  * - Quality Assurance Office / Designated Unit Emblem
  * - ISO 9001:2015 TÜV Rheinland Certification Badge
+ * - Optional "Updated as of: " date banner
  * - Standard address and contact lines
  * - Optional document classification banner & reference metadata
  */
@@ -39,6 +41,7 @@ export function UniversityHeading({
   reportSubtitle,
   refNo,
   datePrinted,
+  updatedAsOf,
   campusLocation = 'Liwanag, Odiongan, Romblon 5505',
   contactDetails = 'Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph',
   showIsoLogo = true,
@@ -60,8 +63,28 @@ export function UniversityHeading({
     }
   }, [datePrinted]);
 
+  const formattedUpdatedAsOf = React.useMemo(() => {
+    if (!updatedAsOf) return null;
+    if (typeof updatedAsOf === 'string') return updatedAsOf;
+    try {
+      return format(updatedAsOf, 'MMMM d, yyyy');
+    } catch {
+      return String(updatedAsOf);
+    }
+  }, [updatedAsOf]);
+
   return (
     <header className={`w-full text-black bg-white select-none ${className}`}>
+      {/* TOPMOST UPDATED AS OF BAR IF SPECIFIED */}
+      {formattedUpdatedAsOf && (
+        <div className="flex justify-between items-center text-[8pt] border-b border-slate-300 pb-1 mb-2 text-slate-700">
+          <span className="font-semibold">
+            Updated as of: <strong className="text-slate-900 font-bold">{formattedUpdatedAsOf}</strong>
+          </span>
+          {refNo && <span className="font-mono text-[7pt] text-slate-500 uppercase">Ref: {refNo}</span>}
+        </div>
+      )}
+
       {/* 1. TOP INSTITUTIONAL LETTERHEAD */}
       <div className="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-2">
         <div className="flex items-center gap-3">
@@ -134,7 +157,7 @@ export function UniversityHeading({
       )}
 
       {/* 3. OPTIONAL METADATA BAR (Ref No, Date, etc.) */}
-      {(refNo || formattedDate) && (
+      {(refNo || formattedDate) && !formattedUpdatedAsOf && (
         <div className="flex items-center justify-between text-[7.5pt] font-sans px-1 pb-1 mb-2 text-slate-600 border-b border-slate-200">
           <div>
             {refNo && (
