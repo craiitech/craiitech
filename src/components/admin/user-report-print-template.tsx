@@ -58,13 +58,57 @@ export function UserReportPrintTemplate({
     return represented.size;
   }, [approvedUsers, validCampusIds]);
 
+  const resolveUserUnitName = React.useCallback(
+    (user: User) => {
+      if (user.unitId && unitMap.has(user.unitId)) {
+        return unitMap.get(user.unitId)!;
+      }
+      if (user.unitName && user.unitName.trim() !== '') {
+        return user.unitName;
+      }
+      const roleName = roleMap.get(user.roleId) || user.role || '';
+      const roleLower = roleName.toLowerCase();
+
+      if (roleLower.includes('campus odimo') || roleLower.includes('campus director')) {
+        const directorUnit = units.find(
+          (u) =>
+            u.campusIds?.includes(user.campusId) &&
+            (u.name.toLowerCase().includes('campus director') ||
+              u.name.toLowerCase().includes('office of the campus director')),
+        );
+        return directorUnit?.name || 'Office of the Campus Director';
+      }
+
+      if (roleLower === 'auditor') {
+        const iqaUnit = units.find(
+          (u) => u.name.toLowerCase() === 'internal quality audit' || u.name.toLowerCase() === 'iqa',
+        );
+        return iqaUnit?.name || 'Internal Quality Audit';
+      }
+
+      return 'Unassigned';
+    },
+    [unitMap, roleMap, units],
+  );
+
   // Only count valid registered operating units represented by approved users
   const distinctUnits = React.useMemo(() => {
     const represented = new Set(
-      approvedUsers.map((u) => u.unitId).filter((id): id is string => Boolean(id) && validUnitIds.has(id)),
+      approvedUsers
+        .map((u) => {
+          if (u.unitId && validUnitIds.has(u.unitId)) return u.unitId;
+          const resolved = resolveUserUnitName(u);
+          if (resolved !== 'Unassigned') {
+            const matchedUnit = units.find((un) => un.name.toLowerCase() === resolved.toLowerCase());
+            if (matchedUnit) return matchedUnit.id;
+            return resolved;
+          }
+          return null;
+        })
+        .filter((id): id is string => Boolean(id)),
     );
     return represented.size;
-  }, [approvedUsers, validUnitIds]);
+  }, [approvedUsers, validUnitIds, resolveUserUnitName, units]);
 
   // Only count valid registered roles represented by approved users
   const distinctRoles = React.useMemo(() => {
@@ -81,15 +125,15 @@ export function UserReportPrintTemplate({
       const campB = campusMap.get(b.campusId) || '';
       if (campA !== campB) return campA.localeCompare(campB);
 
-      const unitA = a.unitName || unitMap.get(a.unitId) || '';
-      const unitB = b.unitName || unitMap.get(b.unitId) || '';
+      const unitA = resolveUserUnitName(a);
+      const unitB = resolveUserUnitName(b);
       if (unitA !== unitB) return unitA.localeCompare(unitB);
 
       const nameA = `${a.lastName || ''}, ${a.firstName || ''}`;
       const nameB = `${b.lastName || ''}, ${b.firstName || ''}`;
       return nameA.localeCompare(nameB);
     });
-  }, [approvedUsers, campusMap, unitMap]);
+  }, [approvedUsers, campusMap, resolveUserUnitName]);
 
   const qaoDirector = signatories?.qaoDirector || 'Director, Quality Assurance Office';
 
@@ -207,7 +251,7 @@ export function UserReportPrintTemplate({
           {sortedUsers.map((user, idx) => {
             const roleName = roleMap.get(user.roleId) || user.role || 'Unassigned';
             const campusName = campusMap.get(user.campusId) || 'Unassigned';
-            const unitName = user.unitName || unitMap.get(user.unitId) || 'Unassigned';
+            const unitName = resolveUserUnitName(user);
             const fullName = `${user.lastName || ''}, ${user.firstName || ''}`.trim() || '—';
 
             return (

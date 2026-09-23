@@ -8,21 +8,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useForm } from 'react-hook-form';
@@ -56,14 +43,7 @@ const editUserSchema = z.object({
   unitId: z.string().optional(),
 });
 
-export function EditUserDialog({
-  user,
-  isOpen,
-  onOpenChange,
-  roles,
-  campuses,
-  units,
-}: EditUserDialogProps) {
+export function EditUserDialog({ user, isOpen, onOpenChange, roles, campuses, units }: EditUserDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,17 +74,38 @@ export function EditUserDialog({
 
   useEffect(() => {
     if (user && isOpen) {
+      const selectedRole = roles?.find((r) => r.id === user.roleId);
+      const roleLower = (selectedRole?.name || user.role || '').toLowerCase();
+      let defaultUnitId = user.unitId || '';
+
+      if (
+        !defaultUnitId &&
+        (roleLower.includes('campus odimo') || roleLower.includes('campus director')) &&
+        user.campusId &&
+        units
+      ) {
+        const foundDirectorUnit = units.find(
+          (u) =>
+            u.campusIds?.includes(user.campusId) &&
+            (u.name.toLowerCase().includes('campus director') ||
+              u.name.toLowerCase().includes('office of the campus director')),
+        );
+        if (foundDirectorUnit) {
+          defaultUnitId = foundDirectorUnit.id;
+        }
+      }
+
       form.reset({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         sex: (user.sex as any) || 'Female',
         roleId: user.roleId || '',
         campusId: user.campusId || '',
-        unitId: user.unitId || '',
+        unitId: defaultUnitId,
       });
     }
-  }, [user, isOpen, form]);
-  
+  }, [user, isOpen, form, roles, units]);
+
   const selectedRoleId = form.watch('roleId');
   const selectedCampusId = form.watch('campusId');
 
@@ -112,73 +113,140 @@ export function EditUserDialog({
     if (!selectedRoleId || !roles) return false;
     const selectedRole = roles.find((r) => r.id === selectedRoleId);
     if (!selectedRole) return false;
-    
-    const campusLevelRoles = ['campus director', 'campus odimo', 'auditor', 'admin'];
-    return !campusLevelRoles.includes(selectedRole.name.toLowerCase());
+
+    // Only Admin and Auditor do not pick a campus unit (Auditor is assigned to IQA)
+    const nonCampusUnitRoles = ['admin', 'auditor'];
+    return !nonCampusUnitRoles.includes(selectedRole.name.toLowerCase());
   }, [selectedRoleId, roles]);
 
   const unitsForCampus = useMemo(() => {
     if (!selectedCampusId || !units) return [];
-    return units.filter(u => u.campusIds?.includes(selectedCampusId));
+    return units.filter((u) => u.campusIds?.includes(selectedCampusId));
   }, [selectedCampusId, units]);
+
+  const campusDirectorUnit = useMemo(() => {
+    if (!selectedCampusId || !units) return null;
+    return (
+      units.find(
+        (u) =>
+          u.campusIds?.includes(selectedCampusId) &&
+          (u.name.toLowerCase().includes('campus director') ||
+            u.name.toLowerCase().includes('office of the campus director')),
+      ) || null
+    );
+  }, [selectedCampusId, units]);
+
+  // When campus or role changes, auto-default Campus ODIMO & Campus Director to the campus director unit
+  useEffect(() => {
+    if (!selectedRoleId || !roles || !selectedCampusId) return;
+    const selectedRole = roles.find((r) => r.id === selectedRoleId);
+    if (!selectedRole) return;
+    const roleLower = selectedRole.name.toLowerCase();
+
+    if (roleLower.includes('campus odimo') || roleLower.includes('campus director')) {
+      const currentUnitId = form.getValues('unitId');
+      const isCurrentUnitInCampus = unitsForCampus.some((u) => u.id === currentUnitId);
+      if ((!currentUnitId || !isCurrentUnitInCampus) && campusDirectorUnit) {
+        form.setValue('unitId', campusDirectorUnit.id);
+        form.clearErrors('unitId');
+      }
+    }
+  }, [selectedRoleId, selectedCampusId, roles, unitsForCampus, campusDirectorUnit, form]);
 
   const onSubmit = async (values: z.infer<typeof editUserSchema>) => {
     if (!firestore || !activeUser?.id) {
-        toast({ title: 'Error', description: 'User identifier is missing.', variant: 'destructive' });
-        return;
+      toast({ title: 'Error', description: 'User identifier is missing.', variant: 'destructive' });
+      return;
     }
-    
-    if (isUnitRequired && !values.unitId) {
-        form.setError('unitId', { type: 'manual', message: 'Unit assignment is required for this role.' });
-        return;
+
+    const selectedRole = roles.find((r) => r.id === values.roleId);
+    const roleLower = selectedRole?.name?.toLowerCase() || '';
+    const selectedUnit = units.find((u) => u.id === values.unitId);
+    const iqaUnit = units.find(
+      (u) => u.name?.toLowerCase() === 'internal quality audit' || u.name?.toLowerCase() === 'iqa',
+    );
+    const iqaUnitId = iqaUnit ? iqaUnit.id : '';
+
+    const directorUnit = units.find(
+      (u) =>
+        u.campusIds?.includes(values.campusId) &&
+        (u.name?.toLowerCase().includes('campus director') ||
+          u.name?.toLowerCase().includes('office of the campus director')),
+    );
+
+    let assignedUnitId = values.unitId || '';
+    let assignedUnitName = selectedUnit ? selectedUnit.name : '';
+
+    if (roleLower === 'auditor') {
+      assignedUnitId = iqaUnitId;
+      assignedUnitName = iqaUnit ? iqaUnit.name : 'Internal Quality Audit';
+    } else if (roleLower.includes('campus odimo') || roleLower.includes('campus director')) {
+      if (values.unitId && selectedUnit) {
+        assignedUnitId = selectedUnit.id;
+        assignedUnitName = selectedUnit.name;
+      } else if (directorUnit) {
+        assignedUnitId = directorUnit.id;
+        assignedUnitName = directorUnit.name;
+      } else {
+        assignedUnitId = values.unitId || '';
+        assignedUnitName = selectedUnit ? selectedUnit.name : 'Office of the Campus Director';
+      }
+    } else if (roleLower === 'admin') {
+      assignedUnitId = '';
+      assignedUnitName = '';
+    }
+
+    if (
+      isUnitRequired &&
+      !assignedUnitId &&
+      !roleLower.includes('campus odimo') &&
+      !roleLower.includes('campus director')
+    ) {
+      form.setError('unitId', { type: 'manual', message: 'Unit assignment is required for this role.' });
+      return;
     }
 
     setIsSubmitting(true);
-    
+
     const userRef = doc(firestore, 'users', activeUser.id);
-    const selectedRole = roles.find(r => r.id === values.roleId);
-    const selectedUnit = units.find(u => u.id === values.unitId);
-    const iqaUnit = units.find(u => u.name?.toLowerCase() === 'internal quality audit' || u.name?.toLowerCase() === 'iqa');
-    const iqaUnitId = iqaUnit ? iqaUnit.id : '';
-    
+
     const updateData = {
-        firstName: values.firstName,
-        lastName: values.lastName,
-        sex: values.sex,
-        roleId: values.roleId,
-        role: selectedRole ? selectedRole.name : (activeUser.role || ''),
-        campusId: values.campusId,
-        unitId: selectedRole?.name?.toLowerCase() === 'auditor' 
-            ? iqaUnitId 
-            : (isUnitRequired ? (values.unitId || '') : ''),
-        unitName: selectedRole?.name?.toLowerCase() === 'auditor'
-            ? (iqaUnit ? iqaUnit.name : 'Internal Quality Audit')
-            : (isUnitRequired && selectedUnit ? selectedUnit.name : ''),
+      firstName: values.firstName,
+      lastName: values.lastName,
+      sex: values.sex,
+      roleId: values.roleId,
+      role: selectedRole ? selectedRole.name : activeUser.role || '',
+      campusId: values.campusId,
+      unitId: assignedUnitId,
+      unitName: assignedUnitName,
     };
 
     updateDoc(userRef, updateData)
-        .then(() => {
-            logSessionActivity(`Administrator updated user profile: ${activeUser.email}`, { 
-                action: 'admin_edit_user', 
-                details: { targetUserId: activeUser.id, changes: updateData } 
-            });
-            toast({
-                title: 'Changes Applied',
-                description: `${values.firstName} ${values.lastName}'s account has been updated successfully.`,
-            });
-            onOpenChange(false);
-        })
-        .catch(async (error) => {
-            console.error('Error applying user updates:', error);
-            errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'update',
-                requestResourceData: updateData
-            }));
-        })
-        .finally(() => {
-            setIsSubmitting(false);
+      .then(() => {
+        logSessionActivity(`Administrator updated user profile: ${activeUser.email}`, {
+          action: 'admin_edit_user',
+          details: { targetUserId: activeUser.id, changes: updateData },
         });
+        toast({
+          title: 'Changes Applied',
+          description: `${values.firstName} ${values.lastName}'s account has been updated successfully.`,
+        });
+        onOpenChange(false);
+      })
+      .catch(async (error) => {
+        console.error('Error applying user updates:', error);
+        errorEmitter.emit(
+          'permission-error',
+          new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'update',
+            requestResourceData: updateData,
+          }),
+        );
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
   };
 
   return (
@@ -189,38 +257,39 @@ export function EditUserDialog({
             <DialogHeader>
               <DialogTitle>Edit User Account</DialogTitle>
               <DialogDescription>
-                Administrator override for {activeUser.firstName} {activeUser.lastName}. Update their identity or institutional assignment.
+                Administrator override for {activeUser.firstName} {activeUser.lastName}. Update their identity or
+                institutional assignment.
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
-                    <FormField
+                  <FormField
                     control={form.control}
                     name="firstName"
                     render={({ field }) => (
-                        <FormItem>
+                      <FormItem>
                         <FormLabel>First Name</FormLabel>
                         <FormControl>
-                            <Input {...field} placeholder="Enter first name" disabled={isSubmitting} />
+                          <Input {...field} placeholder="Enter first name" disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
-                        </FormItem>
+                      </FormItem>
                     )}
-                    />
-                    <FormField
+                  />
+                  <FormField
                     control={form.control}
                     name="lastName"
                     render={({ field }) => (
-                        <FormItem>
+                      <FormItem>
                         <FormLabel>Last Name</FormLabel>
                         <FormControl>
-                            <Input {...field} placeholder="Enter last name" disabled={isSubmitting} />
+                          <Input {...field} placeholder="Enter last name" disabled={isSubmitting} />
                         </FormControl>
                         <FormMessage />
-                        </FormItem>
+                      </FormItem>
                     )}
-                    />
+                  />
                 </div>
 
                 <FormField
@@ -228,7 +297,9 @@ export function EditUserDialog({
                   name="sex"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase">Sex Identification (GAD Standard)</FormLabel>
+                      <FormLabel className="text-[10px] font-bold uppercase">
+                        Sex Identification (GAD Standard)
+                      </FormLabel>
                       <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSubmitting}>
                         <FormControl>
                           <SelectTrigger className="h-9">
@@ -277,12 +348,12 @@ export function EditUserDialog({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Assigned Campus</FormLabel>
-                      <Select 
+                      <Select
                         onValueChange={(val) => {
-                            field.onChange(val);
-                            form.setValue('unitId', '');
-                        }} 
-                        value={field.value || ''} 
+                          field.onChange(val);
+                          form.setValue('unitId', '');
+                        }}
+                        value={field.value || ''}
                         disabled={isSubmitting}
                       >
                         <FormControl>
@@ -303,40 +374,48 @@ export function EditUserDialog({
                   )}
                 />
                 {isUnitRequired && (
-                    <FormField
+                  <FormField
                     control={form.control}
                     name="unitId"
                     render={({ field }) => (
-                        <FormItem>
+                      <FormItem>
                         <FormLabel>Assigned Unit / Office</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value || ''} disabled={isSubmitting || !selectedCampusId}>
-                            <FormControl>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || ''}
+                          disabled={isSubmitting || !selectedCampusId}
+                        >
+                          <FormControl>
                             <SelectTrigger>
-                                <SelectValue placeholder={selectedCampusId ? "Select a unit" : "Select a campus first"} />
+                              <SelectValue placeholder={selectedCampusId ? 'Select a unit' : 'Select a campus first'} />
                             </SelectTrigger>
-                            </FormControl>
-                            <SelectContent modal={false}>
+                          </FormControl>
+                          <SelectContent modal={false}>
                             {unitsForCampus.map((unit) => (
-                                <SelectItem key={unit.id} value={unit.id}>
+                              <SelectItem key={unit.id} value={unit.id}>
                                 {unit.name}
-                                </SelectItem>
+                              </SelectItem>
                             ))}
                             {selectedCampusId && unitsForCampus.length === 0 && (
-                                <div className="p-4 text-xs text-muted-foreground italic text-center">No units found for this campus.</div>
+                              <div className="p-4 text-xs text-muted-foreground italic text-center">
+                                No units found for this campus.
+                              </div>
                             )}
-                            </SelectContent>
+                          </SelectContent>
                         </Select>
                         <FormMessage />
-                        </FormItem>
+                      </FormItem>
                     )}
-                    />
+                  />
                 )}
                 <DialogFooter className="pt-4 border-t mt-4 gap-2 sm:gap-0">
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-                    <Button type="submit" disabled={isSubmitting} className="min-w-[140px]">
-                        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Save Changes
-                    </Button>
+                  <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting} className="min-w-[140px]">
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Save Changes
+                  </Button>
                 </DialogFooter>
               </form>
             </Form>

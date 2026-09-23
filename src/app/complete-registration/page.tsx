@@ -8,33 +8,12 @@ import { z } from 'zod';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, writeBatch, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Users, FileText } from 'lucide-react';
 import type { Campus, Unit, Role } from '@/lib/types';
-
 
 const registrationSchema = z.object({
   campusId: z.string().min(1, { message: 'Please select a campus.' }),
@@ -49,25 +28,31 @@ export default function CompleteRegistrationPage() {
   const { user, userProfile, isUserLoading: isAuthLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
-  
+
   // Ensure we only fetch campuses once we have an auth user to avoid permission errors
-  const campusesQuery = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'campuses'): null, [firestore, user]);
+  const campusesQuery = useMemoFirebase(
+    () => (firestore && user ? collection(firestore, 'campuses') : null),
+    [firestore, user],
+  );
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
-  const unitsQuery = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'units'): null, [firestore, user]);
+  const unitsQuery = useMemoFirebase(
+    () => (firestore && user ? collection(firestore, 'units') : null),
+    [firestore, user],
+  );
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
-  const rolesQuery = useMemoFirebase(() => (firestore && user) ? collection(firestore, 'roles'): null, [firestore, user]);
+  const rolesQuery = useMemoFirebase(
+    () => (firestore && user ? collection(firestore, 'roles') : null),
+    [firestore, user],
+  );
   const { data: roles, isLoading: isLoadingRoles } = useCollection<Role>(rolesQuery);
-  
+
   const assignableRoles = useMemo(() => {
     if (!roles) return [];
     const forbiddenRoles = ['admin', 'vice president'];
-    return roles.filter(role => 
-        !forbiddenRoles.includes(role.name.toLowerCase())
-    );
+    return roles.filter((role) => !forbiddenRoles.includes(role.name.toLowerCase()));
   }, [roles]);
-
 
   const form = useForm<z.infer<typeof registrationSchema>>({
     resolver: zodResolver(registrationSchema),
@@ -94,21 +79,50 @@ export default function CompleteRegistrationPage() {
 
   const selectedRoleId = form.watch('roleId');
   const selectedCampusId = form.watch('campusId');
-  
+
   const isUnitRequired = useMemo(() => {
-    if (!selectedRoleId || !roles) return false; 
+    if (!selectedRoleId || !roles) return false;
     const selectedRole = roles.find((r) => r.id === selectedRoleId);
     if (!selectedRole) return false;
 
-    const campusLevelRoles = ['campus director', 'campus odimo', 'auditor'];
-    return !campusLevelRoles.includes(selectedRole.name.toLowerCase());
+    // Admin and Auditor do not pick a campus unit (Auditor is assigned to IQA)
+    const nonCampusUnitRoles = ['admin', 'auditor'];
+    return !nonCampusUnitRoles.includes(selectedRole.name.toLowerCase());
   }, [selectedRoleId, roles]);
 
   const unitsForSelectedCampus = useMemo(() => {
     if (!selectedCampusId || !allUnits) return [];
-    return allUnits.filter(unit => unit.campusIds?.includes(selectedCampusId));
+    return allUnits.filter((unit) => unit.campusIds?.includes(selectedCampusId));
   }, [selectedCampusId, allUnits]);
 
+  const campusDirectorUnit = useMemo(() => {
+    if (!selectedCampusId || !allUnits) return null;
+    return (
+      allUnits.find(
+        (u) =>
+          u.campusIds?.includes(selectedCampusId) &&
+          (u.name.toLowerCase().includes('campus director') ||
+            u.name.toLowerCase().includes('office of the campus director')),
+      ) || null
+    );
+  }, [selectedCampusId, allUnits]);
+
+  // When campus or role changes, auto-default Campus ODIMO & Campus Director to the campus director unit
+  useEffect(() => {
+    if (!selectedRoleId || !roles || !selectedCampusId) return;
+    const selectedRole = roles.find((r) => r.id === selectedRoleId);
+    if (!selectedRole) return;
+    const roleLower = selectedRole.name.toLowerCase();
+
+    if (roleLower.includes('campus odimo') || roleLower.includes('campus director')) {
+      const currentUnitId = form.getValues('unitId');
+      const isCurrentUnitInCampus = unitsForSelectedCampus.some((u) => u.id === currentUnitId);
+      if ((!currentUnitId || !isCurrentUnitInCampus) && campusDirectorUnit) {
+        form.setValue('unitId', campusDirectorUnit.id);
+        form.clearErrors('unitId');
+      }
+    }
+  }, [selectedRoleId, selectedCampusId, roles, unitsForSelectedCampus, campusDirectorUnit, form]);
 
   useEffect(() => {
     if (!isUnitRequired) {
@@ -116,7 +130,7 @@ export default function CompleteRegistrationPage() {
       form.clearErrors('unitId');
     }
   }, [isUnitRequired, form]);
-  
+
   const onSubmit = async (values: z.infer<typeof registrationSchema>) => {
     if (!user || !firestore || !roles) {
       toast({
@@ -126,30 +140,61 @@ export default function CompleteRegistrationPage() {
       });
       return;
     }
-    
-    if (isUnitRequired && !values.unitId) {
-        form.setError('unitId', { type: 'manual', message: 'Please select a unit.' });
-        return;
+
+    const selectedRoleObject = roles.find((r) => r.id === values.roleId);
+    const roleLower = selectedRoleObject?.name?.toLowerCase() || '';
+    const selectedUnitObject = allUnits?.find((u) => u.id === values.unitId);
+    const isAdminEmail = user.email === 'admin@eoms.com';
+
+    let assignedUnitId = values.unitId || '';
+    let assignedUnitName = selectedUnitObject ? selectedUnitObject.name : '';
+
+    if (roleLower === 'auditor') {
+      const iqaUnit = allUnits?.find(
+        (u) => u.name.toLowerCase() === 'internal quality audit' || u.name.toLowerCase() === 'iqa',
+      );
+      assignedUnitId = iqaUnit ? iqaUnit.id : '';
+      assignedUnitName = iqaUnit ? iqaUnit.name : 'Internal Quality Audit';
+    } else if (roleLower.includes('campus odimo') || roleLower.includes('campus director')) {
+      if (values.unitId && selectedUnitObject) {
+        assignedUnitId = selectedUnitObject.id;
+        assignedUnitName = selectedUnitObject.name;
+      } else if (campusDirectorUnit) {
+        assignedUnitId = campusDirectorUnit.id;
+        assignedUnitName = campusDirectorUnit.name;
+      } else {
+        assignedUnitId = values.unitId || '';
+        assignedUnitName = selectedUnitObject ? selectedUnitObject.name : 'Office of the Campus Director';
+      }
+    } else if (isAdminEmail || roleLower === 'admin') {
+      assignedUnitId = '';
+      assignedUnitName = '';
+    }
+
+    if (
+      isUnitRequired &&
+      !assignedUnitId &&
+      !roleLower.includes('campus odimo') &&
+      !roleLower.includes('campus director')
+    ) {
+      form.setError('unitId', { type: 'manual', message: 'Please select a unit.' });
+      return;
     }
 
     setIsSubmitting(true);
     try {
-      const selectedRoleObject = roles.find(r => r.id === values.roleId);
-      const selectedUnitObject = allUnits?.find(u => u.id === values.unitId);
-      const isAdminEmail = user.email === 'admin@eoms.com';
-      
       const batch = writeBatch(firestore);
       const userDocRef = doc(firestore, 'users', user.uid);
-      
+
       const currentVerified = userProfile?.verified || false;
       const currentNda = userProfile?.ndaAccepted || false;
 
       const updateData: any = {
         campusId: values.campusId,
-        unitId: isUnitRequired ? values.unitId : '',
-        unitName: isUnitRequired && selectedUnitObject ? selectedUnitObject.name : '',
+        unitId: assignedUnitId,
+        unitName: assignedUnitName,
         roleId: isAdminEmail ? 'admin' : values.roleId,
-        role: isAdminEmail ? 'Admin' : (selectedRoleObject ? selectedRoleObject.name : ''),
+        role: isAdminEmail ? 'Admin' : selectedRoleObject ? selectedRoleObject.name : '',
         sex: values.sex,
         ndaAccepted: isAdminEmail || currentNda,
         verified: isAdminEmail || currentVerified,
@@ -168,7 +213,10 @@ export default function CompleteRegistrationPage() {
         toast({ title: 'Profile Updated', description: 'Institutional details synchronized.' });
         router.push('/dashboard');
       } else {
-        toast({ title: 'Registration Details Submitted', description: 'Your account is now pending administrator verification.' });
+        toast({
+          title: 'Registration Details Submitted',
+          description: 'Your account is now pending administrator verification.',
+        });
         router.push('/awaiting-verification');
       }
     } catch (error) {
@@ -190,146 +238,147 @@ export default function CompleteRegistrationPage() {
   }
 
   return (
-      <Card className="w-full max-w-md bg-white/95 dark:bg-slate-900/90 backdrop-blur shadow-2xl border border-slate-200 dark:border-slate-700 dark:border-slate-800">
-        <CardHeader className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-                <FileText className="h-8 w-8 text-primary" />
-                <CardTitle className="text-3xl font-bold">Complete Your Registration</CardTitle>
-            </div>
-          <CardDescription>
-            Please provide your campus, unit, and role details.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="campusId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Campus</FormLabel>
-                    <Select key={field.value || 'campus-selector'} onValueChange={field.onChange} value={field.value || ''}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your campus" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {campuses?.map((campus) => (
-                          <SelectItem key={campus.id} value={campus.id}>
-                            {campus.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="roleId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select key={field.value || 'role-selector'} onValueChange={field.onChange} value={field.value || ''}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {assignableRoles.map((role) => (
-                          <SelectItem key={role.id} value={role.id}>
-                            {role.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {isUnitRequired && (
-                <FormField
-                    control={form.control}
-                    name="unitId"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Unit</FormLabel>
-                        <Select 
-                            key={field.value || 'unit-selector'}
-                            onValueChange={field.onChange} 
-                            value={field.value || ""} 
-                            disabled={!selectedCampusId}
-                        >
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder={selectedCampusId ? "Select your unit" : "Select a campus first"} />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {unitsForSelectedCampus.map((unit) => (
-                                <SelectItem key={unit.id} value={unit.id}>
-                                {unit.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+    <Card className="w-full max-w-md bg-white/95 dark:bg-slate-900/90 backdrop-blur shadow-2xl border border-slate-200 dark:border-slate-700 dark:border-slate-800">
+      <CardHeader className="text-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <FileText className="h-8 w-8 text-primary" />
+          <CardTitle className="text-3xl font-bold">Complete Your Registration</CardTitle>
+        </div>
+        <CardDescription>Please provide your campus, unit, and role details.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="campusId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Campus</FormLabel>
+                  <Select
+                    key={field.value || 'campus-selector'}
+                    onValueChange={field.onChange}
+                    value={field.value || ''}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your campus" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {campuses?.map((campus) => (
+                        <SelectItem key={campus.id} value={campus.id}>
+                          {campus.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
               )}
-
+            />
+            <FormField
+              control={form.control}
+              name="roleId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select key={field.value || 'role-selector'} onValueChange={field.onChange} value={field.value || ''}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {assignableRoles.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {isUnitRequired && (
               <FormField
                 control={form.control}
-                name="sex"
+                name="unitId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Sex Identification (GAD Standard)</FormLabel>
-                    <Select 
-                      key={field.value || 'sex-selector-initial'}
-                      onValueChange={field.onChange} 
+                    <FormLabel>Unit</FormLabel>
+                    <Select
+                      key={field.value || 'unit-selector'}
+                      onValueChange={field.onChange}
                       value={field.value || ''}
+                      disabled={!selectedCampusId}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-gray-400" />
-                            <SelectValue placeholder="Select sex" />
-                          </div>
+                          <SelectValue placeholder={selectedCampusId ? 'Select your unit' : 'Select a campus first'} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
+                        {unitsForSelectedCampus.map((unit) => (
+                          <SelectItem key={unit.id} value={unit.id}>
+                            {unit.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
-                    <FormDescription className="text-[10px]">Required for institutional Gender and Development reporting.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            )}
 
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  'Update and Proceed'
-                )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-      </Card>
+            <FormField
+              control={form.control}
+              name="sex"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Sex Identification (GAD Standard)</FormLabel>
+                  <Select
+                    key={field.value || 'sex-selector-initial'}
+                    onValueChange={field.onChange}
+                    value={field.value || ''}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 text-gray-400" />
+                          <SelectValue placeholder="Select sex" />
+                        </div>
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription className="text-[10px]">
+                    Required for institutional Gender and Development reporting.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Submitting...
+                </>
+              ) : (
+                'Update and Proceed'
+              )}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
+    </Card>
   );
 }

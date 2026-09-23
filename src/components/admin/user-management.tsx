@@ -78,7 +78,36 @@ export function UserManagement() {
 
   const getRoleName = (roleId: string) => roles?.find((r) => r.id === roleId)?.name || 'N/A';
   const getCampusName = (campusId: string) => campuses?.find((c) => c.id === campusId)?.name || 'N/A';
-  const getUnitName = (unitId: string) => units?.find((u) => u.id === unitId)?.name || 'N/A';
+  const getUserUnitName = (user: User) => {
+    if (user.unitId) {
+      const matched = units?.find((u) => u.id === user.unitId);
+      if (matched) return matched.name;
+    }
+    if (user.unitName && user.unitName.trim() !== '') {
+      return user.unitName;
+    }
+    const roleName = roles?.find((r) => r.id === user.roleId)?.name || user.role || '';
+    const roleLower = roleName.toLowerCase();
+
+    if (roleLower.includes('campus odimo') || roleLower.includes('campus director')) {
+      const directorUnit = units?.find(
+        (u) =>
+          u.campusIds?.includes(user.campusId) &&
+          (u.name.toLowerCase().includes('campus director') ||
+            u.name.toLowerCase().includes('office of the campus director')),
+      );
+      return directorUnit?.name || 'Office of the Campus Director';
+    }
+
+    if (roleLower === 'auditor') {
+      const iqaUnit = units?.find(
+        (u) => u.name.toLowerCase() === 'internal quality audit' || u.name.toLowerCase() === 'iqa',
+      );
+      return iqaUnit?.name || 'Internal Quality Audit';
+    }
+
+    return 'N/A';
+  };
 
   const filteredUsers = useMemo(() => {
     if (!users) return [];
@@ -100,7 +129,7 @@ export function UserManagement() {
           user.email?.toLowerCase().includes(lowercasedFilter) ||
           getRoleName(user.roleId).toLowerCase().includes(lowercasedFilter) ||
           getCampusName(user.campusId).toLowerCase().includes(lowercasedFilter) ||
-          getUnitName(user.unitId).toLowerCase().includes(lowercasedFilter)
+          getUserUnitName(user).toLowerCase().includes(lowercasedFilter)
         );
       });
     }
@@ -120,8 +149,8 @@ export function UserManagement() {
             bValue = getCampusName(b.campusId);
             break;
           case 'unit':
-            aValue = getUnitName(a.unitId);
-            bValue = getUnitName(b.unitId);
+            aValue = getUserUnitName(a);
+            bValue = getUserUnitName(b);
             break;
           default:
             aValue = a[sortConfig.key as keyof User];
@@ -329,7 +358,7 @@ export function UserManagement() {
                           <Badge variant="outline">{getRoleName(user.roleId)}</Badge>
                         </TableCell>
                         <TableCell>{getCampusName(user.campusId)}</TableCell>
-                        <TableCell>{getUnitName(user.unitId)}</TableCell>
+                        <TableCell>{getUserUnitName(user)}</TableCell>
                         <TableCell>
                           <Badge variant={status.variant as any}>{status.text}</Badge>
                         </TableCell>
