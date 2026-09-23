@@ -54,7 +54,9 @@ import {
   Filter,
   Search,
   ExternalLink,
+  FileSpreadsheet,
 } from 'lucide-react';
+import { exportCsmReportToExcel } from '@/lib/csm-excel-export';
 import { useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { doc, setDoc, serverTimestamp, collection } from '@/firebase/firestore-wrapper';
@@ -1366,6 +1368,46 @@ export function CsmReportDashboard({
 
   // ==================== REPORT GENERATION & PRINT TRIGGERS ====================
 
+  const handleExportToExcel = (targetCampusName?: string) => {
+    try {
+      const campusToExport = targetCampusName || activeCampusName;
+      const filename = exportCsmReportToExcel({
+        year: selectedYear,
+        campusName: campusToExport,
+        unitName: selectedUnitName,
+        dataSource,
+        totalResponses: displayStats.totalResponses,
+        totalVisitors: displayStats.totalVisitors,
+        overallSatisfactionRate: displayStats.overallSatisfactionRate,
+        ccStats: {
+          cc1AwarePercent: displayStats.cc1AwarePercent,
+          cc2VisibilityPercent: displayStats.cc2VisibilityPercent,
+          cc3HelpfulnessPercent: displayStats.cc3HelpfulnessPercent,
+          cc1: displayStats.ccStats.cc1,
+          cc2: displayStats.ccStats.cc2,
+          cc3: displayStats.ccStats.cc3,
+        },
+        sqdData: displayStats.sqdData,
+        demographics: displayStats.demographics,
+        services: displayStats.services,
+        comments: displayStats.comments,
+        rawResponses: dataSource === 'live' ? filteredResponses : undefined,
+      });
+
+      toast({
+        title: 'Excel Export Complete',
+        description: `Successfully generated ${filename}`,
+      });
+    } catch (error) {
+      console.error('Failed to export CSM Excel:', error);
+      toast({
+        title: 'Export Failed',
+        description: 'An error occurred while generating the Excel workbook.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handlePrintScorecard = () => {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -2489,7 +2531,7 @@ export function CsmReportDashboard({
                 CSM Overview & Demographics metrics. Generate reports for the current filters.
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Button
                 size="sm"
                 onClick={handlePrintScorecard}
@@ -2504,6 +2546,13 @@ export function CsmReportDashboard({
                 className="h-8 text-[9px] font-black uppercase tracking-widest px-4 bg-emerald-700 hover:bg-emerald-800 border-none text-white"
               >
                 <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Overview Report
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleExportToExcel()}
+                className="h-8 text-[9px] font-black uppercase tracking-widest px-4 bg-[#1B6535] hover:bg-[#144d28] border-none text-white shadow-sm flex items-center gap-1.5"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" /> Convert to Excel
               </Button>
             </div>
           </div>
@@ -2817,13 +2866,23 @@ export function CsmReportDashboard({
                 Format and print the SQD dimensions audit and services performance heatmap list.
               </span>
             </div>
-            <Button
-              size="sm"
-              onClick={handlePrintSqdTab}
-              className="h-8 text-[9px] font-black uppercase tracking-widest px-4"
-            >
-              <Printer className="h-3.5 w-3.5 mr-1.5" /> Print SQD Audit
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={handlePrintSqdTab}
+                className="h-8 text-[9px] font-black uppercase tracking-widest px-4"
+              >
+                <Printer className="h-3.5 w-3.5 mr-1.5" /> Print SQD Audit
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleExportToExcel()}
+                variant="outline"
+                className="h-8 text-[9px] font-black uppercase tracking-widest px-4 gap-1.5 text-emerald-800 border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" /> Convert to Excel
+              </Button>
+            </div>
           </div>
 
           {/* Charts grid: Diverging Stacked Bar & Radar Chart */}
@@ -3116,13 +3175,23 @@ export function CsmReportDashboard({
                 Format and print the Pareto complaints analytics and qualitative suggestions logs.
               </span>
             </div>
-            <Button
-              size="sm"
-              onClick={handlePrintQualitativeTab}
-              className="h-8 text-[9px] font-black uppercase tracking-widest px-4"
-            >
-              <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Feedback Logs
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                onClick={handlePrintQualitativeTab}
+                className="h-8 text-[9px] font-black uppercase tracking-widest px-4"
+              >
+                <Printer className="h-3.5 w-3.5 mr-1.5" /> Print Feedback Logs
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleExportToExcel()}
+                variant="outline"
+                className="h-8 text-[9px] font-black uppercase tracking-widest px-4 gap-1.5 text-emerald-800 border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5" /> Convert to Excel
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -3259,61 +3328,72 @@ export function CsmReportDashboard({
 
         {/* ==================== TAB 4: OFFICIAL EXPORTER ==================== */}
         <TabsContent value="exporter" className="space-y-6 animate-in fade-in duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Harmonized Agency Report Card */}
-            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative">
+            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative flex flex-col justify-between">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-600" />
-              <CardHeader className="pb-2 pt-5">
-                <span className="text-[9px] font-black uppercase text-[#1B6535] tracking-widest">
-                  Mandated ARTA Output
-                </span>
-                <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
-                  Harmonized CSM Agency Report
-                </CardTitle>
-                <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
-                  Annual agency scorecard with Methodology, CC Awareness analysis, and overall service scoring.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
-                Compiles the consolidated survey evaluations into the layout required for submissions to the Anti-Red
-                Tape Authority (ARTA). Includes structured Methodology, CC tables, and SQD interpretations.
-              </CardContent>
-              <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex justify-between items-center">
-                <span className="text-[9px] font-black uppercase text-slate-400">PDF / Print-ready</span>
+              <div>
+                <CardHeader className="pb-2 pt-5">
+                  <span className="text-[9px] font-black uppercase text-[#1B6535] tracking-widest">
+                    Mandated ARTA Output
+                  </span>
+                  <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
+                    Harmonized CSM Agency Report
+                  </CardTitle>
+                  <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
+                    Annual agency scorecard with Methodology, CC Awareness analysis, and overall service scoring.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
+                  Compiles the consolidated survey evaluations into the layout required for submissions to the Anti-Red
+                  Tape Authority (ARTA). Includes structured Methodology, CC tables, and SQD interpretations.
+                </CardContent>
+              </div>
+              <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex flex-wrap gap-2 justify-between items-center">
                 <Button
                   size="sm"
                   onClick={handlePrintHarmonizedReport}
-                  className="h-8 text-[9px] font-black uppercase tracking-wider"
+                  variant="outline"
+                  className="h-8 text-[9px] font-black uppercase tracking-wider flex-1"
                 >
-                  <Printer className="h-3.5 w-3.5 mr-1" /> Print / Export
+                  <Printer className="h-3.5 w-3.5 mr-1" /> Print
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleExportToExcel()}
+                  className="h-8 text-[9px] font-black uppercase tracking-wider bg-emerald-700 hover:bg-emerald-800 text-white flex-1"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 mr-1" /> Excel
                 </Button>
               </CardFooter>
             </Card>
 
             {/* Campus specific performance Card */}
-            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative">
+            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative flex flex-col justify-between">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-600" />
-              <CardHeader className="pb-2 pt-5">
-                <span className="text-[9px] font-black uppercase text-blue-600 tracking-widest">
-                  Regional breakdown
-                </span>
-                <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
-                  Campus Performance Export
-                </CardTitle>
-                <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
-                  Targeted evaluations details filtered specifically for Campus Directors.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
-                Generates a report isolation specifically for local campuses. Extracts only the transactions,
-                satisfaction rate indices, and qualitative suggestions scoped to Campus Directors (e.g. Cajidiocan).
-              </CardContent>
+              <div>
+                <CardHeader className="pb-2 pt-5">
+                  <span className="text-[9px] font-black uppercase text-blue-600 tracking-widest">
+                    Regional breakdown
+                  </span>
+                  <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
+                    Campus Performance Export
+                  </CardTitle>
+                  <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
+                    Targeted evaluations details filtered specifically for Campus Directors.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
+                  Generates a report isolation specifically for local campuses. Extracts only the transactions,
+                  satisfaction rate indices, and qualitative suggestions scoped to Campus Directors (e.g. Cajidiocan).
+                </CardContent>
+              </div>
               <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex flex-col items-stretch gap-2.5">
                 <div className="flex justify-between items-center text-[9px] font-black text-slate-400 uppercase">
                   <span>Target Campus</span>
-                  <span>Isolation Print</span>
+                  <span>Print & Excel</span>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <Select
                     value={selectedCampusForExport}
                     onValueChange={setSelectedCampusForExport}
@@ -3335,32 +3415,75 @@ export function CsmReportDashboard({
                   <Button
                     size="sm"
                     onClick={() => handlePrintCampusReport(selectedCampusForExport)}
-                    className="h-8 text-[9px] font-black uppercase tracking-wider px-3 bg-blue-600 hover:bg-blue-700 border-none"
+                    className="h-8 text-[9px] font-black uppercase tracking-wider px-2.5 bg-blue-600 hover:bg-blue-700 border-none"
+                    title="Print Campus Report"
                   >
                     <Printer className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleExportToExcel(selectedCampusForExport)}
+                    className="h-8 text-[9px] font-black uppercase tracking-wider px-2.5 bg-emerald-700 hover:bg-emerald-800 border-none text-white"
+                    title="Convert Campus Report to Excel"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </CardFooter>
             </Card>
 
+            {/* Master CSM Excel Workbook Card */}
+            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative flex flex-col justify-between">
+              <div className="absolute top-0 left-0 w-full h-1.5 bg-[#1B6535]" />
+              <div>
+                <CardHeader className="pb-2 pt-5">
+                  <span className="text-[9px] font-black uppercase text-[#1B6535] tracking-widest">
+                    Spreadsheet Converter
+                  </span>
+                  <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
+                    Master CSM Excel (.xlsx)
+                  </CardTitle>
+                  <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
+                    Multi-sheet formatted Excel workbook containing all audit metrics and raw data.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
+                  Directly converts the active CSM dataset into an Excel file featuring: (1) Executive Scorecard, (2)
+                  SQD Performance Breakdown, (3) Services Audit, (4) Qualitative Feedback, and (5) Survey Responses.
+                </CardContent>
+              </div>
+              <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex justify-between items-center">
+                <span className="text-[9px] font-black uppercase text-emerald-800 font-bold">5-Sheet Workbook</span>
+                <Button
+                  size="sm"
+                  onClick={() => handleExportToExcel()}
+                  className="h-8 text-[9px] font-black uppercase tracking-wider bg-[#1B6535] hover:bg-[#144d28] text-white shadow-sm"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 mr-1" /> Convert to Excel
+                </Button>
+              </CardFooter>
+            </Card>
+
             {/* CAIP matrix Card */}
-            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative">
+            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative flex flex-col justify-between">
               <div className="absolute top-0 left-0 w-full h-1.5 bg-[#D4AF37]" />
-              <CardHeader className="pb-2 pt-5">
-                <span className="text-[9px] font-black uppercase text-amber-700 tracking-widest">
-                  Quality improvement
-                </span>
-                <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
-                  Improvement Plan (CAIP) Matrix
-                </CardTitle>
-                <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
-                  Action plans matrix matching RSU CSM findings to target schedules.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
-                Compiles the Continuous Agency Improvement Plan tracking matrix containing targeted satisfaction goals,
-                QR kiosk system deployment status, and customer service seminars schedules.
-              </CardContent>
+              <div>
+                <CardHeader className="pb-2 pt-5">
+                  <span className="text-[9px] font-black uppercase text-amber-700 tracking-widest">
+                    Quality improvement
+                  </span>
+                  <CardTitle className="text-sm font-black uppercase text-slate-800 dark:text-slate-200 mt-1">
+                    Improvement Plan (CAIP) Matrix
+                  </CardTitle>
+                  <CardDescription className="text-[10px] font-semibold text-slate-500 uppercase mt-0.5">
+                    Action plans matrix matching RSU CSM findings to target schedules.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-[11px] text-slate-550 leading-relaxed pt-2">
+                  Compiles the Continuous Agency Improvement Plan tracking matrix containing targeted satisfaction
+                  goals, QR kiosk system deployment status, and customer service seminars schedules.
+                </CardContent>
+              </div>
               <CardFooter className="border-t bg-slate-50/50 dark:bg-slate-800/50 p-4 flex justify-between items-center">
                 <span className="text-[9px] font-black uppercase text-slate-400">Target Year: 2026</span>
                 <Button
