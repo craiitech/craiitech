@@ -37,6 +37,10 @@ export function UserReportPrintTemplate({
   const campusMap = React.useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
   const unitMap = React.useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
 
+  // Valid registered IDs in the system
+  const validCampusIds = React.useMemo(() => new Set(campuses.map((c) => c.id)), [campuses]);
+  const validRoleIds = React.useMemo(() => new Set(roles.map((r) => r.id)), [roles]);
+
   // Statistics calculation
   const totalUsers = users.length;
   const activeCount = users.filter((u) => u.verified).length;
@@ -44,8 +48,21 @@ export function UserReportPrintTemplate({
   const awaitingNdaCount = users.filter((u) => !u.verified && !u.ndaAccepted).length;
   const activePct = totalUsers > 0 ? Math.round((activeCount / totalUsers) * 100) : 0;
 
-  const distinctCampuses = new Set(users.map((u) => u.campusId).filter(Boolean)).size;
-  const distinctRoles = new Set(users.map((u) => u.roleId).filter(Boolean)).size;
+  // Only count valid registered campuses in the system (excludes unassigned, "N/A", or orphaned IDs)
+  const distinctCampuses = React.useMemo(() => {
+    const represented = new Set(
+      users.map((u) => u.campusId).filter((id): id is string => Boolean(id) && validCampusIds.has(id)),
+    );
+    return represented.size;
+  }, [users, validCampusIds]);
+
+  // Only count valid registered roles in the system
+  const distinctRoles = React.useMemo(() => {
+    const represented = new Set(
+      users.map((u) => u.roleId).filter((id): id is string => Boolean(id) && validRoleIds.has(id)),
+    );
+    return represented.size;
+  }, [users, validRoleIds]);
 
   // Sorted list: by Campus, then Unit, then Last Name
   const sortedUsers = React.useMemo(() => {
@@ -153,12 +170,16 @@ export function UserReportPrintTemplate({
         <div className="border border-slate-900 p-2 rounded bg-slate-50">
           <p className="text-[6.5pt] font-black uppercase text-slate-600 tracking-wider m-0">Campuses</p>
           <p className="text-lg font-black text-slate-900 m-0 my-0.5">{distinctCampuses}</p>
-          <p className="text-[6.5pt] text-slate-500 m-0 font-medium">Represented</p>
+          <p className="text-[6.5pt] text-slate-500 m-0 font-medium">
+            {campuses.length > 0 ? `of ${campuses.length} Registered Sites` : 'Represented'}
+          </p>
         </div>
         <div className="border border-slate-900 p-2 rounded bg-slate-50">
           <p className="text-[6.5pt] font-black uppercase text-slate-600 tracking-wider m-0">Roles</p>
           <p className="text-lg font-black text-slate-900 m-0 my-0.5">{distinctRoles}</p>
-          <p className="text-[6.5pt] text-slate-500 m-0 font-medium">Permission Profiles</p>
+          <p className="text-[6.5pt] text-slate-500 m-0 font-medium">
+            {roles.length > 0 ? `of ${roles.length} Registered Profiles` : 'Permission Profiles'}
+          </p>
         </div>
       </div>
 
@@ -177,9 +198,9 @@ export function UserReportPrintTemplate({
         </thead>
         <tbody>
           {sortedUsers.map((user, idx) => {
-            const roleName = roleMap.get(user.roleId) || user.role || 'N/A';
-            const campusName = campusMap.get(user.campusId) || 'N/A';
-            const unitName = user.unitName || unitMap.get(user.unitId) || 'N/A';
+            const roleName = roleMap.get(user.roleId) || user.role || 'Unassigned';
+            const campusName = campusMap.get(user.campusId) || 'Unassigned';
+            const unitName = user.unitName || unitMap.get(user.unitId) || 'Unassigned';
             const fullName = `${user.lastName || ''}, ${user.firstName || ''}`.trim() || '—';
 
             let statusLabel = 'Inactive';
