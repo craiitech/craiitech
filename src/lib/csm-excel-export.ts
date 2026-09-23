@@ -35,6 +35,8 @@ export interface CsmExcelExportParams {
   campusName: string;
   unitName: string;
   dataSource: 'live' | 'baseline25';
+  campuses?: Array<{ id: string; name: string }>;
+  campusMap?: Record<string, string>;
   totalResponses: number;
   totalVisitors: number;
   overallSatisfactionRate: number;
@@ -89,6 +91,8 @@ export function exportCsmReportToExcel(params: CsmExcelExportParams): string {
     campusName,
     unitName,
     dataSource,
+    campuses,
+    campusMap,
     totalResponses,
     totalVisitors,
     overallSatisfactionRate,
@@ -101,9 +105,35 @@ export function exportCsmReportToExcel(params: CsmExcelExportParams): string {
     rawResponses,
   } = params;
 
+  // Build campus lookup mapping (Campus ID -> Campus Name)
+  const campusLookup = new Map<string, string>();
+  if (campuses && Array.isArray(campuses)) {
+    campuses.forEach((c) => {
+      if (c?.id && c?.name) {
+        campusLookup.set(c.id, c.name);
+      }
+    });
+  }
+  if (campusMap) {
+    Object.entries(campusMap).forEach(([k, v]) => {
+      if (k && v) {
+        campusLookup.set(k, v);
+      }
+    });
+  }
+
+  const resolveCampusName = (rawCampusIdOrName: any): string => {
+    if (!rawCampusIdOrName) return '—';
+    const str = String(rawCampusIdOrName).trim();
+    if (campusLookup.has(str)) {
+      return campusLookup.get(str)!;
+    }
+    return str;
+  };
+
   const wb = XLSX.utils.book_new();
   const currentDateStr = format(new Date(), 'yyyy-MM-dd HH:mm');
-  const safeCampus = campusName === 'all' || !campusName ? 'System-Wide' : campusName;
+  const safeCampus = campusName === 'all' || !campusName ? 'System-Wide' : resolveCampusName(campusName);
   const safeUnit = unitName === 'all' || !unitName ? 'All Units' : unitName;
 
   // -------------------------------------------------------------
@@ -524,7 +554,7 @@ export function exportCsmReportToExcel(params: CsmExcelExportParams): string {
         'Client Type',
         'Sex',
         'Age Group',
-        'Campus ID',
+        'Campus Name',
         'Purpose / Service',
         'CC1',
         'CC2',
@@ -544,13 +574,14 @@ export function exportCsmReportToExcel(params: CsmExcelExportParams): string {
 
     rawResponses.forEach((r) => {
       const dateVal = safeFormatDate(r.createdAt, 'yyyy-MM-dd HH:mm');
+      const campusVal = resolveCampusName(r.campusId || r.campusName || r.campus);
       rawAoa.push([
         String(r.id || '—'),
         dateVal,
         String(r.clientType || 'Student'),
         String(r.sex || '—'),
         String(r.ageGroup || '—'),
-        String(r.campusId || '—'),
+        campusVal,
         String(r.purpose || '—'),
         r.cc1 ?? 0,
         r.cc2 ?? 0,
@@ -575,7 +606,7 @@ export function exportCsmReportToExcel(params: CsmExcelExportParams): string {
       { wch: 15 },
       { wch: 10 },
       { wch: 12 },
-      { wch: 15 },
+      { wch: 28 },
       { wch: 30 },
       { wch: 8 },
       { wch: 8 },

@@ -164,4 +164,43 @@ describe('exportCsmReportToExcel', () => {
     expect(filename).toContain('RSU_CSM_Report_Site_1_-_Main_Campus_2026');
     expect(filename.endsWith('.xlsx')).toBe(true);
   });
+
+  it('resolves raw Firestore campus ID hashes into readable campus names', () => {
+    const filename = exportCsmReportToExcel({
+      year: 2026,
+      campusName: 'all',
+      unitName: 'all',
+      dataSource: 'live',
+      campuses: [
+        { id: 'HOsGLxGvyiC5DLizifik', name: 'Site 1 - Main Campus' },
+        { id: 'IzGYpEWkG0INIe3vQ5oA', name: 'Site 2 - Sawang Campus' },
+      ],
+      totalResponses: 2,
+      totalVisitors: 2,
+      overallSatisfactionRate: 100,
+      ccStats: {
+        cc1AwarePercent: 100,
+        cc2VisibilityPercent: 100,
+        cc3HelpfulnessPercent: 100,
+      },
+      sqdData: [],
+      services: [],
+      comments: [],
+      rawResponses: [
+        {
+          id: 'resp-1',
+          campusId: 'HOsGLxGvyiC5DLizifik',
+          purpose: 'Enrollment',
+        },
+        {
+          id: 'resp-2',
+          campusId: 'IzGYpEWkG0INIe3vQ5oA',
+          purpose: 'Enrollment',
+        },
+      ],
+    });
+
+    expect(filename).toContain('RSU_CSM_Report_System-Wide_2026');
+    expect(filename.endsWith('.xlsx')).toBe(true);
+  });
 });

@@ -1376,6 +1376,7 @@ export function CsmReportDashboard({
         campusName: campusToExport,
         unitName: selectedUnitName,
         dataSource,
+        campuses,
         totalResponses: displayStats.totalResponses,
         totalVisitors: displayStats.totalVisitors,
         overallSatisfactionRate: displayStats.overallSatisfactionRate,
