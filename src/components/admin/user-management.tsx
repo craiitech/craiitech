@@ -109,6 +109,12 @@ export function UserManagement() {
     return 'N/A';
   };
 
+  const isUserComplete = (user: User) => {
+    const isSystemAdmin = user.email === 'admin@eoms.com' || (user.role || '').toLowerCase().includes('admin');
+    if (isSystemAdmin) return true;
+    return Boolean(user.roleId || user.role) && Boolean(user.campusId);
+  };
+
   const filteredUsers = useMemo(() => {
     if (!users) return [];
 
@@ -116,7 +122,10 @@ export function UserManagement() {
 
     // Status filter
     if (filter !== 'all') {
-      filtered = filtered.filter((user) => (filter === 'pending' ? !user.verified : user.verified));
+      filtered = filtered.filter((user) => {
+        const isBonaFideActive = user.verified && isUserComplete(user);
+        return filter === 'pending' ? !isBonaFideActive : isBonaFideActive;
+      });
     }
 
     // Search filter
@@ -185,6 +194,16 @@ export function UserManagement() {
     if (!firestore) return;
     const newStatus = !userToToggle.verified;
 
+    // Prevent approving users who haven't completed registration details
+    if (newStatus && !isUserComplete(userToToggle)) {
+      toast({
+        title: 'Cannot Approve Incomplete User',
+        description: `${userToToggle.firstName || 'User'} ${userToToggle.lastName || ''} (${userToToggle.email}) has not completed registration details. Role and Campus must be assigned before approval.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const userRef = doc(firestore, 'users', userToToggle.id);
 
     try {
@@ -194,7 +213,10 @@ export function UserManagement() {
       const description = `User ${userToToggle.email} has been ${newStatus ? 'activated' : 'deactivated'}.`;
       logSessionActivity(description, { action, details: { affectedUserId: userToToggle.id } });
 
-      toast({ title: 'Success', description: 'User status has been updated.' });
+      toast({
+        title: 'Success',
+        description: `User account has been ${newStatus ? 'approved and activated' : 'deactivated'}.`,
+      });
     } catch (error) {
       console.error('Error updating user status:', error);
       const contextualError = new FirestorePermissionError({
@@ -236,19 +258,23 @@ export function UserManagement() {
   const isLoading = isLoadingUsers || isLoadingRoles || isLoadingCampuses || isLoadingUnits;
 
   const descriptionText = {
-    all: `A list of all ${users?.length || 0} users in the system.`,
-    pending: `${filteredUsers.length} users are awaiting verification or are inactive.`,
-    verified: `There are ${filteredUsers.length} active users.`,
+    all: `A list of all ${users?.length || 0} registered accounts in the system.`,
+    pending: `${filteredUsers.length} accounts are pending administrator approval, awaiting NDA, or incomplete.`,
+    verified: `There are ${filteredUsers.length} approved active users with complete institutional credentials.`,
   };
 
   const getStatus = (user: User) => {
+    const complete = isUserComplete(user);
+    if (!complete) {
+      return { variant: 'outline', text: 'Incomplete Registration' };
+    }
     if (user.verified) {
       return { variant: 'default', text: 'Active' };
     }
     if (!user.ndaAccepted) {
       return { variant: 'destructive', text: 'Awaiting NDA' };
     }
-    return { variant: 'secondary', text: 'Inactive' };
+    return { variant: 'secondary', text: 'Pending Approval' };
   };
 
   return (
@@ -407,7 +433,7 @@ export function UserManagement() {
                                         onSelect={() => {
                                           setTimeout(() => handleToggleActivation(user), 0);
                                         }}
-                                        disabled={!user.ndaAccepted && !user.verified}
+                                        disabled={(!user.ndaAccepted || !isUserComplete(user)) && !user.verified}
                                       >
                                         {user.verified ? (
                                           <>
@@ -415,17 +441,21 @@ export function UserManagement() {
                                           </>
                                         ) : (
                                           <>
-                                            <UserCheck className="mr-2 h-4 w-4" /> Activate Account
+                                            <UserCheck className="mr-2 h-4 w-4" /> Approve & Activate Account
                                           </>
                                         )}
                                       </DropdownMenuItem>
                                     </div>
                                   </TooltipTrigger>
-                                  {!user.ndaAccepted && !user.verified && (
+                                  {!user.verified && !isUserComplete(user) ? (
+                                    <TooltipContent>
+                                      <p>User has not completed registration (Role/Campus unassigned).</p>
+                                    </TooltipContent>
+                                  ) : !user.ndaAccepted && !user.verified ? (
                                     <TooltipContent>
                                       <p>User has not accepted the NDA.</p>
                                     </TooltipContent>
-                                  )}
+                                  ) : null}
                                 </Tooltip>
                                 <DropdownMenuItem
                                   onSelect={() => {

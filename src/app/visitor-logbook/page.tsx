@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { useNetworkStatus } from '@/hooks/use-network-status';
 import { collection, addDoc, Timestamp, doc, query, where, onSnapshot, updateDoc } from '@/firebase/firestore-wrapper';
@@ -41,10 +42,31 @@ import Image from 'next/image';
 import { cn, getDirectDriveLink } from '@/lib/utils';
 
 export default function VisitorLogbookPage() {
-  const { userProfile, isUserLoading, userRole } = useUser();
+  const router = useRouter();
+  const { user, userProfile, isUserLoading, userRole, isAdmin } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const isOnline = useNetworkStatus();
+
+  // Strict institutional access gating: only authenticated, approved users can access internal Visitor Logbook
+  useEffect(() => {
+    if (!isUserLoading) {
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+      if (!isAdmin) {
+        if (!userProfile?.verified) {
+          router.push('/awaiting-verification');
+          return;
+        }
+        if (!userProfile?.campusId || !userProfile?.roleId) {
+          router.push('/complete-registration');
+          return;
+        }
+      }
+    }
+  }, [user, userProfile, isUserLoading, isAdmin, router]);
 
   const unitRef = useMemoFirebase(() => {
     if (!firestore || !userProfile?.unitId) return null;
@@ -963,12 +985,14 @@ export default function VisitorLogbookPage() {
     }
   };
 
-  if (isUserLoading) {
+  const isAuthorized =
+    isAdmin || (user && userProfile && userProfile.verified && userProfile.campusId && userProfile.roleId);
+  if (isUserLoading || !isAuthorized) {
     return (
       <div className="flex h-dvh w-full items-center justify-center bg-[#0d2a18]">
         <div className="flex flex-col items-center gap-4 text-center">
           <div className="relative h-16 w-16 rounded-full border-4 border-[#D4AF37] border-t-transparent animate-spin" />
-          <p className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">Loading Terminal...</p>
+          <p className="text-xs font-black uppercase tracking-widest text-[#D4AF37]">Verifying Terminal Access...</p>
         </div>
       </div>
     );

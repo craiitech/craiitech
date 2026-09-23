@@ -197,7 +197,7 @@ export default function CompleteRegistrationPage() {
         role: isAdminEmail ? 'Admin' : selectedRoleObject ? selectedRoleObject.name : '',
         sex: values.sex,
         ndaAccepted: isAdminEmail || currentNda,
-        verified: isAdminEmail || currentVerified,
+        verified: Boolean(isAdminEmail),
       };
 
       batch.update(userDocRef, updateData);
@@ -209,13 +209,13 @@ export default function CompleteRegistrationPage() {
 
       await batch.commit();
 
-      if (updateData.verified) {
+      if (isAdminEmail) {
         toast({ title: 'Profile Updated', description: 'Institutional details synchronized.' });
         router.push('/dashboard');
       } else {
         toast({
           title: 'Registration Details Submitted',
-          description: 'Your account is now pending administrator verification.',
+          description: 'Your account is now pending administrator approval.',
         });
         router.push('/awaiting-verification');
       }

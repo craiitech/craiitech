@@ -50,9 +50,16 @@ export function UserReportDialog({
   const [selectedCampusId, setSelectedCampusId] = useState<string>('all');
   const [zoomScale, setZoomScale] = useState<number>(90);
 
-  // Exclude unapproved accounts: only bona fide users (verified === true) are included
-  const approvedAllUsers = useMemo(() => allUsers.filter((u) => Boolean(u.verified)), [allUsers]);
-  const approvedFilteredUsers = useMemo(() => filteredUsers.filter((u) => Boolean(u.verified)), [filteredUsers]);
+  // Exclude unapproved accounts and incomplete registrations: only bona fide users (verified === true AND completed profile) are included
+  const isBonaFideApprovedUser = (u: User) => {
+    if (!u.verified) return false;
+    const isSystemAdmin = u.email === 'admin@eoms.com' || (u.role || '').toLowerCase().includes('admin');
+    if (isSystemAdmin) return true;
+    return Boolean(u.roleId || u.role) && Boolean(u.campusId);
+  };
+
+  const approvedAllUsers = useMemo(() => allUsers.filter(isBonaFideApprovedUser), [allUsers]);
+  const approvedFilteredUsers = useMemo(() => filteredUsers.filter(isBonaFideApprovedUser), [filteredUsers]);
 
   // Compute users to display in report
   const displayUsers = useMemo(() => {

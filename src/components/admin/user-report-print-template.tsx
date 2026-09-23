@@ -42,9 +42,14 @@ export function UserReportPrintTemplate({
   const validRoleIds = React.useMemo(() => new Set(roles.map((r) => r.id)), [roles]);
   const validUnitIds = React.useMemo(() => new Set(units.map((u) => u.id)), [units]);
 
-  // FILTER: Exclude any accounts that are not yet approved/verified (only bona fide users)
+  // FILTER: Exclude any accounts that are not yet approved/verified or incomplete (only bona fide users)
   const approvedUsers = React.useMemo(() => {
-    return users.filter((u) => Boolean(u.verified));
+    return users.filter((u) => {
+      if (!u.verified) return false;
+      const isSystemAdmin = u.email === 'admin@eoms.com' || (u.role || '').toLowerCase().includes('admin');
+      if (isSystemAdmin) return true;
+      return Boolean(u.roleId || u.role) && Boolean(u.campusId);
+    });
   }, [users]);
 
   // Statistics calculation for approved bona fide users

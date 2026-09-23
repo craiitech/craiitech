@@ -935,7 +935,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }, [userProfile?.accessibility]);
 
-  if (isUserLoading) return <FullScreenLoader />;
+  const isAuthorized = useMemo(() => {
+    if (isAdmin) return true;
+    if (!user || !userProfile) return false;
+    const roleLower = userRole?.toLowerCase() || '';
+    const isUnitOptionalUser =
+      roleLower === 'campus director' ||
+      roleLower === 'campus odimo' ||
+      roleLower === 'auditor' ||
+      roleLower.includes('vice president');
+    const isProfileIncomplete = isUnitOptionalUser
+      ? !userProfile.campusId || !userProfile.roleId || !userProfile.sex
+      : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId || !userProfile.sex;
+    return Boolean(userProfile.verified) && !isProfileIncomplete;
+  }, [isAdmin, user, userProfile, userRole]);
+
+  if (isUserLoading || !isAuthorized) return <FullScreenLoader />;
 
   const isAuditorOfflineLockActive = !isOnline && isAuditor && !localStorage.getItem('rsu_last_mirror_time');
 

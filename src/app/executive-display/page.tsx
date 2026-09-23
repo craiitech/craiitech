@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from '@/firebase/firestore-wrapper';
 import { useYear } from '@/lib/year-provider';
@@ -55,6 +56,7 @@ import {
   Star,
   ThumbsUp,
   MessageSquare,
+  Loader2,
 } from 'lucide-react';
 import { useWebLlm } from '@/context/web-llm-provider';
 import type {
@@ -2804,9 +2806,31 @@ function ViewCampusDirectorRisksAndCars({
 // MAIN EXECUTIVE DISPLAY PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function ExecutiveDisplayPage() {
+  const router = useRouter();
   const firestore = useFirestore();
   const { selectedYear } = useYear();
   const { user, userProfile, isUserLoading, isAdmin, isVp } = useUser();
+
+  // Strict institutional access gating: only authenticated, approved users can access Executive Display
+  useEffect(() => {
+    if (!isUserLoading) {
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+      if (!isAdmin) {
+        if (!userProfile?.verified) {
+          router.push('/awaiting-verification');
+          return;
+        }
+        if (!userProfile?.campusId || !userProfile?.roleId) {
+          router.push('/complete-registration');
+          return;
+        }
+      }
+    }
+  }, [user, userProfile, isUserLoading, isAdmin, router]);
+
   const [currentView, setCurrentView] = useState(0);
   const [cardPhase, setCardPhase] = useState(0);
   const [animPhase, setAnimPhase] = useState<'show' | 'hide' | 'enter'>('show');
@@ -2817,6 +2841,9 @@ export default function ExecutiveDisplayPage() {
   const [isPlaying4D, setIsPlaying4D] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewCountRef = useRef(1);
+
+  const isAuthorized =
+    isAdmin || (user && userProfile && userProfile.verified && userProfile.campusId && userProfile.roleId);
 
   const month = now.getMonth() + 1;
   const semester = month >= 8 ? '1st Semester' : month <= 6 ? '2nd Semester' : 'Mid-Year';
@@ -4455,6 +4482,19 @@ export default function ExecutiveDisplayPage() {
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   const isLoggedOut = !isUserLoading && !user;
+
+  if (isUserLoading || !isAuthorized) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-950 text-white">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-xs uppercase tracking-widest text-slate-400 font-mono">
+            Verifying Institutional Access...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
