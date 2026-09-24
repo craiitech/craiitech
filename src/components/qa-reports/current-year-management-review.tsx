@@ -63,6 +63,8 @@ import {
   MapPin,
   CheckCircle,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Loader2,
   SlidersHorizontal,
 } from 'lucide-react';
@@ -207,6 +209,7 @@ export function CurrentYearManagementReview({
     durationMinutes: 30,
     status: 'Pending',
   });
+  const [insertPosition, setInsertPosition] = useState<number>(-1);
 
   // State for Add/Edit Attendee Dialog
   const [isAttendeeDialogOpen, setIsAttendeeDialogOpen] = useState(false);
@@ -385,6 +388,7 @@ export function CurrentYearManagementReview({
   const handleOpenAddPart = () => {
     setEditingPart(null);
     setIsAddingNewPart(true);
+    setInsertPosition(-1);
     const nextNum = (currentMr?.agendaParts?.length || 0) + 1;
     setPartForm({
       title: `Part ${nextNum}: Institutional Assessment & Review`,
@@ -412,7 +416,11 @@ export function CurrentYearManagementReview({
           partNumber: currentParts.length + 1,
           ...partForm,
         };
-        currentParts.push(newPart);
+        if (insertPosition === -1 || insertPosition >= currentParts.length) {
+          currentParts.push(newPart);
+        } else {
+          currentParts.splice(insertPosition, 0, newPart);
+        }
       } else if (editingPart) {
         const index = currentParts.findIndex((p) => p.id === editingPart.id);
         if (index !== -1) {
@@ -423,14 +431,50 @@ export function CurrentYearManagementReview({
         }
       }
 
+      // Re-index all parts sequentially (1, 2, 3...)
+      const reindexedParts = currentParts.map((p, idx) => ({
+        ...p,
+        partNumber: idx + 1,
+      }));
+
       await updateDoc(doc(firestore, 'managementReviews', currentMr.id), {
-        agendaParts: currentParts,
+        agendaParts: reindexedParts,
         updatedAt: serverTimestamp(),
       });
       toast({ title: 'Success', description: 'Agenda part updated successfully.' });
       setIsPartDialogOpen(false);
     } catch (err: any) {
       toast({ title: 'Error', description: 'Failed to update agenda part.', variant: 'destructive' });
+    }
+  };
+
+  // Move Agenda Part Up or Down
+  const handleMovePart = async (index: number, direction: 'up' | 'down') => {
+    if (!firestore || !currentMr) return;
+    const currentParts = [...(currentMr.agendaParts || [])];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= currentParts.length) return;
+
+    const [movedPart] = currentParts.splice(index, 1);
+    currentParts.splice(targetIndex, 0, movedPart);
+
+    const reindexed = currentParts.map((p, idx) => ({
+      ...p,
+      partNumber: idx + 1,
+    }));
+
+    try {
+      await updateDoc(doc(firestore, 'managementReviews', currentMr.id), {
+        agendaParts: reindexed,
+        updatedAt: serverTimestamp(),
+      });
+      toast({
+        title: 'Order Updated',
+        description: `Moved "${movedPart.title}" ${direction === 'up' ? 'up' : 'down'} to Part #${targetIndex + 1}.`,
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast({ title: 'Error', description: 'Failed to reorder agenda parts.', variant: 'destructive' });
     }
   };
 
@@ -840,14 +884,14 @@ export function CurrentYearManagementReview({
                     <TableHead className="w-[80px] text-center text-[10px] font-black uppercase">Time</TableHead>
                     <TableHead className="w-[100px] text-center text-[10px] font-black uppercase">Status</TableHead>
                     {canManage && (
-                      <TableHead className="w-[80px] text-right text-[10px] font-black uppercase pr-4">
-                        Action
+                      <TableHead className="w-[140px] text-right text-[10px] font-black uppercase pr-4">
+                        Order / Action
                       </TableHead>
                     )}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {agendaParts.map((part) => (
+                  {agendaParts.map((part, idx) => (
                     <TableRow key={part.id} className="hover:bg-muted/20 transition-colors">
                       <TableCell className="text-center font-black text-xs text-primary">#{part.partNumber}</TableCell>
                       <TableCell className="py-3 max-w-sm">
@@ -944,8 +988,31 @@ export function CurrentYearManagementReview({
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-7 w-7 text-slate-500 hover:text-primary hover:bg-primary/10 disabled:opacity-20 transition-all"
+                              disabled={idx === 0}
+                              onClick={() => handleMovePart(idx, 'up')}
+                              title={idx === 0 ? 'Already at top' : `Move up (to Part #${idx})`}
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-slate-500 hover:text-primary hover:bg-primary/10 disabled:opacity-20 transition-all"
+                              disabled={idx === agendaParts.length - 1}
+                              onClick={() => handleMovePart(idx, 'down')}
+                              title={
+                                idx === agendaParts.length - 1 ? 'Already at bottom' : `Move down (to Part #${idx + 2})`
+                              }
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-7 w-7 text-primary hover:bg-primary/5"
                               onClick={() => handleOpenEditPart(part)}
+                              title="Edit Part Details & Drive Link"
                             >
                               <Edit className="h-3.5 w-3.5" />
                             </Button>
@@ -954,6 +1021,7 @@ export function CurrentYearManagementReview({
                               size="icon"
                               className="h-7 w-7 text-destructive hover:bg-destructive/10"
                               onClick={() => handleDeletePart(part.id)}
+                              title="Remove Part"
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -1735,6 +1803,36 @@ export function CurrentYearManagementReview({
           </DialogHeader>
 
           <form onSubmit={handleSavePart} className="space-y-4 pt-2">
+            {isAddingNewPart && (
+              <div className="space-y-1.5 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                <Label className="text-xs font-black uppercase text-primary flex items-center gap-1.5">
+                  <SlidersHorizontal className="h-3.5 w-3.5" /> Insert Position / Order
+                </Label>
+                <Select value={String(insertPosition)} onValueChange={(val) => setInsertPosition(Number(val))}>
+                  <SelectTrigger className="bg-white font-bold h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="-1" className="font-bold text-primary">
+                      At the end (Part #{(currentMr?.agendaParts?.length || 0) + 1})
+                    </SelectItem>
+                    <SelectItem value="0" className="font-bold">
+                      At the beginning (Part #1)
+                    </SelectItem>
+                    {currentMr?.agendaParts?.map((p, idx) => (
+                      <SelectItem key={p.id} value={String(idx + 1)}>
+                        After Part #{p.partNumber}: {p.title.length > 40 ? p.title.slice(0, 40) + '...' : p.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-[10px] text-muted-foreground block">
+                  Choose where to insert this part. You can also move parts up or down anytime using the table arrow
+                  buttons.
+                </span>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <Label className="text-xs font-bold uppercase">Part Title</Label>
               <Input
