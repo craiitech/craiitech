@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
+import { useFirestore, useCollection, useDoc, useMemoFirebase, useUser } from '@/firebase';
 import {
   collection,
   query,
@@ -14,7 +14,16 @@ import {
   updateDoc,
   deleteDoc,
 } from '@/firebase/firestore-wrapper';
-import type { ManagementReview, ManagementReviewOutput, Campus, Unit, MRAgendaPart, MRAttendee } from '@/lib/types';
+import type {
+  ManagementReview,
+  ManagementReviewOutput,
+  Campus,
+  Unit,
+  MRAgendaPart,
+  MRAttendee,
+  Signatories,
+} from '@/lib/types';
+import { MRAgendaPrintDialog } from './mr-agenda-print-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -91,6 +100,11 @@ export function CurrentYearManagementReview({
   const { toast } = useToast();
 
   const currentYear = useMemo(() => new Date().getFullYear(), []);
+
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
 
   // Sub-tabs: 'apply' | 'previous' | 'reports'
   const [subTab, setSubTab] = useState<'apply' | 'previous' | 'reports'>('apply');
@@ -852,26 +866,37 @@ export function CurrentYearManagementReview({
                 </CardDescription>
               </div>
 
-              {canManage && (
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-[10px] font-bold uppercase tracking-wider"
-                    onClick={handleLoadDefaultIsoParts}
-                    title="Reset or initialize all 10 standard ISO 21001:2018 Clause 9.3 agenda parts"
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" /> Load ISO 21001 Template
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="h-8 text-[10px] font-bold uppercase tracking-wider shadow-sm"
-                    onClick={handleOpenAddPart}
-                  >
-                    <PlusCircle className="h-3.5 w-3.5 mr-1" /> Add Custom Part
-                  </Button>
-                </div>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-[10px] font-bold uppercase tracking-wider bg-white border-primary/20 text-primary hover:bg-primary/5 shadow-sm gap-1.5"
+                  onClick={() => setIsPrintDialogOpen(true)}
+                  title="Print ISO 21001:2018 Conduct Agenda Parts & Assigned Reporters with University Headings"
+                >
+                  <Printer className="h-3.5 w-3.5" /> Print Agenda
+                </Button>
+                {canManage && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 text-[10px] font-bold uppercase tracking-wider"
+                      onClick={handleLoadDefaultIsoParts}
+                      title="Reset or initialize all 10 standard ISO 21001:2018 Clause 9.3 agenda parts"
+                    >
+                      <RefreshCw className="h-3 w-3 mr-1" /> Load ISO 21001 Template
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="h-8 text-[10px] font-bold uppercase tracking-wider shadow-sm"
+                      onClick={handleOpenAddPart}
+                    >
+                      <PlusCircle className="h-3.5 w-3.5 mr-1" /> Add Custom Part
+                    </Button>
+                  </>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -1421,13 +1446,23 @@ export function CurrentYearManagementReview({
                 inspection.
               </p>
             </div>
-            <Button
-              onClick={() => window.print()}
-              size="sm"
-              className="h-9 px-4 font-black uppercase text-[10px] tracking-widest shadow-md gap-2"
-            >
-              <Printer className="h-4 w-4" /> Print / Export Official Report
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={() => setIsPrintDialogOpen(true)}
+                size="sm"
+                className="h-9 px-4 font-black uppercase text-[10px] tracking-widest shadow-md gap-2"
+              >
+                <Printer className="h-4 w-4" /> Print Agenda Matrix
+              </Button>
+              <Button
+                onClick={() => window.print()}
+                variant="outline"
+                size="sm"
+                className="h-9 px-4 font-black uppercase text-[10px] tracking-widest shadow-sm gap-2 bg-white"
+              >
+                <FileText className="h-4 w-4" /> Print Full Page
+              </Button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1487,19 +1522,29 @@ export function CurrentYearManagementReview({
 
             {/* Report 2: Google Drive Presentation & Evidence Repository Directory */}
             <Card className="border-primary/15 shadow-sm">
-              <CardHeader className="py-4 border-b bg-muted/10">
-                <CardTitle className="text-xs font-black uppercase tracking-wide flex items-center justify-between">
-                  <span>2. Master Google Drive Directory</span>
-                  <Badge
-                    variant="outline"
-                    className="text-[8px] font-black border-amber-500/40 text-amber-700 bg-amber-50"
-                  >
-                    Drive Registry
-                  </Badge>
-                </CardTitle>
-                <CardDescription className="text-[11px]">
-                  Consolidated directory of all cloud repositories linked to each agenda segment.
-                </CardDescription>
+              <CardHeader className="py-4 border-b bg-muted/10 flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-xs font-black uppercase tracking-wide flex items-center gap-2">
+                    <span>2. Master Google Drive Directory</span>
+                    <Badge
+                      variant="outline"
+                      className="text-[8px] font-black border-amber-500/40 text-amber-700 bg-amber-50"
+                    >
+                      Drive Registry
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="text-[11px]">
+                    Consolidated directory of all cloud repositories linked to each agenda segment.
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-[9px] font-bold gap-1 bg-white border-primary/20 text-primary hover:bg-primary/5"
+                  onClick={() => setIsPrintDialogOpen(true)}
+                >
+                  <Printer className="h-3 w-3" /> Print Document
+                </Button>
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[380px]">
@@ -2016,6 +2061,17 @@ export function CurrentYearManagementReview({
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* -------------------------------------------------------------------------- */}
+      {/* DIALOG: PRINT PREVIEW - AGENDA PARTS & REPORTERS WITH UNIVERSITY HEADINGS  */}
+      {/* -------------------------------------------------------------------------- */}
+      <MRAgendaPrintDialog
+        isOpen={isPrintDialogOpen}
+        onOpenChange={setIsPrintDialogOpen}
+        review={currentMr}
+        signatories={signatories}
+        campusName={campusMap.get(currentMr?.campusId || UNIVERSITY_WIDE_ID)}
+      />
     </div>
   );
 }
