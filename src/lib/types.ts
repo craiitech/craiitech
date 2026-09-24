@@ -71,6 +71,9 @@ export type Submission = {
   revision: number;
   controlNumber: string;
   isDraft?: boolean;
+  siteDriveFolderId?: string;
+  uploadedFileName?: string;
+  uploadedViaSiteRepo?: boolean;
 };
 
 export type Risk = {
@@ -191,6 +194,9 @@ export type Campus = {
   id: string;
   name: string;
   location: string;
+  submissionDriveFolderUrl?: string;
+  submissionDriveFolderId?: string;
+  submissionDriveUpdatedAt?: string;
 };
 
 export type UnitCategory = 'Academic' | 'Administrative' | 'Research' | 'Support';
@@ -239,6 +245,10 @@ export type CampusSetting = {
   masterlistPdfLink?: string;
   masterlistRevision?: string;
   masterlistUpdatedAt?: string;
+  submissionDriveFolderUrl?: string; // Admin-configured Google Drive folder for campus submissions
+  submissionDriveFolderId?: string; // Extracted folder ID
+  submissionDriveUpdatedAt?: string;
+  googleScriptWebhookUrl?: string; // Global or campus-specific Google Apps Script Webhook URL
 };
 
 export type SystemSettings = {
