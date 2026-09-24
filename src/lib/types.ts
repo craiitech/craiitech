@@ -1193,6 +1193,30 @@ export type Employee = {
 
 // --- QA REPORTS MODULE TYPES ---
 
+export type MRAttendee = {
+  id: string;
+  name: string;
+  role: string;
+  unitId?: string;
+  campusId?: string;
+  email?: string;
+  status: 'Invited' | 'Confirmed' | 'Attended' | 'Excused';
+};
+
+export type MRAgendaPart = {
+  id: string;
+  partNumber: number;
+  title: string;
+  clause: string;
+  description: string;
+  assignedReporters: string;
+  unitId?: string;
+  campusId?: string;
+  driveFolderLink?: string;
+  durationMinutes?: number;
+  status?: 'Pending' | 'Uploaded' | 'Presented';
+};
+
 export type ManagementReview = {
   id: string;
   title: string;
@@ -1201,6 +1225,21 @@ export type ManagementReview = {
   minutesLink: string;
   campusId: string;
   createdAt: any; // Timestamp
+  year?: number;
+  academicYear?: string;
+  theme?: string;
+  venue?: string;
+  modality?: 'Face-to-Face' | 'Online' | 'Hybrid';
+  meetingLink?: string;
+  masterDriveLink?: string;
+  status?: 'Scheduled' | 'In Progress' | 'Completed' | 'Archived';
+  attendees?: MRAttendee[];
+  agendaParts?: MRAgendaPart[];
+  conductNotes?: string;
+  eomsChangesNeeded?: string;
+  resourceNeeds?: string;
+  opportunitiesForImprovement?: string;
+  updatedAt?: any; // Timestamp
 };
 
 export type MRAssignment = {
