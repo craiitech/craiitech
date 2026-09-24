@@ -40,7 +40,6 @@ import { Header } from '@/components/dashboard/header';
 import { Chatbot } from '@/components/dashboard/chatbot';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { WhatsNewDialog } from '@/components/dashboard/whats-new-dialog';
 import { NotificationDigestDialog } from '@/components/notifications/notification-digest-dialog';
 import { ModalAlertDialog } from '@/components/notifications/modal-alert-dialog';
 import { useNotifications, getAcknowledgedDigestIds, saveAcknowledgedDigestIds } from '@/hooks/use-notifications';
@@ -55,7 +54,7 @@ import { Button } from '@/components/ui/button';
 import { VoiceProvider } from '@/components/voice/voice-provider';
 import { getNextCarActionInfo } from '@/lib/car-utils';
 
-const CURRENT_SYSTEM_VERSION = '2.6.0';
+const CURRENT_SYSTEM_VERSION = '2.7.0';
 
 const FullScreenLoader = () => (
   <div className="flex h-dvh w-full items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
@@ -201,7 +200,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     systemSettings,
     isDoi,
   } = useUser();
-  const [isWhatsNewOpen, setIsWhatsNewOpen] = useState(false);
   const [isNotificationDigestOpen, setIsNotificationDigestOpen] = useState(false);
   const [isEvalSkipped, setIsEvalSkipped] = useState(false);
   const hasTriggeredDigestRef = useRef(false);
@@ -240,9 +238,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     try {
       const userRef = doc(firestore, 'users', user.uid);
       await updateDoc(userRef, { lastSeenVersion: CURRENT_SYSTEM_VERSION });
-      setIsWhatsNewOpen(false);
     } catch (e) {
-      setIsWhatsNewOpen(false);
+      console.warn('Failed to update lastSeenVersion', e);
     }
   };
 
@@ -293,15 +290,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const showEvalGate = !isAdmin && !isLoadingEval && !isEvaluationComplete && !isEvalSkipped;
   const isEvalPending = showEvalGate;
-
-  useEffect(() => {
-    if (!isUserLoading && userProfile && userProfile.verified !== false && !showEvalGate) {
-      if (userProfile.lastSeenVersion !== CURRENT_SYSTEM_VERSION) {
-        const timer = setTimeout(() => setIsWhatsNewOpen(true), 1500);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [isUserLoading, userProfile, showEvalGate]);
 
   const getSubmissionsNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
@@ -849,19 +837,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Automatic trigger on dashboard entry to guide the user on what is new, pending deadlines, and notifications
   useEffect(() => {
-    if (
-      !isUserLoading &&
-      userProfile &&
-      userProfile.verified &&
-      !isEvalPending &&
-      !isWhatsNewOpen &&
-      !hasTriggeredDigestRef.current
-    ) {
+    if (!isUserLoading && userProfile && userProfile.verified && !isEvalPending && !hasTriggeredDigestRef.current) {
       const sessionSeen = sessionStorage.getItem('rsu_eoms_digest_seen_session') === 'true';
       const ackIds = getAcknowledgedDigestIds();
       const hasUnacknowledged = notificationsList.length > 0 && notificationsList.some((n) => !ackIds.includes(n.id));
+      const hasUnreadVersionUpdate = userProfile.lastSeenVersion !== CURRENT_SYSTEM_VERSION;
 
-      if (!sessionSeen || hasUnacknowledged) {
+      if (!sessionSeen || hasUnacknowledged || hasUnreadVersionUpdate) {
         hasTriggeredDigestRef.current = true;
         const timer = setTimeout(() => {
           setIsNotificationDigestOpen(true);
@@ -870,7 +852,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         return () => clearTimeout(timer);
       }
     }
-  }, [isUserLoading, userProfile, isEvalPending, isWhatsNewOpen, notificationsList]);
+  }, [isUserLoading, userProfile, isEvalPending, notificationsList]);
 
   const notificationCount = subNotificationsCount;
 
@@ -1094,11 +1076,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {!isEvalPending && <InstallPwaDialog />}
-          <WhatsNewDialog
-            isOpen={isWhatsNewOpen}
-            onOpenChange={setIsWhatsNewOpen}
-            onAcknowledge={handleAcknowledgeUpdates}
-          />
           <NotificationDigestDialog
             isOpen={isNotificationDigestOpen}
             onOpenChange={setIsNotificationDigestOpen}
@@ -1109,6 +1086,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             campusName={allCampuses?.find((c) => c.id === userProfile?.campusId)?.name}
             cycles={cycles}
             eomsSubmissions={eomsSubmissions}
+            currentSystemVersion={CURRENT_SYSTEM_VERSION}
+            hasUnreadUpdates={userProfile?.lastSeenVersion !== CURRENT_SYSTEM_VERSION}
+            onAcknowledgeUpdates={handleAcknowledgeUpdates}
             onAcknowledge={handleAcknowledgeDigest}
             onMarkAllAsRead={() => markAllAsRead(notificationsList.map((n) => n.id))}
           />
