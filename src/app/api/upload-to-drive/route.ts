@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import https from 'https';
 import http from 'http';
 import { URL } from 'url';
+import { extractDriveFolderId } from '@/lib/utils';
 
 const DEFAULT_SCRIPT_URL =
   process.env.GOOGLE_SCRIPT_WEBHOOK_URL ||
@@ -88,21 +89,6 @@ function sendToGoogleAppsScript(
     req.write(data);
     req.end();
   });
-}
-
-/**
- * Extracts the Google Drive Folder ID from standard URL formats.
- */
-export function extractDriveFolderId(input: string): string {
-  if (!input) return '';
-  const trimmed = input.trim();
-  const folderMatch = trimmed.match(/folders\/([a-zA-Z0-9_-]+)/);
-  if (folderMatch) return folderMatch[1];
-  const idMatch = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if (idMatch) return idMatch[1];
-  // If user pasted pure ID
-  if (/^[a-zA-Z0-9_-]{20,}$/.test(trimmed)) return trimmed;
-  return trimmed;
 }
 
 export async function POST(req: NextRequest) {
