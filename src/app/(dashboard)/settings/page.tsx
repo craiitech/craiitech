@@ -28,6 +28,7 @@ import { CsmSettingsManagement } from '@/components/admin/csm-settings-managemen
 import { LogoManagement } from '@/components/admin/logo-management';
 import { KpiDefinitionsManager } from '@/components/admin/kpi-definitions-manager';
 import { PermissionMatrix } from '@/components/admin/permission-matrix';
+import { SecuritySpecificationsManagement } from '@/components/admin/security-specifications-management';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
@@ -159,6 +160,12 @@ export default function SettingsPage() {
                 <TabsTrigger value="fiamo" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   FIAMO Office
                 </TabsTrigger>
+                <TabsTrigger
+                  value="security"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+                >
+                  Security & Cryptography
+                </TabsTrigger>
               </TabsList>
             </ScrollArea>
           </div>
@@ -228,6 +235,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="fiamo" className="space-y-4 animate-in fade-in duration-500">
             <FiamoSettingsManagement />
+          </TabsContent>
+          <TabsContent value="security" className="space-y-4 animate-in fade-in duration-500">
+            <SecuritySpecificationsManagement />
           </TabsContent>
         </Tabs>
       </div>

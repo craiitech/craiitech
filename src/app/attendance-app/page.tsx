@@ -1331,6 +1331,10 @@ export default function RsuAttendanceApp() {
                         Refresh QR
                       </Button>
                     </div>
+                    <div className="flex items-center justify-center gap-1.5 pt-2 text-[9px] font-black uppercase tracking-wider text-emerald-400/90 border-t border-slate-800/60 mt-1">
+                      <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <span>HMAC-SHA-256 Tamper-Proof & Canvas Verified</span>
+                    </div>
                   </div>
                 </>
               ) : activeTab === 'code' ? (
@@ -2311,6 +2315,10 @@ export default function RsuAttendanceApp() {
       <footer className="border-t border-slate-800/80 pt-4 pb-2 text-center text-[9px] font-semibold text-slate-500 uppercase tracking-[0.15em] flex flex-col gap-0.5">
         <span>© 2026 Romblon State University</span>
         <span className="text-[#D4AF37]/50 font-black">Digital Attendance Locker &bull; CRAIITech</span>
+        <div className="flex items-center justify-center gap-1 text-[8.5px] text-slate-500/80 font-bold lowercase">
+          <ShieldCheck className="h-3 w-3 text-emerald-500/70" />
+          <span>protected by AES-256, TLS 1.3 & HMAC-SHA-256</span>
+        </div>
       </footer>
     </div>
   );

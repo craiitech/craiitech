@@ -92,11 +92,14 @@ export default function LoginPage() {
                     <ShieldCheck className="h-6 w-6 text-primary" />
                   </div>
                   <div className="space-y-1">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight">Data Privacy Assurance</h4>
+                    <h4 className="text-sm font-black text-white uppercase tracking-tight">
+                      Data Privacy & Cryptography
+                    </h4>
                     <p className="text-xs text-slate-300 leading-relaxed font-medium">
                       In accordance with <strong className="text-white">RA 10173 (Data Privacy Act of 2012)</strong>,
-                      all personal data and evidence logs are encrypted. Your institutional identity is protected by
-                      multi-layer access control.
+                      all evidence logs and documents are protected with <strong className="text-white">AES-256</strong>{' '}
+                      cloud storage encryption, <strong className="text-white">TLS 1.3 AES-GCM</strong> transport
+                      security, and <strong className="text-white">HMAC-SHA-256</strong> digital verification.
                     </p>
                   </div>
                 </CardContent>
@@ -129,23 +132,30 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              {/* Let's Encrypt Protection Badge */}
-              <div className="flex items-center gap-3 pl-2">
-                <span className="text-[10px] font-black uppercase text-white/40 tracking-widest">Protected by:</span>
-                <a
-                  href="https://letsencrypt.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="transition-all hover:opacity-80 active:scale-95 block"
-                >
-                  <Image
-                    src="/ssl.png"
-                    alt="Protected by Let's Encrypt SSL"
-                    width={130}
-                    height={35}
-                    className="object-contain h-7 w-auto"
-                  />
-                </a>
+              {/* Encryption & Let's Encrypt Protection Badges */}
+              <div className="flex items-center gap-4 pl-2 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase text-white/40 tracking-widest">Protected by:</span>
+                  <a
+                    href="https://letsencrypt.org"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="transition-all hover:opacity-80 active:scale-95 block"
+                  >
+                    <Image
+                      src="/ssl.png"
+                      alt="Protected by Let's Encrypt SSL"
+                      width={130}
+                      height={35}
+                      className="object-contain h-7 w-auto"
+                    />
+                  </a>
+                </div>
+
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-400/30 text-emerald-300 text-[10px] font-black uppercase tracking-wider backdrop-blur-sm">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>AES-256 & HMAC-SHA-256 Verified</span>
+                </div>
               </div>
             </div>
           </div>

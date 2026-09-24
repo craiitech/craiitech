@@ -43,6 +43,9 @@ import {
   SlidersHorizontal,
   MessageSquareText,
   UserCheck,
+  Lock,
+  KeyRound,
+  Database,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Cycle, Submission } from '@/lib/types';
@@ -554,7 +557,82 @@ export function NotificationDigestDialog({
                 </div>
               </div>
 
-              {/* 3. OTHER PLATFORM EVOLUTIONS */}
+              {/* 3. INSTITUTIONAL CRYPTOGRAPHIC & SECURITY STANDARDS */}
+              <div className="p-5 rounded-2xl border-2 border-indigo-500/30 bg-gradient-to-br from-indigo-500/10 via-background to-sky-500/5 dark:from-indigo-950/30 dark:via-background dark:to-sky-950/20 space-y-3.5 shadow-xs">
+                <div className="flex items-start gap-3.5">
+                  <div className="h-10 w-10 rounded-xl bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                    <Lock className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge className="bg-indigo-600 text-white text-[9px] font-black uppercase tracking-wider px-2 py-0.5">
+                        Security Specifications
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className="text-[9px] font-black tracking-wider text-indigo-700 dark:text-indigo-300 border-indigo-500/30"
+                      >
+                        RA 10173 & ISO 27001 Aligned
+                      </Badge>
+                    </div>
+                    <h4 className="text-sm font-black uppercase text-foreground tracking-tight">
+                      Enterprise Cryptography & Data Protection Standards
+                    </h4>
+                    <p className="text-xs text-muted-foreground font-medium leading-relaxed">
+                      All university documents, evaluation responses, and audit records are safeguarded by multi-layer
+                      cryptographic hashing and certified encryption standards:
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-[11px]">
+                  <div className="p-3 rounded-xl bg-background/80 border border-indigo-500/20 space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-foreground">
+                      <KeyRound className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                      <span>HMAC-SHA-256 Digital Verification</span>
+                    </div>
+                    <p className="text-muted-foreground text-[10.5px] leading-snug">
+                      Native Web Crypto API keys generate tamper-evident signatures for all QR attendance scans and
+                      offline audit sync logs.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-background/80 border border-indigo-500/20 space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-foreground">
+                      <Database className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                      <span>AES-256 Cloud Storage Encryption</span>
+                    </div>
+                    <p className="text-muted-foreground text-[10.5px] leading-snug">
+                      All files in Google Drive repository folders and Cloud Firestore entries are encrypted at rest
+                      with FIPS 140-2 validated AES-256.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-background/80 border border-indigo-500/20 space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-foreground">
+                      <ShieldCheck className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                      <span>TLS 1.3 / AES-GCM In-Transit</span>
+                    </div>
+                    <p className="text-muted-foreground text-[10.5px] leading-snug">
+                      End-to-end network communications are encrypted via HTTPS Let's Encrypt SSL certificates with
+                      256-bit Galois/Counter Mode.
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-background/80 border border-indigo-500/20 space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-foreground">
+                      <UserCheck className="h-3.5 w-3.5 text-indigo-500 shrink-0" />
+                      <span>Salted scrypt Credential Protection</span>
+                    </div>
+                    <p className="text-muted-foreground text-[10.5px] leading-snug">
+                      User authentication credentials are secure against brute-force attacks via multi-round salted
+                      scrypt key derivation.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. OTHER PLATFORM EVOLUTIONS */}
               <div className="space-y-2.5 pt-2">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                   Additional Recent Capabilities
