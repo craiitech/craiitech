@@ -1020,20 +1020,55 @@ export function CampusSubmissionsView({
                       </Card>
                       <Card
                         className={cn(
-                          'shadow-none border-dashed p-5',
+                          'shadow-none border-dashed p-5 relative overflow-hidden transition-all',
                           unitData.missingFirst.length + unitData.missingFinal.length > 0
-                            ? 'bg-rose-50 border-rose-200'
+                            ? 'animate-warning-banner border-rose-300 dark:border-rose-800 shadow-sm'
                             : 'bg-emerald-50 border-emerald-200',
                         )}
                       >
-                        <div className="flex items-center gap-2 mb-2">
-                          <AlertTriangle className="h-4 w-4 text-rose-600" />
-                          <span className="text-[10px] font-black uppercase text-rose-700">Outstanding Gaps</span>
+                        {unitData.missingFirst.length + unitData.missingFinal.length > 0 && (
+                          <>
+                            <div
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-0 animate-warning-stripes opacity-70"
+                            />
+                            <div
+                              aria-hidden="true"
+                              className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent animate-warning-shimmer"
+                            />
+                          </>
+                        )}
+                        <div className="relative z-10 flex items-center gap-2 mb-2">
+                          <AlertTriangle
+                            className={cn(
+                              'h-4 w-4',
+                              unitData.missingFirst.length + unitData.missingFinal.length > 0
+                                ? 'text-rose-600 animate-pulse'
+                                : 'text-emerald-600',
+                            )}
+                          />
+                          <span
+                            className={cn(
+                              'text-[10px] font-black uppercase',
+                              unitData.missingFirst.length + unitData.missingFinal.length > 0
+                                ? 'text-rose-700'
+                                : 'text-emerald-700',
+                            )}
+                          >
+                            Outstanding Gaps
+                          </span>
                         </div>
-                        <p className="text-3xl font-black text-rose-600">
+                        <p
+                          className={cn(
+                            'relative z-10 text-3xl font-black',
+                            unitData.missingFirst.length + unitData.missingFinal.length > 0
+                              ? 'text-rose-600'
+                              : 'text-emerald-600',
+                          )}
+                        >
                           {unitData.missingFirst.length + unitData.missingFinal.length} Items
                         </p>
-                        <p className="text-[11px] text-muted-foreground mt-2 font-medium">
+                        <p className="relative z-10 text-[11px] text-muted-foreground mt-2 font-medium">
                           Requirements missing or rejected.
                         </p>
                       </Card>

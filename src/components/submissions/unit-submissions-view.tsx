@@ -610,15 +610,27 @@ export function UnitSubmissionsView({
                 </Card>
                 <Card
                   className={cn(
-                    'shadow-none border-dashed p-5',
+                    'shadow-none border-dashed p-5 relative overflow-hidden transition-all',
                     unitData.missingFirst.length + unitData.missingFinal.length > 0
-                      ? 'bg-rose-50 border-rose-200'
+                      ? 'animate-warning-banner border-rose-300 dark:border-rose-800 shadow-sm'
                       : 'bg-emerald-50 border-emerald-200',
                   )}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  {unitData.missingFirst.length + unitData.missingFinal.length > 0 && (
+                    <>
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 animate-warning-stripes opacity-70"
+                      />
+                      <div
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent animate-warning-shimmer"
+                      />
+                    </>
+                  )}
+                  <div className="relative z-10 flex items-center gap-2 mb-2">
                     {unitData.missingFirst.length + unitData.missingFinal.length > 0 ? (
-                      <AlertTriangle className="h-4 w-4 text-rose-600" />
+                      <AlertTriangle className="h-4 w-4 text-rose-600 animate-pulse" />
                     ) : (
                       <ShieldCheck className="h-4 w-4 text-emerald-600" />
                     )}
@@ -635,7 +647,7 @@ export function UnitSubmissionsView({
                   </div>
                   <p
                     className={cn(
-                      'text-3xl font-black',
+                      'relative z-10 text-3xl font-black',
                       unitData.missingFirst.length + unitData.missingFinal.length > 0
                         ? 'text-rose-600'
                         : 'text-emerald-600',
@@ -643,7 +655,7 @@ export function UnitSubmissionsView({
                   >
                     {unitData.missingFirst.length + unitData.missingFinal.length} Items
                   </p>
-                  <p className="text-[11px] text-muted-foreground mt-2 font-medium">
+                  <p className="relative z-10 text-[11px] text-muted-foreground mt-2 font-medium">
                     Requirements either missing or requiring corrective resubmission.
                   </p>
                 </Card>
@@ -652,38 +664,54 @@ export function UnitSubmissionsView({
               {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
                 <div className="space-y-4">
                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 text-rose-600">
-                    <FileWarning className="h-4 w-4" /> Compliance Gap Audit
+                    <FileWarning className="h-4 w-4 animate-pulse" /> Compliance Gap Audit
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {unitData.missingFirst.length > 0 && (
-                      <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-100">
-                        <p className="text-[9px] font-black uppercase text-rose-600 mb-3 bg-white w-fit px-2 py-0.5 rounded border border-rose-100">
+                      <div className="relative overflow-hidden animate-warning-banner rounded-xl p-5 border border-rose-300 dark:border-rose-800 shadow-sm">
+                        <div
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 animate-warning-stripes opacity-70"
+                        />
+                        <div
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent animate-warning-shimmer"
+                        />
+                        <p className="relative z-10 text-[9px] font-black uppercase text-rose-600 mb-3 bg-white/90 dark:bg-slate-900/90 w-fit px-2 py-0.5 rounded border border-rose-200">
                           1st Cycle To-Do
                         </p>
-                        <ul className="space-y-1.5">
+                        <ul className="relative z-10 space-y-1.5">
                           {unitData.missingFirst.map((doc) => (
                             <li
                               key={doc}
-                              className="flex items-center gap-2 text-[11px] font-bold text-slate-700 dark:text-slate-300"
+                              className="flex items-center gap-2 text-[11px] font-bold text-slate-800 dark:text-slate-200"
                             >
-                              <div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}
+                              <div className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" /> {doc}
                             </li>
                           ))}
                         </ul>
                       </div>
                     )}
                     {unitData.missingFinal.length > 0 && (
-                      <div className="bg-rose-50/50 rounded-xl p-5 border border-rose-100">
-                        <p className="text-[9px] font-black uppercase text-rose-600 mb-3 bg-white w-fit px-2 py-0.5 rounded border border-rose-100">
+                      <div className="relative overflow-hidden animate-warning-banner rounded-xl p-5 border border-rose-300 dark:border-rose-800 shadow-sm">
+                        <div
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 animate-warning-stripes opacity-70"
+                        />
+                        <div
+                          aria-hidden="true"
+                          className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent animate-warning-shimmer"
+                        />
+                        <p className="relative z-10 text-[9px] font-black uppercase text-rose-600 mb-3 bg-white/90 dark:bg-slate-900/90 w-fit px-2 py-0.5 rounded border border-rose-200">
                           Final Cycle To-Do
                         </p>
-                        <ul className="space-y-1.5">
+                        <ul className="relative z-10 space-y-1.5">
                           {unitData.missingFinal.map((doc) => (
                             <li
                               key={doc}
-                              className="flex items-center gap-2 text-[11px] font-bold text-slate-700 dark:text-slate-300"
+                              className="flex items-center gap-2 text-[11px] font-bold text-slate-800 dark:text-slate-200"
                             >
-                              <div className="h-1 w-1 rounded-full bg-rose-400" /> {doc}
+                              <div className="h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse" /> {doc}
                             </li>
                           ))}
                         </ul>

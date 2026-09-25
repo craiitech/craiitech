@@ -1321,12 +1321,23 @@ export default function SubmissionDetailPage() {
               </CardHeader>
               <CardContent className="space-y-4 pt-6">
                 {isRiskRegistry && !isLoadingRisks && !hasDigitalRisks && (
-                  <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 mb-6">
-                    <ShieldAlert className="h-5 w-5 text-destructive" />
-                    <AlertTitle className="font-black uppercase tracking-tight text-destructive">
+                  <Alert
+                    variant="destructive"
+                    className="relative overflow-hidden animate-warning-banner border-destructive/50 mb-6 transition-all shadow-sm"
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 animate-warning-stripes opacity-70"
+                    />
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent animate-warning-shimmer"
+                    />
+                    <ShieldAlert className="h-5 w-5 text-destructive animate-pulse" />
+                    <AlertTitle className="relative z-10 font-black uppercase tracking-tight text-destructive">
                       Resubmission Blocked
                     </AlertTitle>
-                    <AlertDescription className="space-y-4 pt-1">
+                    <AlertDescription className="relative z-10 space-y-4 pt-1">
                       <p className="text-xs font-bold leading-relaxed">
                         Both individual **Risks AND Opportunities** must be recorded in the digital register before you
                         can submit a corrected revision.
@@ -1335,7 +1346,7 @@ export default function SubmissionDetailPage() {
                         size="sm"
                         variant="destructive"
                         asChild
-                        className="h-8 text-[10px] font-black uppercase tracking-widest"
+                        className="h-8 text-[10px] font-black uppercase tracking-widest shadow-md"
                       >
                         <Link href="/risk-register">Go to Risk Register Registry</Link>
                       </Button>

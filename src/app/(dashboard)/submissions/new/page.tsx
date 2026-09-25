@@ -605,12 +605,23 @@ export default function NewSubmissionPage() {
       {selectedYear &&
         hasPrevYearConfig &&
         (missingPrevYearSubmissions.some((s) => s.isRequired) || openPrevYearRisks.length > 0) && (
-          <Alert variant="destructive" className="bg-destructive/5 border-destructive/30 border-2">
-            <ShieldAlert className="h-5 w-5 text-destructive" />
-            <AlertTitle className="font-extrabold uppercase text-xs tracking-wider text-destructive">
+          <Alert
+            variant="destructive"
+            className="relative overflow-hidden animate-warning-banner border-destructive/50 transition-all shadow-sm"
+          >
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 animate-warning-stripes opacity-70"
+            />
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent animate-warning-shimmer"
+            />
+            <ShieldAlert className="h-5 w-5 text-destructive animate-pulse" />
+            <AlertTitle className="relative z-10 font-extrabold uppercase text-xs tracking-wider text-destructive">
               Previous Year ({selectedYear - 1}) Compliance Warning
             </AlertTitle>
-            <AlertDescription className="mt-2 text-xs space-y-2 text-slate-800 dark:text-slate-200">
+            <AlertDescription className="relative z-10 mt-2 text-xs space-y-2 text-slate-800 dark:text-slate-200">
               <p className="font-bold">
                 Our records show that your unit has pending requirements for the academic/calendar year{' '}
                 {selectedYear - 1}. Please resolve these to ensure continuous quality compliance:
@@ -1026,10 +1037,21 @@ export default function NewSubmissionPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Validation Blocked</AlertTitle>
-                    <AlertDescription className="space-y-3">
+                  <Alert
+                    variant="destructive"
+                    className="relative overflow-hidden animate-warning-banner border-destructive/50 transition-all shadow-sm"
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 animate-warning-stripes opacity-70"
+                    />
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent animate-warning-shimmer"
+                    />
+                    <AlertCircle className="h-4 w-4 animate-pulse text-destructive" />
+                    <AlertTitle className="relative z-10 font-semibold tracking-tight">Validation Blocked</AlertTitle>
+                    <AlertDescription className="relative z-10 space-y-3">
                       <p>
                         The system needs your Registry submission first to determine if this Action Plan is mandatory or
                         if your unit is exempt (Low Risk).
@@ -1085,10 +1107,21 @@ export default function NewSubmissionPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6 space-y-6">
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Prerequisite Not Met</AlertTitle>
-                    <AlertDescription className="space-y-3">
+                  <Alert
+                    variant="destructive"
+                    className="relative overflow-hidden animate-warning-banner border-destructive/50 transition-all shadow-sm"
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 animate-warning-stripes opacity-70"
+                    />
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/10 to-transparent animate-warning-shimmer"
+                    />
+                    <AlertCircle className="h-4 w-4 animate-pulse text-destructive" />
+                    <AlertTitle className="relative z-10 font-semibold tracking-tight">Prerequisite Not Met</AlertTitle>
+                    <AlertDescription className="relative z-10 space-y-3">
                       <p>To continue with the Final Cycle, your unit must have:</p>
                       <ul className="list-decimal pl-5 font-bold space-y-1">
                         <li
