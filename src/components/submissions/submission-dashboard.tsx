@@ -55,7 +55,7 @@ import { isBefore, isAfter, format } from 'date-fns';
 import { ScrollArea } from '../ui/scroll-area';
 import { Progress } from '../ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+import { cn, normalizeReportType } from '@/lib/utils';
 import { submissionTypes } from '@/lib/constants';
 
 interface SubmissionDashboardProps {
@@ -247,33 +247,49 @@ export function SubmissionDashboard({
   const yearlyPerformance = useMemo(() => {
     if (!submissions.length || !allUnits.length) return [];
 
+    const validUnitIds = new Set(allUnits.map((u) => u.id));
+
+    // Map by year -> cycleKey ('firstCycle' | 'finalCycle') -> reportType -> { submittedUnits: Set<string>, approvedUnits: Set<string> }
     const yearMap = new Map<
       number,
       {
-        firstCycle: Record<string, { submitted: number; approved: number; total: number }>;
-        finalCycle: Record<string, { submitted: number; approved: number; total: number }>;
+        firstCycle: Record<string, { submittedUnits: Set<string>; approvedUnits: Set<string> }>;
+        finalCycle: Record<string, { submittedUnits: Set<string>; approvedUnits: Set<string> }>;
         totalUnits: number;
       }
     >();
 
-    submissionTypes.forEach((type) => {
-      submissions.forEach((sub) => {
-        const yr = sub.year;
-        if (!yearMap.has(yr)) {
-          yearMap.set(yr, {
-            firstCycle: Object.fromEntries(submissionTypes.map((t) => [t, { submitted: 0, approved: 0, total: 0 }])),
-            finalCycle: Object.fromEntries(submissionTypes.map((t) => [t, { submitted: 0, approved: 0, total: 0 }])),
-            totalUnits: allUnits.length,
-          });
+    submissions.forEach((sub) => {
+      const yr = Number(sub.year);
+      if (!yr) return;
+
+      if (!yearMap.has(yr)) {
+        yearMap.set(yr, {
+          firstCycle: Object.fromEntries(
+            submissionTypes.map((t) => [t, { submittedUnits: new Set<string>(), approvedUnits: new Set<string>() }]),
+          ),
+          finalCycle: Object.fromEntries(
+            submissionTypes.map((t) => [t, { submittedUnits: new Set<string>(), approvedUnits: new Set<string>() }]),
+          ),
+          totalUnits: allUnits.length,
+        });
+      }
+
+      const cycleLower = sub.cycleId?.toLowerCase();
+      const cycleKey = cycleLower === 'first' ? 'firstCycle' : cycleLower === 'final' ? 'finalCycle' : null;
+      if (!cycleKey) return;
+
+      const normType = normalizeReportType(sub.reportType);
+      const entry = yearMap.get(yr)!;
+      const docEntry = entry[cycleKey][normType];
+      if (docEntry) {
+        if (validUnitIds.has(sub.unitId)) {
+          docEntry.submittedUnits.add(sub.unitId);
+          if (sub.statusId === 'approved') {
+            docEntry.approvedUnits.add(sub.unitId);
+          }
         }
-        const entry = yearMap.get(yr)!;
-        const cycleKey = sub.cycleId === 'first' ? 'firstCycle' : 'finalCycle';
-        const docEntry = entry[cycleKey][sub.reportType];
-        if (docEntry) {
-          docEntry.submitted++;
-          if (sub.statusId === 'approved') docEntry.approved++;
-        }
-      });
+      }
     });
 
     return Array.from(yearMap.entries())
@@ -282,15 +298,18 @@ export function SubmissionDashboard({
         const processCycle = (cycleKey: 'firstCycle' | 'finalCycle', cycleLabel: string) => {
           submissionTypes.forEach((type) => {
             const d = data[cycleKey][type];
-            const missingUnits = data.totalUnits - d.submitted;
-            const completionRate = data.totalUnits > 0 ? Math.round((d.submitted / data.totalUnits) * 100) : 0;
-            const approvalRate = d.submitted > 0 ? Math.round((d.approved / d.submitted) * 100) : 0;
+            const submitted = d.submittedUnits.size;
+            const approved = d.approvedUnits.size;
+            const missingUnits = Math.max(0, data.totalUnits - submitted);
+            const completionRate =
+              data.totalUnits > 0 ? Math.min(100, Math.round((submitted / data.totalUnits) * 100)) : 0;
+            const approvalRate = submitted > 0 ? Math.round((approved / submitted) * 100) : 0;
             rows.push({
               year,
               cycle: cycleLabel,
               type,
-              submitted: d.submitted,
-              approved: d.approved,
+              submitted,
+              approved,
               missing: missingUnits,
               total: data.totalUnits,
               completionRate,
@@ -301,24 +320,27 @@ export function SubmissionDashboard({
         processCycle('firstCycle', 'First');
         processCycle('finalCycle', 'Final');
 
-        const firstTotal = submissionTypes.reduce((s, t) => s + data.firstCycle[t].submitted, 0);
-        const finalTotal = submissionTypes.reduce((s, t) => s + data.finalCycle[t].submitted, 0);
-        const firstTotalPossible = data.totalUnits * 6;
-        const finalTotalPossible = data.totalUnits * 6;
+        const firstTotal = submissionTypes.reduce((s, t) => s + data.firstCycle[t].submittedUnits.size, 0);
+        const finalTotal = submissionTypes.reduce((s, t) => s + data.finalCycle[t].submittedUnits.size, 0);
+        const firstApproved = submissionTypes.reduce((s, t) => s + data.firstCycle[t].approvedUnits.size, 0);
+        const finalApproved = submissionTypes.reduce((s, t) => s + data.finalCycle[t].approvedUnits.size, 0);
+
+        const firstTotalPossible = data.totalUnits * submissionTypes.length;
+        const finalTotalPossible = data.totalUnits * submissionTypes.length;
+        const totalPossible = firstTotalPossible + finalTotalPossible;
+        const totalSubmitted = firstTotal + finalTotal;
+        const totalApproved = firstApproved + finalApproved;
 
         rows.push({
           year,
           cycle: 'Total',
           type: 'Overall Completion',
-          submitted: firstTotal + finalTotal,
-          approved: 0,
-          missing: firstTotalPossible + finalTotalPossible - (firstTotal + finalTotal),
-          total: firstTotalPossible + finalTotalPossible,
-          completionRate:
-            firstTotalPossible + finalTotalPossible > 0
-              ? Math.round(((firstTotal + finalTotal) / (firstTotalPossible + finalTotalPossible)) * 100)
-              : 0,
-          approvalRate: 0,
+          submitted: totalSubmitted,
+          approved: totalApproved,
+          missing: Math.max(0, totalPossible - totalSubmitted),
+          total: totalPossible,
+          completionRate: totalPossible > 0 ? Math.min(100, Math.round((totalSubmitted / totalPossible) * 100)) : 0,
+          approvalRate: totalSubmitted > 0 ? Math.round((totalApproved / totalSubmitted) * 100) : 0,
           isTotal: true,
         });
 
@@ -1024,7 +1046,7 @@ export function SubmissionDashboard({
                             </div>
                           </TableCell>
                           <TableCell className="text-right pr-6">
-                            {row.approvalRate > 0 ? (
+                            {row.submitted > 0 ? (
                               <span
                                 className={cn(
                                   'font-black text-sm tabular-nums',
@@ -1036,10 +1058,6 @@ export function SubmissionDashboard({
                                 )}
                               >
                                 {row.approvalRate}%
-                              </span>
-                            ) : isTotal ? (
-                              <span className="text-sm font-black text-slate-700 dark:text-slate-300">
-                                {row.completionRate}%
                               </span>
                             ) : (
                               <span className="text-[10px] text-slate-300 font-black">—</span>
