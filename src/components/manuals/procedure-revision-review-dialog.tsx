@@ -427,7 +427,10 @@ export function ProcedureRevisionReviewDialog({
                 </TabsList>
 
                 <div className="flex-1 overflow-hidden">
-                  <TabsContent value="actions" className="h-full m-0 flex flex-col">
+                  <TabsContent
+                    value="actions"
+                    className="h-full m-0 data-[state=active]:flex data-[state=inactive]:hidden flex-col"
+                  >
                     <ScrollArea className="flex-1">
                       <div className="p-6 space-y-6">
                         {isAwaitingPresident ? (
@@ -696,7 +699,10 @@ export function ProcedureRevisionReviewDialog({
                     </ScrollArea>
                   </TabsContent>
 
-                  <TabsContent value="history" className="h-full m-0 flex flex-col overflow-hidden">
+                  <TabsContent
+                    value="history"
+                    className="h-full m-0 data-[state=active]:flex data-[state=inactive]:hidden flex-col overflow-hidden"
+                  >
                     <ScrollArea className="flex-1">
                       <div className="p-6 space-y-4">
                         {request.comments?.length ? (

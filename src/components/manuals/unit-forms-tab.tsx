@@ -29,6 +29,7 @@ import {
   Edit,
   Search,
   X,
+  MessageSquare,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
@@ -312,6 +313,15 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
                               {req.status}
                             </Badge>
                             <div className="flex items-center gap-1.5">
+                              {req.comments && req.comments.length > 0 && (
+                                <span
+                                  className="inline-flex items-center gap-1 text-[8px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded shadow-xs"
+                                  title={`${req.comments.length} comment${req.comments.length > 1 ? 's' : ''} in discussion`}
+                                >
+                                  <MessageSquare className="h-2.5 w-2.5 text-amber-600" />
+                                  {req.comments.length}
+                                </span>
+                              )}
                               {req.status === 'Returned for Correction' && (
                                 <Button
                                   size="icon"

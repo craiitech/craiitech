@@ -36,6 +36,7 @@ import {
   AlertCircle,
   Gavel,
   ClipboardCheck,
+  MessageSquare,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -757,11 +758,39 @@ export function FormRegistrationDialog({
     </div>
   );
 
+  const reviewerFeedbackBanner =
+    request?.comments && request.comments.length > 0 ? (
+      <div className="bg-rose-50 border-2 border-rose-200/80 rounded-2xl p-4 shadow-sm space-y-2.5 mb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-rose-800">
+            <MessageSquare className="h-4 w-4 text-rose-600" />
+            <span className="text-[11px] font-black uppercase tracking-wider">Reviewer Findings & Action Items</span>
+          </div>
+          <Badge variant="outline" className="border-rose-200 text-rose-700 bg-white text-[9px] font-bold">
+            {request.comments.length} comment{request.comments.length > 1 ? 's' : ''}
+          </Badge>
+        </div>
+        <div className="space-y-2">
+          {request.comments.slice(-2).map((c, i) => (
+            <div key={i} className="bg-white p-3 rounded-xl border border-rose-100/80 text-xs space-y-1">
+              <p className="italic text-slate-800 leading-relaxed font-medium">
+                "{c.text || (c as any).comment || (c as any).message || ''}"
+              </p>
+              <p className="text-[9px] font-bold text-rose-700 text-right uppercase">
+                — {c.authorName || 'Reviewer'} ({c.authorRole || 'QA'})
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    ) : null;
+
   const wizardFormContent = (
     <Form {...form}>
       <form id="reg-form" onSubmit={(e) => e.preventDefault()} className="h-full flex flex-col">
         {isInline ? (
           <div className="p-6 pb-12 space-y-6">
+            {reviewerFeedbackBanner}
             {step === 1 && renderStep1()}
             {step === 2 && renderStep2()}
             {step === 3 && renderStep3()}
@@ -772,6 +801,7 @@ export function FormRegistrationDialog({
         ) : (
           <ScrollArea className="flex-1">
             <div className="p-8 pb-12 space-y-6">
+              {reviewerFeedbackBanner}
               {step === 1 && renderStep1()}
               {step === 2 && renderStep2()}
               {step === 3 && renderStep3()}

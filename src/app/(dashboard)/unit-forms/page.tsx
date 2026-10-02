@@ -54,6 +54,7 @@ import {
   School,
   Filter,
   X,
+  MessageSquare,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
@@ -515,6 +516,15 @@ export default function UnitFormsPage() {
                                 {req.status}
                               </Badge>
                               <div className="flex items-center gap-1.5">
+                                {req.comments && req.comments.length > 0 && (
+                                  <span
+                                    className="flex items-center gap-1 text-[8px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded shadow-xs"
+                                    title={`${req.comments.length} comment${req.comments.length > 1 ? 's' : ''} in discussion`}
+                                  >
+                                    <MessageSquare className="h-2.5 w-2.5 text-amber-600" />
+                                    {req.comments.length}
+                                  </span>
+                                )}
                                 {req.status === 'Returned for Correction' && (
                                   <Button
                                     size="icon"
@@ -706,11 +716,22 @@ export default function UnitFormsPage() {
                                   </TableCell>
                                   <TableCell className="text-xs">{req.submitterName}</TableCell>
                                   <TableCell className="text-center">
-                                    <Badge
-                                      className={cn('text-[8px] font-black uppercase h-4', statusColors[req.status])}
-                                    >
-                                      {req.status}
-                                    </Badge>
+                                    <div className="flex items-center justify-center gap-1.5">
+                                      <Badge
+                                        className={cn('text-[8px] font-black uppercase h-4', statusColors[req.status])}
+                                      >
+                                        {req.status}
+                                      </Badge>
+                                      {req.comments && req.comments.length > 0 && (
+                                        <span
+                                          className="inline-flex items-center gap-1 text-[8px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded shadow-xs"
+                                          title={`${req.comments.length} comments in discussion`}
+                                        >
+                                          <MessageSquare className="h-2.5 w-2.5 text-amber-600" />
+                                          {req.comments.length}
+                                        </span>
+                                      )}
+                                    </div>
                                   </TableCell>
                                   <TableCell className="text-right pr-6">
                                     <Button

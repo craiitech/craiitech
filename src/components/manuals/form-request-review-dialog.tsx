@@ -109,6 +109,7 @@ const getCommentTime = (createdAt: any): number => {
   if (createdAt instanceof Date) return createdAt.getTime();
   if (typeof createdAt.toDate === 'function') return createdAt.toDate().getTime();
   if (typeof createdAt.seconds === 'number') return createdAt.seconds * 1000;
+  if (typeof createdAt._seconds === 'number') return createdAt._seconds * 1000;
   const d = new Date(createdAt);
   return isNaN(d.getTime()) ? 0 : d.getTime();
 };
@@ -124,6 +125,9 @@ const getFormattedCommentDate = (createdAt: any): string => {
     }
     if (typeof createdAt.seconds === 'number') {
       return format(new Date(createdAt.seconds * 1000), 'MMM dd, p');
+    }
+    if (typeof createdAt._seconds === 'number') {
+      return format(new Date(createdAt._seconds * 1000), 'MMM dd, p');
     }
     const d = new Date(createdAt);
     if (!isNaN(d.getTime())) {
@@ -145,6 +149,7 @@ export function FormRequestReviewDialog({
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<'actions' | 'history'>('actions');
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeFormPreview, setActiveFormPreview] = useState<{ name: string; link: string } | null>(null);
   const [adminChecklist, setAdminChecklist] = useState<Record<string, boolean>>({});
@@ -152,17 +157,32 @@ export function FormRequestReviewDialog({
   const [discussionComment, setDiscussionComment] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
 
+  const requestRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'unitFormRequests', requestId) : null),
+    [firestore, requestId],
+  );
+  const { data: request, isLoading } = useDoc<UnitFormRequest>(requestRef);
+
+  const latestComment = useMemo(() => {
+    if (!request?.comments?.length) return null;
+    return [...request.comments].sort((a, b) => getCommentTime(b.createdAt) - getCommentTime(a.createdAt))[0];
+  }, [request?.comments]);
+
   const handlePostDiscussionComment = async () => {
     if (!firestore || !request || !userProfile || !discussionComment.trim()) return;
     setIsPostingComment(true);
     try {
       const reqDocRef = doc(firestore, 'unitFormRequests', request.id);
+      const authorFullName =
+        `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email || 'User';
+      const authorRoleLabel = isAdmin ? userRole || 'Quality Assurance' : userRole || 'Requesting Unit';
+
       await updateDoc(reqDocRef, {
         comments: arrayUnion({
           text: discussionComment.trim(),
           authorId: userProfile.id,
-          authorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || 'User',
-          authorRole: userRole || 'Member',
+          authorName: authorFullName,
+          authorRole: authorRoleLabel,
           createdAt: new Date(),
         }),
         updatedAt: serverTimestamp(),
@@ -176,12 +196,6 @@ export function FormRequestReviewDialog({
     }
   };
 
-  const requestRef = useMemoFirebase(
-    () => (firestore ? doc(firestore, 'unitFormRequests', requestId) : null),
-    [firestore, requestId],
-  );
-  const { data: request, isLoading } = useDoc<UnitFormRequest>(requestRef);
-
   const form = useForm<z.infer<typeof commentSchema>>({
     resolver: zodResolver(commentSchema),
     defaultValues: { comment: '' },
@@ -192,6 +206,7 @@ export function FormRequestReviewDialog({
       form.reset({ comment: '' });
       setAdminChecklist({});
       setDiscussionComment('');
+      setActiveTab('actions');
     }
   }, [isOpen, requestId, form]);
 
@@ -465,18 +480,33 @@ export function FormRequestReviewDialog({
             </div>
 
             <div className="w-[400px] flex flex-col bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
-              <Tabs defaultValue="actions" className="flex-1 flex flex-col min-h-0">
+              <Tabs
+                value={activeTab}
+                onValueChange={(val) => setActiveTab(val as 'actions' | 'history')}
+                className="flex-1 flex flex-col min-h-0"
+              >
                 <TabsList className="grid grid-cols-2 bg-white rounded-none border-b shrink-0 h-12">
                   <TabsTrigger value="actions" className="text-[10px] font-black uppercase tracking-widest gap-2">
                     <CheckCircle2 className="h-4 w-4" /> Review Actions
                   </TabsTrigger>
                   <TabsTrigger value="history" className="text-[10px] font-black uppercase tracking-widest gap-2">
                     <HistoryIcon className="h-4 w-4" /> Discussion
+                    {request.comments && request.comments.length > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="ml-1 h-4 px-1.5 text-[8px] font-mono font-bold bg-primary/10 text-primary border border-primary/20"
+                      >
+                        {request.comments.length}
+                      </Badge>
+                    )}
                   </TabsTrigger>
                 </TabsList>
 
                 <div className="flex-1 overflow-hidden">
-                  <TabsContent value="actions" className="h-full m-0 flex flex-col">
+                  <TabsContent
+                    value="actions"
+                    className="h-full m-0 data-[state=active]:flex data-[state=inactive]:hidden flex-col"
+                  >
                     <ScrollArea className="flex-1">
                       <div className="p-6 space-y-8">
                         {request.status === 'Approved & Registered' ? (
@@ -499,6 +529,18 @@ export function FormRequestReviewDialog({
                                 <GDrivePreview url={request.presidentialApprovalLink} title="Approved DRF Form" />
                               </div>
                             )}
+                            {request.comments && request.comments.length > 0 && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="w-full h-9 text-[10px] font-black uppercase tracking-wider"
+                                onClick={() => setActiveTab('history')}
+                              >
+                                <HistoryIcon className="h-3.5 w-3.5 mr-1.5" />
+                                View Discussion History ({request.comments.length})
+                              </Button>
+                            )}
                           </div>
                         ) : request.status === 'Returned for Correction' ? (
                           <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
@@ -510,9 +552,49 @@ export function FormRequestReviewDialog({
                               <AlertDescription className="text-[11px] leading-relaxed font-medium text-rose-700">
                                 {isAdmin
                                   ? 'This request has been returned to the submitting unit for correction. It is currently awaiting their update and resubmission.'
-                                  : 'This application has been returned for correction. Please review the official comments and findings under the discussion tab to see what changes are needed, then use the resubmission wizard below.'}
+                                  : 'This application has been returned for correction. Please review the official comments and findings below or in the discussion tab, then use the resubmission wizard.'}
                               </AlertDescription>
                             </Alert>
+
+                            {latestComment && (
+                              <div className="bg-white border-2 border-rose-100 rounded-2xl p-4 shadow-sm space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5 text-rose-800">
+                                    <MessageSquare className="h-3.5 w-3.5 text-rose-600" />
+                                    <span className="text-[10px] font-black uppercase tracking-wider">
+                                      Reviewer Findings & Remarks
+                                    </span>
+                                  </div>
+                                  <span className="text-[8px] font-mono text-muted-foreground">
+                                    {getFormattedCommentDate(latestComment.createdAt)}
+                                  </span>
+                                </div>
+                                <div className="p-3 bg-rose-50/50 rounded-xl border border-rose-100">
+                                  <p className="text-xs text-slate-800 dark:text-slate-200 italic leading-relaxed whitespace-pre-wrap font-medium">
+                                    "
+                                    {latestComment.text ||
+                                      (latestComment as any).comment ||
+                                      (latestComment as any).message ||
+                                      ''}
+                                    "
+                                  </p>
+                                  <p className="text-[8px] font-bold text-rose-700 uppercase mt-2 text-right">
+                                    — {latestComment.authorName || 'Reviewer'} ({latestComment.authorRole || 'QA'})
+                                  </p>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full h-8 text-[9px] font-black uppercase border-rose-200 text-rose-700 hover:bg-rose-50 gap-1.5"
+                                  onClick={() => setActiveTab('history')}
+                                >
+                                  <HistoryIcon className="h-3.5 w-3.5" />
+                                  Open Full Discussion ({request.comments.length})
+                                </Button>
+                              </div>
+                            )}
+
                             {!isAdmin && onEditClick && (
                               <Button
                                 type="button"
@@ -746,12 +828,49 @@ export function FormRequestReviewDialog({
                                 </div>
                               </div>
                             ) : (
-                              <div className="py-20 text-center opacity-40">
-                                <Clock className="h-10 w-10 mx-auto mb-3" />
-                                <p className="text-xs font-bold uppercase tracking-widest">Oversight Pending</p>
-                                <p className="text-[10px] mt-2 italic px-6">
-                                  The Quality Assurance Office is currently evaluating this application.
-                                </p>
+                              <div className="space-y-6">
+                                <div className="py-14 text-center opacity-70">
+                                  <Clock className="h-10 w-10 mx-auto mb-3 text-primary opacity-40" />
+                                  <p className="text-xs font-bold uppercase tracking-widest text-slate-800 dark:text-slate-200">
+                                    Oversight Pending
+                                  </p>
+                                  <p className="text-[10px] mt-2 italic px-6 text-muted-foreground">
+                                    The Quality Assurance Office is currently evaluating this application.
+                                  </p>
+                                </div>
+
+                                {request.comments && request.comments.length > 0 && (
+                                  <div className="bg-white border rounded-2xl p-4 shadow-sm space-y-2.5">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-1.5 text-primary">
+                                        <MessageSquare className="h-3.5 w-3.5" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider">
+                                          Reviewer Notes & Discussion ({request.comments.length})
+                                        </span>
+                                      </div>
+                                    </div>
+                                    {latestComment && (
+                                      <p className="text-[11px] text-slate-700 dark:text-slate-300 italic line-clamp-3 bg-muted/20 p-2.5 rounded-xl border border-primary/5">
+                                        "
+                                        {latestComment.text ||
+                                          (latestComment as any).comment ||
+                                          (latestComment as any).message ||
+                                          ''}
+                                        "
+                                      </p>
+                                    )}
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="w-full h-8 text-[9px] font-black uppercase tracking-wider"
+                                      onClick={() => setActiveTab('history')}
+                                    >
+                                      <HistoryIcon className="h-3.5 w-3.5 mr-1.5" />
+                                      Open Discussion ({request.comments.length})
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -760,9 +879,36 @@ export function FormRequestReviewDialog({
                     </ScrollArea>
                   </TabsContent>
 
-                  <TabsContent value="history" className="h-full m-0 flex flex-col overflow-hidden">
+                  <TabsContent
+                    value="history"
+                    className="h-full m-0 data-[state=active]:flex data-[state=inactive]:hidden flex-col overflow-hidden"
+                  >
                     <ScrollArea className="flex-1">
                       <div className="p-6 space-y-4">
+                        {!isAdmin && request.status === 'Returned for Correction' && onEditClick && (
+                          <div className="bg-rose-50 border border-rose-200 p-3.5 rounded-xl flex items-center justify-between gap-3 shadow-sm">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1.5 text-rose-800">
+                                <AlertTriangle className="h-3.5 w-3.5 text-rose-600" />
+                                <span className="text-[10px] font-black uppercase tracking-wider">Action Required</span>
+                              </div>
+                              <p className="text-[10px] text-rose-700 font-medium">
+                                Review the findings below and update your registration.
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="h-8 font-black text-[9px] uppercase bg-rose-600 hover:bg-rose-700 text-white shrink-0 gap-1.5 shadow-md shadow-rose-200"
+                              onClick={() => {
+                                onEditClick(request);
+                                onOpenChange(false);
+                              }}
+                            >
+                              <Edit className="h-3.5 w-3.5" /> Edit & Resubmit
+                            </Button>
+                          </div>
+                        )}
+
                         {request.comments?.length ? (
                           <div className="space-y-4">
                             {request.comments
@@ -770,32 +916,56 @@ export function FormRequestReviewDialog({
                               .sort((a, b) => {
                                 return getCommentTime(b.createdAt) - getCommentTime(a.createdAt);
                               })
-                              .map((c, i) => (
-                                <div
-                                  key={i}
-                                  className="bg-white p-4 rounded-xl border border-primary/5 shadow-sm space-y-2 transition-all hover:border-primary/20"
-                                >
-                                  <div className="flex items-center justify-between gap-2 border-b pb-1 mb-1">
-                                    <span className="text-[10px] font-black uppercase text-primary truncate max-w-[120px]">
-                                      {c.authorName}
-                                    </span>
-                                    <span className="text-[8px] font-mono text-muted-foreground">
-                                      {getFormattedCommentDate(c.createdAt)}
-                                    </span>
+                              .map((c, i) => {
+                                const isReviewerRole = /qa|admin|auditor|quality|reviewer/i.test(c.authorRole || '');
+                                const commentText = c.text || (c as any).comment || (c as any).message || '';
+                                return (
+                                  <div
+                                    key={i}
+                                    className={cn(
+                                      'bg-white p-4 rounded-xl border shadow-sm space-y-2 transition-all',
+                                      isReviewerRole
+                                        ? 'border-amber-200/80 bg-amber-50/20 shadow-amber-50'
+                                        : 'border-primary/5 hover:border-primary/20',
+                                    )}
+                                  >
+                                    <div className="flex items-center justify-between gap-2 border-b pb-1.5 mb-1">
+                                      <div className="flex items-center gap-2 truncate max-w-[200px]">
+                                        <span className="text-[10px] font-black uppercase text-primary truncate">
+                                          {c.authorName || 'Reviewer'}
+                                        </span>
+                                        <Badge
+                                          variant="outline"
+                                          className={cn(
+                                            'text-[7px] font-black uppercase h-3.5 px-1 tracking-tight',
+                                            isReviewerRole
+                                              ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                              : 'bg-slate-100 text-slate-700 border-slate-200',
+                                          )}
+                                        >
+                                          {c.authorRole || (isReviewerRole ? 'QA Reviewer' : 'Unit Member')}
+                                        </Badge>
+                                      </div>
+                                      <span className="text-[8px] font-mono text-muted-foreground shrink-0">
+                                        {getFormattedCommentDate(c.createdAt)}
+                                      </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-700 dark:text-slate-300 italic leading-relaxed whitespace-pre-wrap">
+                                      "{commentText}"
+                                    </p>
                                   </div>
-                                  <p className="text-[11px] text-slate-700 dark:text-slate-300 italic leading-relaxed whitespace-pre-wrap">
-                                    "{c.text}"
-                                  </p>
-                                  <p className="text-[8px] font-bold text-muted-foreground uppercase text-right">
-                                    {c.authorRole}
-                                  </p>
-                                </div>
-                              ))}
+                                );
+                              })}
                           </div>
                         ) : (
-                          <div className="py-20 text-center opacity-10 flex flex-col items-center gap-3">
-                            <MessageSquare className="h-12 w-12" />
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em]">No conversation history</p>
+                          <div className="py-20 text-center opacity-40 flex flex-col items-center gap-3">
+                            <MessageSquare className="h-10 w-10 text-muted-foreground" />
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                              No discussion messages yet
+                            </p>
+                            <p className="text-[10px] text-muted-foreground italic max-w-[240px]">
+                              Review comments and responses will appear here for monitoring and action.
+                            </p>
                           </div>
                         )}
                       </div>
