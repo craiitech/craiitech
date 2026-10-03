@@ -134,19 +134,13 @@ export function NotificationDigestDialog({
   const yearContext = useYear();
   const activeYear = propSelectedYear || yearContext.selectedYear || new Date().getFullYear();
 
-  const [activeTab, setActiveTab] = useState<'all' | 'actions' | 'deadlines' | 'whats-new'>('all');
-  const [mustReadWhatsNew, setMustReadWhatsNew] = useState(false);
+  const [activeTab, setActiveTab] = useState<'whats-new' | 'all' | 'actions' | 'deadlines'>('whats-new');
 
   useEffect(() => {
     if (isOpen) {
-      if (hasUnreadUpdates) {
-        setActiveTab('whats-new');
-        setMustReadWhatsNew(true);
-      } else {
-        setMustReadWhatsNew(false);
-      }
+      setActiveTab('whats-new');
     }
-  }, [isOpen, hasUnreadUpdates]);
+  }, [isOpen]);
 
   const calculatedEomsPoints = useMemo(() => {
     if (propEomsPoints) return propEomsPoints;
@@ -316,18 +310,17 @@ export function NotificationDigestDialog({
     onOpenChange(false);
   };
 
-  const handleAcknowledgeWhatsNew = () => {
+  const handleNextFromWhatsNew = () => {
     if (onAcknowledgeUpdates) {
       onAcknowledgeUpdates();
     }
-    setMustReadWhatsNew(false);
     setActiveTab('all');
   };
 
   const hasActionNotifications = notifications.length > 0;
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={mustReadWhatsNew ? () => {} : onOpenChange}>
+    <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-2xl max-h-[92dvh] flex flex-col p-0 overflow-hidden border border-primary/20 shadow-2xl rounded-3xl bg-background/95 backdrop-blur-2xl">
         {/* Header with Institutional Gradient */}
         <div className="p-6 pb-5 bg-gradient-to-br from-primary via-primary/95 to-slate-900 text-white shrink-0 relative overflow-hidden">
@@ -336,7 +329,7 @@ export function NotificationDigestDialog({
           <div className="flex items-start justify-between gap-4 relative z-10">
             <div className="flex items-center gap-3.5">
               <div className="h-12 w-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-md shadow-inner">
-                {mustReadWhatsNew || activeTab === 'whats-new' ? (
+                {activeTab === 'whats-new' ? (
                   <Sparkles className="h-6 w-6 text-yellow-300 animate-pulse" />
                 ) : hasActionNotifications ? (
                   <Bell className="h-6 w-6 text-yellow-300 animate-bounce" />
@@ -347,13 +340,13 @@ export function NotificationDigestDialog({
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <AlertDialogTitle className="text-lg font-black uppercase tracking-tight text-white">
-                    {mustReadWhatsNew || activeTab === 'whats-new'
+                    {activeTab === 'whats-new'
                       ? `What's New in RSU EOMS (v${currentSystemVersion})`
                       : hasActionNotifications
                         ? 'Action Required & Updates'
                         : 'Welcome & Institutional Status'}
                   </AlertDialogTitle>
-                  {mustReadWhatsNew || activeTab === 'whats-new' ? (
+                  {activeTab === 'whats-new' ? (
                     <Badge className="bg-yellow-400 hover:bg-yellow-500 text-slate-950 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full">
                       v{currentSystemVersion} Platform Update
                     </Badge>
@@ -368,7 +361,7 @@ export function NotificationDigestDialog({
                   )}
                 </div>
                 <AlertDialogDescription className="text-xs text-white/80 font-medium mt-1">
-                  {mustReadWhatsNew || activeTab === 'whats-new'
+                  {activeTab === 'whats-new'
                     ? 'Important briefing from the Quality Assurance Office. Please review before proceeding.'
                     : `Welcome back, ${displayName}! Here is your institutional guidance and quality status.`}
                 </AlertDialogDescription>
@@ -411,47 +404,35 @@ export function NotificationDigestDialog({
 
           {/* Filter / View Tabs */}
           <div className="mt-3">
-            {mustReadWhatsNew ? (
-              <div className="flex items-center justify-between bg-black/20 px-3 py-1.5 rounded-xl border border-white/10 text-[10px] font-black uppercase tracking-wider text-yellow-300">
-                <div className="flex items-center gap-1.5">
-                  <Sparkles className="h-3.5 w-3.5 text-yellow-300 animate-pulse" />
-                  <span>Step 1: What's New & System Update (Required Reading)</span>
-                </div>
-                <span className="text-white/60 font-semibold normal-case text-[10px]">
-                  Digest unlocks upon acknowledgment
-                </span>
-              </div>
-            ) : (
-              <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
-                <TabsList className="bg-black/20 p-1 rounded-xl h-8 border border-white/10 grid grid-cols-4">
-                  <TabsTrigger
-                    value="all"
-                    className="text-[10px] font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 truncate"
-                  >
-                    Overview ({notifications.length})
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="actions"
-                    className="text-[10px] font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 truncate"
-                  >
-                    Actions ({notifications.length})
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="deadlines"
-                    className="text-[10px] font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 truncate"
-                  >
-                    Deadlines ({cycleDeadlines.length})
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="whats-new"
-                    className="text-[10px] font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 truncate gap-1"
-                  >
-                    <Sparkles className="h-3 w-3 text-amber-500" />
-                    <span>What's New</span>
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            )}
+            <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="w-full">
+              <TabsList className="bg-black/20 p-1 rounded-xl h-8 border border-white/10 grid grid-cols-4">
+                <TabsTrigger
+                  value="whats-new"
+                  className="text-[10px] font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 truncate gap-1"
+                >
+                  <Sparkles className="h-3 w-3 text-amber-500" />
+                  <span>What's New</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="all"
+                  className="text-[10px] font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 truncate"
+                >
+                  Overview ({notifications.length})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="actions"
+                  className="text-[10px] font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 truncate"
+                >
+                  Actions ({notifications.length})
+                </TabsTrigger>
+                <TabsTrigger
+                  value="deadlines"
+                  className="text-[10px] font-black uppercase tracking-wider rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 truncate"
+                >
+                  Deadlines ({cycleDeadlines.length})
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
         </div>
 
@@ -661,6 +642,18 @@ export function NotificationDigestDialog({
                   </div>
                 ))}
               </div>
+
+              {/* Next Button inside scroll area */}
+              <div className="pt-3 pb-1 flex justify-end">
+                <Button
+                  type="button"
+                  onClick={handleNextFromWhatsNew}
+                  className="h-10 px-5 font-black uppercase text-xs tracking-wider rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-md gap-2"
+                >
+                  <span>Next: Overview ({notifications.length})</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           )}
 
@@ -835,47 +828,139 @@ export function NotificationDigestDialog({
 
         {/* Footer Actions */}
         <AlertDialogFooter className="p-4 bg-muted/40 border-t border-primary/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
-          {mustReadWhatsNew ? (
-            <div className="flex w-full items-center justify-between gap-3">
+          {activeTab === 'whats-new' ? (
+            <>
               <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
                 <span>v{currentSystemVersion} Platform Update</span>
               </div>
-              <Button
-                type="button"
-                onClick={handleAcknowledgeWhatsNew}
-                className="h-10 px-6 font-black uppercase text-xs tracking-wider rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <span>Acknowledge & Continue to Digest</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
+              <div className="flex items-center gap-2">
+                <AlertDialogCancel
+                  onClick={handleDismiss}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 border-primary/20 hover:bg-muted m-0"
+                >
+                  Later
+                </AlertDialogCancel>
+                <Button
+                  type="button"
+                  onClick={handleNextFromWhatsNew}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md gap-1.5 m-0"
+                >
+                  <span>Next: Overview</span>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </>
+          ) : activeTab === 'all' ? (
             <>
               <div className="flex items-center gap-2">
-                {activeTab !== 'whats-new' && hasActionNotifications && onMarkAllAsRead && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveTab('whats-new')}
+                  className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1 h-9 px-2.5 rounded-xl"
+                >
+                  <span>← What's New</span>
+                </Button>
+                {hasActionNotifications && onMarkAllAsRead && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={handleMarkAllAndDismiss}
-                    className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1.5 h-9 px-3 rounded-xl"
+                    className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1.5 h-9 px-2.5 rounded-xl"
                   >
                     <CheckCheck className="h-3.5 w-3.5" />
-                    <span>Mark All Read & Dismiss</span>
+                    <span className="hidden sm:inline">Mark All Read</span>
                   </Button>
                 )}
-                {activeTab === 'whats-new' && (
+              </div>
+
+              <div className="flex items-center gap-2">
+                <AlertDialogCancel
+                  onClick={handleDismiss}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 border-primary/20 hover:bg-muted m-0"
+                >
+                  Later
+                </AlertDialogCancel>
+                <Button
+                  type="button"
+                  onClick={() => setActiveTab('actions')}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border shadow-xs gap-1 m-0"
+                >
+                  <span>Next: Actions</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+                <AlertDialogAction
+                  onClick={handleDismiss}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md m-0"
+                >
+                  Acknowledge & Continue
+                </AlertDialogAction>
+              </div>
+            </>
+          ) : activeTab === 'actions' ? (
+            <>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveTab('all')}
+                  className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1 h-9 px-2.5 rounded-xl"
+                >
+                  <span>← Overview</span>
+                </Button>
+                {hasActionNotifications && onMarkAllAsRead && (
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setActiveTab('all')}
-                    className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1.5 h-9 px-3 rounded-xl"
+                    onClick={handleMarkAllAndDismiss}
+                    className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1.5 h-9 px-2.5 rounded-xl"
                   >
-                    <span>Back to Quality Digest</span>
+                    <CheckCheck className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Mark All Read</span>
                   </Button>
                 )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <AlertDialogCancel
+                  onClick={handleDismiss}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 border-primary/20 hover:bg-muted m-0"
+                >
+                  Later
+                </AlertDialogCancel>
+                <Button
+                  type="button"
+                  onClick={() => setActiveTab('deadlines')}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border shadow-xs gap-1 m-0"
+                >
+                  <span>Next: Deadlines</span>
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+                <AlertDialogAction
+                  onClick={handleDismiss}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md m-0"
+                >
+                  Acknowledge & Continue
+                </AlertDialogAction>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveTab('actions')}
+                  className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1 h-9 px-2.5 rounded-xl"
+                >
+                  <span>← Actions</span>
+                </Button>
               </div>
 
               <div className="flex items-center gap-2">

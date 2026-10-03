@@ -26,13 +26,7 @@ import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
 import { DataPrivacyDialog } from './data-privacy-dialog';
 import { logUserActivity } from '@/lib/activity-logger';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -47,18 +41,21 @@ interface AuthFormProps {
 }
 
 const firebaseErrorMap: Record<string, string> = {
-    "auth/user-not-found": "No account found with this email address. Please sign up or try again.",
-    "auth/wrong-password": "Incorrect password. Please try again.",
-    "auth/invalid-email": "The email address is not valid. Please check the format.",
-    "auth/email-already-in-use": "This email address is already associated with an account.",
-    "auth/weak-password": "The password is too weak. Please use at least 6 characters.",
-    "auth/popup-closed-by-user": "The sign-in window was closed. Please try again.",
-    "auth/cancelled-popup-request": "A sign-in request is already in progress. Please wait or refresh the page.",
-    "auth/invalid-credential": "Invalid credentials. Please check your email and password and try again.",
-    "auth/operation-not-allowed": "Google Sign-In is not enabled. Please contact the administrator to enable it in the Firebase Console.",
-    "auth/popup-blocked": "The sign-in popup was blocked by your browser. Please allow popups or try again to use redirect.",
-    "auth/unauthorized-domain": "This domain is not authorized for Google Sign-In. Please contact the administrator to add this URL to the Authorized Domains list in Firebase.",
-    "auth/internal-error": "A temporary internal error occurred. Please refresh the page and try again.",
+  'auth/user-not-found': 'No account found with this email address. Please sign up or try again.',
+  'auth/wrong-password': 'Incorrect password. Please try again.',
+  'auth/invalid-email': 'The email address is not valid. Please check the format.',
+  'auth/email-already-in-use': 'This email address is already associated with an account.',
+  'auth/weak-password': 'The password is too weak. Please use at least 6 characters.',
+  'auth/popup-closed-by-user': 'The sign-in window was closed. Please try again.',
+  'auth/cancelled-popup-request': 'A sign-in request is already in progress. Please wait or refresh the page.',
+  'auth/invalid-credential': 'Invalid credentials. Please check your email and password and try again.',
+  'auth/operation-not-allowed':
+    'Google Sign-In is not enabled. Please contact the administrator to enable it in the Firebase Console.',
+  'auth/popup-blocked':
+    'The sign-in popup was blocked by your browser. Please allow popups or try again to use redirect.',
+  'auth/unauthorized-domain':
+    'This domain is not authorized for Google Sign-In. Please contact the administrator to add this URL to the Authorized Domains list in Firebase.',
+  'auth/internal-error': 'A temporary internal error occurred. Please refresh the page and try again.',
 };
 
 export function AuthForm({ initialTab }: AuthFormProps) {
@@ -73,7 +70,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  
+
   // Forgot Password States
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
@@ -95,14 +92,20 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   /**
    * Centralized logic to handle authentication results.
    */
-  const handleAuthResult = useCallback(async (result: UserCredential) => {
-    if (!firestore) return;
-    const user = result.user;
-    const additionalInfo = getAdditionalUserInfo(result);
-    
-    try {
+  const handleAuthResult = useCallback(
+    async (result: UserCredential) => {
+      if (!firestore) return;
+      const user = result.user;
+      const additionalInfo = getAdditionalUserInfo(result);
+
+      try {
         const userDocRef = doc(firestore, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
+
+        if (typeof window !== 'undefined') {
+          sessionStorage.removeItem('rsu_eoms_digest_seen_session');
+          sessionStorage.setItem('rsu_eoms_pending_login_digest', 'true');
+        }
 
         // If it's a new Auth user OR the user exists in Auth but is missing their Firestore profile
         if (additionalInfo?.isNewUser || !userDoc.exists()) {
@@ -122,10 +125,12 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             ndaAccepted: false,
           };
           await setDoc(userDocRef, userData, { merge: true });
-          
+
           const method = (result as any).credential?.providerId || (user.email ? 'password' : 'unknown');
-          await logUserActivity(user.uid, `${userData.firstName} ${userData.lastName}`, 'New User', 'user_register', { method });
-          
+          await logUserActivity(user.uid, `${userData.firstName} ${userData.lastName}`, 'New User', 'user_register', {
+            method,
+          });
+
           toast({
             title: 'Account Created!',
             description: 'Please complete your registration details.',
@@ -135,28 +140,33 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           // Returning user
           router.push('/dashboard');
         }
-    } catch (err) {
+      } catch (err) {
         setAuthError('An error occurred while setting up your institutional profile. Please try again.');
         setIsSubmitting(false);
-    }
-  }, [firestore, firstName, lastName, sex, router, toast]);
+      }
+    },
+    [firestore, firstName, lastName, sex, router, toast],
+  );
 
   // Handle Redirect Result on Mount
   useEffect(() => {
     if (auth && firestore) {
-        getRedirectResult(auth)
-            .then((result) => {
-                if (result) {
-                    setIsSubmitting(true);
-                    handleAuthResult(result);
-                }
-            })
-            .catch((error) => {
-                const errorCode = (error as AuthError).code;
-                if (errorCode !== 'auth/redirect-cancelled-by-user') {
-                    setAuthError(firebaseErrorMap[errorCode] || `Sign-in failed (${errorCode}). Please check your connection or Whitelisted Domains.`);
-                }
-            });
+      getRedirectResult(auth)
+        .then((result) => {
+          if (result) {
+            setIsSubmitting(true);
+            handleAuthResult(result);
+          }
+        })
+        .catch((error) => {
+          const errorCode = (error as AuthError).code;
+          if (errorCode !== 'auth/redirect-cancelled-by-user') {
+            setAuthError(
+              firebaseErrorMap[errorCode] ||
+                `Sign-in failed (${errorCode}). Please check your connection or Whitelisted Domains.`,
+            );
+          }
+        });
     }
   }, [auth, firestore, handleAuthResult]);
 
@@ -167,7 +177,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   }, [activeTab]);
 
   const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible);
-  
+
   const handleTabChange = (tab: 'signin' | 'signup') => {
     setActiveTab(tab);
     setEmail('');
@@ -179,13 +189,13 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setAuthError(null);
 
     if (tab === 'signup') {
-        setIsPrivacyDialogOpen(true);
+      setIsPrivacyDialogOpen(true);
     }
   };
-  
+
   const clearError = () => {
     if (authError) setAuthError(null);
-  }
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,48 +204,49 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       return;
     }
     if (!email || !password) {
-        setAuthError("Please enter both email and password.");
-        return;
+      setAuthError('Please enter both email and password.');
+      return;
     }
     setIsSubmitting(true);
     setAuthError(null);
 
     try {
-        const result = await signInWithEmailAndPassword(auth, email, password);
-        await handleAuthResult(result);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      await handleAuthResult(result);
     } catch (error) {
-        const errorCode = (error as AuthError).code;
-        setAuthError(firebaseErrorMap[errorCode] || `Sign-in failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setIsSubmitting(false);
+      const errorCode = (error as AuthError).code;
+      setAuthError(
+        firebaseErrorMap[errorCode] || `Sign-in failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      setIsSubmitting(false);
     }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !firestore) {
-        setAuthError('Authentication service is not available.');
-        return;
+      setAuthError('Authentication service is not available.');
+      return;
     }
     if (!email || !password || !firstName || !lastName || !sex) {
-      setAuthError("Please fill out all fields, including sex identification.");
+      setAuthError('Please fill out all fields, including sex identification.');
       return;
     }
     if (!privacyPolicyAgreed) {
-        setAuthError("You must agree to the Data Privacy Statement to create an account.");
-        return;
+      setAuthError('You must agree to the Data Privacy Statement to create an account.');
+      return;
     }
     setIsSubmitting(true);
     setAuthError(null);
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await handleAuthResult(userCredential);
     } catch (error) {
       const errorCode = (error as AuthError).code;
-      setAuthError(firebaseErrorMap[errorCode] || `Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setAuthError(
+        firebaseErrorMap[errorCode] ||
+          `Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       setIsSubmitting(false);
     }
   };
@@ -246,7 +257,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     try {
       await sendPasswordResetEmail(auth, resetEmail);
       toast({
-        title: "Reset Link Sent",
+        title: 'Reset Link Sent',
         description: `A password reset email has been sent to ${resetEmail}. Please check your inbox.`,
       });
       setIsResetDialogOpen(false);
@@ -254,9 +265,9 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     } catch (error) {
       const errorCode = (error as AuthError).code;
       toast({
-        title: "Request Failed",
-        description: firebaseErrorMap[errorCode] || "Could not send reset email. Please try again.",
-        variant: "destructive"
+        title: 'Request Failed',
+        description: firebaseErrorMap[errorCode] || 'Could not send reset email. Please try again.',
+        variant: 'destructive',
       });
     } finally {
       setIsSendingReset(false);
@@ -265,14 +276,14 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
   const processGoogleSignIn = () => {
     if (!auth || !firestore) {
-        setAuthError('Authentication service is not available.');
-        return;
+      setAuthError('Authentication service is not available.');
+      return;
     }
     setIsSubmitting(true);
     setAuthError(null);
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
-    
+
     // Attempt popup first
     signInWithPopup(auth, provider)
       .then(async (result) => {
@@ -280,19 +291,22 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       })
       .catch((error) => {
         const errorCode = (error as AuthError).code;
-        
+
         // If popup is blocked or closed, fallback to redirect
-        const shouldRedirect = 
-            errorCode === 'auth/popup-blocked' || 
-            errorCode === 'auth/popup-closed-by-user' || 
-            errorCode === 'auth/cancelled-popup-request' ||
-            errorCode === 'auth/internal-error';
+        const shouldRedirect =
+          errorCode === 'auth/popup-blocked' ||
+          errorCode === 'auth/popup-closed-by-user' ||
+          errorCode === 'auth/cancelled-popup-request' ||
+          errorCode === 'auth/internal-error';
 
         if (shouldRedirect) {
-            signInWithRedirect(auth, provider);
+          signInWithRedirect(auth, provider);
         } else {
-            setAuthError(firebaseErrorMap[errorCode] || `Google Sign-In Error: ${errorCode}. Please ensure this domain is whitelisted in Firebase.`);
-            setIsSubmitting(false);
+          setAuthError(
+            firebaseErrorMap[errorCode] ||
+              `Google Sign-In Error: ${errorCode}. Please ensure this domain is whitelisted in Firebase.`,
+          );
+          setIsSubmitting(false);
         }
       });
   };
@@ -309,7 +323,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             placeholder="Enter your email"
             required
             value={email}
-            onChange={(e) => { setEmail(e.target.value); clearError(); }}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              clearError();
+            }}
             disabled={isSubmitting}
             className="pl-9 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
@@ -317,37 +334,44 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       </div>
       <div className="space-y-2">
         <div className="flex justify-between items-center">
-            <Label htmlFor="password-signin">Password</Label>
-            <Button 
-                type="button" 
-                variant="link" 
-                className="p-0 h-auto text-[10px] text-white/60 hover:text-white uppercase font-bold tracking-widest"
-                onClick={() => {
-                    setResetEmail(email);
-                    setIsResetDialogOpen(true);
-                }}
-            >
-                Forgot password?
-            </Button>
+          <Label htmlFor="password-signin">Password</Label>
+          <Button
+            type="button"
+            variant="link"
+            className="p-0 h-auto text-[10px] text-white/60 hover:text-white uppercase font-bold tracking-widest"
+            onClick={() => {
+              setResetEmail(email);
+              setIsResetDialogOpen(true);
+            }}
+          >
+            Forgot password?
+          </Button>
         </div>
         <div className="relative">
-            <Input
+          <Input
             id="password-signin"
             type={isPasswordVisible ? 'text' : 'password'}
             required
             value={password}
-            onChange={(e) => { setPassword(e.target.value); clearError(); }}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              clearError();
+            }}
             disabled={isSubmitting}
             placeholder="Enter your password"
             className="pr-10 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
-            />
-            <button
-                type="button"
-                onClick={togglePasswordVisibility}
-                className="absolute inset-y-0 right-0 flex items-center pr-3"
-            >
-                {isPasswordVisible ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
-            </button>
+          />
+          <button
+            type="button"
+            onClick={togglePasswordVisibility}
+            className="absolute inset-y-0 right-0 flex items-center pr-3"
+          >
+            {isPasswordVisible ? (
+              <EyeOff className="h-4 w-4 text-gray-400" />
+            ) : (
+              <Eye className="h-4 w-4 text-gray-400" />
+            )}
+          </button>
         </div>
       </div>
       <Button
@@ -371,7 +395,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             placeholder="John"
             required
             value={firstName}
-            onChange={(e) => { setFirstName(e.target.value); clearError(); }}
+            onChange={(e) => {
+              setFirstName(e.target.value);
+              clearError();
+            }}
             disabled={isSubmitting}
             className="bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
@@ -383,7 +410,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             placeholder="Doe"
             required
             value={lastName}
-            onChange={(e) => { setLastName(e.target.value); clearError(); }}
+            onChange={(e) => {
+              setLastName(e.target.value);
+              clearError();
+            }}
             disabled={isSubmitting}
             className="bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
@@ -392,7 +422,13 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="sex-signup">Sex Identification (GAD Standard)</Label>
-        <Select onValueChange={(val) => { setSex(val); clearError(); }} value={sex}>
+        <Select
+          onValueChange={(val) => {
+            setSex(val);
+            clearError();
+          }}
+          value={sex}
+        >
           <SelectTrigger id="sex-signup" className="h-10 bg-gray-800/50 border-gray-700 text-white">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-gray-400" />
@@ -417,41 +453,54 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             placeholder="Enter your email"
             required
             value={email}
-            onChange={(e) => { setEmail(e.target.value); clearError(); }}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              clearError();
+            }}
             disabled={isSubmitting}
             className="pl-9 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
         </div>
         <p className="text-xs text-muted-foreground pt-1">Please use your official RSU email address.</p>
       </div>
-       <div className="space-y-2">
+      <div className="space-y-2">
         <Label htmlFor="password-signup">Password</Label>
         <div className="relative">
-            <Input
+          <Input
             id="password-signup"
             type={isPasswordVisible ? 'text' : 'password'}
             required
             value={password}
-            onChange={(e) => { setPassword(e.target.value); clearError(); }}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              clearError();
+            }}
             disabled={isSubmitting}
             placeholder="Create a password"
             className="pr-10 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
-            />
-             <button
-                type="button"
-                onClick={togglePasswordVisibility}
-                className="absolute inset-y-0 right-0 flex items-center pr-3"
-            >
-                {isPasswordVisible ? <EyeOff className="h-4 w-4 text-gray-400" /> : <Eye className="h-4 w-4 text-gray-400" />}
-            </button>
+          />
+          <button
+            type="button"
+            onClick={togglePasswordVisibility}
+            className="absolute inset-y-0 right-0 flex items-center pr-3"
+          >
+            {isPasswordVisible ? (
+              <EyeOff className="h-4 w-4 text-gray-400" />
+            ) : (
+              <Eye className="h-4 w-4 text-gray-400" />
+            )}
+          </button>
         </div>
       </div>
-      
-       <div className="flex items-center space-x-2">
-        <Checkbox 
-          id="privacy-policy" 
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="privacy-policy"
           checked={privacyPolicyAgreed}
-          onCheckedChange={(checked) => { setPrivacyPolicyAgreed(checked as boolean); clearError(); }}
+          onCheckedChange={(checked) => {
+            setPrivacyPolicyAgreed(checked as boolean);
+            clearError();
+          }}
         />
         <label
           htmlFor="privacy-policy"
@@ -483,138 +532,146 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
   return (
     <>
-    <div className="w-full max-w-md rounded-2xl border border-gray-700/50 p-8 text-white shadow-2xl backdrop-blur-lg">
-      <div className="flex justify-end">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full hover:bg-gray-700/50"
-          onClick={() => router.push('/')}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="flex justify-center mb-6">
-        <div className="flex rounded-full bg-gray-800/50 p-1 border border-gray-700/50">
+      <div className="w-full max-w-md rounded-2xl border border-gray-700/50 p-8 text-white shadow-2xl backdrop-blur-lg">
+        <div className="flex justify-end">
           <Button
-            onClick={() => handleTabChange('signup')}
-            className={cn(
-              'rounded-full px-6 py-1 text-sm',
-              activeTab === 'signup'
-                ? 'bg-gray-600/70 text-white'
-                : 'bg-transparent text-gray-400 hover:bg-gray-700/50 hover:text-white'
-            )}
+            variant="ghost"
+            size="icon"
+            className="rounded-full hover:bg-gray-700/50"
+            onClick={() => router.push('/')}
           >
-            Sign up
-          </Button>
-          <Button
-            onClick={() => handleTabChange('signin')}
-            className={cn(
-              'rounded-full px-6 py-1 text-sm',
-              activeTab === 'signin'
-                ? 'bg-gray-600/70 text-white'
-                : 'bg-transparent text-gray-400 hover:bg-gray-700/50 hover:text-white'
-            )}
-          >
-            Sign in
+            <X className="h-4 w-4" />
           </Button>
         </div>
-      </div>
 
-      <h2 className="text-2xl font-bold mb-2 text-center">
-        {activeTab === 'signup' ? 'Create your RSU EOMS Account' : 'RSU EOMS Submission Portal'}
-      </h2>
-      
-      {authError && (
-        <div className="bg-destructive/20 border border-destructive/50 text-destructive text-xs rounded-md p-3 flex items-center gap-2 mb-4">
-            <AlertCircle className="h-4 w-4 flex-shrink-0"/>
+        <div className="flex justify-center mb-6">
+          <div className="flex rounded-full bg-gray-800/50 p-1 border border-gray-700/50">
+            <Button
+              onClick={() => handleTabChange('signup')}
+              className={cn(
+                'rounded-full px-6 py-1 text-sm',
+                activeTab === 'signup'
+                  ? 'bg-gray-600/70 text-white'
+                  : 'bg-transparent text-gray-400 hover:bg-gray-700/50 hover:text-white',
+              )}
+            >
+              Sign up
+            </Button>
+            <Button
+              onClick={() => handleTabChange('signin')}
+              className={cn(
+                'rounded-full px-6 py-1 text-sm',
+                activeTab === 'signin'
+                  ? 'bg-gray-600/70 text-white'
+                  : 'bg-transparent text-gray-400 hover:bg-gray-700/50 hover:text-white',
+              )}
+            >
+              Sign in
+            </Button>
+          </div>
+        </div>
+
+        <h2 className="text-2xl font-bold mb-2 text-center">
+          {activeTab === 'signup' ? 'Create your RSU EOMS Account' : 'RSU EOMS Submission Portal'}
+        </h2>
+
+        {authError && (
+          <div className="bg-destructive/20 border border-destructive/50 text-destructive text-xs rounded-md p-3 flex items-center gap-2 mb-4">
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span className="leading-snug">{authError}</span>
-        </div>
-      )}
+          </div>
+        )}
 
-      {activeTab === 'signup' ? renderSignUp() : renderSignIn()}
+        {activeTab === 'signup' ? renderSignUp() : renderSignIn()}
 
-      <div className="relative my-6">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t border-gray-700" />
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-gray-700" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-gray-800/50 px-2 text-gray-400 backdrop-blur-sm rounded-full">
+              Or sign {activeTab === 'signup' ? 'up' : 'in'} with
+            </span>
+          </div>
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-gray-800/50 px-2 text-gray-400 backdrop-blur-sm rounded-full">
-            Or sign {activeTab === 'signup' ? 'up' : 'in'} with
-          </span>
+
+        <div className="grid grid-cols-1 gap-4">
+          <Button
+            variant="outline"
+            className="bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 text-white"
+            onClick={processGoogleSignIn}
+            disabled={isSubmitting}
+          >
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <GoogleIcon className="mr-2 h-5 w-5" />
+            Google
+          </Button>
         </div>
+        {activeTab === 'signup' && (
+          <p className="mt-6 text-center text-xs text-gray-400">
+            By creating an account, you agree to our{' '}
+            <Link href="/terms" className="underline hover:text-white">
+              Terms & Service
+            </Link>
+          </p>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 gap-4">
-        <Button
-          variant="outline"
-          className="bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 text-white"
-          onClick={processGoogleSignIn}
-          disabled={isSubmitting}
-        >
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          <GoogleIcon className="mr-2 h-5 w-5" />
-          Google
-        </Button>
-      </div>
-      {activeTab === 'signup' && (
-        <p className="mt-6 text-center text-xs text-gray-400">
-          By creating an account, you agree to our{' '}
-          <Link href="/terms" className="underline hover:text-white">
-            Terms & Service
-          </Link>
-        </p>
-      )}
-    </div>
-
-    {/* Reset Password Dialog */}
-    <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
+      {/* Reset Password Dialog */}
+      <Dialog open={isResetDialogOpen} onOpenChange={setIsResetDialogOpen}>
         <DialogContent className="bg-slate-900 border-gray-700 text-white sm:max-w-md">
-            <DialogHeader>
-                <div className="mx-auto bg-primary/10 h-12 w-12 rounded-full flex items-center justify-center mb-4">
-                    <KeyRound className="h-6 w-6 text-primary" />
-                </div>
-                <DialogTitle className="text-center text-xl font-bold">Account Recovery</DialogTitle>
-                <DialogDescription className="text-center text-gray-400 text-sm">
-                    Enter your RSU email address and we'll send you a link to reset your password.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-                <Label htmlFor="reset-email" className="text-gray-300">Official RSU Email</Label>
-                <div className="relative mt-2">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
-                    <Input 
-                        id="reset-email"
-                        value={resetEmail}
-                        onChange={(e) => setResetEmail(e.target.value)}
-                        placeholder="yourname@rsu.edu.ph"
-                        className="bg-gray-800 border-gray-700 text-white pl-10 h-11"
-                    />
-                </div>
+          <DialogHeader>
+            <div className="mx-auto bg-primary/10 h-12 w-12 rounded-full flex items-center justify-center mb-4">
+              <KeyRound className="h-6 w-6 text-primary" />
             </div>
-            <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsResetDialogOpen(false)} className="text-gray-400 hover:text-white hover:bg-gray-800">Cancel</Button>
-                <Button 
-                    onClick={handleResetPasswordSubmit} 
-                    disabled={isSendingReset || !resetEmail}
-                    className="bg-white dark:bg-slate-900 text-black dark:text-white hover:bg-gray-200 h-11 px-8"
-                >
-                    {isSendingReset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Send Reset Link
-                </Button>
-            </DialogFooter>
+            <DialogTitle className="text-center text-xl font-bold">Account Recovery</DialogTitle>
+            <DialogDescription className="text-center text-gray-400 text-sm">
+              Enter your RSU email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="reset-email" className="text-gray-300">
+              Official RSU Email
+            </Label>
+            <div className="relative mt-2">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Input
+                id="reset-email"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                placeholder="yourname@rsu.edu.ph"
+                className="bg-gray-800 border-gray-700 text-white pl-10 h-11"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setIsResetDialogOpen(false)}
+              className="text-gray-400 hover:text-white hover:bg-gray-800"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleResetPasswordSubmit}
+              disabled={isSendingReset || !resetEmail}
+              className="bg-white dark:bg-slate-900 text-black dark:text-white hover:bg-gray-200 h-11 px-8"
+            >
+              {isSendingReset && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Send Reset Link
+            </Button>
+          </DialogFooter>
         </DialogContent>
-    </Dialog>
+      </Dialog>
 
-    <DataPrivacyDialog 
-      isOpen={isPrivacyDialogOpen}
-      onOpenChange={setIsPrivacyDialogOpen}
-      onAccept={() => {
-        setPrivacyPolicyAgreed(true);
-        setIsPrivacyDialogOpen(false);
-      }}
-    />
+      <DataPrivacyDialog
+        isOpen={isPrivacyDialogOpen}
+        onOpenChange={setIsPrivacyDialogOpen}
+        onAccept={() => {
+          setPrivacyPolicyAgreed(true);
+          setIsPrivacyDialogOpen(false);
+        }}
+      />
     </>
   );
 }

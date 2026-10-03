@@ -838,16 +838,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Automatic trigger on dashboard entry to guide the user on what is new, pending deadlines, and notifications
   useEffect(() => {
     if (!isUserLoading && userProfile && userProfile.verified && !isEvalPending && !hasTriggeredDigestRef.current) {
+      const pendingLoginDigest = sessionStorage.getItem('rsu_eoms_pending_login_digest') === 'true';
       const sessionSeen = sessionStorage.getItem('rsu_eoms_digest_seen_session') === 'true';
       const ackIds = getAcknowledgedDigestIds();
       const hasUnacknowledged = notificationsList.length > 0 && notificationsList.some((n) => !ackIds.includes(n.id));
       const hasUnreadVersionUpdate = userProfile.lastSeenVersion !== CURRENT_SYSTEM_VERSION;
 
-      if (!sessionSeen || hasUnacknowledged || hasUnreadVersionUpdate) {
+      if (pendingLoginDigest || !sessionSeen || hasUnacknowledged || hasUnreadVersionUpdate) {
         hasTriggeredDigestRef.current = true;
         const timer = setTimeout(() => {
           setIsNotificationDigestOpen(true);
           sessionStorage.setItem('rsu_eoms_digest_seen_session', 'true');
+          sessionStorage.removeItem('rsu_eoms_pending_login_digest');
         }, 1200);
         return () => clearTimeout(timer);
       }

@@ -141,6 +141,8 @@ export default function LogoutPage() {
         try {
           sessionStorage.removeItem('rsu_eoms_announcement_spoken_session');
           sessionStorage.removeItem('rsu_eoms_voice_prompt_answered_session');
+          sessionStorage.removeItem('rsu_eoms_digest_seen_session');
+          sessionStorage.removeItem('rsu_eoms_pending_login_digest');
         } catch {
           /* ignore session storage errors on logout */
         }
