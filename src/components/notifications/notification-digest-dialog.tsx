@@ -297,10 +297,22 @@ export function NotificationDigestDialog({
     }
   };
 
-  const handleDismiss = () => {
+  const handleLater = () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('rsu_eoms_digest_seen_session', 'true');
+    }
+    onOpenChange(false);
+  };
+
+  const handleAcknowledgeAndDismiss = () => {
+    if (onAcknowledgeUpdates) {
+      onAcknowledgeUpdates();
+    }
     onAcknowledge();
     onOpenChange(false);
   };
+
+  const handleDismiss = handleAcknowledgeAndDismiss;
 
   const handleMarkAllAndDismiss = () => {
     if (onMarkAllAsRead) {
@@ -321,7 +333,7 @@ export function NotificationDigestDialog({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="max-w-2xl max-h-[92dvh] flex flex-col p-0 overflow-hidden border border-primary/20 shadow-2xl rounded-3xl bg-background/95 backdrop-blur-2xl">
+      <AlertDialogContent className="max-w-3xl max-h-[92dvh] flex flex-col p-0 overflow-hidden border border-primary/20 shadow-2xl rounded-3xl bg-background/95 backdrop-blur-2xl">
         {/* Header with Institutional Gradient */}
         <div className="p-6 pb-5 bg-gradient-to-br from-primary via-primary/95 to-slate-900 text-white shrink-0 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16" />
@@ -827,24 +839,24 @@ export function NotificationDigestDialog({
         </ScrollArea>
 
         {/* Footer Actions */}
-        <AlertDialogFooter className="p-4 bg-muted/40 border-t border-primary/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+        <AlertDialogFooter className="p-3.5 sm:p-4 bg-muted/40 border-t border-primary/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
           {activeTab === 'whats-new' ? (
             <>
               <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
                 <span>v{currentSystemVersion} Platform Update</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
                 <AlertDialogCancel
-                  onClick={handleDismiss}
-                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 border-primary/20 hover:bg-muted m-0"
+                  onClick={handleLater}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 border-primary/20 hover:bg-muted m-0 shrink-0"
                 >
                   Later
                 </AlertDialogCancel>
                 <Button
                   type="button"
                   onClick={handleNextFromWhatsNew}
-                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md gap-1.5 m-0"
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md gap-1.5 m-0 shrink-0"
                 >
                   <span>Next: Overview</span>
                   <ChevronRight className="h-4 w-4" />
@@ -853,13 +865,13 @@ export function NotificationDigestDialog({
             </>
           ) : activeTab === 'all' ? (
             <>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => setActiveTab('whats-new')}
-                  className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1 h-9 px-2.5 rounded-xl"
+                  className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1 h-9 px-2.5 rounded-xl shrink-0"
                 >
                   <span>← What's New</span>
                 </Button>
@@ -869,7 +881,7 @@ export function NotificationDigestDialog({
                     variant="ghost"
                     size="sm"
                     onClick={handleMarkAllAndDismiss}
-                    className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1.5 h-9 px-2.5 rounded-xl"
+                    className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1.5 h-9 px-2.5 rounded-xl shrink-0"
                   >
                     <CheckCheck className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Mark All Read</span>
@@ -877,38 +889,39 @@ export function NotificationDigestDialog({
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
                 <AlertDialogCancel
-                  onClick={handleDismiss}
-                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 border-primary/20 hover:bg-muted m-0"
+                  onClick={handleLater}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-3.5 border-primary/20 hover:bg-muted m-0 shrink-0"
                 >
                   Later
                 </AlertDialogCancel>
                 <Button
                   type="button"
                   onClick={() => setActiveTab('actions')}
-                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border shadow-xs gap-1 m-0"
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-3.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border shadow-xs gap-1 m-0 shrink-0"
                 >
                   <span>Next: Actions</span>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
                 <AlertDialogAction
-                  onClick={handleDismiss}
-                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md m-0"
+                  onClick={handleAcknowledgeAndDismiss}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md m-0 gap-1.5 inline-flex items-center whitespace-nowrap shrink-0"
                 >
-                  Acknowledge & Continue
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Acknowledge</span>
                 </AlertDialogAction>
               </div>
             </>
           ) : activeTab === 'actions' ? (
             <>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => setActiveTab('all')}
-                  className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1 h-9 px-2.5 rounded-xl"
+                  className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1 h-9 px-2.5 rounded-xl shrink-0"
                 >
                   <span>← Overview</span>
                 </Button>
@@ -918,7 +931,7 @@ export function NotificationDigestDialog({
                     variant="ghost"
                     size="sm"
                     onClick={handleMarkAllAndDismiss}
-                    className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1.5 h-9 px-2.5 rounded-xl"
+                    className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1.5 h-9 px-2.5 rounded-xl shrink-0"
                   >
                     <CheckCheck className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">Mark All Read</span>
@@ -926,55 +939,57 @@ export function NotificationDigestDialog({
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
                 <AlertDialogCancel
-                  onClick={handleDismiss}
-                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 border-primary/20 hover:bg-muted m-0"
+                  onClick={handleLater}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-3.5 border-primary/20 hover:bg-muted m-0 shrink-0"
                 >
                   Later
                 </AlertDialogCancel>
                 <Button
                   type="button"
                   onClick={() => setActiveTab('deadlines')}
-                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border shadow-xs gap-1 m-0"
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-3.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground border border-border shadow-xs gap-1 m-0 shrink-0"
                 >
                   <span>Next: Deadlines</span>
                   <ChevronRight className="h-3.5 w-3.5" />
                 </Button>
                 <AlertDialogAction
-                  onClick={handleDismiss}
-                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md m-0"
+                  onClick={handleAcknowledgeAndDismiss}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md m-0 gap-1.5 inline-flex items-center whitespace-nowrap shrink-0"
                 >
-                  Acknowledge & Continue
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Acknowledge</span>
                 </AlertDialogAction>
               </div>
             </>
           ) : (
             <>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   onClick={() => setActiveTab('actions')}
-                  className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1 h-9 px-2.5 rounded-xl"
+                  className="text-[10px] font-black uppercase tracking-wider text-muted-foreground hover:text-primary gap-1 h-9 px-2.5 rounded-xl shrink-0"
                 >
                   <span>← Actions</span>
                 </Button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap shrink-0">
                 <AlertDialogCancel
-                  onClick={handleDismiss}
-                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 border-primary/20 hover:bg-muted m-0"
+                  onClick={handleLater}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-3.5 border-primary/20 hover:bg-muted m-0 shrink-0"
                 >
                   Later
                 </AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={handleDismiss}
-                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md m-0"
+                  onClick={handleAcknowledgeAndDismiss}
+                  className="text-xs font-black uppercase tracking-wider rounded-xl h-9 px-4 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md m-0 gap-1.5 inline-flex items-center whitespace-nowrap shrink-0"
                 >
-                  Acknowledge & Continue
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span>Acknowledge</span>
                 </AlertDialogAction>
               </div>
             </>
