@@ -188,20 +188,35 @@ export function AccreditationMonitoringView({
     const data = upcomingAccredPrograms;
     if (data.length === 0) return;
 
-    // Campus breakdown bars (inline SVG-style bars)
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    const generatedDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    const generatedTime = new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+    const docRef = `RSU-QAO-AMR-${upcomingAccredYear}-${new Date().getFullYear()}`;
+
+    // Campus breakdown bars
     const maxCount = Math.max(...upcomingCampusBreakdown.map((c) => c.count), 1);
+    const totalPrograms = data.length;
     const campusBarsHtml = upcomingCampusBreakdown
       .map((c) => {
         const pct = Math.round((c.count / maxCount) * 100);
+        const overallPct = Math.round((c.count / totalPrograms) * 100);
         return `
           <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
-            <span style="width:180px; font-size:11px; font-weight:700; color:#334155; text-align:right; flex-shrink:0;">${c.name}</span>
-            <div style="flex:1; background:#f1f5f9; border-radius:999px; overflow:hidden; height:20px;">
-              <div style="width:${pct}%; background:linear-gradient(90deg,#4f46e5,#818cf8); height:20px; border-radius:999px; display:flex; align-items:center; padding-left:8px;">
-                <span style="color:white; font-size:10px; font-weight:900; white-space:nowrap;">${c.count} program${c.count !== 1 ? 's' : ''}</span>
+            <span style="width:200px; font-size:11px; font-weight:700; color:#1e293b; text-align:right; flex-shrink:0;">${c.name}</span>
+            <div style="flex:1; background:#f1f5f9; border-radius:999px; overflow:hidden; height:18px; border:1px solid #e2e8f0;">
+              <div style="width:${pct}%; background:linear-gradient(90deg,#0284c7,#2563eb); height:100%; border-radius:999px; display:flex; align-items:center; padding-left:8px;">
+                <span style="color:white; font-size:9.5px; font-weight:800; white-space:nowrap;">${c.count} program${c.count !== 1 ? 's' : ''} (${overallPct}%)</span>
               </div>
             </div>
-            <span style="font-size:12px; font-weight:900; color:#4f46e5; width:40px;">${c.count}</span>
+            <span style="font-size:11px; font-weight:800; color:#1e293b; width:45px; text-align:right;">${c.count}</span>
           </div>
         `;
       })
@@ -210,89 +225,250 @@ export function AccreditationMonitoringView({
     const rowsHtml = data
       .map(
         (p, idx) => `
-          <tr style="background: ${idx % 2 === 0 ? '#fff' : '#f8fafc'}">
-            <td style="padding:10px 16px; border-bottom:1px solid #e2e8f0;">
-              <span style="font-weight:900; font-size:13px;">${p.programName}</span><br>
-              <span style="font-size:10px; color:#94a3b8; font-weight:700;">${p.abbreviation} &bull; ${p.degreeLevel}</span>
+          <tr style="background: ${idx % 2 === 0 ? '#ffffff' : '#f8fafc'}">
+            <td style="padding:8px 12px; border:1px solid #cbd5e1; text-align:center; font-weight:700; font-size:11px; color:#64748b;">${idx + 1}</td>
+            <td style="padding:8px 12px; border:1px solid #cbd5e1;">
+              <div style="font-weight:800; font-size:12px; color:#0f172a;">${p.programName}</div>
+              <div style="font-size:10px; color:#64748b; font-weight:600; margin-top:1px;">
+                ${p.abbreviation ? `${p.abbreviation} &bull; ` : ''}${p.degreeLevel || 'Undergraduate'}
+              </div>
             </td>
-            <td style="padding:10px 16px; border-bottom:1px solid #e2e8f0; font-weight:600; color:#475569;">${p.campus}</td>
-            <td style="padding:10px 16px; text-align:center; border-bottom:1px solid #e2e8f0; font-weight:800;">${p.accreditationLevel}</td>
-            <td style="padding:10px 16px; text-align:center; border-bottom:1px solid #e2e8f0; font-weight:600; font-size:11px;">${p.surveyDate}</td>
-            <td style="padding:10px 16px; text-align:center; border-bottom:1px solid #e2e8f0; font-weight:600; font-size:11px;">${p.lifecycleStatus}</td>
-            <td style="padding:10px 16px; text-align:center; border-bottom:1px solid #e2e8f0; font-weight:900; color:#dc2626;">${p.validityDate}</td>
+            <td style="padding:8px 12px; border:1px solid #cbd5e1; font-weight:700; font-size:11.5px; color:#334155;">${p.campus}</td>
+            <td style="padding:8px 12px; text-align:center; border:1px solid #cbd5e1; font-weight:800; font-size:11px; color:#1e293b;">
+              <span style="display:inline-block; padding:2px 8px; border-radius:4px; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe;">
+                ${p.accreditationLevel}
+              </span>
+            </td>
+            <td style="padding:8px 12px; text-align:center; border:1px solid #cbd5e1; font-weight:600; font-size:11px; color:#475569;">${p.surveyDate}</td>
+            <td style="padding:8px 12px; text-align:center; border:1px solid #cbd5e1; font-weight:600; font-size:11px; color:#475569;">${p.lifecycleStatus}</td>
+            <td style="padding:8px 12px; text-align:center; border:1px solid #cbd5e1; font-weight:800; font-size:11.5px; color:#b91c1c;">
+              <span style="display:inline-block; padding:2px 8px; border-radius:4px; background:#fef2f2; border:1px solid #fecaca;">
+                ${p.validityDate}
+              </span>
+            </td>
           </tr>
         `,
       )
       .join('');
 
     const printHtml = `
+      <!DOCTYPE html>
       <html>
         <head>
-          <title>Upcoming Accreditation — ${upcomingAccredYear}</title>
+          <base href="${origin}/" />
+          <meta charset="utf-8" />
+          <title>Upcoming Accreditation Report — CY ${upcomingAccredYear}</title>
           <style>
-            @page { size: 14in 8.5in landscape !important; margin: 0.5in !important; }
-            @media print { body { background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } }
-            body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; padding: 24px; color: #0f172a; }
-            h1 { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #0f172a; margin-bottom: 4px; }
-            h2 { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #4f46e5; margin: 24px 0 12px; }
-            p.subtitle { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px; }
-            .summary-box { display:flex; gap:16px; margin-bottom:24px; }
-            .summary-card { flex:1; background:white; border-radius:12px; padding:16px 20px; border:1px solid #e2e8f0; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-            .summary-card .num { font-size:28px; font-weight:900; color:#4f46e5; }
-            .summary-card .lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#64748b; margin-top:4px; }
-            .viz-card { background:white; border-radius:12px; padding:20px 24px; border:1px solid #e2e8f0; margin-bottom:24px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-            table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-            th { background: #f1f5f9; padding: 12px 16px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
-            th:nth-child(3), th:nth-child(4), th:nth-child(5), th:nth-child(6) { text-align: center; }
-            .footer { margin-top: 24px; font-size: 10px; color: #94a3b8; text-align: center; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
-            .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:10px; font-weight:900; }
-            .badge-warning { background:#fef3c7; color:#92400e; }
+            @page {
+              size: landscape;
+              margin: 0.4in;
+            }
+            @media print {
+              body {
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              .no-print {
+                display: none !important;
+              }
+              tr {
+                page-break-inside: avoid;
+              }
+            }
+            * {
+              box-sizing: border-box;
+            }
+            body {
+              font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+              background: #f1f5f9;
+              padding: 24px;
+              color: #0f172a;
+              margin: 0;
+            }
+            .document-sheet {
+              max-width: 1200px;
+              margin: 0 auto;
+              background: #ffffff;
+              padding: 32px 36px;
+              border: 1px solid #cbd5e1;
+              box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            }
+            @media print {
+              body {
+                padding: 0 !important;
+                background: white !important;
+              }
+              .document-sheet {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+              }
+            }
+            .summary-box {
+              display: flex;
+              gap: 16px;
+              margin-bottom: 20px;
+            }
+            .summary-card {
+              flex: 1;
+              background: #f8fafc;
+              border-radius: 6px;
+              padding: 12px 16px;
+              border: 1px solid #cbd5e1;
+              text-align: center;
+            }
+            .summary-card .num {
+              font-size: 24px;
+              font-weight: 900;
+              color: #0f172a;
+              line-height: 1.1;
+            }
+            .summary-card .lbl {
+              font-size: 9.5px;
+              font-weight: 700;
+              text-transform: uppercase;
+              letter-spacing: 0.08em;
+              color: #64748b;
+              margin-top: 4px;
+            }
+            .viz-card {
+              background: #ffffff;
+              border-radius: 6px;
+              padding: 16px 20px;
+              border: 1px solid #cbd5e1;
+              margin-bottom: 20px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              background: white;
+            }
+            th {
+              background: #f1f5f9;
+              padding: 10px 12px;
+              font-size: 10px;
+              font-weight: 900;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              color: #1e293b;
+              border: 1px solid #cbd5e1;
+            }
           </style>
         </head>
         <body>
-          <div class="no-print" style="text-align:center; margin-bottom: 20px;">
-            <button onclick="window.print()" style="background:#4f46e5; color:white; border:none; padding:12px 32px; border-radius:8px; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer;">Print Upcoming Accreditation Report</button>
-          </div>
-          <h1>Upcoming Accreditation — ${upcomingAccredYear}</h1>
-          <p class="subtitle">Programs whose AACCUP accreditation validity expires in ${upcomingAccredYear} • Romblon State University</p>
-
-          <div class="summary-box">
-            <div class="summary-card">
-              <div class="num">${data.length}</div>
-              <div class="lbl">Programs for Re-Accreditation</div>
-            </div>
-            <div class="summary-card">
-              <div class="num">${upcomingCampusBreakdown.length}</div>
-              <div class="lbl">Campuses Affected</div>
-            </div>
-            <div class="summary-card">
-              <div class="num" style="color:#dc2626;">${upcomingAccredYear}</div>
-              <div class="lbl">Target Year</div>
-            </div>
+          <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+            <button onclick="window.print()" style="background: #0284c7; color: white; border: none; padding: 12px 32px; border-radius: 6px; font-weight: 900; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; box-shadow: 0 2px 8px rgba(2, 132, 199, 0.4);">
+              🖨️ Print Upcoming Report
+            </button>
           </div>
 
-          <div class="viz-card">
-            <h2 style="margin-top:0;">&#9658; Programs per Campus</h2>
-            ${campusBarsHtml}
-          </div>
+          <div class="document-sheet">
+            <!-- Institutional Letterhead -->
+            <header style="width: 100%; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 12px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                  <img src="/rsulogo.png" alt="RSU Seal" style="height: 52px; width: 52px; object-fit: contain;" />
+                  <img src="/qa_logo.png" alt="QAO Logo" style="height: 50px; width: 50px; object-fit: contain;" />
+                  <div>
+                    <p style="font-size: 8pt; text-transform: uppercase; letter-spacing: 0.12em; color: #475569; margin: 0; font-weight: 700;">
+                      Republic of the Philippines
+                    </p>
+                    <h1 style="font-size: 13.5pt; font-weight: 900; text-transform: uppercase; letter-spacing: -0.01em; color: #0f172a; margin: 2px 0 0; font-family: Georgia, Cambria, serif;">
+                      ROMBLON STATE UNIVERSITY
+                    </h1>
+                    <h2 style="font-size: 9.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #1e293b; margin: 2px 0 0;">
+                      QUALITY ASSURANCE OFFICE
+                    </h2>
+                    <p style="font-size: 7pt; color: #64748b; margin: 3px 0 0; line-height: 1.3;">
+                      Liwanag, Odiongan, Romblon 5505 | Telephone: (042) 567-2201 | Email: qao@rsu.edu.ph | Website: rsu.edu.ph
+                    </p>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center;">
+                  <img src="/ISOlogo.jpg" alt="ISO 9001:2015 TÜV Rheinland Certified" style="height: 48px; width: auto; object-fit: contain;" />
+                </div>
+              </div>
+            </header>
 
-          <h2>&#9658; Programs Scheduled for Re-Accreditation in ${upcomingAccredYear}</h2>
-          <table>
-            <thead>
-              <tr>
-                <th style="text-align:left;">Program Title</th>
-                <th style="text-align:left;">Campus</th>
-                <th style="text-align:center;">Accreditation Level</th>
-                <th style="text-align:center;">Last Survey Date</th>
-                <th style="text-align:center;">Lifecycle</th>
-                <th style="text-align:center;">Validity Expires</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
-          <div class="footer">Generated from RSU EOMS Decision Support System • Total: ${data.length} programs for re-accreditation in ${upcomingAccredYear}</div>
+            <!-- Document Title Banner -->
+            <div style="border-top: 1.5px solid #0f172a; border-bottom: 1.5px solid #0f172a; background: #f8fafc; padding: 10px 16px; margin-bottom: 12px; text-align: center;">
+              <h3 style="font-size: 11pt; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; color: #0f172a; margin: 0;">
+                UPCOMING RE-ACCREDITATION MONITORING REPORT
+              </h3>
+              <p style="font-size: 8pt; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; margin: 3px 0 0;">
+                Programs with AACCUP Accreditation Validity Expiring in CY ${upcomingAccredYear}
+              </p>
+            </div>
+
+            <!-- Metadata Strip -->
+            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 7.5pt; color: #475569; padding: 0 4px 10px; border-bottom: 1px solid #e2e8f0; margin-bottom: 16px;">
+              <div><strong>DOC REF:</strong> <span style="font-family: monospace; font-weight: 700; color: #0f172a;">${docRef}</span></div>
+              <div><strong>MONITORING SCOPE:</strong> Institutional Accreditation Validity Expiration Pipeline</div>
+              <div><strong>DATE GENERATED:</strong> <span style="font-weight: 700; color: #0f172a;">${generatedDate}</span></div>
+            </div>
+
+            <!-- Summary KPI Strip -->
+            <div class="summary-box">
+              <div class="summary-card">
+                <div class="num" style="color: #0284c7;">${data.length}</div>
+                <div class="lbl">Programs for Re-Accreditation</div>
+              </div>
+              <div class="summary-card">
+                <div class="num" style="color: #475569;">${upcomingCampusBreakdown.length}</div>
+                <div class="lbl">Campuses Affected</div>
+              </div>
+              <div class="summary-card">
+                <div class="num" style="color: #b91c1c;">${upcomingAccredYear}</div>
+                <div class="lbl">Target Expiration Year</div>
+              </div>
+            </div>
+
+            <!-- Visualization: Programs per Campus -->
+            <div class="viz-card">
+              <h4 style="margin: 0 0 12px 0; font-size: 10.5pt; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #1e293b;">
+                Distribution of Expiring Programs by Campus
+              </h4>
+              ${campusBarsHtml}
+            </div>
+
+            <!-- Master Programs Table -->
+            <h4 style="margin: 20px 0 10px 0; font-size: 10.5pt; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #1e293b;">
+              Schedule of Academic Programs for Re-Accreditation (${upcomingAccredYear})
+            </h4>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 35px; text-align: center;">#</th>
+                  <th style="text-align: left;">Academic Program</th>
+                  <th style="text-align: left; width: 170px;">Campus</th>
+                  <th style="text-align: center; width: 140px;">Current Level</th>
+                  <th style="text-align: center; width: 110px;">Last Survey</th>
+                  <th style="text-align: center; width: 100px;">Lifecycle</th>
+                  <th style="text-align: center; width: 110px;">Validity Expires</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+              </tbody>
+            </table>
+
+            <!-- Machine Generated Notice Footer -->
+            <div style="margin-top: 28px; border-top: 2px solid #cbd5e1; padding-top: 14px; text-align: center;">
+              <div style="display: inline-block; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 20px; margin-bottom: 6px;">
+                <p style="font-size: 9pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: #0f172a; margin: 0;">
+                  THIS IS A MACHINE GENERATED REPORT. NO SIGNATURE IS REQUIRED.
+                </p>
+              </div>
+              <p style="font-size: 7.5pt; color: #64748b; margin: 4px 0 0; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">
+                Romblon State University &bull; Quality Assurance Office (QAO) &bull; EOMS Decision Support System
+              </p>
+              <p style="font-size: 7pt; color: #94a3b8; margin: 2px 0 0;">
+                Report Timestamp: ${generatedDate} ${generatedTime} &bull; Total Programs Listed: ${data.length}
+              </p>
+            </div>
+          </div>
         </body>
       </html>
     `;
