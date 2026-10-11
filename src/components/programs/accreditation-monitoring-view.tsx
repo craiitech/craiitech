@@ -22,6 +22,8 @@ import {
   ListChecks,
   AlertCircle,
   GraduationCap,
+  CalendarClock,
+  BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +55,14 @@ export function AccreditationMonitoringView({
   const [detailLifecycleFilter, setDetailLifecycleFilter] = useState<string>('all');
   const [detailSortBy, setDetailSortBy] = useState<string>('name');
   const [accredYearFilter, setAccredYearFilter] = useState<number | 'all'>('all');
+  const [upcomingAccredYear, setUpcomingAccredYear] = useState<number | null>(null);
+
+  const currentCalendarYear = new Date().getFullYear();
+  // Upcoming accreditation year options: current year + 1 through current year + 10
+  const upcomingYearOptions = useMemo(
+    () => Array.from({ length: 10 }, (_, i) => currentCalendarYear + 1 + i),
+    [currentCalendarYear],
+  );
 
   const activePrograms = useMemo(() => programs.filter((p) => p.isActive), [programs]);
 
@@ -104,6 +114,196 @@ export function AccreditationMonitoringView({
     if (accredYearFilter === 'all') return accreditationPerYear;
     return accreditationPerYear.filter((r) => r.year === accredYearFilter);
   }, [accreditationPerYear, accredYearFilter]);
+
+  // ── Upcoming Accreditation: programs whose validity expires in the selected upcoming year ──
+  const upcomingAccredPrograms = useMemo(() => {
+    if (!upcomingAccredYear) return [];
+    const programMap = new Map(programs.map((p) => [p.id, p]));
+    const results: {
+      programId: string;
+      programName: string;
+      abbreviation: string;
+      campus: string;
+      campusId: string;
+      degreeLevel: string;
+      accreditationLevel: string;
+      validityDate: string;
+      surveyDate: string;
+      lifecycleStatus: string;
+    }[] = [];
+
+    compliances.forEach((c) => {
+      const p = programMap.get(c.programId);
+      if (!p) return;
+      const accRecords = c.accreditationRecords || [];
+      accRecords.forEach((rec) => {
+        const validity = rec.statusValidityDate || '';
+        if (!validity) return;
+        const match = validity.match(/(\d{4})/);
+        if (!match) return;
+        const expYear = parseInt(match[1]);
+        if (expYear !== upcomingAccredYear) return;
+        // Only include records that are current or still active (not phased out)
+        if (rec.lifecycleStatus === 'Completed') return;
+        results.push({
+          programId: c.programId,
+          programName: p.name,
+          abbreviation: p.abbreviation,
+          campus: campusMap.get(c.campusId) || 'Unknown',
+          campusId: c.campusId,
+          degreeLevel: p.level,
+          accreditationLevel: rec.level,
+          validityDate: validity,
+          surveyDate: rec.dateOfSurvey || '—',
+          lifecycleStatus: rec.lifecycleStatus || 'N/A',
+        });
+      });
+    });
+
+    // Deduplicate by programId — keep the most relevant record
+    const seen = new Map<string, (typeof results)[0]>();
+    results.forEach((r) => {
+      if (!seen.has(r.programId)) seen.set(r.programId, r);
+    });
+
+    return Array.from(seen.values()).sort(
+      (a, b) => a.campus.localeCompare(b.campus) || a.programName.localeCompare(b.programName),
+    );
+  }, [upcomingAccredYear, compliances, programs, campusMap]);
+
+  // Campus breakdown for upcoming accreditation visualization
+  const upcomingCampusBreakdown = useMemo(() => {
+    const campusCount = new Map<string, { name: string; count: number }>();
+    upcomingAccredPrograms.forEach((p) => {
+      if (!campusCount.has(p.campusId)) {
+        campusCount.set(p.campusId, { name: p.campus, count: 0 });
+      }
+      campusCount.get(p.campusId)!.count++;
+    });
+    return Array.from(campusCount.values()).sort((a, b) => b.count - a.count);
+  }, [upcomingAccredPrograms]);
+
+  const handlePrintUpcomingAccreditation = () => {
+    if (!upcomingAccredYear) return;
+    const data = upcomingAccredPrograms;
+    if (data.length === 0) return;
+
+    // Campus breakdown bars (inline SVG-style bars)
+    const maxCount = Math.max(...upcomingCampusBreakdown.map((c) => c.count), 1);
+    const campusBarsHtml = upcomingCampusBreakdown
+      .map((c) => {
+        const pct = Math.round((c.count / maxCount) * 100);
+        return `
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+            <span style="width:180px; font-size:11px; font-weight:700; color:#334155; text-align:right; flex-shrink:0;">${c.name}</span>
+            <div style="flex:1; background:#f1f5f9; border-radius:999px; overflow:hidden; height:20px;">
+              <div style="width:${pct}%; background:linear-gradient(90deg,#4f46e5,#818cf8); height:20px; border-radius:999px; display:flex; align-items:center; padding-left:8px;">
+                <span style="color:white; font-size:10px; font-weight:900; white-space:nowrap;">${c.count} program${c.count !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+            <span style="font-size:12px; font-weight:900; color:#4f46e5; width:40px;">${c.count}</span>
+          </div>
+        `;
+      })
+      .join('');
+
+    const rowsHtml = data
+      .map(
+        (p, idx) => `
+          <tr style="background: ${idx % 2 === 0 ? '#fff' : '#f8fafc'}">
+            <td style="padding:10px 16px; border-bottom:1px solid #e2e8f0;">
+              <span style="font-weight:900; font-size:13px;">${p.programName}</span><br>
+              <span style="font-size:10px; color:#94a3b8; font-weight:700;">${p.abbreviation} &bull; ${p.degreeLevel}</span>
+            </td>
+            <td style="padding:10px 16px; border-bottom:1px solid #e2e8f0; font-weight:600; color:#475569;">${p.campus}</td>
+            <td style="padding:10px 16px; text-align:center; border-bottom:1px solid #e2e8f0; font-weight:800;">${p.accreditationLevel}</td>
+            <td style="padding:10px 16px; text-align:center; border-bottom:1px solid #e2e8f0; font-weight:600; font-size:11px;">${p.surveyDate}</td>
+            <td style="padding:10px 16px; text-align:center; border-bottom:1px solid #e2e8f0; font-weight:600; font-size:11px;">${p.lifecycleStatus}</td>
+            <td style="padding:10px 16px; text-align:center; border-bottom:1px solid #e2e8f0; font-weight:900; color:#dc2626;">${p.validityDate}</td>
+          </tr>
+        `,
+      )
+      .join('');
+
+    const printHtml = `
+      <html>
+        <head>
+          <title>Upcoming Accreditation — ${upcomingAccredYear}</title>
+          <style>
+            @page { size: 14in 8.5in landscape !important; margin: 0.5in !important; }
+            @media print { body { background: white; -webkit-print-color-adjust: exact; } .no-print { display: none !important; } }
+            body { font-family: 'Inter', -apple-system, sans-serif; background: #f8fafc; padding: 24px; color: #0f172a; }
+            h1 { font-size: 20px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #0f172a; margin-bottom: 4px; }
+            h2 { font-size: 13px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #4f46e5; margin: 24px 0 12px; }
+            p.subtitle { font-size: 11px; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px; }
+            .summary-box { display:flex; gap:16px; margin-bottom:24px; }
+            .summary-card { flex:1; background:white; border-radius:12px; padding:16px 20px; border:1px solid #e2e8f0; text-align:center; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+            .summary-card .num { font-size:28px; font-weight:900; color:#4f46e5; }
+            .summary-card .lbl { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#64748b; margin-top:4px; }
+            .viz-card { background:white; border-radius:12px; padding:20px 24px; border:1px solid #e2e8f0; margin-bottom:24px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+            table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+            th { background: #f1f5f9; padding: 12px 16px; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.05em; color: #64748b; text-align: left; border-bottom: 2px solid #e2e8f0; }
+            th:nth-child(3), th:nth-child(4), th:nth-child(5), th:nth-child(6) { text-align: center; }
+            .footer { margin-top: 24px; font-size: 10px; color: #94a3b8; text-align: center; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+            .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:10px; font-weight:900; }
+            .badge-warning { background:#fef3c7; color:#92400e; }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="text-align:center; margin-bottom: 20px;">
+            <button onclick="window.print()" style="background:#4f46e5; color:white; border:none; padding:12px 32px; border-radius:8px; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer;">Print Upcoming Accreditation Report</button>
+          </div>
+          <h1>Upcoming Accreditation — ${upcomingAccredYear}</h1>
+          <p class="subtitle">Programs whose AACCUP accreditation validity expires in ${upcomingAccredYear} • Romblon State University</p>
+
+          <div class="summary-box">
+            <div class="summary-card">
+              <div class="num">${data.length}</div>
+              <div class="lbl">Programs for Re-Accreditation</div>
+            </div>
+            <div class="summary-card">
+              <div class="num">${upcomingCampusBreakdown.length}</div>
+              <div class="lbl">Campuses Affected</div>
+            </div>
+            <div class="summary-card">
+              <div class="num" style="color:#dc2626;">${upcomingAccredYear}</div>
+              <div class="lbl">Target Year</div>
+            </div>
+          </div>
+
+          <div class="viz-card">
+            <h2 style="margin-top:0;">&#9658; Programs per Campus</h2>
+            ${campusBarsHtml}
+          </div>
+
+          <h2>&#9658; Programs Scheduled for Re-Accreditation in ${upcomingAccredYear}</h2>
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:left;">Program Title</th>
+                <th style="text-align:left;">Campus</th>
+                <th style="text-align:center;">Accreditation Level</th>
+                <th style="text-align:center;">Last Survey Date</th>
+                <th style="text-align:center;">Lifecycle</th>
+                <th style="text-align:center;">Validity Expires</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+          <div class="footer">Generated from RSU EOMS Decision Support System • Total: ${data.length} programs for re-accreditation in ${upcomingAccredYear}</div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.open();
+      printWindow.document.write(printHtml);
+      printWindow.document.close();
+    }
+  };
 
   // Current AY Program Accreditation details
   const programDetailData = useMemo(() => {
@@ -837,8 +1037,9 @@ export function AccreditationMonitoringView({
 
             {/* SUB-TAB 2: Programs Surveyed per Year */}
             <TabsContent value="per-year" className="m-0">
-              <div className="p-4 border-b bg-slate-50/50 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+              <div className="p-4 border-b bg-slate-50/50 flex flex-wrap items-center gap-3 justify-between">
+                {/* Row 1: Historical survey year filter */}
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
                     Survey Academic Year:
                   </span>
@@ -860,17 +1061,248 @@ export function AccreditationMonitoringView({
                       ))}
                     </SelectContent>
                   </Select>
+
+                  {/* Divider */}
+                  <div className="h-5 w-px bg-slate-200 mx-1" />
+
+                  {/* Upcoming accreditation filter */}
+                  <div className="flex items-center gap-2">
+                    <CalendarClock className="h-3.5 w-3.5 text-rose-500" />
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                      Upcoming Re-Accreditation Year:
+                    </span>
+                    <Select
+                      value={upcomingAccredYear ? String(upcomingAccredYear) : 'none'}
+                      onValueChange={(v) => setUpcomingAccredYear(v === 'none' ? null : Number(v))}
+                    >
+                      <SelectTrigger className="h-8 w-[140px] text-xs bg-white border-rose-200 text-rose-700">
+                        <SelectValue placeholder="Select Year" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none" className="text-[10px] font-bold">
+                          — Select Year —
+                        </SelectItem>
+                        {upcomingYearOptions.map((y) => (
+                          <SelectItem key={y} value={String(y)} className="text-[10px] font-bold">
+                            {y}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {upcomingAccredYear && (
+                      <Badge className="bg-rose-100 text-rose-800 border-rose-200 text-[9px] font-black">
+                        {upcomingAccredPrograms.length} program{upcomingAccredPrograms.length !== 1 ? 's' : ''} expiring
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <Button
-                  onClick={handlePrintAccredPerYear}
-                  variant="outline"
-                  size="sm"
-                  className="h-8 bg-white border-indigo-200 text-indigo-700 font-black uppercase text-[9px] tracking-widest gap-1.5 shadow-sm hover:bg-indigo-50"
-                >
-                  <Printer className="h-3.5 w-3.5" />
-                  Print Survey Report
-                </Button>
+
+                <div className="flex items-center gap-2">
+                  {upcomingAccredYear && upcomingAccredPrograms.length > 0 && (
+                    <Button
+                      onClick={handlePrintUpcomingAccreditation}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 bg-white border-rose-200 text-rose-700 font-black uppercase text-[9px] tracking-widest gap-1.5 shadow-sm hover:bg-rose-50"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      Print Upcoming Report
+                    </Button>
+                  )}
+                  <Button
+                    onClick={handlePrintAccredPerYear}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 bg-white border-indigo-200 text-indigo-700 font-black uppercase text-[9px] tracking-widest gap-1.5 shadow-sm hover:bg-indigo-50"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    Print Survey Report
+                  </Button>
+                </div>
               </div>
+
+              {/* ── Upcoming Accreditation Panel ── */}
+              {upcomingAccredYear && (
+                <div className="border-b bg-gradient-to-br from-rose-50/60 to-orange-50/40 p-5 space-y-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CalendarClock className="h-4 w-4 text-rose-600" />
+                    <h3 className="text-xs font-black uppercase tracking-widest text-rose-800">
+                      Programs for Re-Accreditation in {upcomingAccredYear}
+                    </h3>
+                    <Badge className="bg-rose-600 text-white text-[9px] font-black">
+                      {upcomingAccredPrograms.length} program{upcomingAccredPrograms.length !== 1 ? 's' : ''}
+                    </Badge>
+                  </div>
+
+                  {upcomingAccredPrograms.length === 0 ? (
+                    <div className="py-8 text-center">
+                      <CalendarClock className="h-8 w-8 mx-auto text-slate-300 mb-2 stroke-[1.5]" />
+                      <p className="text-xs font-bold text-slate-500">
+                        No programs found with accreditation expiring in {upcomingAccredYear}
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Programs will appear here when their validity dates match the selected year.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Summary KPI row */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div className="bg-white rounded-xl border border-rose-200 p-3 shadow-sm">
+                          <p className="text-[9px] font-black uppercase text-rose-700 tracking-wider">
+                            Programs Expiring
+                          </p>
+                          <p className="text-2xl font-black text-rose-700 mt-1">{upcomingAccredPrograms.length}</p>
+                          <p className="text-[9px] text-rose-500 font-semibold">
+                            Need re-accreditation in {upcomingAccredYear}
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-xl border border-orange-200 p-3 shadow-sm">
+                          <p className="text-[9px] font-black uppercase text-orange-700 tracking-wider">
+                            Campuses Affected
+                          </p>
+                          <p className="text-2xl font-black text-orange-700 mt-1">{upcomingCampusBreakdown.length}</p>
+                          <p className="text-[9px] text-orange-500 font-semibold">
+                            Out of {campuses.length} total campuses
+                          </p>
+                        </div>
+                        <div className="bg-white rounded-xl border border-amber-200 p-3 shadow-sm">
+                          <p className="text-[9px] font-black uppercase text-amber-700 tracking-wider">
+                            Years Until Expiry
+                          </p>
+                          <p className="text-2xl font-black text-amber-700 mt-1">
+                            {upcomingAccredYear - currentCalendarYear}
+                          </p>
+                          <p className="text-[9px] text-amber-500 font-semibold">From {currentCalendarYear}</p>
+                        </div>
+                      </div>
+
+                      {/* Campus Breakdown Bar Chart */}
+                      <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                        <div className="flex items-center gap-2 mb-4">
+                          <BarChart3 className="h-4 w-4 text-indigo-600" />
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                            Programs per Campus — Expiring in {upcomingAccredYear}
+                          </span>
+                        </div>
+                        <div className="space-y-2.5">
+                          {upcomingCampusBreakdown.map((c) => {
+                            const maxCount = Math.max(...upcomingCampusBreakdown.map((x) => x.count));
+                            const pct = Math.round((c.count / maxCount) * 100);
+                            return (
+                              <div key={c.name} className="flex items-center gap-3">
+                                <div className="w-36 text-[10px] font-bold text-slate-600 text-right shrink-0 leading-tight">
+                                  {c.name}
+                                </div>
+                                <div className="flex-1 h-6 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full flex items-center px-2.5 transition-all duration-500"
+                                    style={{ width: `${pct}%` }}
+                                  >
+                                    <span className="text-[9px] font-black text-white whitespace-nowrap">
+                                      {c.count} program{c.count !== 1 ? 's' : ''}
+                                    </span>
+                                  </div>
+                                </div>
+                                <span className="text-sm font-black text-indigo-700 w-6 text-right">{c.count}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Programs Table */}
+                      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <div className="bg-slate-50 border-b px-4 py-2 flex items-center gap-2">
+                          <ListChecks className="h-3.5 w-3.5 text-rose-600" />
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-600">
+                            Program Listing — Accreditation Expires in {upcomingAccredYear}
+                          </span>
+                        </div>
+                        <div className="max-h-[400px] overflow-y-auto">
+                          <Table>
+                            <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
+                              <TableRow>
+                                <TableHead className="pl-5 py-3 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                                  Program Title
+                                </TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                                  Campus
+                                </TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-indigo-700 tracking-wider">
+                                  <div className="flex items-center gap-1">
+                                    <Award className="h-3 w-3" /> Accreditation Level
+                                  </div>
+                                </TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
+                                  Last Survey
+                                </TableHead>
+                                <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
+                                  Lifecycle
+                                </TableHead>
+                                <TableHead className="text-right pr-5 text-[9px] font-black uppercase text-rose-600 tracking-wider">
+                                  Validity Expires
+                                </TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {upcomingAccredPrograms.map((item, idx) => (
+                                <TableRow
+                                  key={`${item.programId}-upcoming-${idx}`}
+                                  className="hover:bg-rose-50/40 transition-all border-b"
+                                >
+                                  <TableCell className="pl-5 py-2.5">
+                                    <div className="flex flex-col">
+                                      <span className="text-xs font-black text-slate-800 leading-tight">
+                                        {item.programName}
+                                      </span>
+                                      <span className="text-[9px] text-slate-400 font-mono font-bold">
+                                        {item.abbreviation} &bull; {item.degreeLevel}
+                                      </span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="py-2.5">
+                                    <div className="flex items-center gap-1">
+                                      <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
+                                      <span className="text-xs text-slate-600 font-medium">{item.campus}</span>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="py-2.5">
+                                    {accreditationBadge(item.accreditationLevel)}
+                                  </TableCell>
+                                  <TableCell className="py-2.5 text-center text-xs text-slate-600 font-medium">
+                                    {item.surveyDate}
+                                  </TableCell>
+                                  <TableCell className="py-2.5 text-center">
+                                    <Badge
+                                      variant="outline"
+                                      className={cn(
+                                        'text-[8px] font-black',
+                                        item.lifecycleStatus === 'Current'
+                                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                          : item.lifecycleStatus === 'Undergoing'
+                                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                            : 'bg-slate-100 text-slate-500 border-slate-200',
+                                      )}
+                                    >
+                                      {item.lifecycleStatus}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell className="text-right pr-5 py-2.5">
+                                    <span className="text-[10px] font-black text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                                      {item.validityDate}
+                                    </span>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
 
               {filteredAccredPerYear.length === 0 ? (
                 <div className="py-16 text-center">

@@ -22,6 +22,9 @@ import {
   Printer,
   FileCheck,
   FileText,
+  BarChart3,
+  BookOpen,
+  FlaskConical,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -186,6 +189,35 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
 
     return { total, withCopc, inProgress, noCopc, withCmo, withRqat, rate };
   }, [programDetailData]);
+
+  // COPC Breakdown by Degree Level (Undergraduate vs Graduate) — uses all active programs against current year compliances
+  const copcLevelBreakdown = useMemo(() => {
+    const currentYearCompliances = compliances.filter((c) => c.academicYear === selectedYear);
+    const complianceMap = new Map(currentYearCompliances.map((c) => [c.programId, c]));
+
+    const levels = ['Undergraduate', 'Graduate', 'TVET'] as const;
+    return levels
+      .map((level) => {
+        const levelPrograms = activePrograms.filter((p) => p.level === level);
+        const total = levelPrograms.length;
+        const withCopc = levelPrograms.filter((p) => {
+          const c = complianceMap.get(p.id);
+          return c?.ched?.copcStatus === 'With COPC';
+        }).length;
+        const inProgress = levelPrograms.filter((p) => {
+          const c = complianceMap.get(p.id);
+          return c?.ched?.copcStatus === 'In Progress';
+        }).length;
+        const noCopc = levelPrograms.filter((p) => {
+          const c = complianceMap.get(p.id);
+          const status = c?.ched?.copcStatus || 'No COPC';
+          return status === 'No COPC';
+        }).length;
+        const rate = total > 0 ? Math.round((withCopc / total) * 100) : 0;
+        return { level, total, withCopc, inProgress, noCopc, rate };
+      })
+      .filter((entry) => entry.total > 0);
+  }, [activePrograms, compliances, selectedYear]);
 
   const copcBadge = (status: string) => {
     switch (status) {
@@ -483,6 +515,175 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
 
             {/* TAB 1: Yearly COPC Trend */}
             <TabsContent value="yearly-trend" className="m-0">
+              {/* ── COPC by Degree Level Visualization ── */}
+              {copcLevelBreakdown.length > 0 && (
+                <div className="p-5 border-b bg-gradient-to-br from-emerald-50/40 to-teal-50/30 space-y-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <BarChart3 className="h-4 w-4 text-emerald-700" />
+                    <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
+                      Total Programs with COPC by Degree Level — AY {selectedYear}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {copcLevelBreakdown.map((entry) => {
+                      const copcPct = entry.rate;
+                      const inProgressPct = entry.total > 0 ? Math.round((entry.inProgress / entry.total) * 100) : 0;
+                      const noCopcPct = entry.total > 0 ? Math.round((entry.noCopc / entry.total) * 100) : 0;
+
+                      // SVG ring/donut chart parameters
+                      const radius = 44;
+                      const circumference = 2 * Math.PI * radius;
+                      const copcDash = (copcPct / 100) * circumference;
+                      const ipStart = copcDash;
+                      const ipDash = (inProgressPct / 100) * circumference;
+
+                      const isUndergrad = entry.level === 'Undergraduate';
+                      const isGrad = entry.level === 'Graduate';
+                      const ringColor = isUndergrad ? '#059669' : isGrad ? '#0ea5e9' : '#a855f7';
+                      const ringColorIP = isUndergrad ? '#d97706' : isGrad ? '#f59e0b' : '#f97316';
+                      const bgGrad = isUndergrad
+                        ? 'from-emerald-50 to-white border-emerald-200'
+                        : isGrad
+                          ? 'from-sky-50 to-white border-sky-200'
+                          : 'from-purple-50 to-white border-purple-200';
+                      const titleColor = isUndergrad ? 'text-emerald-800' : isGrad ? 'text-sky-800' : 'text-purple-800';
+                      const Icon = isUndergrad ? BookOpen : isGrad ? FlaskConical : GraduationCap;
+
+                      return (
+                        <div
+                          key={entry.level}
+                          className={cn(
+                            'bg-gradient-to-br rounded-xl border p-4 shadow-sm flex items-center gap-5',
+                            bgGrad,
+                          )}
+                        >
+                          {/* Donut ring chart */}
+                          <div className="shrink-0 relative">
+                            <svg width="100" height="100" viewBox="0 0 100 100">
+                              {/* Background track */}
+                              <circle cx="50" cy="50" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                              {/* COPC arc */}
+                              {copcPct > 0 && (
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r={radius}
+                                  fill="none"
+                                  stroke={ringColor}
+                                  strokeWidth="10"
+                                  strokeDasharray={`${copcDash} ${circumference - copcDash}`}
+                                  strokeDashoffset={circumference * 0.25}
+                                  strokeLinecap="round"
+                                />
+                              )}
+                              {/* In Progress arc */}
+                              {inProgressPct > 0 && (
+                                <circle
+                                  cx="50"
+                                  cy="50"
+                                  r={radius}
+                                  fill="none"
+                                  stroke={ringColorIP}
+                                  strokeWidth="10"
+                                  strokeDasharray={`${ipDash} ${circumference - ipDash}`}
+                                  strokeDashoffset={circumference * 0.25 - ipStart}
+                                  strokeLinecap="round"
+                                  opacity="0.7"
+                                />
+                              )}
+                              {/* Center text */}
+                              <text x="50" y="45" textAnchor="middle" fontSize="16" fontWeight="900" fill={ringColor}>
+                                {copcPct}%
+                              </text>
+                              <text x="50" y="60" textAnchor="middle" fontSize="8" fontWeight="700" fill="#64748b">
+                                WITH COPC
+                              </text>
+                            </svg>
+                          </div>
+
+                          {/* Stats */}
+                          <div className="flex-1 space-y-2">
+                            <div className="flex items-center gap-1.5">
+                              <Icon className={cn('h-4 w-4', titleColor)} />
+                              <span className={cn('text-sm font-black uppercase tracking-wider', titleColor)}>
+                                {entry.level}
+                              </span>
+                            </div>
+                            <p className="text-[9px] text-slate-500 font-semibold -mt-1">
+                              {entry.total} total programs in AY {selectedYear}
+                            </p>
+
+                            {/* Bar breakdown */}
+                            <div className="space-y-1.5 pt-1">
+                              <div className="flex items-center gap-2">
+                                <span className="w-24 text-[9px] font-black text-emerald-700">With COPC</span>
+                                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                                    style={{ width: `${copcPct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[9px] font-black text-emerald-700 w-14 text-right">
+                                  {entry.withCopc} ({copcPct}%)
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="w-24 text-[9px] font-black text-amber-700">In Progress</span>
+                                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                                    style={{ width: `${inProgressPct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[9px] font-black text-amber-700 w-14 text-right">
+                                  {entry.inProgress} ({inProgressPct}%)
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="w-24 text-[9px] font-black text-rose-700">No COPC</span>
+                                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-rose-400 rounded-full transition-all duration-500"
+                                    style={{ width: `${noCopcPct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[9px] font-black text-rose-700 w-14 text-right">
+                                  {entry.noCopc} ({noCopcPct}%)
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Summary total row */}
+                  <div className="bg-white/80 rounded-lg border border-emerald-100 px-4 py-2.5 flex flex-wrap items-center gap-4">
+                    <span className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Overall COPC Summary:
+                    </span>
+                    {copcLevelBreakdown.map((entry) => (
+                      <div key={entry.level} className="flex items-center gap-1.5">
+                        <span
+                          className={cn(
+                            'text-[8px] font-black px-2 py-0.5 rounded-full',
+                            entry.level === 'Undergraduate'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : entry.level === 'Graduate'
+                                ? 'bg-sky-100 text-sky-800'
+                                : 'bg-purple-100 text-purple-800',
+                          )}
+                        >
+                          {entry.level}: {entry.withCopc}/{entry.total} ({entry.rate}%)
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <ScrollArea className="max-h-[520px]">
                 <Table>
                   <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
