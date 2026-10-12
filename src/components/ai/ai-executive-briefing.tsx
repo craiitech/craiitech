@@ -25,12 +25,19 @@ import {
   Zap,
   BookOpen,
   ChevronDown,
+  Workflow,
+  Layers,
 } from 'lucide-react';
+import { AiDecisionSupportPanel } from './ai-decision-support-panel';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface AiExecutiveBriefingProps {
   contextData?: Record<string, unknown>;
   className?: string;
+  defaultTab?: 'telemetry' | 'decision-support';
 }
+
+type BriefingTab = 'telemetry' | 'decision-support';
 
 // ─── Futuristic telemetry palette & heuristics ────────────────────────────
 const D = {
@@ -478,13 +485,18 @@ function BriefingView({ text }: { text: string }) {
  * model (or a rule-based fallback when WebGPU/engine is unavailable) to produce an
  * institutional briefing, displayed here as a futuristic telemetry command-deck.
  */
-export function AiExecutiveBriefing({ contextData, className = '' }: AiExecutiveBriefingProps) {
+export function AiExecutiveBriefing({
+  contextData,
+  className = '',
+  defaultTab = 'telemetry',
+}: AiExecutiveBriefingProps) {
   const { isAdminOnly, isAiEnabled, status, generateExecutiveBriefing } = useWebLlm();
   const { toast } = useToast();
   const [briefing, setBriefing] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
+  const [activeTab, setActiveTab] = useState<BriefingTab>(defaultTab);
 
   const handleGenerate = useCallback(async () => {
     if (!isAdminOnly) return;
@@ -623,144 +635,169 @@ export function AiExecutiveBriefing({ contextData, className = '' }: AiExecutive
         </div>
       </CardHeader>
 
-      <CardContent className="relative z-10 p-5">
-        {/* Command bar */}
-        <div className="flex items-center justify-between gap-2 mb-4">
-          <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500 flex items-center gap-1.5">
-            <Gauge className="h-3 w-3" style={{ color: D.cyan }} />
-            Live telemetry · {status === 'ready' ? 'On-device model' : 'Admin-only · Local AI · No cloud'}
-          </p>
-          <div className="flex items-center gap-1">
-            {briefing && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 text-slate-400 hover:text-white rounded-full"
-                title="Copy briefing"
-                onClick={handleCopy}
-              >
-                {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-slate-400 hover:text-white rounded-full"
-              title="Regenerate briefing"
-              onClick={handleGenerate}
-              disabled={isGenerating}
-            >
-              {isGenerating ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: D.cyan }} />
-              ) : (
-                <RotateCcw className="h-3.5 w-3.5" />
-              )}
-            </Button>
-          </div>
-        </div>
+      <Tabs value={activeTab} onValueChange={(v: string) => setActiveTab(v as BriefingTab)} className="relative z-10">
+        <TabsList className="grid w-full grid-cols-2 bg-black/30 border border-white/10 rounded-lg p-1 mb-4">
+          <TabsTrigger
+            value="telemetry"
+            className="text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 data-[state=active]:bg-white/10 data-[state=active]:text-white"
+          >
+            <Activity className="h-3 w-3" style={{ color: D.cyan }} />
+            Telemetry Briefing
+          </TabsTrigger>
+          <TabsTrigger
+            value="decision-support"
+            className="text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 data-[state=active]:bg-white/10 data-[state=active]:text-white"
+          >
+            <Layers className="h-3 w-3" style={{ color: D.violet }} />
+            7-Stage Decision Support
+          </TabsTrigger>
+        </TabsList>
 
-        {/* EQI + telemetry grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="eqi-scan relative rounded-lg border border-white/10 bg-black/30 p-4 flex flex-col items-center justify-center overflow-hidden">
-            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-slate-400">
-              <Zap className="h-3 w-3" style={{ color: D.gold }} />
-              EOMS Quality Index · {scopeBadge}
-            </div>
-            <div
-              className="mt-2 text-5xl font-black tracking-tight tabular-nums"
-              style={{ color: D.cyan, textShadow: `0 0 20px ${D.cyan}66` }}
-            >
-              <Counter value={deck.score} />
-            </div>
-            <div className="text-[9px] font-black uppercase tracking-widest mt-1" style={{ color: D.violet }}>
-              Active Compliance Index
-            </div>
-            <div className="mt-2 flex flex-wrap gap-1.5 justify-center">
-              {deck.critical > 0 && (
-                <Badge
-                  className="text-[7px] font-black uppercase border-none rounded-sm px-2 py-0.5"
-                  style={{ background: 'rgba(220,38,38,0.18)', color: D.red }}
-                >
-                  {deck.critical} Critical
-                </Badge>
-              )}
-              {deck.attention > 0 && (
-                <Badge
-                  className="text-[7px] font-black uppercase border-none rounded-sm px-2 py-0.5"
-                  style={{ background: 'rgba(217,119,6,0.15)', color: D.goldDark }}
-                >
-                  {deck.attention} Attention
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
-            {deck.metrics.map((m) => (
-              <MetricCell key={m.label} label={m.label} value={m.value} />
-            ))}
-          </div>
-        </div>
-
-        {/* Threat counters */}
-        <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {deck.counts.map((c) => (
-            <CountCell key={c.label} label={c.label} value={c.value} tier={c.tier} />
-          ))}
-        </div>
-
-        {/* AI narrative briefing — terminal panel */}
-        <div className="mt-4 rounded-lg border border-white/10 bg-black/40 overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border-b border-white/10">
-            <span className="h-2 w-2 rounded-full bg-red-500/70" />
-            <span className="h-2 w-2 rounded-full bg-yellow-500/70" />
-            <span className="h-2 w-2 rounded-full bg-green-500/70" />
-            <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 ml-2 flex items-center gap-1.5">
-              <FileWarning className="h-3 w-3" style={{ color: D.gold }} />
-              ai-briefing.term
-            </span>
-            {briefing && (
-              <span className="ml-auto text-[8px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1">
-                <Save className="h-3 w-3" /> Synthesized
-              </span>
-            )}
-          </div>
-          <div className="p-4 min-h-[110px] font-mono text-[12px] leading-relaxed">
-            {isGenerating ? (
-              <span className="inline-flex items-center gap-2 animate-pulse font-medium" style={{ color: D.cyan }}>
-                <Bot className="h-4 w-4 animate-bounce" />
-                Synthesizing executive briefing from live metrics
-                <span className="eqi-caret">▊</span>
-              </span>
-            ) : briefing ? (
-              <BriefingView text={briefing} />
-            ) : (
-              <p className="text-slate-500">
-                <span style={{ color: D.green }}>$</span> await command — trigger refresh to decode institutional
-                posture
-                <span className="eqi-caret text-slate-300">▊</span>
+        <CardContent className="p-5 pb-0">
+          <TabsContent value="telemetry" className="space-y-4 animate-in fade-in-0 duration-200">
+            {/* Command bar */}
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <p className="text-[9px] font-black uppercase tracking-[0.16em] text-slate-500 flex items-center gap-1.5">
+                <Gauge className="h-3 w-3" style={{ color: D.cyan }} />
+                Live telemetry · {status === 'ready' ? 'On-device model' : 'Admin-only · Local AI · No cloud'}
               </p>
-            )}
-          </div>
-        </div>
+              <div className="flex items-center gap-1">
+                {briefing && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-slate-400 hover:text-white rounded-full"
+                    title="Copy briefing"
+                    onClick={handleCopy}
+                  >
+                    {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-slate-400 hover:text-white rounded-full"
+                  title="Regenerate briefing"
+                  onClick={handleGenerate}
+                  disabled={isGenerating}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: D.cyan }} />
+                  ) : (
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+            </div>
 
-        {/* Data glossary toggle */}
-        <div className="mt-3">
-          {showGlossary ? (
-            <GlossaryPanel onClose={() => setShowGlossary(false)} />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowGlossary(true)}
-              className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 bg-black/20 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-200 hover:border-white/30 transition-colors"
-            >
-              <BookOpen className="h-3.5 w-3.5" style={{ color: D.violet }} />
-              Read the full description &amp; explanation of every metric
-              <ChevronDown className="h-3 w-3" />
-            </button>
-          )}
-        </div>
-      </CardContent>
+            {/* EQI + telemetry grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="eqi-scan relative rounded-lg border border-white/10 bg-black/30 p-4 flex flex-col items-center justify-center overflow-hidden">
+                <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-slate-400">
+                  <Zap className="h-3 w-3" style={{ color: D.gold }} />
+                  EOMS Quality Index · {scopeBadge}
+                </div>
+                <div
+                  className="mt-2 text-5xl font-black tracking-tight tabular-nums"
+                  style={{ color: D.cyan, textShadow: `0 0 20px ${D.cyan}66` }}
+                >
+                  <Counter value={deck.score} />
+                </div>
+                <div className="text-[9px] font-black uppercase tracking-widest mt-1" style={{ color: D.violet }}>
+                  Active Compliance Index
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5 justify-center">
+                  {deck.critical > 0 && (
+                    <Badge
+                      className="text-[7px] font-black uppercase border-none rounded-sm px-2 py-0.5"
+                      style={{ background: 'rgba(220,38,38,0.18)', color: D.red }}
+                    >
+                      {deck.critical} Critical
+                    </Badge>
+                  )}
+                  {deck.attention > 0 && (
+                    <Badge
+                      className="text-[7px] font-black uppercase border-none rounded-sm px-2 py-0.5"
+                      style={{ background: 'rgba(217,119,6,0.15)', color: D.goldDark }}
+                    >
+                      {deck.attention} Attention
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {deck.metrics.map((m) => (
+                  <MetricCell key={m.label} label={m.label} value={m.value} />
+                ))}
+              </div>
+            </div>
+
+            {/* Threat counters */}
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {deck.counts.map((c) => (
+                <CountCell key={c.label} label={c.label} value={c.value} tier={c.tier} />
+              ))}
+            </div>
+
+            {/* AI narrative briefing — terminal panel */}
+            <div className="mt-4 rounded-lg border border-white/10 bg-black/40 overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 bg-white/5 border-b border-white/10">
+                <span className="h-2 w-2 rounded-full bg-red-500/70" />
+                <span className="h-2 w-2 rounded-full bg-yellow-500/70" />
+                <span className="h-2 w-2 rounded-full bg-green-500/70" />
+                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 ml-2 flex items-center gap-1.5">
+                  <FileWarning className="h-3 w-3" style={{ color: D.gold }} />
+                  ai-briefing.term
+                </span>
+                {briefing && (
+                  <span className="ml-auto text-[8px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1">
+                    <Save className="h-3 w-3" /> Synthesized
+                  </span>
+                )}
+              </div>
+              <div className="p-4 min-h-[110px] font-mono text-[12px] leading-relaxed">
+                {isGenerating ? (
+                  <span className="inline-flex items-center gap-2 animate-pulse font-medium" style={{ color: D.cyan }}>
+                    <Bot className="h-4 w-4 animate-bounce" />
+                    Synthesizing executive briefing from live metrics
+                    <span className="eqi-caret">▊</span>
+                  </span>
+                ) : briefing ? (
+                  <BriefingView text={briefing} />
+                ) : (
+                  <p className="text-slate-500">
+                    <span style={{ color: D.green }}>$</span> await command — trigger refresh to decode institutional
+                    posture
+                    <span className="eqi-caret text-slate-300">▊</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Data glossary toggle */}
+            <div className="mt-3">
+              {showGlossary ? (
+                <GlossaryPanel onClose={() => setShowGlossary(false)} />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowGlossary(true)}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg border border-dashed border-white/15 bg-black/20 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-200 hover:border-white/30 transition-colors"
+                >
+                  <BookOpen className="h-3.5 w-3.5" style={{ color: D.violet }} />
+                  Read the full description &amp; explanation of every metric
+                  <ChevronDown className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="decision-support" className="animate-in fade-in-0 duration-200">
+            <AiDecisionSupportPanel contextData={contextData} />
+          </TabsContent>
+        </CardContent>
+      </Tabs>
     </Card>
   );
 }
