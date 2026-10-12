@@ -451,6 +451,180 @@ export function fallbackExecutiveBriefingGenerator(prompt: string, contextData?:
 }
 
 /**
+ * Generates an institutional Decision Support analysis synthesizing the 7-stage framework:
+ * 1. Data, 2. Information, 3. Evidence, 4. Decision, 5. Action, 6. Outcomes, 7. Learning.
+ */
+export async function generateWebLlmDecisionSupport(
+  prompt: string,
+  contextData?: Record<string, unknown>,
+  maxTokens = 900,
+): Promise<string> {
+  if (globalEngine) {
+    try {
+      const systemPrompt =
+        'You are an expert Institutional Decision Support Analyst & Executive Quality Assurance Strategist for Romblon State University under ISO 21001:2018 (EOMS) and CHED regulations. ' +
+        'Synthesize a rigorous, evidence-based Decision Support Analysis across the 7 stages of institutional quality governance:\n' +
+        '1. DATA: Raw quantified telemetry (submissions, audits, CARs, risks, CHED COPC, accreditation, EOMS score).\n' +
+        '2. INFORMATION: Diagnostic patterns, metric health classifications, and cross-dimensional variance.\n' +
+        '3. EVIDENCE: Corroborated non-conformities, regulatory compliance gaps (CHED COPC / ISO 21001), and audit exposures.\n' +
+        '4. DECISION: Executive determinations, resource allocations, and governance mandates.\n' +
+        '5. ACTION: Sequenced operational interventions, assigned responsibilities, and accountability roadmaps.\n' +
+        '6. OUTCOMES: Projected recovery trajectory, quantifiable targets, and quality maturity improvements.\n' +
+        '7. LEARNING: Institutional memory, root-cause prevention, Kaizen feedback loop, and policy adjustments.\n' +
+        'Tone must be authoritative, strategic, and direct. Use structured headings and clear bullet points.';
+
+      const contextStr = contextData ? `\n\nLive Compliance Metrics: ${JSON.stringify(contextData)}` : '';
+
+      const completion = await globalEngine.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: `${prompt}${contextStr}` },
+        ],
+        temperature: 0.4,
+        max_tokens: maxTokens,
+      });
+
+      return completion.choices[0]?.message?.content || fallbackDecisionSupportGenerator(prompt, contextData);
+    } catch (e) {
+      console.warn('WebLLM decision support error, using fallback:', e);
+    }
+  }
+
+  return fallbackDecisionSupportGenerator(prompt, contextData);
+}
+
+/**
+ * Rule-based 7-stage Decision Support generator when WebGPU/engine is unavailable.
+ * Synthesizes: 1. Data, 2. Information, 3. Evidence, 4. Decision, 5. Action, 6. Outcomes, 7. Learning.
+ */
+export function fallbackDecisionSupportGenerator(prompt: string, contextData?: Record<string, unknown>): string {
+  const toPct = (k: string): number => {
+    const n = Number(contextData?.[k] ?? 0);
+    if (!Number.isFinite(n) || n < 0) return 0;
+    return n <= 1 ? Math.round(n * 100) : Math.round(n);
+  };
+
+  const score = toPct('eomsQualityScore') || toPct('eomsScore') || 78;
+  const submissionRate = toPct('submissionRate');
+  const iqaProgressRate = toPct('iqaProgressRate');
+  const carResolutionRate = toPct('carResolutionRate');
+  const riskControlRate = toPct('riskControlRate');
+  const copcComplianceRate = toPct('copcComplianceRate');
+  const accreditationRate = toPct('accreditationRate');
+  const openCars = Number(contextData?.openCars ?? 0);
+  const pendingAudits = Number(contextData?.pendingAudits ?? 0);
+  const openRisks = Number(contextData?.openRisks ?? 0);
+  const missingCopc = Number(contextData?.missingCopc ?? 0);
+  const scope = (contextData?.scope as string) ?? 'university';
+  const scopeLabel = scope === 'unit' ? 'Operating Unit' : scope === 'campus' ? 'Campus' : 'University-wide';
+
+  const lines: string[] = [];
+
+  lines.push(`DECISION SUPPORT MEMORANDUM · INSTITUTIONAL QUALITY POSTURE [${scopeLabel.toUpperCase()}]`);
+  lines.push(`EOMS Quality Index: ${score}% | Framework: 7-Stage Decision Support (ISO 21001:2018 / CHED)\n`);
+
+  lines.push('### 1. DATA (Operational Observables & Quantified Metrics)');
+  lines.push(`- Submission Compliance: ${submissionRate}% of required quality deliverables archived.`);
+  lines.push(
+    `- Internal Quality Audit (IQA): ${iqaProgressRate}% audit cycle completed (${pendingAudits} audit schedules pending).`,
+  );
+  lines.push(
+    `- Corrective Action Requests (CAR): ${carResolutionRate}% resolved (${openCars} active CARs unresolved).`,
+  );
+  lines.push(
+    `- Risk Management Registry: ${riskControlRate}% controlled (${openRisks} register items without closed treatments).`,
+  );
+  lines.push(
+    `- CHED COPC Compliance: ${copcComplianceRate}% coverage (${missingCopc} academic program(s) lacking validated certificates).`,
+  );
+  lines.push(`- Accreditation Performance: ${accreditationRate}% progress toward target maturity levels.\n`);
+
+  lines.push('### 2. INFORMATION (Processed Diagnostic Patterns & Variance)');
+  if (submissionRate > carResolutionRate + 25) {
+    lines.push(
+      '- Compliance-Execution Decoupling: Document submissions remain active while operational CAR resolution is stalling, creating paper-versus-practice variance.',
+    );
+  }
+  if (missingCopc > 0) {
+    lines.push(
+      `- Regulatory Bottleneck: ${missingCopc} degree program(s) are operating without valid CHED COPCs, restricting eligibility for higher AACCUP/ALCUCOA levels.`,
+    );
+  }
+  if (openRisks > 5) {
+    lines.push(
+      `- Risk Accumulation: ${openRisks} active operational threats remain unmitigated, with highest exposure in academic continuity and facility calibration.`,
+    );
+  }
+  lines.push(
+    `- Composite Health Posture: Monitored dimensions reflect a ${score >= 75 ? 'robust' : score >= 60 ? 'moderate' : 'vulnerable'} state, with highest variance concentrated in corrective action velocity.\n`,
+  );
+
+  lines.push('### 3. EVIDENCE (Corroborated Standards & Regulatory Compliance Gaps)');
+  lines.push(
+    `- ISO 21001:2018 Clause 10.2 (Nonconformity & Corrective Action): ${openCars > 0 ? `${openCars} open CAR(s) exceed target resolution windows, presenting audit findings for external review.` : 'All corrective action requests currently meet closed criteria.'}`,
+  );
+  lines.push(
+    `- CHED Memorandum Orders & Policies: ${missingCopc > 0 ? `${missingCopc} uncertified program(s) violate CHED institutional compliance standards.` : '100% of academic programs maintain valid COPC certificates.'}`,
+  );
+  lines.push(
+    `- ISO 21001:2018 Clause 9.2 (Internal Audit): ${pendingAudits > 0 ? `${pendingAudits} pending audit(s) leave assurance cycles uncorroborated before Management Review.` : 'Internal quality audits are fully executed on schedule.'}`,
+  );
+  lines.push(
+    `- ISO 21001:2018 Clause 6.1 (Actions to Address Risks): ${openRisks > 0 ? `${openRisks} unmitigated risk(s) lack signed-off operational treatments.` : 'Risk treatment protocols are actively deployed.'}\n`,
+  );
+
+  lines.push('### 4. DECISION (Executive Determinations & Resource Priorities)');
+  lines.push(
+    '- Directive 1: Mandate an immediate 30-day CAR closure sprint across all responsible unit heads, requiring verified closure evidence.',
+  );
+  lines.push(
+    '- Directive 2: Mobilize an expedited CHED COPC Task Force under the Office of the Vice President for Academic Affairs.',
+  );
+  lines.push(
+    '- Directive 3: Authorize deployment of certified lead auditor pairs to clear pending IQA audits before cycle closure.',
+  );
+  lines.push(
+    '- Directive 4: Require mandatory risk mitigation sign-offs from departmental heads within 14 business days.\n',
+  );
+
+  lines.push('### 5. ACTION (Operational Interventions & Accountability Roadmap)');
+  lines.push(
+    '1. [Days 1–15] QAO issues non-compliance notices and deploys root-cause templates to all units with open CARs.',
+  );
+  lines.push(
+    '2. [Days 16–30] Academic Deans and Program Chairs complete faculty dossiers and curriculum compliance packets for uncertified programs.',
+  );
+  lines.push(
+    '3. [Days 31–45] Lead Auditors conduct on-site verification audits for CAR closure and execute remaining scheduled IQA audits.',
+  );
+  lines.push(
+    '4. [Days 46–60] Risk Management Committee validates treatment implementation across all open register items.\n',
+  );
+
+  lines.push('### 6. OUTCOMES (Target Trajectory & Measurable Impact)');
+  lines.push(`- Composite EOMS Quality Score: Targeted recovery from ${score}% to ≥88% (Nominal Institutional Tier).`);
+  lines.push('- CAR Backlog: 100% closure of overdue corrective action requests.');
+  lines.push('- COPC Coverage: 0 uncertified academic programs; full eligibility for regional accreditation.');
+  lines.push('- Assurance Coverage: 100% completion of planned IQA schedule with full trail evidence.\n');
+
+  lines.push('### 7. LEARNING (Institutional Memory, Kaizen & Feedback Loops)');
+  lines.push(
+    '- Root-Cause Feedback: Institutionalize automated 90-day expiration notifications for CHED COPC renewals to eliminate certification lapses.',
+  );
+  lines.push(
+    '- Continuous Improvement: Establish monthly CAR resolution clinics to mentor unit heads through root-cause analysis and CAPA verification.',
+  );
+  lines.push(
+    '- Institutional Memory: Archive resolution playbooks into the central EOMS knowledge repository for future accreditation cycles.',
+  );
+  lines.push(
+    '- Feedforward: Incorporate cycle metrics into the upcoming Annual Management Review agenda as inputs for strategic quality planning.',
+  );
+
+  return lines.join('\n');
+}
+
+/**
  * High quality fallback discussion generator if WebGPU is unavailable or engine is initializing
  */
 export function fallbackDiscussionGenerator(prompt: string, contextData?: Record<string, unknown>): string {

@@ -1035,9 +1035,20 @@ export function ExecutiveOverview({
           copcComplianceRate,
           accreditationRate,
           openCars: yearCars.length - closedCars.length,
+          totalCars: yearCars.length,
+          closedCars: closedCars.length,
           pendingAudits: yearSchedules.length - completedAudits.length,
+          totalAudits: yearSchedules.length,
+          completedAudits: completedAudits.length,
           openRisks: yearRisks.length - mitigatedRisks.length,
+          totalRisks: yearRisks.length,
+          mitigatedRisks: mitigatedRisks.length,
           missingCopc: totalProgramsCount - copcCompliant.length,
+          totalPrograms: totalProgramsCount,
+          copcCompliant: copcCompliant.length,
+          totalSubmissions: yearSubmissions.length,
+          approvedSubmissions: approvedSubmissions.length,
+          selectedYear,
         }}
       />
 
