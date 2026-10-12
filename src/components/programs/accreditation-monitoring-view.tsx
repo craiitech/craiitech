@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit } from '@/lib/types';
+import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit, AccreditationRecommendation } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -56,6 +56,9 @@ export function AccreditationMonitoringView({
   const [detailSortBy, setDetailSortBy] = useState<string>('name');
   const [accredYearFilter, setAccredYearFilter] = useState<number | 'all'>('all');
   const [upcomingAccredYear, setUpcomingAccredYear] = useState<number | null>(null);
+  const [recommendationsTypeFilter, setRecommendationsTypeFilter] = useState<string>('all');
+  const [recommendationsStatusFilter, setRecommendationsStatusFilter] = useState<string>('all');
+  const [recommendationsCampusFilter, setRecommendationsCampusFilter] = useState<string>('all');
 
   const currentCalendarYear = new Date().getFullYear();
   // Upcoming accreditation year options: current year + 1 through current year + 10
@@ -632,6 +635,104 @@ export function AccreditationMonitoringView({
     };
   }, [programDetailData]);
 
+  // All Recommendations across all programs for the selected year
+  const allRecommendations = useMemo(() => {
+    const currentYearCompliances = compliances.filter((c) => c.academicYear === selectedYear);
+    const complianceMap = new Map(currentYearCompliances.map((c) => [c.programId, c]));
+
+    const recommendations: Array<{
+      programId: string;
+      programName: string;
+      programAbbreviation: string;
+      campus: string;
+      campusId: string;
+      unit: string;
+      unitId: string;
+      accreditationLevel: string;
+      accreditationRecordId: string;
+      surveyDate: string;
+      validityDate: string;
+      lifecycleStatus: string;
+      recommendation: AccreditationRecommendation;
+    }> = [];
+
+    activePrograms.forEach((p) => {
+      const c = complianceMap.get(p.id);
+      const accRecords = c?.accreditationRecords || [];
+      const campusName = campusMap.get(p.campusId) || 'Unknown';
+      const unitName = unitMap.get(p.collegeId) || 'Unknown';
+
+      accRecords.forEach((record) => {
+        if (record.recommendations && record.recommendations.length > 0) {
+          record.recommendations.forEach((rec) => {
+            recommendations.push({
+              programId: p.id,
+              programName: p.name,
+              programAbbreviation: p.abbreviation,
+              campus: campusName,
+              campusId: p.campusId,
+              unit: unitName,
+              unitId: p.collegeId,
+              accreditationLevel: record.level,
+              accreditationRecordId: record.id,
+              surveyDate: record.dateOfSurvey || '—',
+              validityDate: record.statusValidityDate || 'N/A',
+              lifecycleStatus: record.lifecycleStatus || 'N/A',
+              recommendation: rec,
+            });
+          });
+        }
+      });
+    });
+
+    return recommendations.sort((a, b) => {
+      // Sort by: mandatory first, then by status (Open first), then by program name
+      if (a.recommendation.type !== b.recommendation.type) {
+        return a.recommendation.type === 'Mandatory' ? -1 : 1;
+      }
+      if (a.recommendation.status !== b.recommendation.status) {
+        const statusOrder = { Open: 0, 'In Progress': 1, 'Move to the Official Current Level': 2, Closed: 3 };
+        return (
+          (statusOrder[a.recommendation.status as keyof typeof statusOrder] || 99) -
+          (statusOrder[b.recommendation.status as keyof typeof statusOrder] || 99)
+        );
+      }
+      return a.programName.localeCompare(b.programName);
+    });
+  }, [activePrograms, compliances, selectedYear, campusMap, unitMap]);
+
+  // Filtered recommendations based on selected filters
+  const filteredRecommendations = useMemo(() => {
+    return allRecommendations.filter((item) => {
+      // Filter by academic year
+      if (accredYearFilter !== 'all') {
+        const yearMatch = item.surveyDate.match(/\d{4}/);
+        if (!yearMatch || parseInt(yearMatch[0]) !== accredYearFilter) {
+          return false;
+        }
+      }
+      // Filter by type
+      if (recommendationsTypeFilter !== 'all' && item.recommendation.type !== recommendationsTypeFilter) {
+        return false;
+      }
+      // Filter by status
+      if (recommendationsStatusFilter !== 'all' && item.recommendation.status !== recommendationsStatusFilter) {
+        return false;
+      }
+      // Filter by campus
+      if (recommendationsCampusFilter !== 'all' && item.campusId !== recommendationsCampusFilter) {
+        return false;
+      }
+      return true;
+    });
+  }, [
+    allRecommendations,
+    accredYearFilter,
+    recommendationsTypeFilter,
+    recommendationsStatusFilter,
+    recommendationsCampusFilter,
+  ]);
+
   const accreditationBadge = (level: string) => {
     if (level.includes('Level IV'))
       return <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[9px] font-black">{level}</Badge>;
@@ -957,6 +1058,12 @@ export function AccreditationMonitoringView({
                   className="text-[9px] font-black uppercase tracking-widest px-4 h-7 gap-1.5"
                 >
                   <ListChecks className="h-3.5 w-3.5 text-blue-600" /> Programs Surveyed per Year
+                </TabsTrigger>
+                <TabsTrigger
+                  value="recommendations"
+                  className="text-[9px] font-black uppercase tracking-widest px-4 h-7 gap-1.5"
+                >
+                  <AlertCircle className="h-3.5 w-3.5 text-rose-600" /> Accreditor's Recommendations & Compliance
                 </TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 uppercase">
@@ -1576,6 +1683,229 @@ export function AccreditationMonitoringView({
                   </Table>
                 </div>
               )}
+            </TabsContent>
+
+            {/* SUB-TAB 3: Accreditor's Recommendations & Compliance Status */}
+            <TabsContent value="recommendations" className="m-0">
+              <div className="p-4 border-b bg-slate-50/50 flex flex-wrap items-center gap-3 justify-between">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">Academic Year:</span>
+                  <Select
+                    value={accredYearFilter === 'all' ? 'all' : String(accredYearFilter)}
+                    onValueChange={(v) => setAccredYearFilter(v === 'all' ? 'all' : Number(v))}
+                  >
+                    <SelectTrigger className="h-8 w-[130px] text-xs bg-white border-slate-200">
+                      <SelectValue placeholder="All Years" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-[10px] font-bold">
+                        All Years
+                      </SelectItem>
+                      {accredYears.map((y) => (
+                        <SelectItem key={y} value={String(y)} className="text-[10px] font-bold">
+                          AY {y}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <div className="h-5 w-px bg-slate-200 mx-1" />
+                  <Select value={recommendationsTypeFilter} onValueChange={setRecommendationsTypeFilter}>
+                    <SelectTrigger className="h-8 w-[160px] text-xs bg-white border-slate-200">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-[10px] font-bold">
+                        All Types
+                      </SelectItem>
+                      <SelectItem value="Mandatory" className="text-[10px] font-bold text-rose-600">
+                        Mandatory
+                      </SelectItem>
+                      <SelectItem value="Enhancement" className="text-[10px] font-bold text-blue-600">
+                        Enhancement
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={recommendationsStatusFilter} onValueChange={setRecommendationsStatusFilter}>
+                    <SelectTrigger className="h-8 w-[180px] text-xs bg-white border-slate-200">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-[10px] font-bold">
+                        All Status
+                      </SelectItem>
+                      <SelectItem value="Open" className="text-[10px] font-bold text-rose-600">
+                        Open
+                      </SelectItem>
+                      <SelectItem value="In Progress" className="text-[10px] font-bold text-amber-600">
+                        In Progress
+                      </SelectItem>
+                      <SelectItem
+                        value="Move to the Official Current Level"
+                        className="text-[10px] font-bold text-blue-600"
+                      >
+                        Move to Current Level
+                      </SelectItem>
+                      <SelectItem value="Closed" className="text-[10px] font-bold text-emerald-600">
+                        Closed
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={recommendationsCampusFilter} onValueChange={setRecommendationsCampusFilter}>
+                    <SelectTrigger className="h-8 w-[140px] text-xs bg-white border-slate-200">
+                      <SelectValue placeholder="All Campuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-[10px] font-bold">
+                        All Campuses
+                      </SelectItem>
+                      {campuses.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="text-[10px] font-medium">
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-slate-400 font-medium">
+                    {filteredRecommendations.length} recommendation{filteredRecommendations.length !== 1 ? 's' : ''}{' '}
+                    shown
+                  </span>
+                </div>
+              </div>
+
+              <ScrollArea className="max-h-[600px]">
+                <Table>
+                  <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
+                    <TableRow>
+                      <TableHead className="pl-6 py-4 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Program
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Campus
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-indigo-700 tracking-wider">
+                        <div className="flex items-center gap-1">
+                          <Award className="h-3 w-3" /> Level
+                        </div>
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Type
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-rose-600 tracking-wider">
+                        Status
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Survey Date
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Validity Expires
+                      </TableHead>
+                      <TableHead className="pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                        Assigned Units
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRecommendations.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-16">
+                          <AlertCircle className="h-8 w-8 text-slate-300 mx-auto mb-2 stroke-[1.5]" />
+                          <p className="text-xs font-bold text-slate-500">No recommendations found</p>
+                          <p className="text-[10px] text-slate-400 mt-1">
+                            No accreditation recommendations match the selected filters.
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRecommendations.map((item, idx) => (
+                        <TableRow
+                          key={`${item.programId}-${item.accreditationRecordId}-${item.recommendation.id}-${idx}`}
+                          className="hover:bg-slate-50/80 transition-all border-b group"
+                        >
+                          <TableCell className="pl-6 py-3">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight">
+                                {item.programName}
+                              </span>
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-[9px] text-slate-400 font-mono font-bold">
+                                  {item.programAbbreviation}
+                                </span>
+                                <span className="text-[9px] text-slate-400 font-medium">{item.unit}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+                            <div className="flex items-center gap-1">
+                              <Building2 className="h-3 w-3 text-slate-400 shrink-0" />
+                              {item.campus}
+                            </div>
+                          </TableCell>
+                          <TableCell>{accreditationBadge(item.accreditationLevel)}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              className={cn(
+                                'text-[8px] font-black px-2 py-0.5',
+                                item.recommendation.type === 'Mandatory'
+                                  ? 'bg-rose-100 text-rose-800 border-rose-200'
+                                  : 'bg-blue-100 text-blue-800 border-blue-200',
+                              )}
+                              variant="outline"
+                            >
+                              {item.recommendation.type}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                'text-[8px] font-black',
+                                item.recommendation.status === 'Open'
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                  : item.recommendation.status === 'In Progress'
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : item.recommendation.status === 'Move to the Official Current Level'
+                                      ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                      : 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                              )}
+                            >
+                              {item.recommendation.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center text-xs text-slate-600 font-medium">
+                            {item.surveyDate}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center gap-1.5 whitespace-nowrap justify-center">
+                              <span className="text-[10px] font-mono font-bold text-slate-600 tabular-nums">
+                                {item.validityDate}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right pr-6">
+                            {item.recommendation.assignedUnitIds && item.recommendation.assignedUnitIds.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 justify-end">
+                                {item.recommendation.assignedUnitIds.map((unitId: string) => (
+                                  <Badge
+                                    key={unitId}
+                                    variant="outline"
+                                    className="text-[7px] font-black px-1.5 py-0 bg-slate-100 text-slate-600 border-slate-200"
+                                  >
+                                    {unitMap.get(unitId) || unitId}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-[10px] text-slate-300 font-black">—</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
             </TabsContent>
           </Tabs>
         </CardContent>
