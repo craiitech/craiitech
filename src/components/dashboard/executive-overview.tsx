@@ -192,6 +192,17 @@ export function ExecutiveOverview({
     [approvedComboCount, expectedSubs],
   );
 
+  // Filter submissions for the selected year
+  const yearSubmissions = useMemo(
+    () => scopedSubmissions.filter((s) => Number(s.year) === Number(selectedYear)),
+    [scopedSubmissions, selectedYear],
+  );
+
+  const approvedSubmissions = useMemo(
+    () => yearSubmissions.filter((s) => s.statusId === 'approved'),
+    [yearSubmissions],
+  );
+
   // 2. IQA PROGRESS RATE
   const yearSchedules = useMemo(
     () =>
