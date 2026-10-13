@@ -29,6 +29,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export interface AccreditationMonitoringViewProps {
   programs: AcademicProgram[];
@@ -47,6 +57,10 @@ export function AccreditationMonitoringView({
 }: AccreditationMonitoringViewProps) {
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
+  const complianceMap = useMemo(() => {
+    const currentYearCompliances = compliances.filter((c) => c.academicYear === selectedYear);
+    return new Map(currentYearCompliances.map((c) => [c.programId, c]));
+  }, [compliances, selectedYear]);
 
   const [detailSearch, setDetailSearch] = useState('');
   const [detailCampusFilter, setDetailCampusFilter] = useState('all');
@@ -58,6 +72,7 @@ export function AccreditationMonitoringView({
   const [upcomingAccredYear, setUpcomingAccredYear] = useState<number | null>(null);
   const [recommendationsTypeFilter, setRecommendationsTypeFilter] = useState<string>('all');
   const [recommendationsStatusFilter, setRecommendationsStatusFilter] = useState<string>('all');
+  const [isLevelBreakdownOpen, setIsLevelBreakdownOpen] = useState(false);
   const [recommendationsCampusFilter, setRecommendationsCampusFilter] = useState<string>('all');
 
   const currentCalendarYear = new Date().getFullYear();
@@ -986,31 +1001,242 @@ export function AccreditationMonitoringView({
       </div>
 
       {/* Level Badges Quick Summary */}
-      <div className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border rounded-xl">
-        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-2">
-          Level Breakdown (AY {selectedYear}):
-        </span>
-        <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[9px] font-black">
-          Level IV: {stats.levelIV}
-        </Badge>
-        <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[9px] font-black">
-          Level III: {stats.levelIII}
-        </Badge>
-        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-black">
-          Level II: {stats.levelII}
-        </Badge>
-        <Badge className="bg-green-100 text-green-800 border-green-200 text-[9px] font-black">
-          Level I: {stats.levelI}
-        </Badge>
-        <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] font-black">
-          Candidate: {stats.candidate}
-        </Badge>
-        {stats.newPrograms > 0 && (
-          <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[9px] font-black">
-            New Offering: {stats.newPrograms}
+      <AlertDialogTrigger asChild>
+        <div
+          className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors"
+          onClick={() => setIsLevelBreakdownOpen(true)}
+        >
+          <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-2">
+            Level Breakdown (AY {selectedYear}):
+          </span>
+          <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[9px] font-black">
+            Level IV: {stats.levelIV}
           </Badge>
-        )}
-      </div>
+          <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[9px] font-black">
+            Level III: {stats.levelIII}
+          </Badge>
+          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-black">
+            Level II: {stats.levelII}
+          </Badge>
+          <Badge className="bg-green-100 text-green-800 border-green-200 text-[9px] font-black">
+            Level I: {stats.levelI}
+          </Badge>
+          <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] font-black">
+            Candidate: {stats.candidate}
+          </Badge>
+          {stats.newPrograms > 0 && (
+            <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[9px] font-black">
+              New Offering: {stats.newPrograms}
+            </Badge>
+          )}
+        </div>
+      </AlertDialogTrigger>
+
+      {/* Level Breakdown Alert Dialog */}
+      <AlertDialog open={isLevelBreakdownOpen} onOpenChange={setIsLevelBreakdownOpen}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Level Breakdown Analysis — AY {selectedYear}</AlertDialogTitle>
+          <AlertDialogDescription>
+            Distribution of programs by accreditation level with 4D visualization and program/campus listing
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <AlertDialogContent className="p-6">
+          <div className="grid md:grid-cols-2 gap-6 mb-6">
+            {/* Left: Visualization & Graphs */}
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 mb-4">Level Distribution</h3>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart3 className="h-4 w-4 text-indigo-600" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                    Level Distribution Chart
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-md bg-indigo-100 text-indigo-800 flex items-center justify-center text-[9px] font-black">
+                      Level IV
+                    </div>
+                    <span className="text-[10px] font-bold text-indigo-700">{stats.levelIV}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-md bg-blue-100 text-blue-800 flex items-center justify-center text-[9px] font-black">
+                      Level III
+                    </div>
+                    <span className="text-[10px] font-bold text-blue-700">{stats.levelIII}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center text-[9px] font-black">
+                      Level II
+                    </div>
+                    <span className="text-[10px] font-bold text-emerald-700">{stats.levelII}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-md bg-green-100 text-green-800 flex items-center justify-center text-[9px] font-black">
+                      Level I
+                    </div>
+                    <span className="text-[10px] font-bold text-green-700">{stats.levelI}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center text-[9px] font-black">
+                      Candidate
+                    </div>
+                    <span className="text-[10px] font-bold text-amber-700">{stats.candidate}</span>
+                  </div>
+                  {stats.newPrograms > 0 && (
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-md bg-purple-100 text-purple-700 flex items-center justify-center text-[9px] font-black">
+                        New Offering
+                      </div>
+                      <span className="text-[10px] font-bold text-purple-700">{stats.newPrograms}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right: 4D Presentation */}
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 mb-4">4D Presentation</h3>
+              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+                <div className="flex items-center gap-2 mb-4">
+                  <BarChart3 className="h-4 w-4 text-violet-600" />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                    4D Temporal View
+                  </span>
+                </div>
+                <div className="relative h-64 w-full rounded-xl overflow-hidden bg-gradient-to-br from-indigo-50 to-violet-50">
+                  {/* 4D Donut Chart - simulating the executive display pattern */}
+                  <div className="absolute inset-0 flex items-center justify-center text-3xl font-black text-indigo-600">
+                    <svg viewBox="0 0 100 100" className="w-32 h-32">
+                      <circle cx="50" cy="50" r="40" stroke="url(#grad)" stroke-width="15" fill="none" />
+                      <circle cx="50" cy="50" r="40" stroke="url(#grad2)" stroke-width="15" fill="none" />
+                      <defs>
+                        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#8b5cf6" />
+                          <stop offset="100%" stop-color="#ec4899" />
+                        </linearGradient>
+                        <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stop-color="#a78bfa" />
+                          <stop offset="100%" stop-color="#f472b6" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+                    <div className="absolute inset-0 opacity-20 bg-indigo-500/50 rounded-full" />
+                    <span className="relative text-indigo-600 text-2xl font-black">
+                      {stats.levelIV +
+                        stats.levelIII +
+                        stats.levelII +
+                        stats.levelI +
+                        stats.candidate +
+                        (stats.newPrograms > 0 ? stats.newPrograms : 0)}
+                    </span>
+                    <span className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">
+                      Total Programs
+                    </span>
+                  </div>
+                  <div className="flex flex-col items-center justify-center pt-8">
+                    <span className="text-2xl font-black text-indigo-600">
+                      {stats.levelIV +
+                        stats.levelIII +
+                        stats.levelII +
+                        stats.levelI +
+                        stats.candidate +
+                        (stats.newPrograms > 0 ? stats.newPrograms : 0)}
+                    </span>
+                    <span className="text-sm text-slate-500">Total Programs</span>
+                  </div>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {[
+                    { name: 'Level IV', count: stats.levelIV, color: 'indigo' },
+                    { name: 'Level III', count: stats.levelIII, color: 'blue' },
+                    { name: 'Level II', count: stats.levelII, color: 'emerald' },
+                    { name: 'Level I', count: stats.levelI, color: 'green' },
+                    { name: 'Candidate', count: stats.candidate, color: 'amber' },
+                  ].map((item, i) => (
+                    <span
+                      key={i}
+                      className="px-2 py-0.5 rounded bg-white/50 border border-opacity-30 text-[9px] font-bold uppercase tracking-wider"
+                      style={{
+                        color:
+                          item.color === 'indigo'
+                            ? '#6366f1'
+                            : item.color === 'blue'
+                              ? '#3b82f6'
+                              : item.color === 'emerald'
+                                ? '#10b981'
+                                : item.color === 'green'
+                                  ? '#22c55e'
+                                  : '#f59e0b',
+                      }}
+                    >
+                      {item.name}: {item.count}
+                    </span>
+                  ))}
+                  {stats.newPrograms > 0 && (
+                    <span
+                      key={6}
+                      className="px-2 py-0.5 rounded bg-white/50 border border-opacity-30 text-[9px] font-bold uppercase tracking-wider"
+                      style={{ color: '#a78bfa' }}
+                    >
+                      New Offering: {stats.newPrograms}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom: Program and Campus List */}
+          <div className="mt-6 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
+            <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 mb-4">
+              Program & Campus Listing
+            </h3>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-50/80">
+                  <TableRow>
+                    <TableHead className="pl-4 py-2 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Program
+                    </TableHead>
+                    <TableHead className="pl-4 py-2 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Campus
+                    </TableHead>
+                    <TableHead className="pl-4 py-2 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                      Level
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {activePrograms.slice(0, 10).map((p) => {
+                    const c = complianceMap.get(p.id);
+                    const accRecords = c?.accreditationRecords || [];
+                    const current =
+                      accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
+                    const level = current?.level || 'N/A';
+                    const campusName = campusMap.get(p.campusId) || 'Unknown';
+
+                    return (
+                      <TableRow key={p.id}>
+                        <TableCell className="pl-4 py-3 text-[10px]">{p.name}</TableCell>
+                        <TableCell className="pl-4 py-3 text-[10px]">{campusName}</TableCell>
+                        <TableCell className="pl-4 py-3 text-[10px]">{level}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            <div className="mt-3 text-xs text-slate-500">Showing 10 of {activePrograms.length} programs</div>
+          </div>
+        </AlertDialogContent>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel className="w-full">Close</AlertDialogCancel>
+        </AlertDialogFooter>
+      </AlertDialog>
 
       {/* Main Accreditation Monitoring Tabs Card */}
       <Card className="border-primary/10 shadow-lg overflow-hidden bg-white">
