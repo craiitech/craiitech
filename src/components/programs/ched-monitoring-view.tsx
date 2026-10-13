@@ -784,6 +784,37 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                   </TableBody>
                 </Table>
               </ScrollArea>
+              {/* Decision | Action | Outcome | Learning section */}
+              <div className="p-5 mt-5 bg-gradient-to-b from-slate-50 to-white border border-slate-200 rounded-xl space-y-4">
+                <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-500">Decision</h3>
+                <p className="text-sm text-slate-700 line-clamp-3">
+                  Based on the COPC compliance analysis, institutional leadership should prioritize addressing programs
+                  below the 80% compliance threshold while maintaining standards for programs already in compliance.
+                </p>
+
+                <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-500 mt-4">Action Items</h3>
+                <p className="text-sm text-slate-700 line-clamp-3">
+                  Submit COPC applications for non-compliant programs within 30 days, increase RQAT visit frequency for
+                  at-risk programs, and assign COPC coordinators to monitor progress toward compliance.
+                </p>
+
+                <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-500 mt-4">
+                  Expected Outcome
+                </h3>
+                <p className="text-sm text-slate-700 line-clamp-3">
+                  Improved COPC compliance rate across undergraduate and graduate programs, with more programs achieving
+                  and maintaining valid Certificate of Program Compliance.
+                </p>
+
+                <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-500 mt-4">
+                  Institutional Learning
+                </h3>
+                <p className="text-sm text-slate-700 line-clamp-3">
+                  Evaluate the effectiveness of current COPC support mechanisms, identify barriers to compliance, and
+                  develop targeted interventions for programs below the 60% compliance rate. Review best practices from
+                  high-performing programs for sharing across colleges.
+                </p>
+              </div>
             </TabsContent>
 
             {/* TAB 2: Program Compliance (AY {selectedYear}) */}
