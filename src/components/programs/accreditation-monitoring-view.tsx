@@ -1001,39 +1001,66 @@ export function AccreditationMonitoringView({
       </div>
 
       {/* Level Badges Quick Summary */}
-      <AlertDialogTrigger asChild>
-        <div
-          className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors"
-          onClick={() => setIsLevelBreakdownOpen(true)}
-        >
-          <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-2">
-            Level Breakdown (AY {selectedYear}):
-          </span>
-          <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[9px] font-black">
-            Level IV: {stats.levelIV}
+      {/* Level breakdown trigger inside AlertDialog */}
+      <div className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border rounded-xl">
+        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-2">
+          Level Breakdown (AY {selectedYear}):
+        </span>
+        <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[9px] font-black">
+          Level IV: {stats.levelIV}
+        </Badge>
+        <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[9px] font-black">
+          Level III: {stats.levelIII}
+        </Badge>
+        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-black">
+          Level II: {stats.levelII}
+        </Badge>
+        <Badge className="bg-green-100 text-green-800 border-green-200 text-[9px] font-black">
+          Level I: {stats.levelI}
+        </Badge>
+        <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] font-black">
+          Candidate: {stats.candidate}
+        </Badge>
+        {stats.newPrograms > 0 && (
+          <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[9px] font-black">
+            New Offering: {stats.newPrograms}
           </Badge>
-          <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[9px] font-black">
-            Level III: {stats.levelIII}
-          </Badge>
-          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-black">
-            Level II: {stats.levelII}
-          </Badge>
-          <Badge className="bg-green-100 text-green-800 border-green-200 text-[9px] font-black">
-            Level I: {stats.levelI}
-          </Badge>
-          <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] font-black">
-            Candidate: {stats.candidate}
-          </Badge>
-          {stats.newPrograms > 0 && (
-            <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[9px] font-black">
-              New Offering: {stats.newPrograms}
-            </Badge>
-          )}
-        </div>
-      </AlertDialogTrigger>
+        )}
+      </div>
 
       {/* Level Breakdown Alert Dialog */}
       <AlertDialog open={isLevelBreakdownOpen} onOpenChange={setIsLevelBreakdownOpen}>
+        <AlertDialogTrigger asChild>
+          <div
+            className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors"
+            onClick={() => setIsLevelBreakdownOpen(true)}
+          >
+            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-2">
+              Level Breakdown (AY {selectedYear}):
+            </span>
+            <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[9px] font-black">
+              Level IV: {stats.levelIV}
+            </Badge>
+            <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[9px] font-black">
+              Level III: {stats.levelIII}
+            </Badge>
+            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-black">
+              Level II: {stats.levelII}
+            </Badge>
+            <Badge className="bg-green-100 text-green-800 border-green-200 text-[9px] font-black">
+              Level I: {stats.levelI}
+            </Badge>
+            <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] font-black">
+              Candidate: {stats.candidate}
+            </Badge>
+            {stats.newPrograms > 0 && (
+              <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[9px] font-black">
+                New Offering: {stats.newPrograms}
+              </Badge>
+            )}
+          </div>
+        </AlertDialogTrigger>
+
         <AlertDialogHeader>
           <AlertDialogTitle>Level Breakdown Analysis — AY {selectedYear}</AlertDialogTitle>
           <AlertDialogDescription>
