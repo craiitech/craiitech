@@ -46,7 +46,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { cn } from '@/lib/utils';
+import { cn, isProgramInUnit } from '@/lib/utils';
 
 export default function AcademicProgramsPage() {
   const { userProfile, isAdmin, userRole, isUserLoading, isVp, isAuditor, isMainCampusDOI, isDoi } = useUser();
@@ -153,6 +153,9 @@ export default function AcademicProgramsPage() {
       return query(baseRef, where('campusId', '==', userProfile.campusId));
     }
     if (isUnitViewer && userProfile.unitId) {
+      if (userProfile.campusId) {
+        return query(baseRef, where('campusId', '==', userProfile.campusId));
+      }
       return query(baseRef, where('collegeId', '==', userProfile.unitId));
     }
 
@@ -179,20 +182,6 @@ export default function AcademicProgramsPage() {
     return [...rawPrograms].sort((a, b) => a.name.localeCompare(b.name));
   }, [rawPrograms]);
 
-  const filteredPrograms = useMemo(() => {
-    return programs.filter((p) => {
-      if (!isGlobalViewer && p.campusId !== userProfile?.campusId) return false;
-      if (isUnitViewer && p.collegeId !== userProfile?.unitId) return false;
-
-      const matchesSearch =
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.abbreviation.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCampus = campusFilter === 'all' || p.campusId === campusFilter;
-      const matchesUnit = unitFilter === 'all' || p.collegeId === unitFilter;
-      return matchesSearch && matchesCampus && matchesUnit;
-    });
-  }, [programs, searchTerm, campusFilter, unitFilter, isGlobalViewer, isUnitViewer, userProfile]);
-
   const campusesQuery = useMemoFirebase(
     () => (firestore && !isUserLoading && userProfile ? collection(firestore, 'campuses') : null),
     [firestore, isUserLoading, userProfile],
@@ -204,6 +193,20 @@ export default function AcademicProgramsPage() {
     [firestore, isUserLoading, userProfile],
   );
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+
+  const filteredPrograms = useMemo(() => {
+    return programs.filter((p) => {
+      if (!isGlobalViewer && p.campusId !== userProfile?.campusId) return false;
+      if (isUnitViewer && !isProgramInUnit(p, userProfile?.unitId, units, userProfile?.campusId)) return false;
+
+      const matchesSearch =
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.abbreviation.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCampus = campusFilter === 'all' || p.campusId === campusFilter;
+      const matchesUnit = unitFilter === 'all' || p.collegeId === unitFilter;
+      return matchesSearch && matchesCampus && matchesUnit;
+    });
+  }, [programs, searchTerm, campusFilter, unitFilter, isGlobalViewer, isUnitViewer, userProfile, units]);
 
   const filteredUnitsList = useMemo(() => {
     if (!units) return [];

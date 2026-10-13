@@ -1,6 +1,6 @@
 'use client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { cn, isCycleActive } from '@/lib/utils';
+import { cn, isCycleActive, isProgramInUnit, UNIT_CODES } from '@/lib/utils';
 import { Overview } from '@/components/dashboard/overview';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
 import {
@@ -183,8 +183,17 @@ function calculateEomsScore(
     scopedSubmissions = scopedSubmissions.filter((s) => s.unitId === scopeId);
     scopedRisks = scopedRisks.filter((r) => r.unitId === scopeId);
     scopedCars = scopedCars.filter((c) => c.unitId === scopeId);
-    scopedCompliances = scopedCompliances.filter((c) => c.unitId === scopeId || c.programId === scopeId);
-    scopedPrograms = scopedPrograms.filter((p) => p.id === scopeId);
+    scopedPrograms = scopedPrograms.filter((p) => isProgramInUnit(p, scopeId, scopedUnits));
+    const scopedProgIds = new Set(scopedPrograms.map((p) => p.id));
+    const currentUnit = scopedUnits.find((u) => u.id === scopeId || u.name === scopeId);
+    const unitCode = currentUnit?.name ? UNIT_CODES[currentUnit.name] : null;
+    scopedCompliances = scopedCompliances.filter((c) => {
+      if (scopedProgIds.has(c.programId)) return true;
+      if (c.unitId === scopeId || c.programId === scopeId) return true;
+      if (currentUnit && (c.unitId === currentUnit.id || c.unitId === currentUnit.name)) return true;
+      if (unitCode && c.unitId?.toUpperCase() === unitCode.toUpperCase()) return true;
+      return false;
+    });
     scopedSchedules = scopedSchedules.filter((s) => s.targetId === scopeId);
     scopedUnits = scopedUnits.filter((u) => u.id === scopeId);
   }
@@ -891,10 +900,10 @@ export default function HomePage() {
       return academicPrograms.filter((p) => p.campusId === userProfile.campusId);
     }
     if (userProfile?.unitId) {
-      return academicPrograms.filter((p) => p.id === userProfile.unitId);
+      return academicPrograms.filter((p) => isProgramInUnit(p, userProfile.unitId, allUnits, userProfile.campusId));
     }
     return [];
-  }, [academicPrograms, isUniversityExecutive, isCampusSupervisor, userProfile, isMainCampusDOI]);
+  }, [academicPrograms, isUniversityExecutive, isCampusSupervisor, userProfile, isMainCampusDOI, allUnits]);
 
   const filteredCompliances = useMemo(() => {
     if (!allCompliances) return [];
@@ -903,10 +912,28 @@ export default function HomePage() {
       return allCompliances.filter((c) => c.campusId === userProfile.campusId);
     }
     if (userProfile?.unitId) {
-      return allCompliances.filter((c) => c.programId === userProfile.unitId || c.unitId === userProfile.unitId);
+      const targetProgIds = new Set(filteredAcademicPrograms.map((p) => p.id));
+      const currentUnit = allUnits?.find((u) => u.id === userProfile.unitId || u.name === userProfile.unitId);
+      const unitCode = currentUnit?.name ? UNIT_CODES[currentUnit.name] : null;
+
+      return allCompliances.filter((c) => {
+        if (targetProgIds.has(c.programId)) return true;
+        if (c.unitId === userProfile.unitId || c.programId === userProfile.unitId) return true;
+        if (currentUnit && (c.unitId === currentUnit.id || c.unitId === currentUnit.name)) return true;
+        if (unitCode && c.unitId?.toUpperCase() === unitCode.toUpperCase()) return true;
+        return false;
+      });
     }
     return [];
-  }, [allCompliances, isUniversityExecutive, isCampusSupervisor, userProfile, isMainCampusDOI]);
+  }, [
+    allCompliances,
+    isUniversityExecutive,
+    isCampusSupervisor,
+    userProfile,
+    isMainCampusDOI,
+    filteredAcademicPrograms,
+    allUnits,
+  ]);
 
   const allCyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles } = useCollection<Cycle>(allCyclesQuery);
@@ -964,7 +991,7 @@ export default function HomePage() {
             const prog = academicPrograms?.find((p) => p.id === record.programId);
             results.push({
               programId: record.programId,
-              programName: allUnits?.find((u) => u.id === record.programId)?.name || 'Academic Program',
+              programName: prog?.name || allUnits?.find((u) => u.id === record.programId)?.name || 'Academic Program',
               campusId: record.campusId,
               level: milestone.level,
               recommendation: reco,

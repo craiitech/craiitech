@@ -123,6 +123,76 @@ export const UNIT_CODES: Record<string, string> = {
 };
 
 /**
+ * Checks if an Academic Program belongs to a given unit/college.
+ * Handles multiple matching strategies:
+ * - Direct collegeId matching unit ID or unit name
+ * - Program ID matching unit ID (fallback)
+ * - Abbreviated unit code matching (e.g. 'CET' for 'College of Engineering and Technology')
+ * - Optional campus matching if campusId is provided
+ */
+export function isProgramInUnit(
+  program: { id?: string; collegeId?: string; campusId?: string } | null | undefined,
+  targetUnitId: string | null | undefined,
+  units?: Array<{ id: string; name: string }> | null,
+  targetCampusId?: string | null,
+): boolean {
+  if (!program || !targetUnitId) return false;
+
+  const tUnitId = targetUnitId.trim();
+  const pCollegeId = program.collegeId?.trim();
+  const pId = program.id?.trim();
+
+  // If both program and target specify a campus, verify they match
+  if (targetCampusId && program.campusId && program.campusId.trim() !== targetCampusId.trim()) {
+    return false;
+  }
+
+  // 1. Direct match on collegeId or program ID
+  if (pCollegeId && (pCollegeId === tUnitId || pCollegeId.toLowerCase() === tUnitId.toLowerCase())) {
+    return true;
+  }
+  if (pId && (pId === tUnitId || pId.toLowerCase() === tUnitId.toLowerCase())) {
+    return true;
+  }
+
+  // 2. Lookup unit object by targetUnitId
+  const currentUnit = units?.find(
+    (u) =>
+      u.id === tUnitId ||
+      u.name?.toLowerCase() === tUnitId.toLowerCase() ||
+      u.id?.toLowerCase() === tUnitId.toLowerCase(),
+  );
+
+  if (currentUnit && pCollegeId) {
+    if (
+      pCollegeId === currentUnit.id ||
+      pCollegeId.toLowerCase() === currentUnit.id?.toLowerCase() ||
+      pCollegeId.toLowerCase() === currentUnit.name?.toLowerCase()
+    ) {
+      return true;
+    }
+    const unitCode = UNIT_CODES[currentUnit.name];
+    if (unitCode && pCollegeId.toUpperCase() === unitCode.toUpperCase()) {
+      return true;
+    }
+  }
+
+  // 3. Reverse lookup if targetUnitId is already a code (e.g. 'CET') or name
+  for (const [fullName, code] of Object.entries(UNIT_CODES)) {
+    const isTargetMatch =
+      tUnitId.toUpperCase() === code.toUpperCase() || tUnitId.toLowerCase() === fullName.toLowerCase();
+
+    if (isTargetMatch && pCollegeId) {
+      if (pCollegeId.toLowerCase() === fullName.toLowerCase() || pCollegeId.toUpperCase() === code.toUpperCase()) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Resolves the complete full name of the Supervising Unit / Office for a given unit (un-abbreviated).
  * Used for CAR "Concerning" field and official audit reporting.
  */

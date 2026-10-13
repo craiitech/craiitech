@@ -36,7 +36,7 @@ import type {
   Cycle,
 } from '@/lib/types';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn, isCycleActive } from '@/lib/utils';
+import { cn, isCycleActive, isProgramInUnit, UNIT_CODES } from '@/lib/utils';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 import { AiExecutiveBriefing } from '@/components/ai/ai-executive-briefing';
 
@@ -101,8 +101,17 @@ export function ExecutiveOverview({
       sub = sub.filter((s) => s.unitId === scopeId);
       rsk = rsk.filter((r) => r.unitId === scopeId);
       cr = cr.filter((c) => c.unitId === scopeId);
-      comp = comp.filter((c) => c.unitId === scopeId || c.programId === scopeId);
-      prog = prog.filter((p) => p.id === scopeId);
+      prog = prog.filter((p) => isProgramInUnit(p, scopeId, unt));
+      const progIds = new Set(prog.map((p) => p.id));
+      const currentUnit = unt.find((u) => u.id === scopeId || u.name === scopeId);
+      const unitCode = currentUnit?.name ? UNIT_CODES[currentUnit.name] : null;
+      comp = comp.filter((c) => {
+        if (progIds.has(c.programId)) return true;
+        if (c.unitId === scopeId || c.programId === scopeId) return true;
+        if (currentUnit && (c.unitId === currentUnit.id || c.unitId === currentUnit.name)) return true;
+        if (unitCode && c.unitId?.toUpperCase() === unitCode.toUpperCase()) return true;
+        return false;
+      });
       sched = sched.filter((s) => s.targetId === scopeId);
       unt = unt.filter((u) => u.id === scopeId);
     }

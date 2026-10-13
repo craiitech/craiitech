@@ -55,7 +55,7 @@ const LEVEL_COLORS = ['#6366f1', '#f59e0b', '#10b981'];
 export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, selectedYear }: ChedProgramsTabProps) {
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
 
-  const activePrograms = useMemo(() => academicPrograms.filter((p) => p.isActive), [academicPrograms]);
+  const activePrograms = useMemo(() => academicPrograms.filter((p) => p.isActive !== false), [academicPrograms]);
 
   // Build a compliance map: programId → latest compliance record
   const complianceMap = useMemo(() => {
