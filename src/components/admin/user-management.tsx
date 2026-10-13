@@ -32,6 +32,7 @@ import type { User, Role, Campus, Unit, Signatories } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { EditUserDialog } from './edit-user-dialog';
 import { UserReportDialog } from './user-report-dialog';
+import { UserDistributionSummary } from './user-distribution-summary';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Input } from '../ui/input';
@@ -280,214 +281,225 @@ export function UserManagement() {
   return (
     <>
       <TooltipProvider>
-        <Card>
-          <CardHeader>
-            <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
-              <div>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>{descriptionText[filter]}</CardDescription>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsPrintReportOpen(true)}
-                  className="h-9 sm:h-10 text-xs font-black uppercase tracking-wider bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
-                >
-                  <Printer className="h-4 w-4 text-primary" />
-                  Print Report
-                </Button>
-                <Tabs value={filter} onValueChange={(value) => setFilter(value as FilterStatus)}>
-                  <TabsList className="grid h-auto w-full grid-cols-3 sm:inline-flex sm:h-10 sm:w-auto">
-                    <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="pending">Inactive</TabsTrigger>
-                    <TabsTrigger value="verified">Active</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </div>
-            </div>
-            <div className="relative pt-4">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search users by name, email, role..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 w-full md:w-1/3"
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin" />
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      <Button variant="ghost" onClick={() => requestSort('firstName')}>
-                        User
-                        {getSortIndicator('firstName')}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" onClick={() => requestSort('role')}>
-                        Role
-                        {getSortIndicator('role')}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" onClick={() => requestSort('campus')}>
-                        Campus
-                        {getSortIndicator('campus')}
-                      </Button>
-                    </TableHead>
-                    <TableHead>
-                      <Button variant="ghost" onClick={() => requestSort('unit')}>
-                        Unit
-                        {getSortIndicator('unit')}
-                      </Button>
-                    </TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right pr-6">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => {
-                    const status = getStatus(user);
-                    const isConfirming = confirmDeleteId === user.id;
+        <div className="space-y-4">
+          <UserDistributionSummary
+            users={users || []}
+            units={units || []}
+            campuses={campuses || []}
+            roles={roles || []}
+            onSelectUnit={(unitName) => setSearchTerm(unitName)}
+            onSelectCampus={(campusName) => setSearchTerm(campusName)}
+          />
 
-                    return (
-                      <TableRow
-                        key={user.id}
-                        className={cn('transition-colors', isConfirming && 'bg-rose-50/50 hover:bg-rose-100/50')}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <Avatar>
-                              <AvatarImage src={user.avatar} alt={user.firstName} />
-                              <AvatarFallback>
-                                {user.firstName?.charAt(0)}
-                                {user.lastName?.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">
-                                {user.firstName} {user.lastName}
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
+                <div>
+                  <CardTitle>User Management</CardTitle>
+                  <CardDescription>{descriptionText[filter]}</CardDescription>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsPrintReportOpen(true)}
+                    className="h-9 sm:h-10 text-xs font-black uppercase tracking-wider bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-2"
+                  >
+                    <Printer className="h-4 w-4 text-primary" />
+                    Print Report
+                  </Button>
+                  <Tabs value={filter} onValueChange={(value) => setFilter(value as FilterStatus)}>
+                    <TabsList className="grid h-auto w-full grid-cols-3 sm:inline-flex sm:h-10 sm:w-auto">
+                      <TabsTrigger value="all">All</TabsTrigger>
+                      <TabsTrigger value="pending">Inactive</TabsTrigger>
+                      <TabsTrigger value="verified">Active</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+              </div>
+              <div className="relative pt-4">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search users by name, email, role..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 w-full md:w-1/3"
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>
+                        <Button variant="ghost" onClick={() => requestSort('firstName')}>
+                          User
+                          {getSortIndicator('firstName')}
+                        </Button>
+                      </TableHead>
+                      <TableHead>
+                        <Button variant="ghost" onClick={() => requestSort('role')}>
+                          Role
+                          {getSortIndicator('role')}
+                        </Button>
+                      </TableHead>
+                      <TableHead>
+                        <Button variant="ghost" onClick={() => requestSort('campus')}>
+                          Campus
+                          {getSortIndicator('campus')}
+                        </Button>
+                      </TableHead>
+                      <TableHead>
+                        <Button variant="ghost" onClick={() => requestSort('unit')}>
+                          Unit
+                          {getSortIndicator('unit')}
+                        </Button>
+                      </TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right pr-6">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredUsers.map((user) => {
+                      const status = getStatus(user);
+                      const isConfirming = confirmDeleteId === user.id;
+
+                      return (
+                        <TableRow
+                          key={user.id}
+                          className={cn('transition-colors', isConfirming && 'bg-rose-50/50 hover:bg-rose-100/50')}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarImage src={user.avatar} alt={user.firstName} />
+                                <AvatarFallback>
+                                  {user.firstName?.charAt(0)}
+                                  {user.lastName?.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="font-medium">
+                                  {user.firstName} {user.lastName}
+                                </div>
+                                <div className="text-xs text-muted-foreground">{user.email}</div>
                               </div>
-                              <div className="text-xs text-muted-foreground">{user.email}</div>
                             </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{getRoleName(user.roleId)}</Badge>
-                        </TableCell>
-                        <TableCell>{getCampusName(user.campusId)}</TableCell>
-                        <TableCell>{getUserUnitName(user)}</TableCell>
-                        <TableCell>
-                          <Badge variant={status.variant as any}>{status.text}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right pr-6">
-                          {isConfirming ? (
-                            <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setConfirmDeleteId(null)}
-                                className="h-8 text-[10px] font-black uppercase text-muted-foreground hover:bg-slate-200"
-                                disabled={isSubmitting}
-                              >
-                                <Undo2 className="h-3 w-3 mr-1" />
-                                Abort
-                              </Button>
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => handleDeleteUser(user.id, user.email)}
-                                className="h-8 text-[10px] font-black uppercase bg-destructive text-white hover:bg-destructive/90 shadow-lg shadow-destructive/20"
-                                disabled={isSubmitting}
-                              >
-                                {isSubmitting ? (
-                                  <Loader2 className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <CheckCircle2 className="h-3 w-3 mr-1" />
-                                )}
-                                Confirm?
-                              </Button>
-                            </div>
-                          ) : (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button aria-haspopup="true" size="icon" variant="ghost">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                  <span className="sr-only">Toggle menu</span>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{getRoleName(user.roleId)}</Badge>
+                          </TableCell>
+                          <TableCell>{getCampusName(user.campusId)}</TableCell>
+                          <TableCell>{getUserUnitName(user)}</TableCell>
+                          <TableCell>
+                            <Badge variant={status.variant as any}>{status.text}</Badge>
+                          </TableCell>
+                          <TableCell className="text-right pr-6">
+                            {isConfirming ? (
+                              <div className="flex items-center justify-end gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setConfirmDeleteId(null)}
+                                  className="h-8 text-[10px] font-black uppercase text-muted-foreground hover:bg-slate-200"
+                                  disabled={isSubmitting}
+                                >
+                                  <Undo2 className="h-3 w-3 mr-1" />
+                                  Abort
                                 </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="w-full">
-                                      <DropdownMenuItem
-                                        onSelect={() => {
-                                          setTimeout(() => handleToggleActivation(user), 0);
-                                        }}
-                                        disabled={(!user.ndaAccepted || !isUserComplete(user)) && !user.verified}
-                                      >
-                                        {user.verified ? (
-                                          <>
-                                            <UserX className="mr-2 h-4 w-4" /> Deactivate Account
-                                          </>
-                                        ) : (
-                                          <>
-                                            <UserCheck className="mr-2 h-4 w-4" /> Approve & Activate Account
-                                          </>
-                                        )}
-                                      </DropdownMenuItem>
-                                    </div>
-                                  </TooltipTrigger>
-                                  {!user.verified && !isUserComplete(user) ? (
-                                    <TooltipContent>
-                                      <p>User has not completed registration (Role/Campus unassigned).</p>
-                                    </TooltipContent>
-                                  ) : !user.ndaAccepted && !user.verified ? (
-                                    <TooltipContent>
-                                      <p>User has not accepted the NDA.</p>
-                                    </TooltipContent>
-                                  ) : null}
-                                </Tooltip>
-                                <DropdownMenuItem
-                                  onSelect={() => {
-                                    setTimeout(() => setEditingUser(user), 0);
-                                  }}
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => handleDeleteUser(user.id, user.email)}
+                                  className="h-8 text-[10px] font-black uppercase bg-destructive text-white hover:bg-destructive/90 shadow-lg shadow-destructive/20"
+                                  disabled={isSubmitting}
                                 >
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="text-destructive font-bold"
-                                  onSelect={() => {
-                                    setTimeout(() => setConfirmDeleteId(user.id), 0);
-                                  }}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            )}
-            {!isLoading && filteredUsers.length === 0 && (
-              <div className="text-center py-10 text-muted-foreground">No users found for the current filter.</div>
-            )}
-          </CardContent>
-        </Card>
+                                  {isSubmitting ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  )}
+                                  Confirm?
+                                </Button>
+                              </div>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button aria-haspopup="true" size="icon" variant="ghost">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                    <span className="sr-only">Toggle menu</span>
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="w-full">
+                                        <DropdownMenuItem
+                                          onSelect={() => {
+                                            setTimeout(() => handleToggleActivation(user), 0);
+                                          }}
+                                          disabled={(!user.ndaAccepted || !isUserComplete(user)) && !user.verified}
+                                        >
+                                          {user.verified ? (
+                                            <>
+                                              <UserX className="mr-2 h-4 w-4" /> Deactivate Account
+                                            </>
+                                          ) : (
+                                            <>
+                                              <UserCheck className="mr-2 h-4 w-4" /> Approve & Activate Account
+                                            </>
+                                          )}
+                                        </DropdownMenuItem>
+                                      </div>
+                                    </TooltipTrigger>
+                                    {!user.verified && !isUserComplete(user) ? (
+                                      <TooltipContent>
+                                        <p>User has not completed registration (Role/Campus unassigned).</p>
+                                      </TooltipContent>
+                                    ) : !user.ndaAccepted && !user.verified ? (
+                                      <TooltipContent>
+                                        <p>User has not accepted the NDA.</p>
+                                      </TooltipContent>
+                                    ) : null}
+                                  </Tooltip>
+                                  <DropdownMenuItem
+                                    onSelect={() => {
+                                      setTimeout(() => setEditingUser(user), 0);
+                                    }}
+                                  >
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    className="text-destructive font-bold"
+                                    onSelect={() => {
+                                      setTimeout(() => setConfirmDeleteId(user.id), 0);
+                                    }}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+              {!isLoading && filteredUsers.length === 0 && (
+                <div className="text-center py-10 text-muted-foreground">No users found for the current filter.</div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </TooltipProvider>
 
       <EditUserDialog
