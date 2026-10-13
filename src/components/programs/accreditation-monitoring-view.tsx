@@ -1258,11 +1258,10 @@ export function AccreditationMonitoringView({
             </div>
             <div className="mt-3 text-xs text-slate-500">Showing 10 of {activePrograms.length} programs</div>
           </div>
+          <div className="mt-4 flex justify-end">
+            <AlertDialogCancel className="w-full">Close</AlertDialogCancel>
+          </div>
         </AlertDialogContent>
-
-        <AlertDialogFooter>
-          <AlertDialogCancel className="w-full">Close</AlertDialogCancel>
-        </AlertDialogFooter>
       </AlertDialog>
 
       {/* Main Accreditation Monitoring Tabs Card */}
