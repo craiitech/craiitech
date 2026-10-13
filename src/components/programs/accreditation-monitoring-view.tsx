@@ -24,21 +24,22 @@ import {
   GraduationCap,
   CalendarClock,
   BarChart3,
+  PieChart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogCancel,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 export interface AccreditationMonitoringViewProps {
   programs: AcademicProgram[];
@@ -73,6 +74,9 @@ export function AccreditationMonitoringView({
   const [recommendationsTypeFilter, setRecommendationsTypeFilter] = useState<string>('all');
   const [recommendationsStatusFilter, setRecommendationsStatusFilter] = useState<string>('all');
   const [isLevelBreakdownOpen, setIsLevelBreakdownOpen] = useState(false);
+  const [modalSearch, setModalSearch] = useState('');
+  const [modalCampusFilter, setModalCampusFilter] = useState('all');
+  const [modalLevelFilter, setModalLevelFilter] = useState('all');
   const [recommendationsCampusFilter, setRecommendationsCampusFilter] = useState<string>('all');
 
   const currentCalendarYear = new Date().getFullYear();
@@ -1000,267 +1004,491 @@ export function AccreditationMonitoringView({
         </Card>
       </div>
 
-      {/* Level Badges Quick Summary */}
-      {/* Level Breakdown trigger - shows summary, badges only inside dialog */}
-      <div
-        className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors"
-        onClick={() => setIsLevelBreakdownOpen(true)}
-      >
-        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
-          Level Breakdown (AY {selectedYear}):
-        </span>
-        <svg className="h-4 w-4 text-indigo-600 rotate-180" viewBox="0 0 20 20">
-          <path d="M5 9l7 7 7-7" />
-        </svg>
-      </div>
+      {/* Level Breakdown Modal and Trigger */}
+      {(() => {
+        const totalProgramsInStats =
+          stats.levelIV +
+          stats.levelIII +
+          stats.levelII +
+          stats.levelI +
+          stats.candidate +
+          (stats.newPrograms > 0 ? stats.newPrograms : 0);
+        const safeTotal = Math.max(1, totalProgramsInStats);
 
-      {/* Level Breakdown Alert Dialog */}
-      <AlertDialog open={isLevelBreakdownOpen} onOpenChange={setIsLevelBreakdownOpen}>
-        <AlertDialogTrigger asChild>
-          <div
-            className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors"
-            onClick={() => setIsLevelBreakdownOpen(true)}
-          >
-            <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-2">
-              Level Breakdown (AY {selectedYear}):
-            </span>
-            <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[9px] font-black">
-              Level IV: {stats.levelIV}
-            </Badge>
-            <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[9px] font-black">
-              Level III: {stats.levelIII}
-            </Badge>
-            <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-black">
-              Level II: {stats.levelII}
-            </Badge>
-            <Badge className="bg-green-100 text-green-800 border-green-200 text-[9px] font-black">
-              Level I: {stats.levelI}
-            </Badge>
-            <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] font-black">
-              Candidate: {stats.candidate}
-            </Badge>
-            {stats.newPrograms > 0 && (
-              <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[9px] font-black">
-                New Offering: {stats.newPrograms}
-              </Badge>
-            )}
-          </div>
-        </AlertDialogTrigger>
+        const chartData = [
+          {
+            name: 'Level IV',
+            count: stats.levelIV,
+            color: '#6366f1',
+            bg: 'bg-indigo-500',
+            badgeClass: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+          },
+          {
+            name: 'Level III',
+            count: stats.levelIII,
+            color: '#3b82f6',
+            bg: 'bg-blue-500',
+            badgeClass: 'bg-blue-100 text-blue-800 border-blue-200',
+          },
+          {
+            name: 'Level II',
+            count: stats.levelII,
+            color: '#10b981',
+            bg: 'bg-emerald-500',
+            badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+          },
+          {
+            name: 'Level I',
+            count: stats.levelI,
+            color: '#22c55e',
+            bg: 'bg-green-500',
+            badgeClass: 'bg-green-100 text-green-800 border-green-200',
+          },
+          {
+            name: 'Candidate',
+            count: stats.candidate,
+            color: '#f59e0b',
+            bg: 'bg-amber-500',
+            badgeClass: 'bg-amber-100 text-amber-800 border-amber-200',
+          },
+          ...(stats.newPrograms > 0
+            ? [
+                {
+                  name: 'New Offering',
+                  count: stats.newPrograms,
+                  color: '#a855f7',
+                  bg: 'bg-purple-500',
+                  badgeClass: 'bg-purple-100 text-purple-700 border-purple-200',
+                },
+              ]
+            : []),
+        ];
 
-        <AlertDialogHeader>
-          <AlertDialogTitle>Level Breakdown Analysis — AY {selectedYear}</AlertDialogTitle>
-          <AlertDialogDescription>
-            Distribution of programs by accreditation level with 4D visualization and program/campus listing
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+        const donutCircumference = 2 * Math.PI * 38;
+        let cumulativeDash = 0;
+        const donutSegments = chartData
+          .filter((s) => s.count > 0)
+          .map((s) => {
+            const dash = (s.count / safeTotal) * donutCircumference;
+            const offset = -cumulativeDash;
+            cumulativeDash += dash;
+            return {
+              ...s,
+              dash,
+              offset,
+            };
+          });
 
-        <AlertDialogContent className="p-6 flex flex-col lg:flex-row h-[90vh] overflow-y-auto">
-          <div className="grid md:grid-cols-2 gap-6 mb-6">
-            {/* Left: Visualization & Graphs */}
-            <div>
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 mb-4">Level Distribution</h3>
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="h-4 w-4 text-indigo-600" />
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">
-                    Level Distribution Chart
+        const filteredPrograms = activePrograms
+          .map((p) => {
+            const c = complianceMap.get(p.id);
+            const accRecords = c?.accreditationRecords || [];
+            const current =
+              accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
+            const rawLevel = current?.level || 'Non Accredited';
+            const isAccredited =
+              current && rawLevel !== 'Non Accredited' && !rawLevel.includes('PSV') && rawLevel !== 'AWAITING RESULT';
+            const displayLevel = isAccredited ? rawLevel : p.isNewProgram ? 'New Offering' : rawLevel;
+            const campusName = campusMap.get(p.campusId) || 'Unknown';
+            const lifecycle = current?.lifecycleStatus || 'N/A';
+
+            return {
+              id: p.id,
+              name: p.name,
+              abbreviation: p.abbreviation,
+              campusId: p.campusId,
+              campusName,
+              level: displayLevel,
+              lifecycle,
+            };
+          })
+          .filter((item) => {
+            if (modalCampusFilter !== 'all' && item.campusId !== modalCampusFilter) return false;
+            if (modalLevelFilter !== 'all') {
+              if (
+                modalLevelFilter === 'Candidate' &&
+                !item.level.toLowerCase().includes('candidate') &&
+                !item.level.includes('PSV')
+              )
+                return false;
+              else if (modalLevelFilter === 'New Offering' && item.level !== 'New Offering') return false;
+              else if (
+                modalLevelFilter !== 'Candidate' &&
+                modalLevelFilter !== 'New Offering' &&
+                !item.level.includes(modalLevelFilter)
+              )
+                return false;
+            }
+            if (modalSearch) {
+              const q = modalSearch.toLowerCase();
+              if (
+                !item.name.toLowerCase().includes(q) &&
+                !item.abbreviation.toLowerCase().includes(q) &&
+                !item.campusName.toLowerCase().includes(q)
+              ) {
+                return false;
+              }
+            }
+            return true;
+          })
+          .sort((a, b) => a.campusName.localeCompare(b.campusName) || a.name.localeCompare(b.name));
+
+        return (
+          <Dialog open={isLevelBreakdownOpen} onOpenChange={setIsLevelBreakdownOpen}>
+            <DialogTrigger asChild>
+              <div className="flex items-center justify-between gap-3 p-3 bg-slate-50 hover:bg-slate-100/90 border border-slate-200 rounded-xl cursor-pointer transition-all shadow-xs group">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] font-black uppercase text-slate-600 tracking-wider flex items-center gap-1.5 mr-1">
+                    <BarChart3 className="h-3.5 w-3.5 text-indigo-600" />
+                    Level Breakdown (AY {selectedYear}):
                   </span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-md bg-indigo-100 text-indigo-800 flex items-center justify-center text-[9px] font-black">
-                      Level IV
-                    </div>
-                    <span className="text-[10px] font-bold text-indigo-700">{stats.levelIV}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-md bg-blue-100 text-blue-800 flex items-center justify-center text-[9px] font-black">
-                      Level III
-                    </div>
-                    <span className="text-[10px] font-bold text-blue-700">{stats.levelIII}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-md bg-emerald-100 text-emerald-800 flex items-center justify-center text-[9px] font-black">
-                      Level II
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-700">{stats.levelII}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-md bg-green-100 text-green-800 flex items-center justify-center text-[9px] font-black">
-                      Level I
-                    </div>
-                    <span className="text-[10px] font-bold text-green-700">{stats.levelI}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-md bg-amber-100 text-amber-800 flex items-center justify-center text-[9px] font-black">
-                      Candidate
-                    </div>
-                    <span className="text-[10px] font-bold text-amber-700">{stats.candidate}</span>
-                  </div>
+                  <Badge className="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 border-indigo-200 text-[9px] font-black">
+                    Level IV: {stats.levelIV}
+                  </Badge>
+                  <Badge className="bg-blue-100 hover:bg-blue-200 text-blue-800 border-blue-200 text-[9px] font-black">
+                    Level III: {stats.levelIII}
+                  </Badge>
+                  <Badge className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border-emerald-200 text-[9px] font-black">
+                    Level II: {stats.levelII}
+                  </Badge>
+                  <Badge className="bg-green-100 hover:bg-green-200 text-green-800 border-green-200 text-[9px] font-black">
+                    Level I: {stats.levelI}
+                  </Badge>
+                  <Badge className="bg-amber-100 hover:bg-amber-200 text-amber-800 border-amber-200 text-[9px] font-black">
+                    Candidate: {stats.candidate}
+                  </Badge>
                   {stats.newPrograms > 0 && (
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-md bg-purple-100 text-purple-700 flex items-center justify-center text-[9px] font-black">
-                        New Offering
-                      </div>
-                      <span className="text-[10px] font-bold text-purple-700">{stats.newPrograms}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Right: 4D Presentation */}
-            <div>
-              <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 mb-4">4D Presentation</h3>
-              <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                  <BarChart3 className="h-4 w-4 text-violet-600" />
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">
-                    4D Temporal View
-                  </span>
-                </div>
-                <div className="relative h-64 w-full rounded-xl overflow-hidden bg-gradient-to-br from-indigo-50 to-violet-50">
-                  {/* 4D Donut Chart - simulating the executive display pattern */}
-                  <div className="absolute inset-0 flex items-center justify-center text-3xl font-black text-indigo-600">
-                    <svg viewBox="0 0 100 100" className="w-32 h-32">
-                      <circle cx="50" cy="50" r="40" stroke="url(#grad)" stroke-width="15" fill="none" />
-                      <circle cx="50" cy="50" r="40" stroke="url(#grad2)" stroke-width="15" fill="none" />
-                      <defs>
-                        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stop-color="#8b5cf6" />
-                          <stop offset="100%" stop-color="#ec4899" />
-                        </linearGradient>
-                        <linearGradient id="grad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stop-color="#a78bfa" />
-                          <stop offset="100%" stop-color="#f472b6" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                    <div className="absolute inset-0 opacity-20 bg-indigo-500/50 rounded-full" />
-                    <span className="relative text-indigo-600 text-2xl font-black">
-                      {stats.levelIV +
-                        stats.levelIII +
-                        stats.levelII +
-                        stats.levelI +
-                        stats.candidate +
-                        (stats.newPrograms > 0 ? stats.newPrograms : 0)}
-                    </span>
-                    <span className="absolute inset-0 flex items-center justify-center text-sm text-slate-500">
-                      Total Programs
-                    </span>
-                  </div>
-                  <div className="flex flex-col items-center justify-center pt-8">
-                    <span className="text-2xl font-black text-indigo-600">
-                      {stats.levelIV +
-                        stats.levelIII +
-                        stats.levelII +
-                        stats.levelI +
-                        stats.candidate +
-                        (stats.newPrograms > 0 ? stats.newPrograms : 0)}
-                    </span>
-                    <span className="text-sm text-slate-500">Total Programs</span>
-                  </div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {[
-                    { name: 'Level IV', count: stats.levelIV, color: 'indigo' },
-                    { name: 'Level III', count: stats.levelIII, color: 'blue' },
-                    { name: 'Level II', count: stats.levelII, color: 'emerald' },
-                    { name: 'Level I', count: stats.levelI, color: 'green' },
-                    { name: 'Candidate', count: stats.candidate, color: 'amber' },
-                  ].map((item, i) => (
-                    <span
-                      key={i}
-                      className="px-2 py-0.5 rounded bg-white/50 border border-opacity-30 text-[9px] font-bold uppercase tracking-wider"
-                      style={{
-                        color:
-                          item.color === 'indigo'
-                            ? '#6366f1'
-                            : item.color === 'blue'
-                              ? '#3b82f6'
-                              : item.color === 'emerald'
-                                ? '#10b981'
-                                : item.color === 'green'
-                                  ? '#22c55e'
-                                  : '#f59e0b',
-                      }}
-                    >
-                      {item.name}: {item.count}
-                    </span>
-                  ))}
-                  {stats.newPrograms > 0 && (
-                    <span
-                      key={6}
-                      className="px-2 py-0.5 rounded bg-white/50 border border-opacity-30 text-[9px] font-bold uppercase tracking-wider"
-                      style={{ color: '#a78bfa' }}
-                    >
+                    <Badge className="bg-purple-100 hover:bg-purple-200 text-purple-700 border-purple-200 text-[9px] font-black">
                       New Offering: {stats.newPrograms}
-                    </span>
+                    </Badge>
                   )}
                 </div>
+                <div className="flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-indigo-600 group-hover:text-indigo-700 shrink-0">
+                  <span>View Details</span>
+                  <ExternalLink className="h-3 w-3" />
+                </div>
               </div>
-            </div>
-          </div>
+            </DialogTrigger>
 
-          {/* Bottom: Program and Campus List */}
-          <div className="mt-6 p-4 bg-white rounded-xl border border-slate-200 shadow-sm">
-            <h3 className="text-sm font-black uppercase tracking-wider text-slate-500 mb-4">
-              Program & Campus Listing
-            </h3>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-slate-50/80">
-                  <TableRow>
-                    <TableHead className="pl-4 py-2 text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                      Program
-                    </TableHead>
-                    <TableHead className="pl-4 py-2 text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                      Campus
-                    </TableHead>
-                    <TableHead className="pl-4 py-2 text-[9px] font-black uppercase text-slate-500 tracking-wider">
-                      Level
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activePrograms.slice(0, 10).map((p) => {
-                    const c = complianceMap.get(p.id);
-                    const accRecords = c?.accreditationRecords || [];
-                    const current =
-                      accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
-                    const level = current?.level || 'N/A';
-                    const campusName = campusMap.get(p.campusId) || 'Unknown';
+            <DialogContent className="max-w-4xl sm:max-w-4xl w-[95vw] max-h-[90vh] flex flex-col p-0 overflow-hidden bg-white shadow-2xl border-slate-200">
+              <DialogHeader className="p-5 pb-4 border-b bg-gradient-to-r from-indigo-50/80 via-blue-50/40 to-slate-50/80">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-indigo-600 text-white shadow-sm">
+                    <BarChart3 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <DialogTitle className="text-base font-black uppercase tracking-wider text-slate-900">
+                      Level Breakdown Analysis — AY {selectedYear}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-slate-500 font-medium mt-0.5">
+                      Institutional accreditation distribution, maturity metrics, and program directory
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
 
-                    return (
-                      <TableRow key={p.id}>
-                        <TableCell className="pl-4 py-3 text-[10px]">{p.name}</TableCell>
-                        <TableCell className="pl-4 py-3 text-[10px]">{campusName}</TableCell>
-                        <TableCell className="pl-4 py-3 text-[10px]">{level}</TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-            <div className="mt-3 text-xs text-slate-500">Showing 10 of {activePrograms.length} programs</div>
-          </div>
-          <div className="mt-4 flex justify-end">
-            <AlertDialogCancel className="w-full">Close</AlertDialogCancel>
-          </div>
-        </AlertDialogContent>
-        <AlertDialogFooter className="p-4">
-          <div className="flex justify-end">
-            <Button
-              onClick={() => window.print()}
-              variant="outline"
-              size="sm"
-              className="text-[10px] font-black uppercase tracking-widest"
-            >
-              Print
-            </Button>
-          </div>
-        </AlertDialogFooter>
-      </AlertDialog>
+              {/* Scrollable Modal Body */}
+              <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                {/* Visualizations Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Left: Distribution Breakdown by Level */}
+                  <div className="bg-slate-50/70 rounded-xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                          <Award className="h-3.5 w-3.5 text-indigo-600" />
+                          Distribution by Level
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-500">
+                          Total: {totalProgramsInStats} programs
+                        </span>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        {chartData.map((item, idx) => {
+                          const pct = safeTotal > 0 ? Math.round((item.count / safeTotal) * 100) : 0;
+                          return (
+                            <div key={idx} className="space-y-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[10px] font-black border ${item.badgeClass}`}
+                                >
+                                  {item.name}
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-black text-slate-800 text-xs">{item.count}</span>
+                                  <span className="text-[10px] font-bold text-slate-400">({pct}%)</span>
+                                </div>
+                              </div>
+                              <div className="h-2 w-full bg-slate-200/80 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${item.bg}`}
+                                  style={{ width: `${pct}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-3 border-t border-slate-200/80 flex items-center justify-between text-[10px] text-slate-500 font-bold">
+                      <span>
+                        Accreditation Rate: <strong className="text-indigo-600 font-black">{stats.rate}%</strong>
+                      </span>
+                      <span>
+                        High Maturity (III & IV):{' '}
+                        <strong className="text-emerald-600 font-black">{stats.levelIV + stats.levelIII}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right: Visual Overview & Composition */}
+                  <div className="bg-slate-50/70 rounded-xl border border-slate-200 p-4 shadow-2xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                          <PieChart className="h-3.5 w-3.5 text-violet-600" />
+                          Visual Composition
+                        </span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">
+                          AY {selectedYear} Overview
+                        </span>
+                      </div>
+
+                      {/* SVG Donut Chart */}
+                      <div className="relative w-36 h-36 mx-auto my-3 flex items-center justify-center">
+                        <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+                          <circle cx="50" cy="50" r={38} className="stroke-slate-200/70" strokeWidth="10" fill="none" />
+                          {donutSegments.map((seg, i) => (
+                            <circle
+                              key={i}
+                              cx="50"
+                              cy="50"
+                              r={38}
+                              stroke={seg.color}
+                              strokeWidth="10"
+                              strokeDasharray={`${seg.dash} ${donutCircumference}`}
+                              strokeDashoffset={seg.offset}
+                              fill="none"
+                              className="transition-all duration-500"
+                            />
+                          ))}
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                          <span className="text-2xl font-black text-slate-900 tracking-tight leading-none">
+                            {totalProgramsInStats}
+                          </span>
+                          <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider mt-0.5">
+                            Total Programs
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Segmented multi-color bar */}
+                      <div className="h-2 w-full rounded-full bg-slate-200/70 flex overflow-hidden">
+                        {chartData.map((s, idx) => {
+                          const pct = safeTotal > 0 ? (s.count / safeTotal) * 100 : 0;
+                          if (pct <= 0) return null;
+                          return (
+                            <div
+                              key={idx}
+                              style={{ width: `${pct}%`, backgroundColor: s.color }}
+                              className="h-full first:rounded-l-full last:rounded-r-full"
+                              title={`${s.name}: ${s.count} (${Math.round(pct)}%)`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Pill Badges */}
+                    <div className="mt-3 pt-3 border-t border-slate-200/80 flex flex-wrap gap-1.5 justify-center">
+                      {chartData.map((s, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-white border border-slate-200 shadow-2xs"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.color }} />
+                          <span className="text-slate-600">{s.name}:</span>
+                          <span className="text-slate-900 font-black">{s.count}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Program & Campus Listing Table */}
+                <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-2xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-slate-500" />
+                      <h3 className="text-xs font-black uppercase tracking-wider text-slate-700">
+                        Program & Campus Listing
+                      </h3>
+                      <Badge variant="outline" className="text-[10px] font-bold bg-slate-50">
+                        {filteredPrograms.length} of {activePrograms.length}
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="relative min-w-[160px]">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+                        <Input
+                          placeholder="Search programs..."
+                          value={modalSearch}
+                          onChange={(e) => setModalSearch(e.target.value)}
+                          className="pl-8 h-7 text-xs bg-slate-50 border-slate-200"
+                        />
+                      </div>
+                      <Select value={modalCampusFilter} onValueChange={setModalCampusFilter}>
+                        <SelectTrigger className="h-7 w-[130px] text-[10px] bg-slate-50 border-slate-200">
+                          <SelectValue placeholder="All Campuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all" className="text-[10px] font-bold">
+                            All Campuses
+                          </SelectItem>
+                          {campuses.map((c) => (
+                            <SelectItem key={c.id} value={c.id} className="text-[10px]">
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select value={modalLevelFilter} onValueChange={setModalLevelFilter}>
+                        <SelectTrigger className="h-7 w-[120px] text-[10px] bg-slate-50 border-slate-200">
+                          <SelectValue placeholder="All Levels" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all" className="text-[10px] font-bold">
+                            All Levels
+                          </SelectItem>
+                          <SelectItem value="Level IV" className="text-[10px]">
+                            Level IV
+                          </SelectItem>
+                          <SelectItem value="Level III" className="text-[10px]">
+                            Level III
+                          </SelectItem>
+                          <SelectItem value="Level II" className="text-[10px]">
+                            Level II
+                          </SelectItem>
+                          <SelectItem value="Level I" className="text-[10px]">
+                            Level I
+                          </SelectItem>
+                          <SelectItem value="Candidate" className="text-[10px]">
+                            Candidate
+                          </SelectItem>
+                          <SelectItem value="New Offering" className="text-[10px]">
+                            New Offering
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="border border-slate-100 rounded-lg overflow-hidden">
+                    <div className="max-h-64 overflow-y-auto">
+                      <Table>
+                        <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
+                          <TableRow>
+                            <TableHead className="pl-3 py-2 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                              Program
+                            </TableHead>
+                            <TableHead className="py-2 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                              Campus
+                            </TableHead>
+                            <TableHead className="py-2 text-[9px] font-black uppercase text-slate-500 tracking-wider">
+                              Level
+                            </TableHead>
+                            <TableHead className="pr-3 py-2 text-[9px] font-black uppercase text-slate-500 tracking-wider text-right">
+                              Status
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredPrograms.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={4} className="text-center py-8 text-xs text-slate-400">
+                                No programs found matching the filters.
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            filteredPrograms.map((p) => {
+                              const levelBadgeColor = p.level.includes('Level IV')
+                                ? 'bg-indigo-100 text-indigo-800 border-indigo-200'
+                                : p.level.includes('Level III')
+                                  ? 'bg-blue-100 text-blue-800 border-blue-200'
+                                  : p.level.includes('Level II')
+                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                    : p.level.includes('Level I')
+                                      ? 'bg-green-100 text-green-800 border-green-200'
+                                      : p.level.toLowerCase().includes('candidate')
+                                        ? 'bg-amber-100 text-amber-800 border-amber-200'
+                                        : p.level === 'New Offering'
+                                          ? 'bg-purple-100 text-purple-700 border-purple-200'
+                                          : 'bg-slate-100 text-slate-700 border-slate-200';
+
+                              return (
+                                <TableRow key={p.id} className="hover:bg-slate-50/60">
+                                  <TableCell className="pl-3 py-2.5">
+                                    <div className="font-bold text-[11px] text-slate-900">{p.name}</div>
+                                    {p.abbreviation && (
+                                      <div className="text-[9px] font-medium text-slate-400">{p.abbreviation}</div>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="py-2.5 text-[10px] font-medium text-slate-600">
+                                    {p.campusName}
+                                  </TableCell>
+                                  <TableCell className="py-2.5">
+                                    <span
+                                      className={`inline-block px-2 py-0.5 rounded text-[9px] font-black border ${levelBadgeColor}`}
+                                    >
+                                      {p.level}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="pr-3 py-2.5 text-right text-[10px] text-slate-500 font-medium">
+                                    {p.lifecycle}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter className="p-4 border-t bg-slate-50 flex sm:items-center sm:justify-between gap-3">
+                <div className="text-[10px] text-slate-500 font-bold hidden sm:block">
+                  Romblon State University &bull; Quality Assurance Office
+                </div>
+                <div className="flex items-center gap-2 justify-end">
+                  <Button
+                    onClick={handlePrintProgramDetails}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-[10px] font-black uppercase tracking-wider gap-1.5 bg-white border-slate-300"
+                  >
+                    <Printer className="h-3.5 w-3.5" />
+                    Print Report
+                  </Button>
+                  <DialogClose asChild>
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="h-8 text-[10px] font-black uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-white"
+                    >
+                      Close
+                    </Button>
+                  </DialogClose>
+                </div>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
 
       {/* Main Accreditation Monitoring Tabs Card */}
       <Card className="border-primary/10 shadow-lg overflow-hidden bg-white">
