@@ -1001,31 +1001,17 @@ export function AccreditationMonitoringView({
       </div>
 
       {/* Level Badges Quick Summary */}
-      {/* Level breakdown trigger inside AlertDialog */}
-      <div className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border rounded-xl">
-        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider mr-2">
+      {/* Level Breakdown trigger - shows summary, badges only inside dialog */}
+      <div
+        className="flex items-center gap-2 flex-wrap p-3 bg-muted/20 border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors"
+        onClick={() => setIsLevelBreakdownOpen(true)}
+      >
+        <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
           Level Breakdown (AY {selectedYear}):
         </span>
-        <Badge className="bg-indigo-100 text-indigo-800 border-indigo-200 text-[9px] font-black">
-          Level IV: {stats.levelIV}
-        </Badge>
-        <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[9px] font-black">
-          Level III: {stats.levelIII}
-        </Badge>
-        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[9px] font-black">
-          Level II: {stats.levelII}
-        </Badge>
-        <Badge className="bg-green-100 text-green-800 border-green-200 text-[9px] font-black">
-          Level I: {stats.levelI}
-        </Badge>
-        <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[9px] font-black">
-          Candidate: {stats.candidate}
-        </Badge>
-        {stats.newPrograms > 0 && (
-          <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[9px] font-black">
-            New Offering: {stats.newPrograms}
-          </Badge>
-        )}
+        <svg className="h-4 w-4 text-indigo-600 rotate-180" viewBox="0 0 20 20">
+          <path d="M5 9l7 7 7-7" />
+        </svg>
       </div>
 
       {/* Level Breakdown Alert Dialog */}
@@ -1068,7 +1054,7 @@ export function AccreditationMonitoringView({
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <AlertDialogContent className="p-6">
+        <AlertDialogContent className="p-6 flex flex-col lg:flex-row h-[90vh] overflow-y-auto">
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             {/* Left: Visualization & Graphs */}
             <div>
@@ -1262,6 +1248,18 @@ export function AccreditationMonitoringView({
             <AlertDialogCancel className="w-full">Close</AlertDialogCancel>
           </div>
         </AlertDialogContent>
+        <AlertDialogFooter className="p-4">
+          <div className="flex justify-end">
+            <Button
+              onClick={() => window.print()}
+              variant="outline"
+              size="sm"
+              className="text-[10px] font-black uppercase tracking-widest"
+            >
+              Print
+            </Button>
+          </div>
+        </AlertDialogFooter>
       </AlertDialog>
 
       {/* Main Accreditation Monitoring Tabs Card */}
