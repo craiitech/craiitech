@@ -48,6 +48,7 @@ import { RiskFormDialog } from '@/components/risk/risk-form-dialog';
 import { RiskTable } from '@/components/risk/risk-table';
 import { RiskDashboard } from '@/components/risk/risk-dashboard';
 import { AiRiskIntelligenceCard } from '@/components/risk/ai-risk-intelligence-card';
+import { DetailedRegisterSummary } from '@/components/risk/detailed-register-summary';
 import { useSearchParams } from 'next/navigation';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -778,6 +779,7 @@ export default function RiskRegisterPage() {
           <RiskDashboard risks={filteredRisks} isLoading={isLoading} selectedYear={selectedYear} />
         </TabsContent>
         <TabsContent value="detailed-register" className="animate-in fade-in duration-500 space-y-4">
+          <DetailedRegisterSummary risks={filteredRisks} currentTab={detailedTab} selectedYear={selectedYear} />
           <Card className="shadow-md border-primary/10 overflow-hidden">
             <Tabs value={detailedTab} onValueChange={(val) => setDetailedTab(val as any)} className="w-full">
               <div className="flex items-center justify-between border-b bg-slate-50/50 dark:bg-slate-800/50 px-6 py-2">
