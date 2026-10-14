@@ -125,7 +125,7 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
     return activePrograms
       .map((p) => {
         const comp = complianceMap.get(p.id);
-        const visits = comp?.ched?.rqatVisits || [];
+        const visits = Array.isArray(comp?.ched?.rqatVisits) ? comp.ched.rqatVisits : [];
         const lastVisit = visits.length > 0 ? visits[visits.length - 1] : null;
         const lastDate = lastVisit ? new Date(lastVisit.date) : null;
         const yearsAgo = lastDate ? (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24 * 365) : null;
@@ -151,7 +151,7 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
       .filter((p) => p.isBoardProgram)
       .map((p) => {
         const comp = complianceMap.get(p.id);
-        const exams = comp?.boardPerformance || [];
+        const exams = Array.isArray(comp?.boardPerformance) ? comp.boardPerformance : [];
         const latest = exams.length > 0 ? exams[exams.length - 1] : null;
         return {
           name: p.abbreviation || p.name,

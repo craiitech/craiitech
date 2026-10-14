@@ -3653,7 +3653,7 @@ export default function ExecutiveDisplayPage() {
     const rqatVisits: { date: string; program: string; result: string }[] = [];
     (rawCompliances || []).forEach((c) => {
       const prog = activePrograms.find((p) => p.id === c.programId);
-      (c.ched?.rqatVisits || []).forEach((r) => {
+      (Array.isArray(c.ched?.rqatVisits) ? c.ched.rqatVisits : []).forEach((r) => {
         rqatVisits.push({ date: r.date, program: prog?.name || 'Academic Program', result: r.result });
       });
     });

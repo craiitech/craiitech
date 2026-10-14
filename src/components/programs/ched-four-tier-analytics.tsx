@@ -111,10 +111,37 @@ export interface PrescriptiveAction {
   expectedOutcome: string;
 }
 
+function safeArray<T = any>(val: any): T[] {
+  if (!val) return [];
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'object') {
+    if (
+      'firstTakersCount' in val ||
+      'firstTakersPassed' in val ||
+      'examDate' in val ||
+      'overallPassRate' in val ||
+      'count' in val ||
+      'maleCount' in val ||
+      'femaleCount' in val ||
+      'firstSemester' in val ||
+      'lifecycleStatus' in val ||
+      'areaCode' in val ||
+      'isAlignedWithCMO' in val
+    ) {
+      return [val as T];
+    }
+    const values = Object.values(val);
+    if (values.length > 0 && typeof values[0] === 'object' && values[0] !== null) {
+      return values as T[];
+    }
+  }
+  return [];
+}
+
 export function ChedFourTierAnalytics({
-  programs,
-  compliances,
-  campuses,
+  programs = [],
+  compliances = [],
+  campuses = [],
   units: _units,
   selectedYear,
 }: ChedFourTierAnalyticsProps) {
@@ -126,18 +153,22 @@ export function ChedFourTierAnalytics({
   const [selectedCampusRiskFilter, setSelectedCampusRiskFilter] = useState('all');
   const [activeDirectiveModal, setActiveDirectiveModal] = useState<PrescriptiveAction | null>(null);
 
+  const safePrograms = useMemo(() => safeArray(programs), [programs]);
+  const safeCompliances = useMemo(() => safeArray(compliances), [compliances]);
+  const safeCampuses = useMemo(() => safeArray(campuses), [campuses]);
+
   // Campus lookup
-  const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
+  const campusMap = useMemo(() => new Map(safeCampuses.map((c) => [c.id, c.name])), [safeCampuses]);
 
   // Active programs only for core analytics
-  const activePrograms = useMemo(() => programs.filter((p) => p.isActive), [programs]);
+  const activePrograms = useMemo(() => safePrograms.filter((p) => p.isActive), [safePrograms]);
 
   // ==========================================
   // 1. DESCRIPTIVE ANALYTICS CALCULATIONS
   // ==========================================
   const descriptiveMetrics = useMemo(() => {
     const totalActive = activePrograms.length;
-    const currentCompliances = compliances.filter((c) => c.academicYear === selectedYear);
+    const currentCompliances = safeCompliances.filter((c) => c.academicYear === selectedYear);
 
     // 1.1 COPC Regulatory Breakdown
     let copcCompliantCount = 0;
@@ -153,10 +184,11 @@ export function ChedFourTierAnalytics({
       else if (status === 'In Progress') copcInProgressCount++;
       else copcNoCount++;
 
-      if (rec?.ched?.boardApprovalLink || (rec?.ched?.majorBoardApprovals && rec.ched.majorBoardApprovals.length > 0)) {
+      const majorApprovals = safeArray(rec?.ched?.majorBoardApprovals);
+      if (rec?.ched?.boardApprovalLink || majorApprovals.length > 0) {
         borApprovedCount++;
       }
-      if (rec?.curriculumRecords?.some((cr) => cr.isNotedByChed)) {
+      if (safeArray(rec?.curriculumRecords).some((cr) => cr?.isNotedByChed)) {
         curriculumNotedCount++;
       }
     });
@@ -185,7 +217,7 @@ export function ChedFourTierAnalytics({
 
     activePrograms.forEach((p) => {
       const rec = currentCompliances.find((c) => c.programId === p.id);
-      const currentMilestone = (rec?.accreditationRecords || []).find((m) => m.lifecycleStatus === 'Current');
+      const currentMilestone = safeArray(rec?.accreditationRecords).find((m) => m?.lifecycleStatus === 'Current');
       const rawLevel = (currentMilestone?.level || '').trim();
 
       if (rawLevel.includes('Level IV')) {
@@ -219,7 +251,7 @@ export function ChedFourTierAnalytics({
     ];
 
     // 1.3 Campus-by-Campus Compliance Index
-    const campusComplianceData = campuses
+    const campusComplianceData = safeCampuses
       .map((campus) => {
         const campusPrograms = activePrograms.filter((p) => p.campusId === campus.id);
         const total = campusPrograms.length;
@@ -232,7 +264,7 @@ export function ChedFourTierAnalytics({
 
         const accredited = campusPrograms.filter((p) => {
           const rec = currentCompliances.find((c) => c.programId === p.id);
-          const cur = (rec?.accreditationRecords || []).find((m) => m.lifecycleStatus === 'Current');
+          const cur = safeArray(rec?.accreditationRecords).find((m) => m?.lifecycleStatus === 'Current');
           return cur && cur.level && !cur.level.includes('Non') && !cur.level.includes('Candidate');
         }).length;
 
@@ -251,22 +283,22 @@ export function ChedFourTierAnalytics({
     );
 
     const graduationRatesByYear = years.map((yr, idx) => {
-      const yearCompliances = compliances.filter((c) => c.academicYear === yr);
+      const yearCompliances = safeCompliances.filter((c) => c.academicYear === yr);
       let totalGrads = 0;
       let maleGrads = 0;
       let femaleGrads = 0;
       let totalEnrolled = 0;
 
       yearCompliances.forEach((c) => {
-        (c.graduationRecords || []).forEach((g) => {
-          totalGrads += Number(g.count || 0);
-          maleGrads += Number(g.maleCount || 0);
-          femaleGrads += Number(g.femaleCount || 0);
+        safeArray(c?.graduationRecords).forEach((g) => {
+          totalGrads += Number(g?.count || 0);
+          maleGrads += Number(g?.maleCount || 0);
+          femaleGrads += Number(g?.femaleCount || 0);
         });
-        (c.enrollmentRecords || []).forEach((e) => {
-          const t = e.firstSemester;
+        safeArray(c?.enrollmentRecords).forEach((e) => {
+          const t = e?.firstSemester;
           if (t) {
-            totalEnrolled += Number(t.firstYear?.total || 0) + Number(t.fourthYear?.total || 0);
+            totalEnrolled += Number(t?.firstYear?.total || 0) + Number(t?.fourthYear?.total || 0);
           }
         });
       });
@@ -300,12 +332,12 @@ export function ChedFourTierAnalytics({
     let examCount = 0;
 
     currentCompliances.forEach((c) => {
-      (c.boardPerformance || []).forEach((bp) => {
-        totalFirstTakers += Number(bp.firstTakersCount || 0);
-        totalFirstPassed += Number(bp.firstTakersPassed || 0);
-        totalRetakers += Number(bp.retakersCount || 0);
-        totalRetakersPassed += Number(bp.retakersPassed || 0);
-        if (bp.nationalPassingRate) {
+      safeArray(c?.boardPerformance).forEach((bp) => {
+        totalFirstTakers += Number(bp?.firstTakersCount || 0);
+        totalFirstPassed += Number(bp?.firstTakersPassed || 0);
+        totalRetakers += Number(bp?.retakersCount || 0);
+        totalRetakersPassed += Number(bp?.retakersPassed || 0);
+        if (bp?.nationalPassingRate) {
           nationalWeightedSum += Number(bp.nationalPassingRate);
           examCount++;
         }
@@ -327,10 +359,10 @@ export function ChedFourTierAnalytics({
     let bachelorsCount = 0;
 
     currentCompliances.forEach((c) => {
-      (c.faculty?.members || []).forEach((f) => {
+      safeArray(c?.faculty?.members).forEach((f) => {
         totalFaculty++;
-        if (f.isAlignedWithCMO === 'Aligned') alignedFaculty++;
-        const highest = (f.highestEducation || '').toLowerCase();
+        if (f?.isAlignedWithCMO === 'Aligned') alignedFaculty++;
+        const highest = (f?.highestEducation || '').toLowerCase();
         if (highest.includes('doc') || highest.includes('phd') || highest.includes('ed.d')) doctoralCount++;
         else if (highest.includes('mas') || highest.includes('ms') || highest.includes('ma') || highest.includes('mba'))
           mastersCount++;
@@ -372,7 +404,7 @@ export function ChedFourTierAnalytics({
       facultyCMOAlignmentRate,
       facultyAttainmentData,
     };
-  }, [activePrograms, compliances, campuses, selectedYear]);
+  }, [activePrograms, safeCompliances, safeCampuses, selectedYear]);
 
   // ==========================================
   // 2. DIAGNOSTIC ANALYTICS CALCULATIONS
@@ -384,14 +416,14 @@ export function ChedFourTierAnalytics({
     );
 
     const attritionLineData = years.map((yr, idx) => {
-      const yearCompliances = compliances.filter((c) => c.academicYear === yr);
+      const yearCompliances = safeCompliances.filter((c) => c.academicYear === yr);
       let firstYearTotal = 0;
       let secondYearTotal = 0;
 
       yearCompliances.forEach((c) => {
-        (c.enrollmentRecords || []).forEach((e) => {
-          firstYearTotal += Number(e.firstSemester?.firstYear?.total || 0);
-          secondYearTotal += Number(e.firstSemester?.secondYear?.total || 0);
+        safeArray(c?.enrollmentRecords).forEach((e) => {
+          firstYearTotal += Number(e?.firstSemester?.firstYear?.total || 0);
+          secondYearTotal += Number(e?.firstSemester?.secondYear?.total || 0);
         });
       });
 
@@ -411,7 +443,7 @@ export function ChedFourTierAnalytics({
     const currentAttrition = attritionLineData[attritionLineData.length - 1]?.attrition || 16;
 
     // 2.2 Root-Cause Decomposition of Non-COPC Status
-    const currentCompliances = compliances.filter((c) => c.academicYear === selectedYear);
+    const currentCompliances = safeCompliances.filter((c) => c.academicYear === selectedYear);
 
     let deficitFacultyAlignment = 0;
     let unnotedCurriculum = 0;
@@ -422,23 +454,21 @@ export function ChedFourTierAnalytics({
       const rec = currentCompliances.find((c) => c.programId === p.id);
       const isCompliant = rec?.ched?.copcStatus === 'With COPC';
       if (!isCompliant) {
-        const facultyMembers = rec?.faculty?.members || [];
-        const alignedCount = facultyMembers.filter((f) => f.isAlignedWithCMO === 'Aligned').length;
+        const facultyMembers = safeArray(rec?.faculty?.members);
+        const alignedCount = facultyMembers.filter((f) => f?.isAlignedWithCMO === 'Aligned').length;
         const rate = facultyMembers.length > 0 ? (alignedCount / facultyMembers.length) * 100 : 50;
         if (rate < 70) deficitFacultyAlignment++;
 
-        const hasNoted = rec?.curriculumRecords?.some((cr) => cr.isNotedByChed);
+        const hasNoted = safeArray(rec?.curriculumRecords).some((cr) => cr?.isNotedByChed);
         if (!hasNoted) unnotedCurriculum++;
 
-        const hasRqatIssues = (rec?.ched?.rqatVisits || []).some(
-          (v) => (v.nonCompliances && v.nonCompliances.trim() !== '') || v.result?.toLowerCase().includes('deficient'),
+        const hasRqatIssues = safeArray(rec?.ched?.rqatVisits).some(
+          (v) =>
+            (v?.nonCompliances && v.nonCompliances.trim() !== '') || v?.result?.toLowerCase().includes('deficient'),
         );
         if (hasRqatIssues) pendingRqatVisits++;
 
-        if (
-          !rec?.ched?.boardApprovalLink &&
-          (!rec?.ched?.majorBoardApprovals || rec.ched.majorBoardApprovals.length === 0)
-        ) {
+        if (!rec?.ched?.boardApprovalLink && safeArray(rec?.ched?.majorBoardApprovals).length === 0) {
           missingBorApproval++;
         }
       }
@@ -487,12 +517,12 @@ export function ChedFourTierAnalytics({
     };
 
     currentCompliances.forEach((c) => {
-      (c.accreditationRecords || []).forEach((m) => {
-        (m.areas || []).forEach((a) => {
+      safeArray(c?.accreditationRecords).forEach((m) => {
+        safeArray(m?.areas).forEach((a) => {
           const matchKey = Object.keys(areaAverages).find(
-            (k) => a.areaCode?.includes(k) || a.areaName?.toLowerCase().includes(areaAverages[k].name.toLowerCase()),
+            (k) => a?.areaCode?.includes(k) || a?.areaName?.toLowerCase().includes(areaAverages[k].name.toLowerCase()),
           );
-          if (matchKey && a.mean) {
+          if (matchKey && a?.mean) {
             areaAverages[matchKey].sum += Number(a.mean);
             areaAverages[matchKey].count += 1;
           }
@@ -562,32 +592,32 @@ export function ChedFourTierAnalytics({
       programsWithoutNotedCurriculum: unnotedCurriculum > 0 ? unnotedCurriculum : 14,
       programsMissingCopc: descriptiveMetrics.copcNoCount + descriptiveMetrics.copcInProgressCount,
     };
-  }, [compliances, activePrograms, descriptiveMetrics, selectedYear]);
+  }, [safeCompliances, activePrograms, descriptiveMetrics, selectedYear]);
 
   // ==========================================
   // 3. PREDICTIVE ANALYTICS CALCULATIONS
   // ==========================================
   const predictiveMetrics = useMemo(() => {
-    const currentCompliances = compliances.filter((c) => c.academicYear === selectedYear);
+    const currentCompliances = safeCompliances.filter((c) => c.academicYear === selectedYear);
 
     // 3.1 Composite Program Risk Calculation
     const programRisks: ProgramRiskItem[] = activePrograms.map((p) => {
       const rec = currentCompliances.find((c) => c.programId === p.id);
       const campusName = campusMap.get(p.campusId) || p.campusId;
       const copcStatus = rec?.ched?.copcStatus || 'No COPC';
-      const hasCurriculumNoted = Boolean(rec?.curriculumRecords?.some((cr) => cr.isNotedByChed));
+      const hasCurriculumNoted = Boolean(safeArray(rec?.curriculumRecords).some((cr) => cr?.isNotedByChed));
 
-      const facultyMembers = rec?.faculty?.members || [];
-      const alignedFaculty = facultyMembers.filter((f) => f.isAlignedWithCMO === 'Aligned').length;
+      const facultyMembers = safeArray(rec?.faculty?.members);
+      const alignedFaculty = facultyMembers.filter((f) => f?.isAlignedWithCMO === 'Aligned').length;
       const facultyAlignmentRate =
         facultyMembers.length > 0 ? Math.round((alignedFaculty / facultyMembers.length) * 100) : 70;
 
       // Attrition proxy
       let firstYear = 0;
       let secondYear = 0;
-      (rec?.enrollmentRecords || []).forEach((e) => {
-        firstYear += Number(e.firstSemester?.firstYear?.total || 0);
-        secondYear += Number(e.firstSemester?.secondYear?.total || 0);
+      safeArray(rec?.enrollmentRecords).forEach((e) => {
+        firstYear += Number(e?.firstSemester?.firstYear?.total || 0);
+        secondYear += Number(e?.firstSemester?.secondYear?.total || 0);
       });
       const attritionRate =
         firstYear > 20 && secondYear > 0 && firstYear > secondYear
@@ -595,7 +625,7 @@ export function ChedFourTierAnalytics({
           : 14;
 
       // Accreditation expiry proximity
-      const currentMilestone = (rec?.accreditationRecords || []).find((m) => m.lifecycleStatus === 'Current');
+      const currentMilestone = safeArray(rec?.accreditationRecords).find((m) => m?.lifecycleStatus === 'Current');
       const nextYear = currentMilestone?.nextScheduleYear || selectedYear + 2;
       const isExpiringSoon = nextYear <= selectedYear + 1;
 
@@ -691,7 +721,7 @@ export function ChedFourTierAnalytics({
 
     activePrograms.forEach((p) => {
       const rec = currentCompliances.find((c) => c.programId === p.id);
-      const currentMilestone = (rec?.accreditationRecords || []).find((m) => m.lifecycleStatus === 'Current');
+      const currentMilestone = safeArray(rec?.accreditationRecords).find((m) => m?.lifecycleStatus === 'Current');
       if (currentMilestone && currentMilestone.level && !currentMilestone.level.includes('Non')) {
         const nextYear = currentMilestone.nextScheduleYear || selectedYear + 2;
         if (nextYear <= selectedYear) expiring6Months++;
