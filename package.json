@@ -119,9 +119,9 @@
     "wait-on": "^8.0.1"
   },
   "build": {
-    "appId": "com.rsu.eoms.portal",
-    "productName": "RSU EOMS Portal",
-    "copyright": "Copyright © 2025 Romblon State University",
+    "appId": "com.uaqa.portal",
+    "productName": "UAQA Portal",
+    "copyright": "Copyright © 2025-2026 UAQA Portal",
     "directories": {
       "output": "dist"
     },
@@ -134,7 +134,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "RSU EOMS Portal"
+      "shortcutName": "UAQA Portal"
     },
     "files": [
       "electron/**/*",

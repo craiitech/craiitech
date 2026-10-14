@@ -27,7 +27,9 @@ function VisitContent() {
       await navigator.clipboard.writeText(downloadUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch { /* clipboard not available */ }
+    } catch {
+      /* clipboard not available */
+    }
   };
 
   const handleContinue = () => {
@@ -41,7 +43,7 @@ function VisitContent() {
           <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto shadow-lg shadow-primary/5">
             <Smartphone className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-800 dark:text-slate-200">RSU EOMS Portal</h1>
+          <h1 className="text-2xl font-black tracking-tight text-slate-800 dark:text-slate-200">UAQA Portal</h1>
           <p className="text-sm text-muted-foreground font-medium">
             Get the best experience by installing the Android app.
           </p>
@@ -52,7 +54,7 @@ function VisitContent() {
             {origin && (
               <img
                 src={qrSrc}
-                alt="QR code to download the RSU EOMS Portal Android app"
+                alt="QR code to download the UAQA Portal Android app"
                 width={200}
                 height={200}
                 className="rounded-xl border p-2 bg-white"
@@ -85,8 +87,7 @@ function VisitContent() {
 
         <div className="text-center space-y-3">
           <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
-            Scan the QR code with your phone camera to install the app.
-            You may need to enable{' '}
+            Scan the QR code with your phone camera to install the app. You may need to enable{' '}
             <span className="font-black text-slate-600 dark:text-slate-400">Install from unknown sources</span>.
           </p>
 
@@ -107,11 +108,13 @@ function VisitContent() {
 
 export default function VisitPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="animate-pulse text-sm text-muted-foreground font-medium">Loading...</div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
+          <div className="animate-pulse text-sm text-muted-foreground font-medium">Loading...</div>
+        </div>
+      }
+    >
       <VisitContent />
     </Suspense>
   );

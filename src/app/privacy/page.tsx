@@ -14,8 +14,8 @@ export default function PrivacyPage() {
       </CardHeader>
       <CardContent className="prose prose-sm max-w-none text-muted-foreground space-y-8 pt-8">
         <p className="leading-relaxed">
-          Romblon State University (RSU) is committed to protecting the privacy and security of your personal data. This
-          statement explains how the EOMS Portal collects and manages information from authorized institutional users.
+          UAQA Portal is committed to protecting the privacy and security of your personal data. This statement explains
+          how the UAQA Portal collects and manages information from authorized institutional users.
         </p>
 
         <section className="space-y-4">
@@ -57,14 +57,14 @@ export default function PrivacyPage() {
             <ShieldCheck className="h-5 w-5 text-primary" /> 3. Data Protection & Cryptographic Standards
           </h3>
           <p>
-            The RSU EOMS Portal employs multi-layer enterprise security standards to guarantee the confidentiality,
-            integrity, and non-repudiation of institutional records:
+            UAQA Portal employs multi-layer enterprise security standards to guarantee the confidentiality, integrity,
+            and non-repudiation of institutional records:
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>
-              <strong>At-Rest Cloud Storage Encryption (AES-256):</strong> All university EOMS documents stored in
-              Google Drive repositories and Firestore database entries are encrypted at rest with hardware-accelerated,
-              FIPS 140-2 validated Advanced Encryption Standard (AES-256).
+              <strong>At-Rest Cloud Storage Encryption (AES-256):</strong> All UAQA Portal documents stored in Google
+              Drive repositories and Firestore database entries are encrypted at rest with hardware-accelerated, FIPS
+              140-2 validated Advanced Encryption Standard (AES-256).
             </li>
             <li>
               <strong>In-Transit Network Security (TLS 1.3 / AES-GCM):</strong> All data transmissions between client
@@ -89,12 +89,12 @@ export default function PrivacyPage() {
           </h3>
           <p>
             As a data subject, you retain the right to access, correct, or request the deletion of your account through
-            the RSU Data Protection Officer.
+            the UAQA Portal Data Protection Officer.
           </p>
         </section>
 
         <div className="pt-8 mt-8 border-t text-[10px] uppercase font-bold text-center">
-          Last Updated: February 2025 • Issued by RSU Quality Assurance Office
+          Last Updated: February 2025 • Issued by Quality Assurance Office
         </div>
       </CardContent>
     </Card>

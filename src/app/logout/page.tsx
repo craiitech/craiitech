@@ -108,7 +108,7 @@ export default function LogoutPage() {
         }),
       );
 
-      XLSX.writeFile(wb, `RSU_EOMS_Backup_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`);
+      XLSX.writeFile(wb, `UAQA_Backup_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`);
       toast({ title: 'Backup Successful' });
       setView('feedback');
     } catch (e) {

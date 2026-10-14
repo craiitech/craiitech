@@ -183,7 +183,7 @@ export default function QRScannerPage() {
       } else {
         setScanResult({
           status: 'error',
-          message: 'The scanned code is not a valid EOMS portal link.',
+          message: 'The scanned code is not a valid UAQA Portal link.',
         });
         redirectTimeoutRef.current = setTimeout(() => {
           startScanning();
@@ -343,7 +343,7 @@ export default function QRScannerPage() {
         </div>
 
         <p className="text-[10px] text-slate-400 max-w-[280px] mx-auto leading-relaxed">
-          Open the EOMS portal on a desktop or kiosk, locate a sign-in or survey QR code, and scan it with this camera
+          Open the UAQA Portal on a desktop or kiosk, locate a sign-in or survey QR code, and scan it with this camera
           reader.
         </p>
       </div>

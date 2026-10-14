@@ -6,7 +6,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
-    title: "RSU EOMS Submission Portal",
+    title: "UAQA Portal",
     autoHideMenuBar: true, // Hides the top menu for a cleaner look
     webPreferences: {
       nodeIntegration: false,

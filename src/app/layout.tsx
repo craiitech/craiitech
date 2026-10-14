@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -9,8 +8,8 @@ import { ThemeProvider } from '@/context/theme-provider';
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' });
 
 export const metadata: Metadata = {
-  title: 'RSU EOMS Submission Portal',
-  description: 'Romblon State University EOMS Submission Portal',
+  title: 'UAQA Portal',
+  description: 'Unified Archipelagic Quality Assurance Portal',
   icons: {
     icon: '/favicon.ico',
     shortcut: '/favicon.ico',
@@ -38,14 +37,12 @@ export default function RootLayout({
                   }
                 } catch(e) {}
               })();
-            `
+            `,
           }}
           suppressHydrationWarning
         />
         <ThemeProvider>
-          <FirebaseClientProvider>
-            {children}
-          </FirebaseClientProvider>
+          <FirebaseClientProvider>{children}</FirebaseClientProvider>
           <Toaster />
         </ThemeProvider>
       </body>

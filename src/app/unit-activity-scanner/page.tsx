@@ -2248,7 +2248,7 @@ function UnitActivityScannerTerminal() {
           {/* Footer brand label */}
           <div className="mt-auto pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <p className="text-[7px] font-black uppercase tracking-widest text-slate-500 text-center leading-none">
-              RSU EOMS &bull; CRAIITech
+              UAQA Portal &bull; CRAIITech
             </p>
           </div>
         </section>

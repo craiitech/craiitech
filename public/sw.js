@@ -144,7 +144,7 @@ self.addEventListener('fetch', (event) => {
 // ─── Web Push & Background OS Notification Handlers ───
 self.addEventListener('push', (event) => {
   let data = {
-    title: 'RSU EOMS Notification',
+    title: 'UAQA Portal Notification',
     body: 'You have a new institutional update.',
     icon: '/favicon.ico',
     badge: '/favicon.ico',
