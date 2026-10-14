@@ -1,20 +1,13 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from '@/firebase/firestore-wrapper';
 import type { ActivityLog } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Loader2, Search } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -26,8 +19,9 @@ export default function AuditLogPage() {
   // This query is now strictly conditional. It will only be constructed when firestore is ready
   // AND the user is a confirmed admin. Otherwise, it's null.
   const logsQuery = useMemoFirebase(
-    () => (firestore && user && isAdmin ? query(collection(firestore, 'activityLogs'), orderBy('timestamp', 'desc')) : null),
-    [firestore, user, isAdmin]
+    () =>
+      firestore && user && isAdmin ? query(collection(firestore, 'activityLogs'), orderBy('timestamp', 'desc')) : null,
+    [firestore, user, isAdmin],
   );
 
   // useCollection will receive null for non-admins or during initial load, preventing it from running.
@@ -36,7 +30,7 @@ export default function AuditLogPage() {
   const filteredLogs = useMemo(() => {
     if (!logs) return [];
     const lowercasedFilter = searchTerm.toLowerCase();
-    return logs.filter(log => {
+    return logs.filter((log) => {
       return (
         log.userName?.toLowerCase().includes(lowercasedFilter) ||
         log.userRole?.toLowerCase().includes(lowercasedFilter) ||
@@ -69,7 +63,7 @@ export default function AuditLogPage() {
 
   // If we reach here, the user is an admin. Now we can check if the logs are loading.
   if (isLoadingLogs) {
-      return (
+    return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
@@ -86,17 +80,22 @@ export default function AuditLogPage() {
       <Card>
         <CardHeader>
           <CardTitle>Activity Stream</CardTitle>
-          <CardDescription>
-            Search and review logs to monitor user actions for security and compliance.
-          </CardDescription>
+          <CardDescription>Search and review logs to monitor user actions for security and compliance.</CardDescription>
           <div className="relative pt-4">
-             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Search logs by user, action, or details..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 w-full md:w-1/3"
             />
+            <Button
+              onClick={() => window.print()}
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-sm"
+              title="Print Audit Log Report"
+            >
+              Print
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -111,20 +110,18 @@ export default function AuditLogPage() {
             </TableHeader>
             <TableBody>
               {filteredLogs.length > 0 ? (
-                filteredLogs.map(log => (
+                filteredLogs.map((log) => (
                   <TableRow key={log.id}>
+                    <TableCell>{log.timestamp ? format(log.timestamp.toDate(), 'PPpp') : 'No date'}</TableCell>
                     <TableCell>
-                      {log.timestamp ? format(log.timestamp.toDate(), 'PPpp') : 'No date'}
-                    </TableCell>
-                    <TableCell>
-                        <div className="font-medium">{log.userName}</div>
-                        <div className="text-xs text-muted-foreground">{log.userRole}</div>
+                      <div className="font-medium">{log.userName}</div>
+                      <div className="text-xs text-muted-foreground">{log.userRole}</div>
                     </TableCell>
                     <TableCell className="font-mono text-xs">{log.action}</TableCell>
                     <TableCell>
-                        <pre className="text-xs bg-muted p-2 rounded-md overflow-x-auto">
-                            {JSON.stringify(log.details, null, 2)}
-                        </pre>
+                      <pre className="text-xs bg-muted p-2 rounded-md overflow-x-auto">
+                        {JSON.stringify(log.details, null, 2)}
+                      </pre>
                     </TableCell>
                   </TableRow>
                 ))

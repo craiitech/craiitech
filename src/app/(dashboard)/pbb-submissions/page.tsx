@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { collection, query, where, doc, deleteDoc, addDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
+import { Timestamp } from 'firebase/firestore';
 import { useYear } from '@/lib/year-provider';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -14,20 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Info,
-  ExternalLink,
-  Plus,
-  Trash2,
-  Loader2,
-  Calendar,
-  Building,
-  School,
-  FileText,
-  Search,
-  CheckCircle,
-  XCircle,
-} from 'lucide-react';
+import { Info, ExternalLink, Plus, Trash2, Loader2, Calendar, FileText, Search, Printer } from 'lucide-react';
 
 export default function PbbSubmissionsPage() {
   const { user, userProfile, isAdmin, isUserLoading } = useUser();
@@ -151,10 +139,10 @@ export default function PbbSubmissionsPage() {
   }, [filteredSubmissions]);
 
   // Format timestamp helper
-  const formatSubmissionDate = (timestamp: any) => {
+  const formatSubmissionDate = (timestamp: import('firebase/firestore').Timestamp | number) => {
     if (!timestamp) return 'N/A';
     try {
-      const d = timestamp?.toDate ? timestamp.toDate() : new Date(timestamp);
+      const d = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
       return format(d, 'MMM dd, yyyy hh:mm a');
     } catch {
       return 'N/A';
@@ -262,15 +250,23 @@ export default function PbbSubmissionsPage() {
           </p>
         </div>
         {!showSubmitForm && (
-          <Button
-            onClick={() => {
-              setShowSubmitForm(true);
-              setFormYear(systemYear.toString());
-            }}
-            className="shadow-lg shadow-primary/20 font-black uppercase tracking-wider text-[10px]"
-          >
-            <Plus className="h-4 w-4 mr-2" /> Submit Document
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => window.print()}
+              className="shadow-lg shadow-primary/20 font-black uppercase tracking-wider text-[10px]"
+            >
+              <Printer className="h-4 w-4 mr-2" /> Print
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSubmitForm(true);
+                setFormYear(systemYear.toString());
+              }}
+              className="shadow-lg shadow-primary/20 font-black uppercase tracking-wider text-[10px]"
+            >
+              <Plus className="h-4 w-4 mr-2" /> Submit Document
+            </Button>
+          </div>
         )}
       </div>
 

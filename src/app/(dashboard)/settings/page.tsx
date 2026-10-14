@@ -30,10 +30,11 @@ import { KpiDefinitionsManager } from '@/components/admin/kpi-definitions-manage
 import { PermissionMatrix } from '@/components/admin/permission-matrix';
 import { SecuritySpecificationsManagement } from '@/components/admin/security-specifications-management';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 export default function SettingsPage() {
-  const { userProfile, isAdmin, isUserLoading, userRole } = useUser();
+  const { isAdmin, isUserLoading, userRole } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -69,6 +70,14 @@ export default function SettingsPage() {
               <p className="text-muted-foreground">
                 Manage users, campuses, units, roles, permissions, and institutional signatories.
               </p>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => window.print()}
+                  className="shadow-lg shadow-primary/20 font-black uppercase tracking-wider text-[10px]"
+                >
+                  Print
+                </Button>
+              </div>
             </div>
             <ScrollArea className="w-full">
               <TabsList className="inline-flex w-max h-auto bg-muted p-1 animate-tab-highlight rounded-md whitespace-nowrap">
