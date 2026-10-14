@@ -323,7 +323,7 @@ function NarrativeCard({
     const generate = async () => {
       setIsGenerating(true);
       try {
-        const prompt = `You are an executive institutional quality assurance analyst for Romblon State University (RSU).
+        const prompt = `You are an executive institutional quality assurance analyst for UAQA Portal.
 Analyze the following real-time data for the "${domain}" domain:
 ${JSON.stringify(contextData, null, 2)}
 
@@ -694,7 +694,7 @@ function ViewOverview({
       <SectionHeader
         icon={ShieldCheck}
         title="Institutional Performance Overview"
-        subtitle="RSU System · EOMS Compliance · Client Satisfaction · Risk Management · Accreditation"
+        subtitle="UAQA Portal · Quality Compliance · Client Satisfaction · Risk Management · Accreditation"
         color={P.green}
         badgeText="President & QA View"
       />
@@ -702,7 +702,7 @@ function ViewOverview({
         {/* EOMS Composite Score */}
         <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-4 shadow-xl flex flex-col justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-2">EOMS Composite Score</p>
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-2">UAQA Composite Score</p>
             <div className="flex items-baseline gap-2">
               <AnimatedNumber
                 value={eomsScore}
@@ -746,7 +746,7 @@ function ViewOverview({
             title="Institutional Health"
             domain="Institutional Performance"
             contextData={{ eomsScore, csmSatisfactionRate, topCampus: topCampus?.name, lowCampus: lowCampus?.name }}
-            fallbackSummary={`RSU maintains an institutional EOMS composite rating of ${eomsScore}% (${sc.label}) and ${csmSatisfactionRate}% Client Satisfaction (CSM) across 13 campuses.`}
+            fallbackSummary={`UAQA Portal maintains an institutional quality composite rating of ${eomsScore}% (${sc.label}) and ${csmSatisfactionRate}% Client Satisfaction across 13 campuses.`}
           />
         </div>
 
@@ -1040,8 +1040,8 @@ function ViewSubmissions({
     <div className="h-full flex flex-col gap-3">
       <SectionHeader
         icon={ClipboardCheck}
-        title="Document & EOMS Submissions Monitoring"
-        subtitle="RSU System · Submission Rates · Approval Lifecycle"
+        title="Document & UAQA Submissions Monitoring"
+        subtitle="UAQA Portal · Submission Rates · Approval Lifecycle"
         color={P.greenLight}
         period={periodLabel}
       />
@@ -1139,7 +1139,7 @@ function ViewRisks({
       <SectionHeader
         icon={AlertTriangle}
         title="Risk & Opportunity Management"
-        subtitle="RSU System · Risk Registers · Severity & Treatment Status"
+        subtitle="UAQA Portal · Risk Registers · Severity & Treatment Status"
         color={P.gold}
         period={periodLabel}
       />
@@ -1257,7 +1257,7 @@ function ViewCars({
       <SectionHeader
         icon={CheckCircle2}
         title="Internal Quality Audit & CAR Resolution"
-        subtitle="RSU System · Non-Conformances · Opportunities for Improvement"
+        subtitle="UAQA Portal · Non-Conformances · Opportunities for Improvement"
         color={P.greenLight}
         period={periodLabel}
       />
@@ -1922,7 +1922,7 @@ function ViewVpaaFacultyAndRanks({
   );
 }
 
-// ── VPAA 4: Academic Unit EOMS Submissions & Academic Risks ──────────────────
+// ── VPAA 4: Academic Unit UAQA Submissions & Academic Risks ──────────────────
 function ViewVpaaAcademicSubmissionsAndRisks({
   programSubs,
   academicRisks,
@@ -1940,8 +1940,8 @@ function ViewVpaaAcademicSubmissionsAndRisks({
     <div className="h-full flex flex-col gap-3">
       <SectionHeader
         icon={ClipboardCheck}
-        title="VPAA · Academic Units EOMS Submissions & Risks"
-        subtitle="College EOMS Compliance · Academic Risk Mitigation · CAR Closure"
+        title="VPAA · Academic Units UAQA Submissions & Risks"
+        subtitle="College UAQA Compliance · Academic Risk Mitigation · CAR Closure"
         color={P.greenLight}
         period={periodLabel}
         badgeText="Academic QA"
@@ -2417,7 +2417,7 @@ function ViewCampusDirectorOverview({
       <SectionHeader
         icon={MapPin}
         title={`${campusName.toUpperCase()} · CAMPUS DIRECTOR EXECUTIVE DISPLAY`}
-        subtitle="Campus Operations · EOMS Compliance · Academic Programs · Local Risk Register"
+        subtitle="Campus Operations · UAQA Compliance · Academic Programs · Local Risk Register"
         color={P.green}
         period={periodLabel}
         badgeText="Campus Director View"
@@ -2426,7 +2426,7 @@ function ViewCampusDirectorOverview({
         {/* Composite Score Card */}
         <div className="col-span-3 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-4 shadow-xl flex flex-col justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-2">Campus EOMS Score</p>
+            <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-2">Campus UAQA Score</p>
             <div className="flex items-baseline gap-2">
               <AnimatedNumber
                 value={campusEomsScore}
@@ -2466,7 +2466,7 @@ function ViewCampusDirectorOverview({
             title={`${campusName} Performance`}
             domain={`${campusName} Campus Operations`}
             contextData={{ campusName, campusEomsScore, csmSatisfactionRate, subRate, riskRate, carRate, copcRate }}
-            fallbackSummary={`${campusName} maintains an overall EOMS compliance score of ${campusEomsScore}% (${sc.label}) with ${csmSatisfactionRate}% Client Satisfaction (CSM).`}
+            fallbackSummary={`${campusName} maintains an overall UAQA compliance score of ${campusEomsScore}% (${sc.label}) with ${csmSatisfactionRate}% Client Satisfaction`}
           />
         </div>
 
@@ -2642,7 +2642,7 @@ function ViewCampusDirectorUnits({
     <div className="h-full flex flex-col gap-3">
       <SectionHeader
         icon={Building2}
-        title={`${campusName.toUpperCase()} · DEPARTMENTAL & UNIT EOMS COMPLIANCE`}
+        title={`${campusName.toUpperCase()} · DEPARTMENTAL & UNIT UAQA COMPLIANCE`}
         subtitle="Unit Participation · Submissions Velocity · Missing Reports Follow-up"
         color={P.greenLight}
         period={periodLabel}
@@ -3446,7 +3446,7 @@ export default function ExecutiveDisplayPage() {
     return agg;
   }, [campusData]);
 
-  // EOMS Score
+  // UAQA Score
   const eomsScore = useMemo(() => {
     const subRate = totals.subsTotal > 0 ? Math.round((totals.subsApproved / totals.subsTotal) * 100) : 0;
     const riskRate = totals.risksTotal > 0 ? Math.round((totals.risksClosed / totals.risksTotal) * 100) : 0;
@@ -4371,7 +4371,7 @@ export default function ExecutiveDisplayPage() {
       />,
       <ViewCsmSatisfactionOverview
         key="v-csm"
-        title="RSU System · Client Satisfaction Measurement (CSM)"
+        title="UAQA System · Client Satisfaction Measurement"
         subtitle="University-Wide Stakeholder Satisfaction · 8 Citizen's Charter Dimensions · All Campuses"
         badgeText="President & QA View"
         overallRate={csmData.overallRate}
