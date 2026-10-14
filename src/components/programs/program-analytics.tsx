@@ -170,6 +170,7 @@ export function ProgramAnalytics({
   const [roadmapYearFilter, setRoadmapYearFilter] = useState<number | 'all'>('all');
 
   const [selectedLevelView, setSelectedLevelView] = useState<string>('Level IV');
+  const [showDetailedArchive, setShowDetailedArchive] = useState(false);
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<Signatories>(signatoryRef);
@@ -957,754 +958,785 @@ export function ProgramAnalytics({
           selectedYear={selectedYear}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <Card className="bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Scope Portfolio</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-colors focus:outline-none"
-                    aria-label="Scope Portfolio Information"
-                  >
-                    <Info className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
-                >
-                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">Scope Portfolio</p>
-                  <p className="text-slate-200">
-                    Tracks the ratio of active program offerings currently offered by the institution versus closed or
-                    phased-out programs.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="text-3xl font-black text-slate-900 dark:text-slate-100 leading-none mb-2">
-              {analytics.activeCount} Active
-            </div>
-            <div className="space-y-1.5 mt-auto pt-3 border-t border-slate-200/60 dark:border-slate-700/60">
-              <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
-                {analytics.activeCount} of {programs.length} total programs active
-              </p>
-              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                {analytics.closedCount} Closed / Phased-Out Programs
-              </p>
-            </div>
-          </Card>
-          <Card className="bg-emerald-50/20 border-emerald-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600/70">
-                COPC Performance
-              </span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="text-emerald-400 hover:text-emerald-600 transition-colors focus:outline-none"
-                    aria-label="COPC Performance Information"
-                  >
-                    <Info className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
-                >
-                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">COPC Performance</p>
-                  <p className="text-slate-200">
-                    Measures the percentage of active academic programs holding a valid CHED Certificate of Program
-                    Compliance (COPC).
-                  </p>
-                  <p className="text-[9px] text-emerald-400 font-bold mt-1">Regulatory Target: 100%</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="text-3xl font-black text-emerald-600 leading-none mb-2">
-              {analytics.activeCopc} Compliant
-            </div>
-            <div className="space-y-1.5 mt-auto pt-3 border-t border-emerald-100/60">
-              <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
-                {analytics.activeCopc} of {analytics.activeCount} active offerings with COPC
-              </p>
-              <p className="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest">
-                {analytics.activeCount > 0 ? Math.round((analytics.activeCopc / analytics.activeCount) * 100) : 0}% COPC
-                Compliance Rate
-              </p>
-            </div>
-          </Card>
-          <Card className="bg-cyan-50/20 border-cyan-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-600/70">COPC by Level</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="text-cyan-400 hover:text-cyan-600 transition-colors focus:outline-none"
-                    aria-label="COPC by Level Information"
-                  >
-                    <Info className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
-                >
-                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">COPC by Level</p>
-                  <p className="text-slate-200">
-                    Shows the percentage of active Undergraduate and Graduate programs that hold a valid Certificate of
-                    Program Compliance (COPC).
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="space-y-3 my-auto">
-              <div>
-                <div className="flex justify-between items-end mb-1">
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Undergraduate</span>
-                  <span className="text-xs font-black text-cyan-600">
-                    {ugCopcRate}%{' '}
-                    <span className="text-[9px] text-slate-500 font-normal">
-                      ({analytics.activeUgCopc}/{analytics.activeUgCount})
-                    </span>
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-cyan-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${ugCopcRate}%` }}
-                  ></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between items-end mb-1">
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Graduate</span>
-                  <span className="text-xs font-black text-cyan-600">
-                    {gradCopcRate}%{' '}
-                    <span className="text-[9px] text-slate-500 font-normal">
-                      ({analytics.activeGradCopc}/{analytics.activeGradCount})
-                    </span>
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-cyan-600 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${gradCopcRate}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-1.5 mt-auto pt-3 border-t border-cyan-100/60">
-              <p className="text-[9px] font-bold text-cyan-600/70 uppercase tracking-widest">Compliance by level</p>
-            </div>
-          </Card>
-          <Card className="bg-amber-50/20 border-amber-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600/70">
-                Quality Maturity
-              </span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="text-amber-400 hover:text-amber-600 transition-colors focus:outline-none"
-                    aria-label="Quality Maturity Information"
-                  >
-                    <Info className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
-                >
-                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">Quality Maturity</p>
-                  <p className="text-slate-200">
-                    Measures the percentage of active academic programs (excluding new program offerings not yet subject
-                    to accreditation) that have attained AACCUP Level I or above accreditation.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="text-3xl font-black text-amber-600 leading-none mb-2">
-              {analytics.activeAccredited} Accredited
-            </div>
-            <div className="space-y-1.5 mt-auto pt-3 border-t border-amber-100/60">
-              <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
-                {analytics.activeAccredited} of {analytics.activeCount - analytics.activeNewCount} accreditable programs
-                accredited
-              </p>
-              <p className="text-[9px] font-bold text-amber-600/70 uppercase tracking-widest">
-                {analytics.activeCount - analytics.activeNewCount > 0
-                  ? Math.round((analytics.activeAccredited / (analytics.activeCount - analytics.activeNewCount)) * 100)
-                  : 0}
-                % Accreditation Rate
-              </p>
-            </div>
-          </Card>
-          <Card className="bg-indigo-50/20 border-indigo-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600/70">
-                Accreditation by Level
-              </span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="text-indigo-400 hover:text-indigo-600 transition-colors focus:outline-none"
-                    aria-label="Accreditation by Level Information"
-                  >
-                    <Info className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
-                >
-                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">Accreditation by Level</p>
-                  <p className="text-slate-200">
-                    Measures the percentage of accreditable Undergraduate and Graduate programs that have achieved Level
-                    I or higher accreditation.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="space-y-3 my-auto">
-              <div>
-                <div className="flex justify-between items-end mb-1">
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Undergraduate</span>
-                  <span className="text-xs font-black text-indigo-600">
-                    {ugAccredRate}%{' '}
-                    <span className="text-[9px] text-slate-500 font-normal">
-                      ({analytics.activeUgAccredited}/{activeUgAccreditable})
-                    </span>
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-indigo-500 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${ugAccredRate}%` }}
-                  ></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between items-end mb-1">
-                  <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Graduate</span>
-                  <span className="text-xs font-black text-indigo-600">
-                    {gradAccredRate}%{' '}
-                    <span className="text-[9px] text-slate-500 font-normal">
-                      ({analytics.activeGradAccredited}/{activeGradAccreditable})
-                    </span>
-                  </span>
-                </div>
-                <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className="bg-indigo-600 h-1.5 rounded-full transition-all duration-500"
-                    style={{ width: `${gradAccredRate}%` }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-1.5 mt-auto pt-3 border-t border-indigo-100/60">
-              <p className="text-[9px] font-bold text-indigo-600/70 uppercase tracking-widest">
-                Accreditation by level
-              </p>
-            </div>
-          </Card>
-          <Card className="bg-blue-50/20 border-blue-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/70">
-                Monitored Registry
-              </span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="text-blue-400 hover:text-blue-600 transition-colors focus:outline-none"
-                    aria-label="Monitored Registry Information"
-                  >
-                    <Info className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
-                >
-                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">Monitored Registry</p>
-                  <p className="text-slate-200">
-                    Calculates active compliance cycle reporting coverage. Higher index denotes more complete data
-                    submissions.
-                  </p>
-                  <p className="text-[9px] text-blue-400 font-bold mt-1">
-                    Data integrity index: submissions vs. active offerings.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="text-3xl font-black text-blue-600 leading-none mb-2">{analytics.dataIntegrityIndex}%</div>
-            <div className="space-y-1.5 mt-auto pt-3 border-t border-blue-100/60">
-              <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
-                {analytics.programsWithRecordThisYear} of {analytics.activeCount} active programs reported
-              </p>
-              <p className="text-[9px] font-bold text-blue-600/70 uppercase tracking-widest">
-                Reporting Coverage (AY {selectedYear})
-              </p>
-            </div>
-          </Card>
+        <div className="flex items-center justify-between p-4 rounded-xl border bg-muted/30">
+          <div>
+            <span className="text-xs font-black uppercase text-slate-900 dark:text-slate-100 block">
+              Additional Detailed Institutional Telemetry Archive
+            </span>
+            <span className="text-[11px] text-muted-foreground">
+              Optional deep-dive cards and legacy college compliance tables
+            </span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDetailedArchive(!showDetailedArchive)}
+            className="text-xs font-bold"
+          >
+            {showDetailedArchive ? 'Hide Archive' : 'Show Detailed Archive'}
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
-          <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
-            <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-emerald-600" />
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
-                Strategic Maturity Profile (3D)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
-              <ChartContainer config={{}} className="h-[300px] w-full">
-                <ResponsiveContainer>
-                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={analytics.radarData}>
-                    <PolarGrid strokeOpacity={0.15} />
-                    <PolarAngleAxis dataKey="pillar" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} hide />
-                    <Radar
-                      name="Maturity"
-                      dataKey="score"
-                      stroke="#10b981"
-                      strokeWidth={2}
-                      fill="url(#progana3d-grad-emerald)"
-                      fillOpacity={0.6}
-                      filter="url(#progana3d-soft-depth)"
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-              <div className="text-center mt-4">
-                <span className="text-5xl font-black tabular-nums tracking-tighter text-primary">
-                  {analytics.overallQualityScore}%
-                </span>
-                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.15em] mt-1">
-                  Institutional Quality Score
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
-            <CardHeader className="py-5 px-8 border-b flex flex-row items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Award className="h-4 w-4 text-emerald-600" />
-                <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
-                  Accreditation Distribution (3D)
-                </CardTitle>
-              </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-colors focus:outline-none"
-                    aria-label="Accreditation Distribution Information"
-                  >
-                    <Info className="h-3.5 w-3.5" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent
-                  side="top"
-                  className="max-w-[240px] text-[10px] font-medium bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
-                >
-                  <p className="font-bold border-b border-slate-700 pb-1 mb-1">Accreditation Distribution</p>
-                  <p className="text-slate-200">
-                    Visualizes active offerings per AACCUP status. Select a category below to view the corresponding
-                    academic programs.
-                  </p>
-                </TooltipContent>
-              </Tooltip>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col p-6 overflow-hidden">
-              <ChartContainer config={{}} className="h-[155px] w-full shrink-0">
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={accreditationDistData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={65}
-                      paddingAngle={4}
-                      dataKey="value"
-                      label={RenderPie3DLabel}
-                      labelLine={false}
+        {showDetailedArchive && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+              <Card className="bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                    Scope Portfolio
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-colors focus:outline-none"
+                        aria-label="Scope Portfolio Information"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
                     >
-                      {accreditationDistData.map((entry, idx) => (
-                        <Cell
-                          key={idx}
-                          fill={
-                            entry.name.includes('IV') || entry.name.includes('III')
-                              ? 'url(#progana3d-grad-indigo)'
-                              : entry.name.includes('II') || entry.name.includes('I')
-                                ? 'url(#progana3d-grad-emerald)'
-                                : entry.name.includes('Candidate')
-                                  ? 'url(#progana3d-grad-amber)'
-                                  : 'url(#progana3d-grad-slate)'
-                          }
-                          filter="url(#progana3d-soft-depth)"
-                          className="outline-none"
-                        />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-
-              <div className="flex flex-wrap gap-1.5 justify-center py-2 border-t border-b border-slate-100 dark:border-slate-700 my-2 shrink-0">
-                {levelCategories.map((cat) => {
-                  const count = programsByLevel[cat.name]?.length || 0;
-                  const isSelected = displayedLevel === cat.name;
-                  if (count === 0) return null;
-                  return (
-                    <button
-                      key={cat.name}
-                      onClick={() => setSelectedLevelView(cat.name)}
-                      className={cn(
-                        'px-2 py-1 rounded-lg text-[9px] font-bold uppercase transition-all flex items-center gap-1 border',
-                        isSelected
-                          ? `${cat.color} text-white border-transparent shadow-sm scale-105`
-                          : `bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700`,
-                      )}
-                    >
-                      <span
-                        className={cn('w-1.5 h-1.5 rounded-full shrink-0', isSelected ? 'bg-white' : cat.color)}
-                      ></span>
-                      {cat.name} ({count})
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex-1 overflow-hidden flex flex-col min-h-0">
-                <ScrollArea className="flex-1">
-                  <div className="flex flex-wrap gap-1.5 p-1 justify-center">
-                    {programsByLevel[displayedLevel]?.map((prog: any) => (
-                      <Tooltip key={prog.id}>
-                        <TooltipTrigger asChild>
-                          <div className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-100/80 dark:hover:bg-slate-700/80 transition-colors cursor-help text-center shrink-0">
-                            <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 block leading-tight font-mono">
-                              {prog.abbreviation}
-                            </span>
-                            <span className="text-[7px] text-muted-foreground font-black uppercase tracking-tighter mt-0.5 block">
-                              {prog.campus}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-slate-900 border-none text-white text-[10px] p-2.5 rounded-md shadow-lg max-w-[220px]">
-                          <p className="font-bold">{prog.name}</p>
-                          <p className="text-slate-300 text-[9px] mt-0.5">
-                            {prog.campus} &bull; {prog.currentLevel}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                    {(!programsByLevel[displayedLevel] || programsByLevel[displayedLevel].length === 0) && (
-                      <p className="text-[10px] text-muted-foreground italic text-center py-6 w-full">
-                        No active programs recorded in this level.
+                      <p className="font-bold border-b border-slate-700 pb-1 mb-1">Scope Portfolio</p>
+                      <p className="text-slate-200">
+                        Tracks the ratio of active program offerings currently offered by the institution versus closed
+                        or phased-out programs.
                       </p>
-                    )}
-                  </div>
-                </ScrollArea>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
-            <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
-              <BookOpen className="h-4 w-4 text-emerald-600" />
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
-                Faculty Educational Attainment (GAD - 3D)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
-              <ChartContainer config={{}} className="h-[250px] w-full mb-8">
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={analytics.facultyAttainmentData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={4}
-                      dataKey="value"
-                      label={RenderPie3DLabel}
-                      labelLine={false}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="text-3xl font-black text-slate-900 dark:text-slate-100 leading-none mb-2">
+                  {analytics.activeCount} Active
+                </div>
+                <div className="space-y-1.5 mt-auto pt-3 border-t border-slate-200/60 dark:border-slate-700/60">
+                  <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
+                    {analytics.activeCount} of {programs.length} total programs active
+                  </p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    {analytics.closedCount} Closed / Phased-Out Programs
+                  </p>
+                </div>
+              </Card>
+              <Card className="bg-emerald-50/20 border-emerald-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600/70">
+                    COPC Performance
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="text-emerald-400 hover:text-emerald-600 transition-colors focus:outline-none"
+                        aria-label="COPC Performance Information"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
                     >
-                      {analytics.facultyAttainmentData.map((entry, idx) => (
-                        <Cell
-                          key={idx}
-                          fill={
-                            entry.name.includes('Doctorate') || entry.name.includes('PhD')
-                              ? 'url(#progana3d-grad-indigo)'
-                              : entry.name.includes('Master')
-                                ? 'url(#progana3d-grad-emerald)'
-                                : 'url(#progana3d-grad-amber)'
-                          }
+                      <p className="font-bold border-b border-slate-700 pb-1 mb-1">COPC Performance</p>
+                      <p className="text-slate-200">
+                        Measures the percentage of active academic programs holding a valid CHED Certificate of Program
+                        Compliance (COPC).
+                      </p>
+                      <p className="text-[9px] text-emerald-400 font-bold mt-1">Regulatory Target: 100%</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="text-3xl font-black text-emerald-600 leading-none mb-2">
+                  {analytics.activeCopc} Compliant
+                </div>
+                <div className="space-y-1.5 mt-auto pt-3 border-t border-emerald-100/60">
+                  <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
+                    {analytics.activeCopc} of {analytics.activeCount} active offerings with COPC
+                  </p>
+                  <p className="text-[9px] font-bold text-emerald-600/70 uppercase tracking-widest">
+                    {analytics.activeCount > 0 ? Math.round((analytics.activeCopc / analytics.activeCount) * 100) : 0}%
+                    COPC Compliance Rate
+                  </p>
+                </div>
+              </Card>
+              <Card className="bg-cyan-50/20 border-cyan-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-600/70">
+                    COPC by Level
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="text-cyan-400 hover:text-cyan-600 transition-colors focus:outline-none"
+                        aria-label="COPC by Level Information"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
+                    >
+                      <p className="font-bold border-b border-slate-700 pb-1 mb-1">COPC by Level</p>
+                      <p className="text-slate-200">
+                        Shows the percentage of active Undergraduate and Graduate programs that hold a valid Certificate
+                        of Program Compliance (COPC).
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="space-y-3 my-auto">
+                  <div>
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Undergraduate</span>
+                      <span className="text-xs font-black text-cyan-600">
+                        {ugCopcRate}%{' '}
+                        <span className="text-[9px] text-slate-500 font-normal">
+                          ({analytics.activeUgCopc}/{analytics.activeUgCount})
+                        </span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-cyan-500 h-1.5 rounded-full transition-all duration-500"
+                        style={{ width: `${ugCopcRate}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Graduate</span>
+                      <span className="text-xs font-black text-cyan-600">
+                        {gradCopcRate}%{' '}
+                        <span className="text-[9px] text-slate-500 font-normal">
+                          ({analytics.activeGradCopc}/{analytics.activeGradCount})
+                        </span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-cyan-600 h-1.5 rounded-full transition-all duration-500"
+                        style={{ width: `${gradCopcRate}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1.5 mt-auto pt-3 border-t border-cyan-100/60">
+                  <p className="text-[9px] font-bold text-cyan-600/70 uppercase tracking-widest">Compliance by level</p>
+                </div>
+              </Card>
+              <Card className="bg-amber-50/20 border-amber-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600/70">
+                    Quality Maturity
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="text-amber-400 hover:text-amber-600 transition-colors focus:outline-none"
+                        aria-label="Quality Maturity Information"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
+                    >
+                      <p className="font-bold border-b border-slate-700 pb-1 mb-1">Quality Maturity</p>
+                      <p className="text-slate-200">
+                        Measures the percentage of active academic programs (excluding new program offerings not yet
+                        subject to accreditation) that have attained AACCUP Level I or above accreditation.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="text-3xl font-black text-amber-600 leading-none mb-2">
+                  {analytics.activeAccredited} Accredited
+                </div>
+                <div className="space-y-1.5 mt-auto pt-3 border-t border-amber-100/60">
+                  <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
+                    {analytics.activeAccredited} of {analytics.activeCount - analytics.activeNewCount} accreditable
+                    programs accredited
+                  </p>
+                  <p className="text-[9px] font-bold text-amber-600/70 uppercase tracking-widest">
+                    {analytics.activeCount - analytics.activeNewCount > 0
+                      ? Math.round(
+                          (analytics.activeAccredited / (analytics.activeCount - analytics.activeNewCount)) * 100,
+                        )
+                      : 0}
+                    % Accreditation Rate
+                  </p>
+                </div>
+              </Card>
+              <Card className="bg-indigo-50/20 border-indigo-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600/70">
+                    Accreditation by Level
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="text-indigo-400 hover:text-indigo-600 transition-colors focus:outline-none"
+                        aria-label="Accreditation by Level Information"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
+                    >
+                      <p className="font-bold border-b border-slate-700 pb-1 mb-1">Accreditation by Level</p>
+                      <p className="text-slate-200">
+                        Measures the percentage of accreditable Undergraduate and Graduate programs that have achieved
+                        Level I or higher accreditation.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="space-y-3 my-auto">
+                  <div>
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Undergraduate</span>
+                      <span className="text-xs font-black text-indigo-600">
+                        {ugAccredRate}%{' '}
+                        <span className="text-[9px] text-slate-500 font-normal">
+                          ({analytics.activeUgAccredited}/{activeUgAccreditable})
+                        </span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-indigo-500 h-1.5 rounded-full transition-all duration-500"
+                        style={{ width: `${ugAccredRate}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-end mb-1">
+                      <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">Graduate</span>
+                      <span className="text-xs font-black text-indigo-600">
+                        {gradAccredRate}%{' '}
+                        <span className="text-[9px] text-slate-500 font-normal">
+                          ({analytics.activeGradAccredited}/{activeGradAccreditable})
+                        </span>
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-100/75 dark:bg-slate-700/75 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-indigo-600 h-1.5 rounded-full transition-all duration-500"
+                        style={{ width: `${gradAccredRate}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1.5 mt-auto pt-3 border-t border-indigo-100/60">
+                  <p className="text-[9px] font-bold text-indigo-600/70 uppercase tracking-widest">
+                    Accreditation by level
+                  </p>
+                </div>
+              </Card>
+              <Card className="bg-blue-50/20 border-blue-100 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600/70">
+                    Monitored Registry
+                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="text-blue-400 hover:text-blue-600 transition-colors focus:outline-none"
+                        aria-label="Monitored Registry Information"
+                      >
+                        <Info className="h-4 w-4" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="max-w-[240px] text-[10px] font-medium leading-relaxed bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
+                    >
+                      <p className="font-bold border-b border-slate-700 pb-1 mb-1">Monitored Registry</p>
+                      <p className="text-slate-200">
+                        Calculates active compliance cycle reporting coverage. Higher index denotes more complete data
+                        submissions.
+                      </p>
+                      <p className="text-[9px] text-blue-400 font-bold mt-1">
+                        Data integrity index: submissions vs. active offerings.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="text-3xl font-black text-blue-600 leading-none mb-2">
+                  {analytics.dataIntegrityIndex}%
+                </div>
+                <div className="space-y-1.5 mt-auto pt-3 border-t border-blue-100/60">
+                  <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-tight">
+                    {analytics.programsWithRecordThisYear} of {analytics.activeCount} active programs reported
+                  </p>
+                  <p className="text-[9px] font-bold text-blue-600/70 uppercase tracking-widest">
+                    Reporting Coverage (AY {selectedYear})
+                  </p>
+                </div>
+              </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+              <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
+                <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
+                    Strategic Maturity Profile (3D)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
+                  <ChartContainer config={{}} className="h-[300px] w-full">
+                    <ResponsiveContainer>
+                      <RadarChart cx="50%" cy="50%" outerRadius="80%" data={analytics.radarData}>
+                        <PolarGrid strokeOpacity={0.15} />
+                        <PolarAngleAxis dataKey="pillar" tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} hide />
+                        <Radar
+                          name="Maturity"
+                          dataKey="score"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                          fill="url(#progana3d-grad-emerald)"
+                          fillOpacity={0.6}
                           filter="url(#progana3d-soft-depth)"
                         />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip />
-                    <Legend
-                      verticalAlign="bottom"
-                      align="center"
-                      wrapperStyle={{
-                        fontSize: '9px',
-                        textTransform: 'uppercase',
-                        fontWeight: 'bold',
-                        paddingTop: '20px',
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-          <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
-            <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-emerald-600" />
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
-                Institutional Survey Pipeline (3D)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-10 flex-1">
-              <ChartContainer config={{}} className="h-[350px] w-full">
-                <ResponsiveContainer>
-                  <BarChart data={analytics.roadmapForecastData} margin={{ left: 10, right: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
-                    <XAxis
-                      dataKey="year"
-                      tick={{ fontSize: 12, fontWeight: 'bold' }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
-                    <RechartsTooltip content={<ChartTooltipContent />} />
-                    <Bar
-                      dataKey="count"
-                      fill="url(#progana3d-grad-emerald)"
-                      radius={[6, 6, 0, 0]}
-                      barSize={40}
-                      filter="url(#progana3d-soft-depth)"
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                  <div className="text-center mt-4">
+                    <span className="text-5xl font-black tabular-nums tracking-tighter text-primary">
+                      {analytics.overallQualityScore}%
+                    </span>
+                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.15em] mt-1">
+                      Institutional Quality Score
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
+                <CardHeader className="py-5 px-8 border-b flex flex-row items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-4 w-4 text-emerald-600" />
+                    <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
+                      Accreditation Distribution (3D)
+                    </CardTitle>
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="text-slate-400 hover:text-slate-600 dark:text-slate-400 transition-colors focus:outline-none"
+                        aria-label="Accreditation Distribution Information"
+                      >
+                        <Info className="h-3.5 w-3.5" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent
+                      side="top"
+                      className="max-w-[240px] text-[10px] font-medium bg-slate-900 text-white border-none p-2.5 shadow-lg rounded-md"
                     >
-                      <LabelList content={<RenderBar3DLabel />} />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </div>
+                      <p className="font-bold border-b border-slate-700 pb-1 mb-1">Accreditation Distribution</p>
+                      <p className="text-slate-200">
+                        Visualizes active offerings per AACCUP status. Select a category below to view the corresponding
+                        academic programs.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col p-6 overflow-hidden">
+                  <ChartContainer config={{}} className="h-[155px] w-full shrink-0">
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie
+                          data={accreditationDistData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={40}
+                          outerRadius={65}
+                          paddingAngle={4}
+                          dataKey="value"
+                          label={RenderPie3DLabel}
+                          labelLine={false}
+                        >
+                          {accreditationDistData.map((entry, idx) => (
+                            <Cell
+                              key={idx}
+                              fill={
+                                entry.name.includes('IV') || entry.name.includes('III')
+                                  ? 'url(#progana3d-grad-indigo)'
+                                  : entry.name.includes('II') || entry.name.includes('I')
+                                    ? 'url(#progana3d-grad-emerald)'
+                                    : entry.name.includes('Candidate')
+                                      ? 'url(#progana3d-grad-amber)'
+                                      : 'url(#progana3d-grad-slate)'
+                              }
+                              filter="url(#progana3d-soft-depth)"
+                              className="outline-none"
+                            />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
 
-        <Separator className="my-8" />
+                  <div className="flex flex-wrap gap-1.5 justify-center py-2 border-t border-b border-slate-100 dark:border-slate-700 my-2 shrink-0">
+                    {levelCategories.map((cat) => {
+                      const count = programsByLevel[cat.name]?.length || 0;
+                      const isSelected = displayedLevel === cat.name;
+                      if (count === 0) return null;
+                      return (
+                        <button
+                          key={cat.name}
+                          onClick={() => setSelectedLevelView(cat.name)}
+                          className={cn(
+                            'px-2 py-1 rounded-lg text-[9px] font-bold uppercase transition-all flex items-center gap-1 border',
+                            isSelected
+                              ? `${cat.color} text-white border-transparent shadow-sm scale-105`
+                              : `bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700`,
+                          )}
+                        >
+                          <span
+                            className={cn('w-1.5 h-1.5 rounded-full shrink-0', isSelected ? 'bg-white' : cat.color)}
+                          ></span>
+                          {cat.name} ({count})
+                        </button>
+                      );
+                    })}
+                  </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
-            <CardHeader className="bg-muted/5 border-b">
-              <CardTitle className="text-sm font-black uppercase text-primary">
-                Authority Maturity (COPC Trend - 3D)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-8">
-              <ChartContainer config={{}} className="h-[250px] w-full">
-                <ResponsiveContainer>
-                  <BarChart data={analytics.copcTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
-                    <XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} />
-                    <YAxis hide />
-                    <RechartsTooltip content={<ChartTooltipContent />} />
-                    <Bar
-                      dataKey="count"
-                      fill="url(#progana3d-grad-emerald)"
-                      radius={[6, 6, 0, 0]}
-                      barSize={40}
-                      filter="url(#progana3d-soft-depth)"
-                    >
-                      <LabelList content={<RenderBar3DLabel />} />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-          <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
-            <CardHeader className="bg-muted/5 border-b">
-              <CardTitle className="text-sm font-black uppercase text-indigo-700">
-                Accreditation Excellence Velocity (3D)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-8">
-              <ChartContainer config={{}} className="h-[250px] w-full">
-                <ResponsiveContainer>
-                  <BarChart data={analytics.accreditationTrendData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
-                    <XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} />
-                    <YAxis hide />
-                    <RechartsTooltip content={<ChartTooltipContent />} />
-                    <Bar
-                      dataKey="count"
-                      fill="url(#progana3d-grad-indigo)"
-                      radius={[6, 6, 0, 0]}
-                      barSize={40}
-                      filter="url(#progana3d-soft-depth)"
-                    >
-                      <LabelList content={<RenderBar3DLabel />} />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-        </div>
+                  <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+                    <ScrollArea className="flex-1">
+                      <div className="flex flex-wrap gap-1.5 p-1 justify-center">
+                        {programsByLevel[displayedLevel]?.map((prog: any) => (
+                          <Tooltip key={prog.id}>
+                            <TooltipTrigger asChild>
+                              <div className="px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 hover:bg-slate-100/80 dark:hover:bg-slate-700/80 transition-colors cursor-help text-center shrink-0">
+                                <span className="text-[10px] font-black text-slate-800 dark:text-slate-200 block leading-tight font-mono">
+                                  {prog.abbreviation}
+                                </span>
+                                <span className="text-[7px] text-muted-foreground font-black uppercase tracking-tighter mt-0.5 block">
+                                  {prog.campus}
+                                </span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="bg-slate-900 border-none text-white text-[10px] p-2.5 rounded-md shadow-lg max-w-[220px]">
+                              <p className="font-bold">{prog.name}</p>
+                              <p className="text-slate-300 text-[9px] mt-0.5">
+                                {prog.campus} &bull; {prog.currentLevel}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ))}
+                        {(!programsByLevel[displayedLevel] || programsByLevel[displayedLevel].length === 0) && (
+                          <p className="text-[10px] text-muted-foreground italic text-center py-6 w-full">
+                            No active programs recorded in this level.
+                          </p>
+                        )}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
+                <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
+                  <BookOpen className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
+                    Faculty Educational Attainment (GAD - 3D)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 flex flex-col items-center justify-center p-8">
+                  <ChartContainer config={{}} className="h-[250px] w-full mb-8">
+                    <ResponsiveContainer>
+                      <PieChart>
+                        <Pie
+                          data={analytics.facultyAttainmentData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={80}
+                          paddingAngle={4}
+                          dataKey="value"
+                          label={RenderPie3DLabel}
+                          labelLine={false}
+                        >
+                          {analytics.facultyAttainmentData.map((entry, idx) => (
+                            <Cell
+                              key={idx}
+                              fill={
+                                entry.name.includes('Doctorate') || entry.name.includes('PhD')
+                                  ? 'url(#progana3d-grad-indigo)'
+                                  : entry.name.includes('Master')
+                                    ? 'url(#progana3d-grad-emerald)'
+                                    : 'url(#progana3d-grad-amber)'
+                              }
+                              filter="url(#progana3d-soft-depth)"
+                            />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                        <Legend
+                          verticalAlign="bottom"
+                          align="center"
+                          wrapperStyle={{
+                            fontSize: '9px',
+                            textTransform: 'uppercase',
+                            fontWeight: 'bold',
+                            paddingTop: '20px',
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+              <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
+                <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
+                  <CalendarDays className="h-4 w-4 text-emerald-600" />
+                  <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800/60">
+                    Institutional Survey Pipeline (3D)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-10 flex-1">
+                  <ChartContainer config={{}} className="h-[350px] w-full">
+                    <ResponsiveContainer>
+                      <BarChart data={analytics.roadmapForecastData} margin={{ left: 10, right: 10 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                        <XAxis
+                          dataKey="year"
+                          tick={{ fontSize: 12, fontWeight: 'bold' }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11 }} />
+                        <RechartsTooltip content={<ChartTooltipContent />} />
+                        <Bar
+                          dataKey="count"
+                          fill="url(#progana3d-grad-emerald)"
+                          radius={[6, 6, 0, 0]}
+                          barSize={40}
+                          filter="url(#progana3d-soft-depth)"
+                        >
+                          <LabelList content={<RenderBar3DLabel />} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            </div>
 
-        <div className="space-y-4 pt-6">
-          <div className="flex items-center gap-2 text-primary">
-            <Users className="h-5 w-5" />
-            <h3 className="text-lg font-black uppercase tracking-tight">Institutional GAD Reach Summary</h3>
+            <Separator className="my-8" />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
+                <CardHeader className="bg-muted/5 border-b">
+                  <CardTitle className="text-sm font-black uppercase text-primary">
+                    Authority Maturity (COPC Trend - 3D)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-8">
+                  <ChartContainer config={{}} className="h-[250px] w-full">
+                    <ResponsiveContainer>
+                      <BarChart data={analytics.copcTrendData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                        <XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} />
+                        <YAxis hide />
+                        <RechartsTooltip content={<ChartTooltipContent />} />
+                        <Bar
+                          dataKey="count"
+                          fill="url(#progana3d-grad-emerald)"
+                          radius={[6, 6, 0, 0]}
+                          barSize={40}
+                          filter="url(#progana3d-soft-depth)"
+                        >
+                          <LabelList content={<RenderBar3DLabel />} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+              <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
+                <CardHeader className="bg-muted/5 border-b">
+                  <CardTitle className="text-sm font-black uppercase text-indigo-700">
+                    Accreditation Excellence Velocity (3D)
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-8">
+                  <ChartContainer config={{}} className="h-[250px] w-full">
+                    <ResponsiveContainer>
+                      <BarChart data={analytics.accreditationTrendData}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                        <XAxis dataKey="year" tick={{ fontSize: 11, fontWeight: 'bold' }} axisLine={false} />
+                        <YAxis hide />
+                        <RechartsTooltip content={<ChartTooltipContent />} />
+                        <Bar
+                          dataKey="count"
+                          fill="url(#progana3d-grad-indigo)"
+                          radius={[6, 6, 0, 0]}
+                          barSize={40}
+                          filter="url(#progana3d-soft-depth)"
+                        >
+                          <LabelList content={<RenderBar3DLabel />} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="space-y-4 pt-6">
+              <div className="flex items-center gap-2 text-primary">
+                <Users className="h-5 w-5" />
+                <h3 className="text-lg font-black uppercase tracking-tight">Institutional GAD Reach Summary</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
+                  <CardHeader className="pb-2 border-b bg-blue-50/30">
+                    <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4 text-blue-600" /> Student Sex Distribution (3D)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-6 flex-1 flex flex-col items-center">
+                    <ChartContainer config={{}} className="h-[210px] w-full">
+                      <ResponsiveContainer>
+                        <PieChart>
+                          <Pie
+                            data={analytics.gadData.enrollment}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={40}
+                            outerRadius={70}
+                            paddingAngle={5}
+                            dataKey="value"
+                            label={RenderPie3DLabel}
+                            labelLine={false}
+                          >
+                            {analytics.gadData.enrollment.map((e, j) => (
+                              <Cell
+                                key={j}
+                                fill={j === 0 ? 'url(#progana3d-grad-indigo)' : 'url(#progana3d-grad-rose)'}
+                                filter="url(#progana3d-soft-depth)"
+                              />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                          <Legend
+                            verticalAlign="bottom"
+                            height={36}
+                            wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                    <div className="mt-4 text-center">
+                      <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">
+                        {analytics.totals.students.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
+                  <CardHeader className="pb-2 border-b bg-emerald-50/30">
+                    <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-emerald-600" /> System Registered User (3D)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-6 flex-1 flex flex-col items-center">
+                    <ChartContainer config={{}} className="h-[210px] w-full">
+                      <ResponsiveContainer>
+                        <PieChart>
+                          <Pie
+                            data={analytics.gadData.faculty}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={40}
+                            outerRadius={65}
+                            paddingAngle={5}
+                            dataKey="value"
+                            label={RenderPie3DLabel}
+                            labelLine={false}
+                          >
+                            {analytics.gadData.faculty.map((e, j) => (
+                              <Cell
+                                key={j}
+                                fill={j === 0 ? 'url(#progana3d-grad-emerald)' : 'url(#progana3d-grad-amber)'}
+                                filter="url(#progana3d-soft-depth)"
+                              />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                          <Legend
+                            verticalAlign="bottom"
+                            height={36}
+                            wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                    <div className="mt-4 text-center">
+                      <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">
+                        {analytics.totals.faculty.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Deduplicated Personnel</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
+                  <CardHeader className="pb-2 border-b bg-purple-50/30">
+                    <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-purple-600" /> Graduation Audit (3D)
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-6 flex-1 flex flex-col items-center">
+                    <ChartContainer config={{}} className="h-[210px] w-full">
+                      <ResponsiveContainer>
+                        <PieChart>
+                          <Pie
+                            data={analytics.gadData.grads}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={40}
+                            outerRadius={70}
+                            paddingAngle={5}
+                            dataKey="value"
+                            label={RenderPie3DLabel}
+                            labelLine={false}
+                          >
+                            {analytics.gadData.grads.map((e, j) => (
+                              <Cell
+                                key={j}
+                                fill={j === 0 ? 'url(#progana3d-grad-sky)' : 'url(#progana3d-grad-rose)'}
+                                filter="url(#progana3d-soft-depth)"
+                              />
+                            ))}
+                          </Pie>
+                          <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
+                          <Legend
+                            verticalAlign="bottom"
+                            height={36}
+                            wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                    <div className="mt-4 text-center">
+                      <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">
+                        {analytics.totals.grads.toLocaleString()}
+                      </p>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
-              <CardHeader className="pb-2 border-b bg-blue-50/30">
-                <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                  <GraduationCap className="h-4 w-4 text-blue-600" /> Student Sex Distribution (3D)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6 flex-1 flex flex-col items-center">
-                <ChartContainer config={{}} className="h-[210px] w-full">
-                  <ResponsiveContainer>
-                    <PieChart>
-                      <Pie
-                        data={analytics.gadData.enrollment}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={70}
-                        paddingAngle={5}
-                        dataKey="value"
-                        label={RenderPie3DLabel}
-                        labelLine={false}
-                      >
-                        {analytics.gadData.enrollment.map((e, j) => (
-                          <Cell
-                            key={j}
-                            fill={j === 0 ? 'url(#progana3d-grad-indigo)' : 'url(#progana3d-grad-rose)'}
-                            filter="url(#progana3d-soft-depth)"
-                          />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                      <Legend
-                        verticalAlign="bottom"
-                        height={36}
-                        wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-                <div className="mt-4 text-center">
-                  <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">
-                    {analytics.totals.students.toLocaleString()}
-                  </p>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
-              <CardHeader className="pb-2 border-b bg-emerald-50/30">
-                <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-emerald-600" /> System Registered User (3D)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6 flex-1 flex flex-col items-center">
-                <ChartContainer config={{}} className="h-[210px] w-full">
-                  <ResponsiveContainer>
-                    <PieChart>
-                      <Pie
-                        data={analytics.gadData.faculty}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={65}
-                        paddingAngle={5}
-                        dataKey="value"
-                        label={RenderPie3DLabel}
-                        labelLine={false}
-                      >
-                        {analytics.gadData.faculty.map((e, j) => (
-                          <Cell
-                            key={j}
-                            fill={j === 0 ? 'url(#progana3d-grad-emerald)' : 'url(#progana3d-grad-amber)'}
-                            filter="url(#progana3d-soft-depth)"
-                          />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                      <Legend
-                        verticalAlign="bottom"
-                        height={36}
-                        wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-                <div className="mt-4 text-center">
-                  <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">
-                    {analytics.totals.faculty.toLocaleString()}
-                  </p>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Deduplicated Personnel</p>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
-              <CardHeader className="pb-2 border-b bg-purple-50/30">
-                <CardTitle className="text-xs font-black uppercase flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-purple-600" /> Graduation Audit (3D)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-6 flex-1 flex flex-col items-center">
-                <ChartContainer config={{}} className="h-[210px] w-full">
-                  <ResponsiveContainer>
-                    <PieChart>
-                      <Pie
-                        data={analytics.gadData.grads}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={70}
-                        paddingAngle={5}
-                        dataKey="value"
-                        label={RenderPie3DLabel}
-                        labelLine={false}
-                      >
-                        {analytics.gadData.grads.map((e, j) => (
-                          <Cell
-                            key={j}
-                            fill={j === 0 ? 'url(#progana3d-grad-sky)' : 'url(#progana3d-grad-rose)'}
-                            filter="url(#progana3d-soft-depth)"
-                          />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip content={<ChartTooltipContent hideLabel />} />
-                      <Legend
-                        verticalAlign="bottom"
-                        height={36}
-                        wrapperStyle={{ fontSize: '9px', textTransform: 'uppercase', fontWeight: 'bold' }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-                <div className="mt-4 text-center">
-                  <p className="text-2xl font-black text-slate-800 dark:text-slate-200 tabular-nums">
-                    {analytics.totals.grads.toLocaleString()}
-                  </p>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        )}
 
         <Separator />
 
