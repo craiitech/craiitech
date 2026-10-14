@@ -46,7 +46,7 @@ export default function PrivacyPage() {
           </h3>
           <p>Your data is utilized strictly for the following purposes:</p>
           <ul className="list-disc pl-6 space-y-2">
-            <li>To verify your authority to submit or approve official EOMS documentation.</li>
+            <li>To verify your authority to submit or approve official UAQA Portal documentation.</li>
             <li>To maintain a permanent **System Audit Trail** of all quality management activities.</li>
             <li>To generate sex-disaggregated analytics for Gender and Development (GAD) reporting.</li>
           </ul>

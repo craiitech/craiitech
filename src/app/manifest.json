@@ -1,7 +1,7 @@
 {
-  "name": "RSU EOMS Submission Portal",
-  "short_name": "RSU EOMS",
-  "description": "Submission and Monitoring Portal for Romblon State University",
+  "name": "UAQA Portal",
+  "short_name": "UAQA",
+  "description": "Unified Archipelagic Quality Assurance Portal",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ECEFF1",

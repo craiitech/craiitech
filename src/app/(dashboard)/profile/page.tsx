@@ -1252,7 +1252,7 @@ export default function ProfilePage() {
                 <div className="space-y-1">
                   <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">Delete This Account</h4>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Once deleted, you will no longer have access to the RSU EOMS Portal. Your personal profile data and
+                    Once deleted, you will no longer have access to the UAQA Portal. Your personal profile data and
                     login credentials will be removed.
                   </p>
                 </div>
@@ -1303,7 +1303,7 @@ export default function ProfilePage() {
                         </p>
                         <p className="text-xs text-muted-foreground leading-relaxed italic">
                           This action will remove your profile and authentication record. Your submissions will be
-                          preserved in the RSU EOMS Registry for quality auditing compliance.
+                          preserved in the UAQA Portal Registry for quality auditing compliance.
                         </p>
                         <div className="space-y-4 pt-4 border-t">
                           <Form {...deleteForm}>

@@ -121,7 +121,7 @@ export default function EomsPolicyManualPage() {
             </div>
             <div>
               <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                RSU EOMS Manual
+                UAQA Portal Manual
               </h2>
               <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
                 Official Institutional Policy Documentation Aligned with ISO 21001:2018 Standards.

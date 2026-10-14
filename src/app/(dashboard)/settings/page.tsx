@@ -125,7 +125,7 @@ export default function SettingsPage() {
                   value="eoms-policy-manual"
                   className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
                 >
-                  RSU EOMS Manual
+                  UAQA Portal Manual
                 </TabsTrigger>
                 <TabsTrigger value="cycles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   Cycles & Deadlines

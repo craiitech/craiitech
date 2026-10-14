@@ -225,9 +225,9 @@ export default function EomsAcademyPage() {
           order: 1,
         },
         {
-          title: '2. Understanding RSU EOMS Implementation',
+          title: '2. Understanding UAQA Portal Implementation',
           description:
-            'Deep dive into how Romblon State University configures its QMS policies, standard forms, roles of academic/administrative heads, and regular operational reviews.',
+            'Deep dive into how UAQA Portal configures its QMS policies, standard forms, roles of academic/administrative heads, and regular operational reviews.',
           googleDriveLink:
             'https://docs.google.com/presentation/d/1487n_rG6z01lBvEoxwJc7jC866XpPZfL7XnNf4b2a8E/edit?usp=sharing',
           order: 2,

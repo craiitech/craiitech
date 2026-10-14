@@ -77,7 +77,7 @@ export default function LoginPage() {
                 Institutional Security Gateway
               </Badge>
               <h1 className="text-5xl font-black text-white uppercase tracking-tighter leading-none">
-                RSU EOMS <br />
+                UAQA Portal <br />
                 <span className="text-primary">Portal Access</span>
               </h1>
               <p className="text-slate-300 text-lg font-medium leading-relaxed max-w-md">

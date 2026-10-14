@@ -231,7 +231,7 @@ export default function QRScannerPage() {
         </Button>
         <div className="flex flex-col items-center text-center">
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/35 text-[#D4AF37] text-[8px] font-black uppercase tracking-wider">
-            <Sparkles className="h-2.5 w-2.5" /> EOMS Scanner
+            <Sparkles className="h-2.5 w-2.5" /> UAQA Scanner
           </span>
           <h1 className="text-sm font-black uppercase tracking-widest mt-1">
             System <span className="text-[#D4AF37]">QR Reader</span>

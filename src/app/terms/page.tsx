@@ -55,7 +55,7 @@ export default function TermsPage() {
             </li>
             <li>
               <strong>Control:</strong> Document control numbers are system-generated and must be cited in all official
-              university communications regarding EOMS.
+              university communications regarding UAQA Portal.
             </li>
           </ul>
         </section>

@@ -192,7 +192,7 @@ export default function UserManualPage() {
               </h2>
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest mt-2 flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-600" />
-                RSU EOMS Digital Portal Standard Operating Procedures
+                UAQA Portal Digital Portal Standard Operating Procedures
               </p>
             </div>
           </div>
