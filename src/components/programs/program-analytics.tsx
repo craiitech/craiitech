@@ -104,6 +104,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccreditationRecommendationReport } from './recommendation-print-template';
 import { AccreditationSchedulePrintTemplate } from './accreditation-schedule-print-template';
+import { ChedFourTierAnalytics } from './ched-four-tier-analytics';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -946,6 +947,15 @@ export function ProgramAnalytics({
       <div className="space-y-6 animate-in fade-in duration-500 pb-20">
         {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
         <Chart3DDefs idPrefix="progana3d" />
+
+        {/* 4-TIER ANALYTICS FRAMEWORK: DESCRIPTIVE, DIAGNOSTIC, PREDICTIVE, PRESCRIPTIVE */}
+        <ChedFourTierAnalytics
+          programs={programs}
+          compliances={compliances}
+          campuses={campuses}
+          units={units}
+          selectedYear={selectedYear}
+        />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           <Card className="bg-slate-50/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 shadow-sm rounded-2xl overflow-hidden flex flex-col p-5 transition-all hover:shadow-md">

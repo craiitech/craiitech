@@ -22,7 +22,10 @@ import {
   Info,
   Megaphone,
   Award,
+  Sparkles,
+  ArrowUpRight,
 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { ProgramRegistry } from '@/components/programs/program-registry';
 import { ProgramDialog } from '@/components/programs/program-dialog';
 import { BatchDataHub } from '@/components/programs/batch-data-hub';
@@ -214,6 +217,29 @@ export default function AcademicProgramsPage() {
     return units.filter((u) => u.category === 'Academic' && u.campusIds?.includes(campusFilter));
   }, [units, campusFilter]);
 
+  const decisionSupportQuickStats = useMemo(() => {
+    if (!rawPrograms || rawPrograms.length === 0) {
+      return { totalActive: 0, copcRate: 0, highRiskCount: 0 };
+    }
+    const active = rawPrograms.filter((p) => p.isActive);
+    const totalActive = active.length;
+    const currentCompliances = (rawCompliances || []).filter((c) => c.academicYear === selectedYear);
+
+    const copcCount = active.filter((p) => {
+      const rec = currentCompliances.find((c) => c.programId === p.id);
+      return rec?.ched?.copcStatus === 'With COPC';
+    }).length;
+
+    const highRiskCount = active.filter((p) => {
+      const rec = currentCompliances.find((c) => c.programId === p.id);
+      return rec?.ched?.copcStatus === 'No COPC';
+    }).length;
+
+    const copcRate = totalActive > 0 ? Math.round((copcCount / totalActive) * 100) : 0;
+
+    return { totalActive, copcRate, highRiskCount };
+  }, [rawPrograms, rawCompliances, selectedYear]);
+
   const handleNewProgram = () => {
     setEditingProgram(null);
     setIsDialogOpen(true);
@@ -289,49 +315,102 @@ export default function AcademicProgramsPage() {
             </div>
           </div>
 
-          <ScrollArea className="w-full">
-            <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md h-10 w-max min-w-max">
-              <TabsTrigger
-                value="ched-monitoring"
-                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <ScrollArea className="w-full lg:w-auto">
+              <TabsList className="bg-muted p-1 border shadow-sm animate-tab-highlight rounded-md h-10 w-max min-w-max">
+                <TabsTrigger
+                  value="ched-monitoring"
+                  className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  <GraduationCap className="h-4 w-4 text-primary" /> CHED Monitoring
+                </TabsTrigger>
+                <TabsTrigger
+                  value="accreditation-monitoring"
+                  className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  <Award className="h-4 w-4 text-indigo-600" /> Accreditation Monitoring
+                </TabsTrigger>
+                <TabsTrigger
+                  value="decision-support"
+                  className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 text-emerald-700 dark:text-emerald-300 font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  <BarChart3 className="h-4 w-4 text-emerald-600" /> Decision Support
+                </TabsTrigger>
+                <TabsTrigger
+                  value="batch-hub"
+                  className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  <Database className="h-4 w-4 text-indigo-600" /> Batch Data Hub
+                </TabsTrigger>
+                <TabsTrigger
+                  value="registry"
+                  className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  <Layers className="h-4 w-4" /> Program Registry
+                </TabsTrigger>
+                <TabsTrigger
+                  value="strengths"
+                  className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  <ShieldCheck className="h-4 w-4 text-emerald-600" /> Quality Profile
+                </TabsTrigger>
+                <TabsTrigger
+                  value="announcements"
+                  className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  <Megaphone className="h-4 w-4 text-amber-500" /> JC03 Announcements
+                </TabsTrigger>
+              </TabsList>
+            </ScrollArea>
+
+            {/* Decision Support Analytics Snapshot on the side of the Tabs */}
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <div
+                onClick={() => handleTabChange('decision-support')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleTabChange('decision-support');
+                  }
+                }}
+                title="Click to view 4-Tier Decision Support Analytics (Descriptive, Diagnostic, Predictive, Prescriptive)"
+                className={cn(
+                  'cursor-pointer group flex items-center gap-2.5 px-3 py-1.5 rounded-lg border transition-all shadow-xs',
+                  currentTab === 'decision-support'
+                    ? 'bg-emerald-500/15 border-emerald-500 text-emerald-800 dark:text-emerald-200 font-bold shadow-inner'
+                    : 'bg-gradient-to-r from-emerald-500/5 via-sky-500/5 to-purple-500/5 hover:from-emerald-500/10 hover:via-sky-500/10 hover:to-purple-500/10 border-emerald-500/30',
+                )}
               >
-                <GraduationCap className="h-4 w-4 text-primary" /> CHED Monitoring
-              </TabsTrigger>
-              <TabsTrigger
-                value="accreditation-monitoring"
-                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
-              >
-                <Award className="h-4 w-4 text-indigo-600" /> Accreditation Monitoring
-              </TabsTrigger>
-              <TabsTrigger
-                value="decision-support"
-                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
-              >
-                <BarChart3 className="h-4 w-4 text-emerald-600" /> Decision Support
-              </TabsTrigger>
-              <TabsTrigger
-                value="batch-hub"
-                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
-              >
-                <Database className="h-4 w-4 text-indigo-600" /> Batch Data Hub
-              </TabsTrigger>
-              <TabsTrigger value="registry" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                <Layers className="h-4 w-4" /> Program Registry
-              </TabsTrigger>
-              <TabsTrigger
-                value="strengths"
-                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
-              >
-                <ShieldCheck className="h-4 w-4 text-emerald-600" /> Quality Profile
-              </TabsTrigger>
-              <TabsTrigger
-                value="announcements"
-                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
-              >
-                <Megaphone className="h-4 w-4 text-amber-500" /> JC03 Announcements
-              </TabsTrigger>
-            </TabsList>
-          </ScrollArea>
+                <div className="flex items-center gap-1.5">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                    COPC:
+                  </span>
+                  <Badge
+                    variant="outline"
+                    className="h-5 px-1.5 text-[9px] font-mono font-black border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300"
+                  >
+                    {decisionSupportQuickStats.copcRate}%
+                  </Badge>
+                </div>
+
+                <span className="text-slate-300 dark:text-slate-700 font-bold hidden sm:inline">•</span>
+
+                <div className="hidden sm:flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
+                  <Sparkles className="h-3 w-3 text-purple-500" />
+                  <span>4-Tier Analytics</span>
+                </div>
+
+                <span className="text-slate-300 dark:text-slate-700 font-bold">•</span>
+
+                <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400 group-hover:underline flex items-center gap-0.5">
+                  <span>Open Decision Support</span>
+                  <ArrowUpRight className="h-3 w-3" />
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {currentTab !== 'announcements' && (

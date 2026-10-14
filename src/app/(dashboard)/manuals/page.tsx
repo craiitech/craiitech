@@ -35,6 +35,8 @@ import {
   FileText,
   CalendarCheck,
   UserCheck,
+  BarChart3,
+  ArrowUpRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -47,6 +49,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ProcedureRevisionDialog } from '@/components/manuals/procedure-revision-dialog';
 import { ProcedureRevisionReviewDialog } from '@/components/manuals/procedure-revision-review-dialog';
 import { ProcedureManualProcessSlider } from '@/components/manuals/procedure-manual-process-slider';
+import { ProcedureManualsVisualization } from '@/components/manuals/procedure-manuals-visualization';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Printer } from 'lucide-react';
 import {
@@ -103,6 +106,30 @@ export default function ProcedureManualsPage() {
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<{ qaoDirector?: string; qmsHead?: string }>(signatoryRef);
+
+  const universityQuickStats = useMemo(() => {
+    if (!allUnits || allUnits.length === 0) {
+      return { totalUnits: 0, updatedCount: 0, totalProcesses: 0, coveragePct: 0 };
+    }
+    const manualMap = new Map((manuals || []).map((m) => [m.id, m]));
+    let updated = 0;
+    let processes = 0;
+
+    allUnits.forEach((u) => {
+      const m = manualMap.get(u.id);
+      const isUpdated = m?.status === 'Updated' || Boolean(m && (m.procedureNumber || m.googleDriveLink));
+      if (isUpdated) updated++;
+      const pCount = m?.processes?.length || (m?.numberOfProcesses ? Number(m.numberOfProcesses) : 0);
+      processes += pCount;
+    });
+
+    return {
+      totalUnits: allUnits.length,
+      updatedCount: updated,
+      totalProcesses: processes,
+      coveragePct: Math.round((updated / allUnits.length) * 100),
+    };
+  }, [allUnits, manuals]);
 
   const handlePrintManualsInventory = () => {
     if (!allUnits) return;
@@ -371,33 +398,91 @@ export default function ProcedureManualsPage() {
           </div>
         </div>
 
-        <ScrollArea className="w-full">
-          <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
-            <TabsTrigger
-              onClick={() => handleTabChange('view')}
-              value="view"
-              className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
-            >
-              <BookOpen className="h-3.5 w-3.5" /> View Manual
-            </TabsTrigger>
-            <TabsTrigger
-              onClick={() => handleTabChange('revisions')}
-              value="revisions"
-              className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
-            >
-              <History className="h-3.5 w-3.5" /> New and Revision Request
-            </TabsTrigger>
-            {isAdmin && (
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <ScrollArea className="w-full lg:w-auto">
+            <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
               <TabsTrigger
-                onClick={() => handleTabChange('inbox')}
-                value="inbox"
-                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                onClick={() => handleTabChange('view')}
+                value="view"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-5 h-8"
               >
-                <Inbox className="h-3.5 w-3.5" /> New and Revision Inbox
+                <BookOpen className="h-3.5 w-3.5" /> View Manual
               </TabsTrigger>
-            )}
-          </TabsList>
-        </ScrollArea>
+              <TabsTrigger
+                onClick={() => handleTabChange('revisions')}
+                value="revisions"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-5 h-8"
+              >
+                <History className="h-3.5 w-3.5" /> New and Revision Request
+              </TabsTrigger>
+              <TabsTrigger
+                onClick={() => handleTabChange('visualization')}
+                value="visualization"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-5 h-8 text-primary font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                <BarChart3 className="h-3.5 w-3.5 text-primary" /> University Manuals Visualization
+              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger
+                  onClick={() => handleTabChange('inbox')}
+                  value="inbox"
+                  className="gap-2 text-[10px] font-black uppercase tracking-widest px-5 h-8"
+                >
+                  <Inbox className="h-3.5 w-3.5" /> New and Revision Inbox
+                </TabsTrigger>
+              )}
+            </TabsList>
+          </ScrollArea>
+
+          {/* Visualization Snapshot on the side of the Tabs */}
+          <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <div
+              onClick={() => handleTabChange('visualization')}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  handleTabChange('visualization');
+                }
+              }}
+              title="Click to view full University Procedure Manuals Visualization"
+              className={cn(
+                'cursor-pointer group flex items-center gap-2.5 px-3 py-1.5 rounded-lg border transition-all shadow-xs',
+                currentTab === 'visualization'
+                  ? 'bg-primary/10 border-primary text-primary font-bold shadow-inner'
+                  : 'bg-gradient-to-r from-primary/5 via-indigo-500/5 to-emerald-500/5 hover:from-primary/10 hover:via-indigo-500/10 hover:to-emerald-500/10 border-primary/20',
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                  Manuals Coverage:
+                </span>
+                <Badge
+                  variant="outline"
+                  className="h-5 px-1.5 text-[9px] font-mono font-black border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300"
+                >
+                  {universityQuickStats.coveragePct}% ({universityQuickStats.updatedCount}/
+                  {universityQuickStats.totalUnits})
+                </Badge>
+              </div>
+
+              <span className="text-slate-300 dark:text-slate-700 font-bold hidden sm:inline">•</span>
+
+              <div className="hidden sm:flex items-center gap-1 text-[10px] font-bold text-muted-foreground">
+                <Layers className="h-3 w-3 text-indigo-500" />
+                <span>{universityQuickStats.totalProcesses} SOPs</span>
+              </div>
+
+              <span className="text-slate-300 dark:text-slate-700 font-bold">•</span>
+
+              <span className="text-[9px] font-black uppercase tracking-wider text-primary group-hover:underline flex items-center gap-0.5">
+                <span>View Visualization</span>
+                <ArrowUpRight className="h-3 w-3" />
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 min-h-0 lg:h-[calc(100dvh-16rem)]">
@@ -434,7 +519,12 @@ export default function ProcedureManualsPage() {
                     {sidebarItems.map((item) => (
                       <button
                         key={item.id}
-                        onClick={() => setSelectedUnitId(item.id)}
+                        onClick={() => {
+                          setSelectedUnitId(item.id);
+                          if (currentTab === 'visualization') {
+                            handleTabChange('view');
+                          }
+                        }}
                         className={cn(
                           'w-full text-left py-2.5 px-3.5 text-xs border-l-2 transition-all flex items-center justify-between gap-2 group',
                           selectedUnitId === item.id
@@ -492,7 +582,26 @@ export default function ProcedureManualsPage() {
             {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
 
-          {selectedUnit ? (
+          {currentTab === 'visualization' ? (
+            <TabsContent
+              value="visualization"
+              className="flex-1 min-h-0 m-0 animate-in fade-in duration-300 flex flex-col"
+            >
+              <ScrollArea className="h-full pr-1">
+                <ProcedureManualsVisualization
+                  manuals={manuals}
+                  units={allUnits}
+                  campuses={campuses}
+                  revisionRequests={allRequests}
+                  onViewManual={(unitId) => {
+                    setSelectedUnitId(unitId);
+                    handleTabChange('view');
+                  }}
+                  isLoading={isLoadingManuals || isLoadingUnits}
+                />
+              </ScrollArea>
+            </TabsContent>
+          ) : selectedUnit ? (
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center justify-between border-b pb-2 shrink-0 px-1">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -1004,6 +1113,15 @@ export default function ProcedureManualsPage() {
               <p className="text-[10px] mt-2 max-w-[250px] text-center leading-relaxed">
                 Select a unit from the index to access its operational manuals and revision workflows.
               </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4 gap-2 text-[10px] font-black uppercase tracking-wider text-primary border-primary/30 hover:bg-primary/5"
+                onClick={() => handleTabChange('visualization')}
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
+                View University Manuals Visualization
+              </Button>
             </div>
           )}
         </div>
