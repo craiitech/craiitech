@@ -39,6 +39,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { cn, isCycleActive, isProgramInUnit, UNIT_CODES } from '@/lib/utils';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 import { AiExecutiveBriefing } from '@/components/ai/ai-executive-briefing';
+import { CardAnalyticsStrip } from '@/components/ui/card-analytics-strip';
 
 interface ExecutiveOverviewProps {
   submissions: Submission[] | null;
@@ -1403,6 +1404,21 @@ export function ExecutiveOverview({
               </span>
             </div>
             <Progress value={iqaProgressRate} className="h-1 bg-slate-100 dark:bg-slate-700" />
+            <CardAnalyticsStrip
+              number={yearSchedules.length}
+              index={(iqaProgressRate / 100).toFixed(2)}
+              percentage={iqaProgressRate}
+              rating={
+                iqaProgressRate >= 80
+                  ? 'Grade A (Optimal)'
+                  : iqaProgressRate >= 50
+                    ? 'Grade B (Fair)'
+                    : 'Grade C (Lagging)'
+              }
+              ratio={`${completedAudits.length}:${yearSchedules.length || 1}`}
+              ranking="1"
+              variant="mini-grid"
+            />
           </CardContent>
         </Card>
 
@@ -1428,6 +1444,21 @@ export function ExecutiveOverview({
               </span>
             </div>
             <Progress value={carResolutionRate} className="h-1 bg-rose-50" />
+            <CardAnalyticsStrip
+              number={yearCars.length}
+              index={(carResolutionRate / 100).toFixed(2)}
+              percentage={carResolutionRate}
+              rating={
+                carResolutionRate >= 80
+                  ? 'Grade A (Optimal)'
+                  : carResolutionRate >= 50
+                    ? 'Grade B (Fair)'
+                    : 'Grade C (Lagging)'
+              }
+              ratio={`${closedCars.length}:${yearCars.length || 1}`}
+              ranking="2"
+              variant="mini-grid"
+            />
           </CardContent>
         </Card>
 
@@ -1451,6 +1482,21 @@ export function ExecutiveOverview({
               <span className="text-slate-900 dark:text-slate-100 font-extrabold">{accreditationLevelRate}%</span>
             </div>
             <Progress value={accreditationRate} className="h-1 bg-teal-50" />
+            <CardAnalyticsStrip
+              number={`${accreditationRate}%`}
+              index={(accreditationRate / 100).toFixed(2)}
+              percentage={accreditationRate}
+              rating={
+                accreditationRate >= 75
+                  ? 'Grade A (Accredited)'
+                  : accreditationRate >= 50
+                    ? 'Grade B (Candidate)'
+                    : 'Grade C (Action Req)'
+              }
+              ratio={`${accreditationLevelRate}:${accreditationResolutionRate}`}
+              ranking="3"
+              variant="mini-grid"
+            />
             {accreditationByLevel.undergrad.length > 0 && (
               <div className="pt-1.5 border-t border-slate-100 dark:border-slate-700">
                 <p className="text-[8px] font-black uppercase text-slate-400 tracking-wider mb-1">Undergrad / TVET</p>
@@ -1508,6 +1554,21 @@ export function ExecutiveOverview({
               </span>
             </div>
             <Progress value={riskControlRate} className="h-1 bg-amber-50" />
+            <CardAnalyticsStrip
+              number={yearRisks.length}
+              index={(riskControlRate / 100).toFixed(2)}
+              percentage={riskControlRate}
+              rating={
+                riskControlRate >= 80
+                  ? 'Grade A (Controlled)'
+                  : riskControlRate >= 50
+                    ? 'Grade B (Moderate)'
+                    : 'Grade C (Critical)'
+              }
+              ratio={`${mitigatedRisks.length}:${yearRisks.length || 1}`}
+              ranking="4"
+              variant="mini-grid"
+            />
           </CardContent>
         </Card>
 
@@ -1533,6 +1594,21 @@ export function ExecutiveOverview({
               </span>
             </div>
             <Progress value={copcComplianceRate} className="h-1 bg-blue-50" />
+            <CardAnalyticsStrip
+              number={totalProgramsCount}
+              index={(copcComplianceRate / 100).toFixed(2)}
+              percentage={copcComplianceRate}
+              rating={
+                copcComplianceRate >= 80
+                  ? 'Grade A (Compliant)'
+                  : copcComplianceRate >= 50
+                    ? 'Grade B (In Progress)'
+                    : 'Grade C (Non-Compliant)'
+              }
+              ratio={`${copcCompliant.length}:${totalProgramsCount || 1}`}
+              ranking="5"
+              variant="mini-grid"
+            />
           </CardContent>
         </Card>
       </div>

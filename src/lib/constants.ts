@@ -30,6 +30,8 @@ export const KPI_CATEGORIES: Record<KpiCategory, string> = {
   csm_service_quality: 'CSM & Service Quality',
   system_operations: 'System Operations',
   faculty_evaluation: 'Faculty Evaluation',
+  program_accreditation: 'Program Accreditation',
+  'Program Accreditation': 'Program Accreditation',
 };
 
 export const KPI_STATUS_LABELS: Record<string, string> = {

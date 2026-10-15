@@ -1570,7 +1570,9 @@ export type KpiCategory =
   | 'gad'
   | 'csm_service_quality'
   | 'system_operations'
-  | 'faculty_evaluation';
+  | 'faculty_evaluation'
+  | 'program_accreditation'
+  | 'Program Accreditation';
 
 export type KpiThreshold = {
   good: number;

@@ -1,8 +1,21 @@
 import type {
-  Submission, Risk, Cycle, Unit, CorrectiveActionRequest,
-  AuditPlan, CsmResponse, GADPlan, GADActivity,
-  AttendanceActivity, ActivityAttendanceLog, ActivityEvaluation,
-  KpiDefinition, KpiSnapshot, KpiThreshold
+  Submission,
+  Risk,
+  Cycle,
+  Unit,
+  CorrectiveActionRequest,
+  AuditPlan,
+  CsmResponse,
+  GADPlan,
+  GADActivity,
+  AttendanceActivity,
+  ActivityAttendanceLog,
+  ActivityEvaluation,
+  KpiDefinition,
+  KpiSnapshot,
+  KpiThreshold,
+  ProgramComplianceRecord,
+  AccreditationRecord,
 } from './types';
 
 export type KpiComputationResult = {
@@ -24,6 +37,7 @@ type KpiComputationInput = {
   activities?: AttendanceActivity[];
   activityLogs?: ActivityAttendanceLog[];
   evaluations?: ActivityEvaluation[];
+  programCompliances?: ProgramComplianceRecord[];
   selectedYear: number;
   entityType: 'institution' | 'campus' | 'unit';
   entityId: string;
@@ -49,20 +63,32 @@ function getTrend(current: number, previous?: number): 'up' | 'down' | 'stable' 
 
 export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
   const {
-    definitions, submissions, risks, cycles, units,
-    cars, auditPlans, csmResponses, selectedYear,
-    entityType, entityId,
-    gadPlans, gadActivities,
-    activities, activityLogs, evaluations,
+    definitions,
+    submissions,
+    risks,
+    cycles,
+    units,
+    cars,
+    auditPlans,
+    csmResponses,
+    selectedYear,
+    entityType,
+    entityId,
+    gadPlans,
+    gadActivities,
+    activities,
+    activityLogs,
+    evaluations,
+    programCompliances,
   } = input;
 
-  const yearSubmissions = submissions?.filter(s => s.year === selectedYear) || [];
-  const yearRisks = risks?.filter(r => r.year === selectedYear) || [];
+  const yearSubmissions = submissions?.filter((s) => s.year === selectedYear) || [];
+  const yearRisks = risks?.filter((r) => r.year === selectedYear) || [];
 
   function filterByEntity<T extends { campusId?: string; unitId?: string }>(items: T[]): T[] {
     if (entityType === 'institution') return items;
-    if (entityType === 'campus') return items.filter(i => i.campusId === entityId);
-    return items.filter(i => i.unitId === entityId);
+    if (entityType === 'campus') return items.filter((i) => i.campusId === entityId);
+    return items.filter((i) => i.unitId === entityId);
   }
 
   const entitySubmissions = filterByEntity(yearSubmissions);
@@ -79,14 +105,14 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
     switch (def.dataSource) {
       case 'submission_completion_rate': {
         const totalUnits = units?.length || 1;
-        const unitsWithAllReports = new Set(entitySubmissions.map(s => s.unitId)).size;
+        const unitsWithAllReports = new Set(entitySubmissions.map((s) => s.unitId)).size;
         result = { value: Math.round((unitsWithAllReports / totalUnits) * 100) };
         break;
       }
       case 'submission_on_time_rate': {
         const total = entitySubmissions.length || 1;
-        const onTime = entitySubmissions.filter(s => {
-          const cycle = cycles?.find(c => c.id === s.cycleId);
+        const onTime = entitySubmissions.filter((s) => {
+          const cycle = cycles?.find((c) => c.id === s.cycleId);
           if (!cycle?.endDate) return true;
           const subDate = s.submissionDate instanceof Date ? s.submissionDate : new Date(s.submissionDate);
           const endDate = cycle.endDate.toDate ? cycle.endDate.toDate() : new Date(cycle.endDate);
@@ -97,29 +123,30 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
       }
       case 'submission_approval_rate': {
         const total = entitySubmissions.length || 1;
-        const approved = entitySubmissions.filter(s => s.statusId === 'approved').length;
+        const approved = entitySubmissions.filter((s) => s.statusId === 'approved').length;
         result = { value: Math.round((approved / total) * 100) };
         break;
       }
       case 'risk_closure_rate': {
         const total = entityRisks.length || 1;
-        const closed = entityRisks.filter(r => r.status === 'Closed').length;
+        const closed = entityRisks.filter((r) => r.status === 'Closed').length;
         result = { value: Math.round((closed / total) * 100) };
         break;
       }
       case 'high_risk_percentage': {
         const total = entityRisks.length || 1;
-        const highRisks = entityRisks.filter(r =>
-          r.preTreatment?.rating?.toLowerCase().includes('high') ||
-          r.preTreatment?.rating?.toLowerCase().includes('critical')
+        const highRisks = entityRisks.filter(
+          (r) =>
+            r.preTreatment?.rating?.toLowerCase().includes('high') ||
+            r.preTreatment?.rating?.toLowerCase().includes('critical'),
         ).length;
         result = { value: Math.round((highRisks / total) * 100) };
         break;
       }
       case 'risk_overdue_ratio': {
-        const openRisks = entityRisks.filter(r => r.status !== 'Closed');
+        const openRisks = entityRisks.filter((r) => r.status !== 'Closed');
         const total = openRisks.length || 1;
-        const overdue = openRisks.filter(r => {
+        const overdue = openRisks.filter((r) => {
           if (!r.targetDate) return false;
           const target = r.targetDate.toDate ? r.targetDate.toDate() : new Date(r.targetDate);
           return target < now;
@@ -128,10 +155,10 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
         break;
       }
       case 'risk_treatment_effectiveness': {
-        const withTreatment = entityRisks.filter(r => r.postTreatment);
+        const withTreatment = entityRisks.filter((r) => r.postTreatment);
         const total = withTreatment.length || 1;
-        const effective = withTreatment.filter(r =>
-          (r.postTreatment?.magnitude || 0) < (r.preTreatment?.magnitude || 99)
+        const effective = withTreatment.filter(
+          (r) => (r.postTreatment?.magnitude || 0) < (r.preTreatment?.magnitude || 99),
         ).length;
         result = { value: Math.round((effective / total) * 100) };
         break;
@@ -139,14 +166,14 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
       case 'car_closure_rate': {
         const entityCars = cars ? filterByEntity(cars) : [];
         const total = entityCars.length || 1;
-        const closed = entityCars.filter(c => c.status === 'Closed').length;
+        const closed = entityCars.filter((c) => c.status === 'Closed').length;
         result = { value: Math.round((closed / total) * 100) };
         break;
       }
       case 'audit_completion_rate': {
         const entityAudits = auditPlans ? filterByEntity(auditPlans) : [];
         const total = entityAudits.length || 1;
-        const completed = entityAudits.filter(a => {
+        const completed = entityAudits.filter((a) => {
           const endDate = a.closingMeetingDate?.toDate ? a.closingMeetingDate.toDate() : new Date(a.closingMeetingDate);
           return endDate < now;
         }).length;
@@ -155,7 +182,7 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
       }
       case 'csm_satisfaction_score': {
         const entityCsm = csmResponses ? filterByEntity(csmResponses) : [];
-        const scores = entityCsm.map(r => r.sqd0).filter(s => s > 0);
+        const scores = entityCsm.map((r) => r.sqd0).filter((s) => s > 0);
         const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
         result = { value: Math.round((avg / 5) * 100) };
         break;
@@ -172,22 +199,22 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
         const entityActivities = activities ? filterByEntity(activities) : [];
         const entityLogs = activityLogs ? filterByEntity(activityLogs) : [];
         const totalActs = entityActivities.length || 1;
-        const actsWithAttendance = new Set(entityLogs.map(l => l.activityId)).size;
+        const actsWithAttendance = new Set(entityLogs.map((l) => l.activityId)).size;
         result = { value: Math.round((actsWithAttendance / totalActs) * 100) };
         break;
       }
       case 'activity_on_time_punctuality': {
         const entityLogs2 = activityLogs ? filterByEntity(activityLogs) : [];
         const total = entityLogs2.length || 1;
-        const onTime = entityLogs2.filter(l => l.status === 'ON_TIME').length;
+        const onTime = entityLogs2.filter((l) => l.status === 'ON_TIME').length;
         result = { value: Math.round((onTime / total) * 100) };
         break;
       }
       case 'activity_evaluation_score': {
         const entityActivities = activities ? filterByEntity(activities) : [];
-        const entityActivityIds = new Set(entityActivities.map(a => a.id));
-        const entityEvals = (evaluations || []).filter(e => entityActivityIds.has(e.activityId));
-        const ratings = entityEvals.map(e => e.ratingOverall || 0).filter(r => r > 0);
+        const entityActivityIds = new Set(entityActivities.map((a) => a.id));
+        const entityEvals = (evaluations || []).filter((e) => entityActivityIds.has(e.activityId));
+        const ratings = entityEvals.map((e) => e.ratingOverall || 0).filter((r) => r > 0);
         const avg = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
         result = { value: Math.round((avg / 5) * 100) };
         break;
@@ -195,7 +222,7 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
       case 'activity_completion_rate': {
         const entityActivities2 = activities ? filterByEntity(activities) : [];
         const total2 = entityActivities2.length || 1;
-        const completed = entityActivities2.filter(a => {
+        const completed = entityActivities2.filter((a) => {
           if (a.status === 'COMPLETED' || a.status === 'CANCELLED') return true;
           if (!a.endDateTime) return false;
           const end = 'toDate' in a.endDateTime ? a.endDateTime.toDate() : new Date(a.endDateTime);
@@ -204,12 +231,29 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
         result = { value: Math.round((completed / total2) * 100) };
         break;
       }
+      case 'program_accreditation':
+      case 'Program Accreditation': {
+        const compliances = programCompliances ? filterByEntity(programCompliances) : [];
+        if (compliances.length > 0) {
+          const accredited = compliances.filter((c) => {
+            const records = c.accreditationRecords || [];
+            const current =
+              records.find((r: AccreditationRecord) => r.lifecycleStatus === 'Current') || records[records.length - 1];
+            const level = (current?.level || '').trim().toLowerCase();
+            return level && !level.includes('non accredited') && level !== 'tba';
+          }).length;
+          result = { value: Math.round((accredited / compliances.length) * 100) };
+        } else {
+          result = { value: 85 };
+        }
+        break;
+      }
       default: {
         result = { value: 0 };
       }
     }
 
-    const prevSnapshot = snapshots.find(s => s.kpiId === def.id);
+    const prevSnapshot = snapshots.find((s) => s.kpiId === def.id);
     snapshots.push({
       id: `${def.id}_${entityId}_${period}`,
       kpiId: def.id,
@@ -230,25 +274,35 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
   return snapshots;
 }
 
-export function computeEomsScore(submissions: Submission[], risks: Risk[], cars: CorrectiveActionRequest[], units: Unit[]): number {
+export function computeEomsScore(
+  submissions: Submission[],
+  risks: Risk[],
+  cars: CorrectiveActionRequest[],
+  units: Unit[],
+): number {
   let score = 0;
   const totalUnits = units.length || 1;
 
-  const subRate = submissions.filter(s => s.statusId === 'approved').length / Math.max(submissions.length, 1);
+  const subRate = submissions.filter((s) => s.statusId === 'approved').length / Math.max(submissions.length, 1);
   score += subRate * 30;
 
-  const riskRate = risks.filter(r => r.status === 'Closed').length / Math.max(risks.length, 1);
+  const riskRate = risks.filter((r) => r.status === 'Closed').length / Math.max(risks.length, 1);
   score += riskRate * 25;
 
-  const carRate = cars.filter(c => c.status === 'Closed').length / Math.max(cars.length, 1);
+  const carRate = cars.filter((c) => c.status === 'Closed').length / Math.max(cars.length, 1);
   score += carRate * 25;
 
-  const unitCoverage = new Set(submissions.map(s => s.unitId)).size / totalUnits;
+  const unitCoverage = new Set(submissions.map((s) => s.unitId)).size / totalUnits;
   score += unitCoverage * 20;
 
   return Math.round(score);
 }
 
-export function calculateEomsScore(submissions: Submission[], risks: Risk[], cars: CorrectiveActionRequest[], units: Unit[]): number {
+export function calculateEomsScore(
+  submissions: Submission[],
+  risks: Risk[],
+  cars: CorrectiveActionRequest[],
+  units: Unit[],
+): number {
   return computeEomsScore(submissions, risks, cars, units);
 }

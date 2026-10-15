@@ -6,6 +6,8 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { KPI_STATUS_COLORS } from '@/lib/constants';
 import type { KpiSnapshot } from '@/lib/types';
 
+import { CardAnalyticsStrip } from '@/components/ui/card-analytics-strip';
+
 interface KpiScorecardProps {
   name: string;
   value: number;
@@ -14,12 +16,52 @@ interface KpiScorecardProps {
   status: 'good' | 'satisfactory' | 'poor';
   trend?: 'up' | 'down' | 'stable';
   description?: string;
+  rank?: number;
+  totalRank?: number;
+  number?: string | number;
+  index?: string | number;
+  percentage?: string | number;
+  rating?: string;
+  ratio?: string;
+  ranking?: string | number;
 }
 
-export function KpiScorecard({ name, value, target, unit = '%', status, trend, description }: KpiScorecardProps) {
+export function KpiScorecard({
+  name,
+  value,
+  target,
+  unit = '%',
+  status,
+  trend,
+  description,
+  rank,
+  totalRank,
+  number,
+  index,
+  percentage,
+  rating,
+  ratio,
+  ranking,
+}: KpiScorecardProps) {
   const bgColor = KPI_STATUS_COLORS[status] || KPI_STATUS_COLORS.satisfactory;
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus;
   const trendColor = trend === 'up' ? 'text-emerald-500' : trend === 'down' ? 'text-rose-500' : 'text-slate-400';
+
+  // Compute 6 default analytical metrics if not explicitly passed
+  const displayNum = number !== undefined ? number : `${value}${unit}`;
+  const displayIdx = index !== undefined ? index : (value / (target || 100)).toFixed(2);
+  const displayPct = percentage !== undefined ? percentage : `${Math.round((value / (target || 1)) * 100)}%`;
+  const displayRating =
+    rating !== undefined
+      ? rating
+      : status === 'good'
+        ? 'Grade A (Optimal)'
+        : status === 'satisfactory'
+          ? 'Grade B (Fair)'
+          : 'Grade C (Critical)';
+  const displayRatio = ratio !== undefined ? ratio : `${Math.round(value)}:${Math.round(target)}`;
+  const displayRank =
+    ranking !== undefined ? ranking : rank ? `#${rank}${totalRank ? `/${totalRank}` : ''}` : undefined;
 
   return (
     <Card className="shadow-md border-primary/10 overflow-hidden group hover:shadow-lg transition-all duration-300">
@@ -48,30 +90,41 @@ export function KpiScorecard({ name, value, target, unit = '%', status, trend, d
             <div
               className={cn(
                 'h-full rounded-full transition-all duration-500',
-                status === 'good' ? 'bg-emerald-500' : status === 'satisfactory' ? 'bg-amber-500' : 'bg-rose-500'
+                status === 'good' ? 'bg-emerald-500' : status === 'satisfactory' ? 'bg-amber-500' : 'bg-rose-500',
               )}
               style={{ width: `${Math.min(value, 100)}%` }}
             />
           </div>
           <div className="flex justify-between mt-1.5">
-            <span className="text-[9px] font-bold text-muted-foreground">Target: {target}{unit}</span>
+            <span className="text-[9px] font-bold text-muted-foreground">
+              Target: {target}
+              {unit}
+            </span>
             <span className={cn('text-[9px] font-bold', value >= target ? 'text-emerald-600' : 'text-amber-600')}>
               {value >= target ? 'Met' : `${Math.round(target - value)}${unit} to go`}
             </span>
           </div>
         </div>
-        {description && (
-          <p className="mt-2 text-[9px] text-muted-foreground leading-relaxed">{description}</p>
-        )}
+
+        {/* 6-Dimensional Information & Visualization Strip */}
+        <div className="mt-3">
+          <CardAnalyticsStrip
+            number={displayNum}
+            index={displayIdx}
+            percentage={displayPct}
+            rating={displayRating}
+            ratio={displayRatio}
+            ranking={displayRank}
+            variant="mini-grid"
+          />
+        </div>
+
+        {description && <p className="mt-2 text-[9px] text-muted-foreground leading-relaxed">{description}</p>}
       </CardContent>
     </Card>
   );
 }
 
 export function KpiScorecardGrid({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-      {children}
-    </div>
-  );
+  return <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">{children}</div>;
 }

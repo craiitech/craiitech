@@ -38,6 +38,8 @@ const DATA_SOURCES = [
   { value: 'audit_completion_rate', label: 'Audit Completion Rate' },
   { value: 'csm_satisfaction_score', label: 'CSM Satisfaction Score' },
   { value: 'gad_budget_utilization', label: 'GAD Budget Utilization' },
+  { value: 'Program Accreditation', label: 'Program Accreditation' },
+  { value: 'program_accreditation', label: 'Program Accreditation (System)' },
 ];
 
 export function KpiDefinitionsManager() {

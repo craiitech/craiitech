@@ -137,6 +137,18 @@ const KPI_DEFINITIONS = [
     weight: 1,
     isActive: true,
   },
+  {
+    name: 'Program Accreditation',
+    description: 'Percentage of academic programs meeting accredited maturity status and quality recommendations.',
+    category: 'program_accreditation',
+    formula: 'program_accreditation',
+    dataSource: 'Program Accreditation',
+    unit: '%',
+    thresholds: { good: 85, satisfactory: 65, poor: 40, direction: 'higher_is_better' },
+    defaultTarget: 85,
+    weight: 1,
+    isActive: true,
+  },
 ];
 
 export async function GET() {
@@ -151,7 +163,10 @@ export async function GET() {
 
     if (!existing.empty) {
       const countSnap = await col.count().get();
-      return NextResponse.json({ message: `Already seeded (${countSnap.data().count} docs exist)`, count: countSnap.data().count });
+      return NextResponse.json({
+        message: `Already seeded (${countSnap.data().count} docs exist)`,
+        count: countSnap.data().count,
+      });
     }
 
     const batch = firestore.batch();
@@ -162,7 +177,10 @@ export async function GET() {
     }
     await batch.commit();
 
-    return NextResponse.json({ message: `Seeded ${KPI_DEFINITIONS.length} KPI definitions`, count: KPI_DEFINITIONS.length });
+    return NextResponse.json({
+      message: `Seeded ${KPI_DEFINITIONS.length} KPI definitions`,
+      count: KPI_DEFINITIONS.length,
+    });
   } catch (error: any) {
     console.error('Seed error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

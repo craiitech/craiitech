@@ -185,6 +185,18 @@ const KPI_DEFINITIONS = [
     weight: 1,
     isActive: true,
   },
+  {
+    name: 'Program Accreditation',
+    description: 'Percentage of academic programs meeting accredited maturity status and quality recommendations.',
+    category: 'program_accreditation',
+    formula: 'program_accreditation',
+    dataSource: 'Program Accreditation',
+    unit: '%',
+    thresholds: { good: 85, satisfactory: 65, poor: 40, direction: 'higher_is_better' },
+    defaultTarget: 85,
+    weight: 1,
+    isActive: true,
+  },
 ];
 
 export default function SeedKpiDefinitionsPage() {

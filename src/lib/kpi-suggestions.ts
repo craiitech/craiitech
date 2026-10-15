@@ -1,8 +1,21 @@
 import type {
-  Submission, Risk, CorrectiveActionRequest, Unit, Cycle,
-  AuditPlan, CsmResponse, KpiDefinition, KpiCategory, KpiThreshold,
-  AttendanceActivity, ActivityAttendanceLog, ActivityEvaluation,
-  GADPlan, GADActivity, OkrObjective, OkrKeyResult,
+  Submission,
+  Risk,
+  CorrectiveActionRequest,
+  Unit,
+  Cycle,
+  AuditPlan,
+  CsmResponse,
+  KpiDefinition,
+  KpiCategory,
+  KpiThreshold,
+  AttendanceActivity,
+  ActivityAttendanceLog,
+  ActivityEvaluation,
+  GADPlan,
+  GADActivity,
+  OkrObjective,
+  OkrKeyResult,
 } from './types';
 import { KPI_CATEGORIES, DEFAULT_KPI_THRESHOLDS } from './constants';
 
@@ -61,11 +74,13 @@ function hasData(data: DataInventory, key: keyof DataInventory): boolean {
 }
 
 function countByEntity<T extends { campusId?: string; unitId?: string }>(
-  items: T[], entityType: 'institution' | 'campus' | 'unit', entityId: string
+  items: T[],
+  entityType: 'institution' | 'campus' | 'unit',
+  entityId: string,
 ): T[] {
   if (entityType === 'institution') return items;
-  if (entityType === 'campus') return items.filter(i => i.campusId === entityId);
-  return items.filter(i => i.unitId === entityId);
+  if (entityType === 'campus') return items.filter((i) => i.campusId === entityId);
+  return items.filter((i) => i.unitId === entityId);
 }
 
 const TEMPLATES: SuggestionTemplate[] = [
@@ -76,12 +91,13 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['submissions', 'units'],
-    confidenceCheck: (d) => hasData(d, 'submissions') && hasData(d, 'units') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'submissions') && hasData(d, 'units') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const subs = d.submissions || [];
-      if (subs.length === 0) return { target: 85, current: 0, reason: 'No submission data available yet.', hasData: false };
+      if (subs.length === 0)
+        return { target: 85, current: 0, reason: 'No submission data available yet.', hasData: false };
       const total = d.units?.length || 1;
-      const distinctUnits = new Set(subs.map(s => s.unitId)).size;
+      const distinctUnits = new Set(subs.map((s) => s.unitId)).size;
       const rate = Math.round((distinctUnits / total) * 100);
       return {
         target: Math.max(rate + 10, 90),
@@ -93,7 +109,7 @@ const TEMPLATES: SuggestionTemplate[] = [
     generateDescription: (d) => {
       const subs = d.submissions || [];
       const total = d.units?.length || 0;
-      const distinctUnits = new Set(subs.map(s => s.unitId)).size;
+      const distinctUnits = new Set(subs.map((s) => s.unitId)).size;
       return `Percentage of units that have completed all required submissions for AY ${d.selectedYear}. Currently ${distinctUnits}/${total} units.`;
     },
   },
@@ -104,13 +120,13 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['submissions'],
-    confidenceCheck: (d) => hasData(d, 'submissions') && hasData(d, 'cycles') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'submissions') && hasData(d, 'cycles') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const subs = d.submissions || [];
       if (subs.length === 0) return { target: 85, current: 0, reason: 'No submissions to analyze.', hasData: false };
       const cycles = d.cycles || [];
-      const onTime = subs.filter(s => {
-        const cycle = cycles.find(c => c.id === s.cycleId);
+      const onTime = subs.filter((s) => {
+        const cycle = cycles.find((c) => c.id === s.cycleId);
         if (!cycle?.endDate) return true;
         const subDate = s.submissionDate instanceof Date ? s.submissionDate : new Date(s.submissionDate);
         const endDate = cycle.endDate.toDate ? cycle.endDate.toDate() : new Date(cycle.endDate);
@@ -134,11 +150,11 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['submissions'],
-    confidenceCheck: (d) => hasData(d, 'submissions') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'submissions') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const subs = d.submissions || [];
       if (subs.length === 0) return { target: 85, current: 0, reason: 'No submissions recorded.', hasData: false };
-      const approved = subs.filter(s => s.statusId === 'approved').length;
+      const approved = subs.filter((s) => s.statusId === 'approved').length;
       const rate = Math.round((approved / subs.length) * 100);
       return {
         target: Math.max(rate + 5, 90),
@@ -147,8 +163,7 @@ const TEMPLATES: SuggestionTemplate[] = [
         hasData: true,
       };
     },
-    generateDescription: (d) =>
-      `Percentage of submissions that have been approved for AY ${d.selectedYear}.`,
+    generateDescription: (d) => `Percentage of submissions that have been approved for AY ${d.selectedYear}.`,
   },
   {
     dataSource: 'risk_closure_rate',
@@ -157,11 +172,11 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['risks'],
-    confidenceCheck: (d) => hasData(d, 'risks') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'risks') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const risks = d.risks || [];
       if (risks.length === 0) return { target: 80, current: 0, reason: 'No risks registered.', hasData: false };
-      const closed = risks.filter(r => r.status === 'Closed').length;
+      const closed = risks.filter((r) => r.status === 'Closed').length;
       const rate = Math.round((closed / risks.length) * 100);
       return {
         target: Math.max(rate + 10, 85),
@@ -170,8 +185,7 @@ const TEMPLATES: SuggestionTemplate[] = [
         hasData: true,
       };
     },
-    generateDescription: (d) =>
-      `Percentage of identified risks that have been closed for AY ${d.selectedYear}.`,
+    generateDescription: (d) => `Percentage of identified risks that have been closed for AY ${d.selectedYear}.`,
   },
   {
     dataSource: 'high_risk_percentage',
@@ -180,13 +194,14 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['risks'],
-    confidenceCheck: (d) => hasData(d, 'risks') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'risks') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const risks = d.risks || [];
       if (risks.length === 0) return { target: 10, current: 0, reason: 'No risks to analyze.', hasData: false };
-      const high = risks.filter(r =>
-        r.preTreatment?.rating?.toLowerCase().includes('high') ||
-        r.preTreatment?.rating?.toLowerCase().includes('critical')
+      const high = risks.filter(
+        (r) =>
+          r.preTreatment?.rating?.toLowerCase().includes('high') ||
+          r.preTreatment?.rating?.toLowerCase().includes('critical'),
       ).length;
       const rate = Math.round((high / risks.length) * 100);
       return {
@@ -206,13 +221,13 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['risks'],
-    confidenceCheck: (d) => hasData(d, 'risks') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'risks') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const risks = d.risks || [];
-      const open = risks.filter(r => r.status !== 'Closed');
+      const open = risks.filter((r) => r.status !== 'Closed');
       if (open.length === 0) return { target: 5, current: 0, reason: 'All risks are closed.', hasData: false };
       const now = new Date();
-      const overdue = open.filter(r => {
+      const overdue = open.filter((r) => {
         if (!r.targetDate) return false;
         const target = r.targetDate.toDate ? r.targetDate.toDate() : new Date(r.targetDate);
         return target < now;
@@ -235,13 +250,14 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['risks'],
-    confidenceCheck: (d) => hasData(d, 'risks') ? 'medium' : 'low',
+    confidenceCheck: (d) => (hasData(d, 'risks') ? 'medium' : 'low'),
     estimateTarget: (d) => {
       const risks = d.risks || [];
-      const withTreatment = risks.filter(r => r.postTreatment);
-      if (withTreatment.length === 0) return { target: 80, current: 0, reason: 'No risks with treatment data.', hasData: false };
-      const effective = withTreatment.filter(r =>
-        (r.postTreatment?.magnitude || 0) < (r.preTreatment?.magnitude || 99)
+      const withTreatment = risks.filter((r) => r.postTreatment);
+      if (withTreatment.length === 0)
+        return { target: 80, current: 0, reason: 'No risks with treatment data.', hasData: false };
+      const effective = withTreatment.filter(
+        (r) => (r.postTreatment?.magnitude || 0) < (r.preTreatment?.magnitude || 99),
       ).length;
       const rate = Math.round((effective / withTreatment.length) * 100);
       return {
@@ -261,11 +277,11 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['cars'],
-    confidenceCheck: (d) => hasData(d, 'cars') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'cars') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const cars = d.cars || [];
       if (cars.length === 0) return { target: 85, current: 0, reason: 'No CARs recorded.', hasData: false };
-      const closed = cars.filter(c => c.status === 'Closed').length;
+      const closed = cars.filter((c) => c.status === 'Closed').length;
       const rate = Math.round((closed / cars.length) * 100);
       return {
         target: Math.max(rate + 5, 90),
@@ -284,13 +300,18 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['auditPlans'],
-    confidenceCheck: (d) => hasData(d, 'auditPlans') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'auditPlans') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const plans = d.auditPlans || [];
       if (plans.length === 0) return { target: 85, current: 0, reason: 'No audit plans found.', hasData: false };
       const now = new Date();
-      const completed = plans.filter(a => {
-        const endDate = a.closingMeetingDate && 'toDate' in a.closingMeetingDate ? a.closingMeetingDate.toDate() : a.closingMeetingDate ? new Date(a.closingMeetingDate) : now;
+      const completed = plans.filter((a) => {
+        const endDate =
+          a.closingMeetingDate && 'toDate' in a.closingMeetingDate
+            ? a.closingMeetingDate.toDate()
+            : a.closingMeetingDate
+              ? new Date(a.closingMeetingDate)
+              : now;
         return endDate < now;
       }).length;
       const rate = Math.round((completed / plans.length) * 100);
@@ -301,8 +322,7 @@ const TEMPLATES: SuggestionTemplate[] = [
         hasData: true,
       };
     },
-    generateDescription: (d) =>
-      `Percentage of scheduled audits that have been completed for AY ${d.selectedYear}.`,
+    generateDescription: (d) => `Percentage of scheduled audits that have been completed for AY ${d.selectedYear}.`,
   },
   {
     dataSource: 'csm_satisfaction_score',
@@ -311,11 +331,12 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['csmResponses'],
-    confidenceCheck: (d) => hasData(d, 'csmResponses') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'csmResponses') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const responses = d.csmResponses || [];
-      if (responses.length === 0) return { target: 85, current: 0, reason: 'No CSM responses collected.', hasData: false };
-      const scores = responses.map(r => r.sqd0).filter(s => s > 0);
+      if (responses.length === 0)
+        return { target: 85, current: 0, reason: 'No CSM responses collected.', hasData: false };
+      const scores = responses.map((r) => r.sqd0).filter((s) => s > 0);
       if (scores.length === 0) return { target: 85, current: 0, reason: 'No scored responses yet.', hasData: false };
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
       const pct = Math.round((avg / 5) * 100);
@@ -326,8 +347,7 @@ const TEMPLATES: SuggestionTemplate[] = [
         hasData: true,
       };
     },
-    generateDescription: (d) =>
-      `Average client satisfaction score from CSM surveys for AY ${d.selectedYear}.`,
+    generateDescription: (d) => `Average client satisfaction score from CSM surveys for AY ${d.selectedYear}.`,
   },
   {
     dataSource: 'gad_budget_utilization',
@@ -336,7 +356,7 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['gadPlans'],
-    confidenceCheck: (d) => hasData(d, 'gadPlans') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'gadPlans') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const plans = d.gadPlans || [];
       const activities = d.gadActivities || [];
@@ -351,8 +371,7 @@ const TEMPLATES: SuggestionTemplate[] = [
         hasData: true,
       };
     },
-    generateDescription: (d) =>
-      `Percentage of allocated GAD budget that has been utilized for AY ${d.selectedYear}.`,
+    generateDescription: (d) => `Percentage of allocated GAD budget that has been utilized for AY ${d.selectedYear}.`,
   },
   {
     dataSource: 'activity_participation_rate',
@@ -361,12 +380,12 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['activities', 'activityLogs'],
-    confidenceCheck: (d) => hasData(d, 'activities') && hasData(d, 'activityLogs') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'activities') && hasData(d, 'activityLogs') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const acts = d.activities || [];
       const logs = d.activityLogs || [];
       if (acts.length === 0) return { target: 80, current: 0, reason: 'No activities planned.', hasData: false };
-      const withAttendance = new Set(logs.map(l => l.activityId)).size;
+      const withAttendance = new Set(logs.map((l) => l.activityId)).size;
       const rate = Math.round((withAttendance / acts.length) * 100);
       return {
         target: Math.max(rate + 10, 90),
@@ -385,11 +404,11 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['activityLogs'],
-    confidenceCheck: (d) => hasData(d, 'activityLogs') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'activityLogs') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const logs = d.activityLogs || [];
       if (logs.length === 0) return { target: 85, current: 0, reason: 'No attendance logs recorded.', hasData: false };
-      const onTime = logs.filter(l => l.status === 'ON_TIME').length;
+      const onTime = logs.filter((l) => l.status === 'ON_TIME').length;
       const rate = Math.round((onTime / logs.length) * 100);
       return {
         target: Math.max(rate + 5, 90),
@@ -398,8 +417,7 @@ const TEMPLATES: SuggestionTemplate[] = [
         hasData: true,
       };
     },
-    generateDescription: (d) =>
-      `Percentage of activity attendees who arrived on time for AY ${d.selectedYear}.`,
+    generateDescription: (d) => `Percentage of activity attendees who arrived on time for AY ${d.selectedYear}.`,
   },
   {
     dataSource: 'activity_evaluation_score',
@@ -408,12 +426,13 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['evaluations'],
-    confidenceCheck: (d) => hasData(d, 'evaluations') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'evaluations') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const evals = d.evaluations || [];
       if (evals.length === 0) return { target: 85, current: 0, reason: 'No evaluations submitted.', hasData: false };
-      const ratings = evals.map(e => e.ratingOverall || 0).filter(r => r > 0);
-      if (ratings.length === 0) return { target: 85, current: 0, reason: 'Evaluations found but no overall ratings.', hasData: false };
+      const ratings = evals.map((e) => e.ratingOverall || 0).filter((r) => r > 0);
+      if (ratings.length === 0)
+        return { target: 85, current: 0, reason: 'Evaluations found but no overall ratings.', hasData: false };
       const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
       const pct = Math.round((avg / 5) * 100);
       return {
@@ -433,12 +452,12 @@ const TEMPLATES: SuggestionTemplate[] = [
     defaultUnit: '%',
     defaultWeight: 1,
     requiredInventory: ['activities'],
-    confidenceCheck: (d) => hasData(d, 'activities') ? 'high' : 'medium',
+    confidenceCheck: (d) => (hasData(d, 'activities') ? 'high' : 'medium'),
     estimateTarget: (d) => {
       const acts = d.activities || [];
       if (acts.length === 0) return { target: 85, current: 0, reason: 'No activities planned.', hasData: false };
       const now = new Date();
-      const completed = acts.filter(a => {
+      const completed = acts.filter((a) => {
         if (a.status === 'COMPLETED' || a.status === 'CANCELLED') return true;
         if (!a.endDateTime) return false;
         const end = 'toDate' in a.endDateTime ? a.endDateTime.toDate() : new Date(a.endDateTime);
@@ -455,10 +474,27 @@ const TEMPLATES: SuggestionTemplate[] = [
     generateDescription: (d) =>
       `Percentage of planned unit activities that have been completed for AY ${d.selectedYear}.`,
   },
+  {
+    dataSource: 'Program Accreditation',
+    defaultName: 'Program Accreditation',
+    defaultCategory: 'program_accreditation',
+    defaultUnit: '%',
+    defaultWeight: 1,
+    requiredInventory: [],
+    confidenceCheck: () => 'high',
+    estimateTarget: () => ({
+      target: 85,
+      current: 85,
+      reason: 'Institutional benchmark for accredited academic programs meeting quality milestones.',
+      hasData: true,
+    }),
+    generateDescription: (d) =>
+      `Percentage of academic programs meeting accredited maturity status and quality recommendations for AY ${d.selectedYear}.`,
+  },
 ];
 
 export function scanForKpiSuggestions(data: DataInventory): KpiSuggestion[] {
-  const existingDataSources = new Set(data.existingDefinitions?.map(d => d.dataSource) || []);
+  const existingDataSources = new Set(data.existingDefinitions?.map((d) => d.dataSource) || []);
   const suggestions: KpiSuggestion[] = [];
 
   for (const tpl of TEMPLATES) {
@@ -517,7 +553,7 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
   const logs = data.activityLogs || [];
 
   if (subs.length > 0) {
-    const approved = subs.filter(s => s.statusId === 'approved').length;
+    const approved = subs.filter((s) => s.statusId === 'approved').length;
     const approvalRate = Math.round((approved / subs.length) * 100);
     if (approvalRate < 90) {
       suggestions.push({
@@ -529,16 +565,34 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
         confidence: 'high',
         reason: `Only ${approved} of ${subs.length} submissions are approved (${approvalRate}%).`,
         keyResults: [
-          { title: `Increase approval rate from ${approvalRate}% to 95%`, type: 'metric', startingValue: approvalRate, targetValue: 95, unit: '%' },
-          { title: 'Implement pre-submission quality review process', type: 'milestone', startingValue: 0, targetValue: 1, unit: '' },
-          { title: 'Reduce rejected submissions by 50%', type: 'metric', startingValue: subs.filter(s => s.statusId === 'rejected').length, targetValue: Math.max(0, Math.round(subs.filter(s => s.statusId === 'rejected').length / 2)), unit: '' },
+          {
+            title: `Increase approval rate from ${approvalRate}% to 95%`,
+            type: 'metric',
+            startingValue: approvalRate,
+            targetValue: 95,
+            unit: '%',
+          },
+          {
+            title: 'Implement pre-submission quality review process',
+            type: 'milestone',
+            startingValue: 0,
+            targetValue: 1,
+            unit: '',
+          },
+          {
+            title: 'Reduce rejected submissions by 50%',
+            type: 'metric',
+            startingValue: subs.filter((s) => s.statusId === 'rejected').length,
+            targetValue: Math.max(0, Math.round(subs.filter((s) => s.statusId === 'rejected').length / 2)),
+            unit: '',
+          },
         ],
       });
     }
   }
 
   if (risks.length > 0) {
-    const closed = risks.filter(r => r.status === 'Closed').length;
+    const closed = risks.filter((r) => r.status === 'Closed').length;
     const closureRate = Math.round((closed / risks.length) * 100);
     if (closureRate < 80) {
       suggestions.push({
@@ -550,15 +604,27 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
         confidence: 'high',
         reason: `Only ${closed} of ${risks.length} risks closed (${closureRate}%).`,
         keyResults: [
-          { title: `Increase risk closure rate from ${closureRate}% to 85%`, type: 'metric', startingValue: closureRate, targetValue: 85, unit: '%' },
-          { title: 'Conduct risk treatment review for all open risks', type: 'milestone', startingValue: 0, targetValue: 1, unit: '' },
+          {
+            title: `Increase risk closure rate from ${closureRate}% to 85%`,
+            type: 'metric',
+            startingValue: closureRate,
+            targetValue: 85,
+            unit: '%',
+          },
+          {
+            title: 'Conduct risk treatment review for all open risks',
+            type: 'milestone',
+            startingValue: 0,
+            targetValue: 1,
+            unit: '',
+          },
         ],
       });
     }
   }
 
   if (cars.length > 0) {
-    const closedCars = cars.filter(c => c.status === 'Closed').length;
+    const closedCars = cars.filter((c) => c.status === 'Closed').length;
     const carRate = Math.round((closedCars / cars.length) * 100);
     if (carRate < 80) {
       suggestions.push({
@@ -570,8 +636,20 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
         confidence: 'high',
         reason: `${closedCars} of ${cars.length} CARs closed (${carRate}%).`,
         keyResults: [
-          { title: `Increase CAR closure rate from ${carRate}% to 90%`, type: 'metric', startingValue: carRate, targetValue: 90, unit: '%' },
-          { title: 'Reduce average CAR resolution time', type: 'metric', startingValue: 30, targetValue: 15, unit: 'days' },
+          {
+            title: `Increase CAR closure rate from ${carRate}% to 90%`,
+            type: 'metric',
+            startingValue: carRate,
+            targetValue: 90,
+            unit: '%',
+          },
+          {
+            title: 'Reduce average CAR resolution time',
+            type: 'metric',
+            startingValue: 30,
+            targetValue: 15,
+            unit: 'days',
+          },
         ],
       });
     }
@@ -579,7 +657,7 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
 
   if (activities.length > 0 && logs.length > 0) {
     const totalAttendance = logs.length;
-    const onTime = logs.filter(l => l.status === 'ON_TIME').length;
+    const onTime = logs.filter((l) => l.status === 'ON_TIME').length;
     const punctualityRate = Math.round((onTime / totalAttendance) * 100);
     if (punctualityRate < 80) {
       suggestions.push({
@@ -591,12 +669,24 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
         confidence: 'medium',
         reason: `${onTime} of ${totalAttendance} attendance logs are on time (${punctualityRate}%).`,
         keyResults: [
-          { title: `Increase on-time attendance from ${punctualityRate}% to 90%`, type: 'metric', startingValue: punctualityRate, targetValue: 90, unit: '%' },
-          { title: 'Send pre-activity reminders 24hrs before each session', type: 'binary', startingValue: 0, targetValue: 1, unit: '' },
+          {
+            title: `Increase on-time attendance from ${punctualityRate}% to 90%`,
+            type: 'metric',
+            startingValue: punctualityRate,
+            targetValue: 90,
+            unit: '%',
+          },
+          {
+            title: 'Send pre-activity reminders 24hrs before each session',
+            type: 'binary',
+            startingValue: 0,
+            targetValue: 1,
+            unit: '',
+          },
         ],
       });
     }
-    const withAttendance = new Set(logs.map(l => l.activityId)).size;
+    const withAttendance = new Set(logs.map((l) => l.activityId)).size;
     const participationRate = Math.round((withAttendance / activities.length) * 100);
     if (participationRate < 80) {
       suggestions.push({
@@ -608,8 +698,20 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
         confidence: 'medium',
         reason: `${withAttendance} of ${activities.length} activities have documented attendance.`,
         keyResults: [
-          { title: `Increase participation from ${participationRate}% to 95%`, type: 'metric', startingValue: participationRate, targetValue: 95, unit: '%' },
-          { title: 'Promote activities through official communication channels', type: 'binary', startingValue: 0, targetValue: 1, unit: '' },
+          {
+            title: `Increase participation from ${participationRate}% to 95%`,
+            type: 'metric',
+            startingValue: participationRate,
+            targetValue: 95,
+            unit: '%',
+          },
+          {
+            title: 'Promote activities through official communication channels',
+            type: 'binary',
+            startingValue: 0,
+            targetValue: 1,
+            unit: '',
+          },
         ],
       });
     }
@@ -617,7 +719,7 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
 
   const evalsData = data.evaluations || [];
   if (evalsData.length > 0) {
-    const ratings = evalsData.map(e => e.ratingOverall || 0).filter(r => r > 0);
+    const ratings = evalsData.map((e) => e.ratingOverall || 0).filter((r) => r > 0);
     if (ratings.length > 0) {
       const avg = ratings.reduce((a, b) => a + b, 0) / ratings.length;
       const evalScore = Math.round((avg / 5) * 100);
@@ -631,8 +733,20 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
           confidence: 'medium',
           reason: `Average overall rating across ${ratings.length} evaluations is ${avg.toFixed(1)}/5.`,
           keyResults: [
-            { title: `Increase evaluation score from ${evalScore}% to 90%`, type: 'metric', startingValue: evalScore, targetValue: 90, unit: '%' },
-            { title: 'Implement post-activity feedback review process', type: 'milestone', startingValue: 0, targetValue: 1, unit: '' },
+            {
+              title: `Increase evaluation score from ${evalScore}% to 90%`,
+              type: 'metric',
+              startingValue: evalScore,
+              targetValue: 90,
+              unit: '%',
+            },
+            {
+              title: 'Implement post-activity feedback review process',
+              type: 'milestone',
+              startingValue: 0,
+              targetValue: 1,
+              unit: '',
+            },
           ],
         });
       }
@@ -650,9 +764,21 @@ export function generateOkrSuggestions(data: DataInventory): OkrSuggestion[] {
       confidence: 'medium',
       reason: 'No OKRs have been created yet. Start with foundational quality objectives.',
       keyResults: [
-        { title: 'Define 3-5 quality objectives for the unit', type: 'milestone', startingValue: 0, targetValue: 5, unit: 'objectives' },
+        {
+          title: 'Define 3-5 quality objectives for the unit',
+          type: 'milestone',
+          startingValue: 0,
+          targetValue: 5,
+          unit: 'objectives',
+        },
         { title: 'Assign owners to each objective', type: 'binary', startingValue: 0, targetValue: 1, unit: '' },
-        { title: 'Schedule monthly OKR check-ins', type: 'milestone', startingValue: 0, targetValue: 12, unit: 'check-ins' },
+        {
+          title: 'Schedule monthly OKR check-ins',
+          type: 'milestone',
+          startingValue: 0,
+          targetValue: 12,
+          unit: 'check-ins',
+        },
       ],
     });
   }

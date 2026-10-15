@@ -297,7 +297,7 @@ export function KpiDashboardTab({
                 </Badge>
               </h3>
               <KpiScorecardGrid>
-                {kpis.map((snap) => (
+                {kpis.map((snap, idx) => (
                   <KpiScorecard
                     key={snap.id}
                     name={snap.kpiName}
@@ -306,6 +306,8 @@ export function KpiDashboardTab({
                     status={snap.status}
                     trend={snap.trend}
                     description={definitions?.find((d) => d.id === snap.kpiId)?.description}
+                    rank={idx + 1}
+                    totalRank={kpis.length}
                   />
                 ))}
               </KpiScorecardGrid>
