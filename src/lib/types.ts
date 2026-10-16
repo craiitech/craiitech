@@ -739,8 +739,10 @@ export type UnitForm = {
   formName: string;
   googleDriveLink: string;
   revision: string;
-  requestId: string;
+  revisionDate?: string;
+  requestId?: string;
   createdAt: any;
+  updatedAt?: any;
 };
 
 export type UnitFormRequestStatus =

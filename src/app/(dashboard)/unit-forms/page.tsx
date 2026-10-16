@@ -64,6 +64,7 @@ import { FormDownloadDialog } from '@/components/manuals/form-download-dialog';
 import { FormRequestReviewDialog } from '@/components/manuals/form-request-review-dialog';
 import { RequestOtherUnitFormsTab } from '@/components/manuals/request-other-unit-forms-tab';
 import { EditFormDriveLinkDialog } from '@/components/manuals/edit-form-drive-link-dialog';
+import { ManageUnitFormDialog } from '@/components/manuals/manage-unit-form-dialog';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -111,6 +112,8 @@ export default function UnitFormsPage() {
 
   const [downloadingForm, setDownloadingForm] = useState<UnitForm | null>(null);
   const [editingFormDrive, setEditingFormDrive] = useState<UnitForm | null>(null);
+  const [editingFormToManage, setEditingFormToManage] = useState<UnitForm | null>(null);
+  const [isManageFormOpen, setIsManageFormOpen] = useState(false);
   const [isRosterLogOpen, setIsRosterLogOpen] = useState(false);
   const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
   const [isHistoryActive, setIsHistoryActive] = useState(false);
@@ -983,10 +986,27 @@ export default function UnitFormsPage() {
                         </Card>
 
                         <Card className="shadow-sm border-primary/10 overflow-hidden">
-                          <CardHeader className="bg-muted/10 border-b py-4">
-                            <CardTitle className="text-xs font-black uppercase tracking-tight">
-                              Enrolled Controlled Forms Log
-                            </CardTitle>
+                          <CardHeader className="bg-muted/10 border-b py-3.5 px-6 flex flex-row items-center justify-between">
+                            <div>
+                              <CardTitle className="text-xs font-black uppercase tracking-tight">
+                                Enrolled Controlled Forms Log
+                              </CardTitle>
+                              <p className="text-[10px] text-muted-foreground font-bold uppercase mt-0.5">
+                                Set up form code, title, revision, date, and Google Drive links for {selectedUnit.name}
+                              </p>
+                            </div>
+                            {canManageUnitLinks && (
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  setEditingFormToManage(null);
+                                  setIsManageFormOpen(true);
+                                }}
+                                className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary/20"
+                              >
+                                <PlusCircle className="h-3.5 w-3.5" /> Register Unit Form
+                              </Button>
+                            )}
                           </CardHeader>
                           <CardContent className="p-0">
                             <Table>
@@ -994,7 +1014,9 @@ export default function UnitFormsPage() {
                                 <TableRow>
                                   <TableHead className="text-[10px] font-black uppercase pl-6">Code</TableHead>
                                   <TableHead className="text-[10px] font-black uppercase">Official Title</TableHead>
-                                  <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
+                                  <TableHead className="text-[10px] font-black uppercase text-center">
+                                    Rev. & Date
+                                  </TableHead>
                                   <TableHead className="text-right text-[10px] font-black uppercase pr-6">
                                     Action
                                   </TableHead>
@@ -1018,10 +1040,17 @@ export default function UnitFormsPage() {
                                         <TableCell className="text-[12px] font-bold text-slate-800 dark:text-slate-200">
                                           {form.formName}
                                         </TableCell>
-                                        <TableCell className="text-center">
-                                          <Badge variant="secondary" className="h-4 text-[9px] font-bold uppercase">
-                                            {form.revision}
-                                          </Badge>
+                                        <TableCell className="text-center whitespace-nowrap">
+                                          <div className="flex flex-col items-center">
+                                            <Badge variant="secondary" className="h-4 text-[9px] font-bold uppercase">
+                                              {form.revision || '00'}
+                                            </Badge>
+                                            {form.revisionDate && (
+                                              <span className="text-[8px] font-mono text-muted-foreground mt-0.5">
+                                                {form.revisionDate}
+                                              </span>
+                                            )}
+                                          </div>
                                         </TableCell>
                                         <TableCell className="text-right pr-6">
                                           <div className="flex items-center justify-end gap-1.5">
@@ -1037,11 +1066,14 @@ export default function UnitFormsPage() {
                                               <Button
                                                 variant="outline"
                                                 size="sm"
-                                                className="h-8 text-[9px] font-black uppercase text-muted-foreground hover:text-primary gap-1 px-2.5"
-                                                onClick={() => setEditingFormDrive(form)}
-                                                title="Set or update Google Drive link for this form"
+                                                className="h-8 text-[9px] font-black uppercase text-slate-700 dark:text-slate-300 hover:text-primary gap-1 px-2.5"
+                                                onClick={() => {
+                                                  setEditingFormToManage(form);
+                                                  setIsManageFormOpen(true);
+                                                }}
+                                                title="Edit form code, title, revision, date, or drive link"
                                               >
-                                                <Pencil className="h-3 w-3" /> Link
+                                                <Pencil className="h-3 w-3" /> Edit
                                               </Button>
                                             )}
                                           </div>
@@ -1156,6 +1188,14 @@ export default function UnitFormsPage() {
           form={editingFormDrive}
           isOpen={!!editingFormDrive}
           onOpenChange={(open) => !open && setEditingFormDrive(null)}
+        />
+      )}
+      {isManageFormOpen && selectedUnit && (
+        <ManageUnitFormDialog
+          form={editingFormToManage}
+          unit={selectedUnit as any}
+          isOpen={isManageFormOpen}
+          onOpenChange={setIsManageFormOpen}
         />
       )}
       {reviewRequestId && (

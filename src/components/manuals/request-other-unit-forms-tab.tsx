@@ -40,11 +40,13 @@ import {
   Sparkles,
   School,
   Info,
+  PlusCircle,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { CrossUnitFormRequestDialog } from './cross-unit-form-request-dialog';
 import { EditFormDriveLinkDialog } from './edit-form-drive-link-dialog';
+import { ManageUnitFormDialog } from './manage-unit-form-dialog';
 
 interface RequestOtherUnitFormsTabProps {
   units: Unit[];
@@ -90,6 +92,8 @@ export function RequestOtherUnitFormsTab({
   >(null);
 
   const [editingForm, setEditingForm] = useState<UnitForm | null>(null);
+  const [formToManage, setFormToManage] = useState<UnitForm | null>(null);
+  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
 
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
 
@@ -526,21 +530,36 @@ export function RequestOtherUnitFormsTab({
                           </CardDescription>
                         </div>
 
-                        <div className="relative w-full sm:w-64">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                          <Input
-                            placeholder="Filter form code or title..."
-                            value={formSearch}
-                            onChange={(e) => setFormSearch(e.target.value)}
-                            className="pl-8 h-8 text-xs bg-white"
-                          />
-                          {formSearch && (
-                            <button
-                              onClick={() => setFormSearch('')}
-                              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                        <div className="flex items-center gap-2">
+                          <div className="relative w-full sm:w-56">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                            <Input
+                              placeholder="Filter form code or title..."
+                              value={formSearch}
+                              onChange={(e) => setFormSearch(e.target.value)}
+                              className="pl-8 h-8 text-xs bg-white"
+                            />
+                            {formSearch && (
+                              <button
+                                onClick={() => setFormSearch('')}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+
+                          {canManageSelectedUnit && (
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setFormToManage(null);
+                                setIsManageDialogOpen(true);
+                              }}
+                              className="h-8 text-[9px] font-black uppercase tracking-widest gap-1 shadow-sm shrink-0"
                             >
-                              <X className="h-3 w-3" />
-                            </button>
+                              <PlusCircle className="h-3.5 w-3.5" /> Register Form
+                            </Button>
                           )}
                         </div>
                       </div>
@@ -552,7 +571,7 @@ export function RequestOtherUnitFormsTab({
                           <TableRow>
                             <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Code</TableHead>
                             <TableHead className="text-[10px] font-black uppercase">Official Form Title</TableHead>
-                            <TableHead className="text-[10px] font-black uppercase text-center">Rev.</TableHead>
+                            <TableHead className="text-[10px] font-black uppercase text-center">Rev. & Date</TableHead>
                             <TableHead className="text-[10px] font-black uppercase text-center">Drive Status</TableHead>
                             <TableHead className="text-right text-[10px] font-black uppercase pr-6">Action</TableHead>
                           </TableRow>
@@ -580,10 +599,17 @@ export function RequestOtherUnitFormsTab({
                                       </span>
                                     </div>
                                   </TableCell>
-                                  <TableCell className="text-center">
-                                    <Badge variant="secondary" className="h-4 text-[9px] font-bold uppercase">
-                                      {form.revision || '00'}
-                                    </Badge>
+                                  <TableCell className="text-center whitespace-nowrap">
+                                    <div className="flex flex-col items-center">
+                                      <Badge variant="secondary" className="h-4 text-[9px] font-bold uppercase">
+                                        {form.revision || '00'}
+                                      </Badge>
+                                      {form.revisionDate && (
+                                        <span className="text-[8px] font-mono text-muted-foreground mt-0.5">
+                                          {form.revisionDate}
+                                        </span>
+                                      )}
+                                    </div>
                                   </TableCell>
                                   <TableCell className="text-center">
                                     {hasDriveLink ? (
@@ -613,7 +639,10 @@ export function RequestOtherUnitFormsTab({
                                         <Button
                                           size="sm"
                                           variant="outline"
-                                          onClick={() => setEditingForm(form)}
+                                          onClick={() => {
+                                            setFormToManage(form);
+                                            setIsManageDialogOpen(true);
+                                          }}
                                           className="h-7 text-[9px] font-black uppercase text-amber-700 border-amber-300 hover:bg-amber-50 gap-1"
                                         >
                                           <LinkIcon className="h-3 w-3" /> Set Drive Link
@@ -624,14 +653,17 @@ export function RequestOtherUnitFormsTab({
                                         </span>
                                       )}
 
-                                      {/* Quick edit drive link for owners or admins */}
-                                      {canManageSelectedUnit && hasDriveLink && (
+                                      {/* Quick edit drive link and details for owners or admins */}
+                                      {canManageSelectedUnit && (
                                         <Button
                                           size="icon"
                                           variant="ghost"
-                                          onClick={() => setEditingForm(form)}
+                                          onClick={() => {
+                                            setFormToManage(form);
+                                            setIsManageDialogOpen(true);
+                                          }}
                                           className="h-7 w-7 text-muted-foreground hover:text-primary"
-                                          title="Update Drive Link & Revision"
+                                          title="Edit form code, title, revision, date, or drive link"
                                         >
                                           <Pencil className="h-3.5 w-3.5" />
                                         </Button>
@@ -1010,6 +1042,16 @@ export function RequestOtherUnitFormsTab({
           form={editingForm}
           isOpen={!!editingForm}
           onOpenChange={(open) => !open && setEditingForm(null)}
+        />
+      )}
+
+      {/* Modal: Register / Edit Unit Form Dialog */}
+      {isManageDialogOpen && selectedTargetUnit && (
+        <ManageUnitFormDialog
+          form={formToManage}
+          unit={selectedTargetUnit}
+          isOpen={isManageDialogOpen}
+          onOpenChange={setIsManageDialogOpen}
         />
       )}
     </div>
