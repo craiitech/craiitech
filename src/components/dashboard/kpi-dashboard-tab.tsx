@@ -32,6 +32,9 @@ import type {
   AttendanceActivity,
   ActivityAttendanceLog,
   ActivityEvaluation,
+  AuditFinding,
+  ProcedureManual,
+  ProgramComplianceRecord,
 } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 
@@ -92,6 +95,21 @@ export function KpiDashboardTab({
   );
   const { data: evaluations } = useCollection<ActivityEvaluation>(evalQuery);
 
+  const findingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditFindings') : null), [firestore]);
+  const { data: auditFindings } = useCollection<AuditFinding>(findingsQuery);
+
+  const manualsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'procedureManuals') : null),
+    [firestore],
+  );
+  const { data: procedureManuals } = useCollection<ProcedureManual>(manualsQuery);
+
+  const compliancesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'programCompliances') : null),
+    [firestore],
+  );
+  const { data: programCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+
   const entityType = useMemo(() => {
     if (isAdmin) return 'institution';
     if (userProfile?.campusId) return 'campus';
@@ -114,6 +132,9 @@ export function KpiDashboardTab({
       units: (allUnits || []) as any,
       cars: (allCars || []) as any,
       auditPlans: (allAuditPlans || []) as any,
+      auditFindings: (auditFindings || []) as any,
+      procedureManuals: (procedureManuals || []) as any,
+      programCompliances: (programCompliances || []) as any,
       csmResponses: (csmResponses || []) as any,
       activities: (activities || []) as any,
       activityLogs: (activityLogs || []) as any,
@@ -130,7 +151,13 @@ export function KpiDashboardTab({
     allUnits,
     allCars,
     allAuditPlans,
+    auditFindings,
+    procedureManuals,
+    programCompliances,
     csmResponses,
+    activities,
+    activityLogs,
+    evaluations,
     selectedYear,
     entityType,
     entityId,

@@ -149,6 +149,71 @@ const KPI_DEFINITIONS = [
     weight: 1,
     isActive: true,
   },
+  {
+    name: 'COPC Issuance Rate',
+    description:
+      'Percentage of active academic programs with an issued Certificate of Program Compliance (COPC) from CHED.',
+    category: 'academic_programs',
+    formula: 'copc_issuance_rate',
+    dataSource: 'copc_issuance_rate',
+    unit: '%',
+    thresholds: { good: 90, satisfactory: 75, poor: 60, direction: 'higher_is_better' },
+    defaultTarget: 90,
+    weight: 1,
+    isActive: true,
+  },
+  {
+    name: 'Procedure Manual Currency Rate',
+    description:
+      'Percentage of organizational units maintaining updated, compliant procedure manuals conforming to ISO 21001 Clause 7.5.',
+    category: 'eoms_compliance',
+    formula: 'procedure_manual_currency_rate',
+    dataSource: 'procedure_manual_currency_rate',
+    unit: '%',
+    thresholds: { good: 90, satisfactory: 75, poor: 55, direction: 'higher_is_better' },
+    defaultTarget: 90,
+    weight: 1,
+    isActive: true,
+  },
+  {
+    name: 'Submission Link Accessibility Rate',
+    description:
+      'Percentage of submitted reports with accessible, valid Google Drive repository links conforming to sharing protocols.',
+    category: 'system_operations',
+    formula: 'submission_link_accessibility_rate',
+    dataSource: 'submission_link_accessibility_rate',
+    unit: '%',
+    thresholds: { good: 98, satisfactory: 90, poor: 80, direction: 'higher_is_better' },
+    defaultTarget: 98,
+    weight: 1,
+    isActive: true,
+  },
+  {
+    name: 'OFI Implementation Rate',
+    description:
+      'Percentage of internal quality audit Opportunities for Improvement (OFI) that have been successfully verified and implemented.',
+    category: 'audit_car',
+    formula: 'ofi_implementation_rate',
+    dataSource: 'ofi_implementation_rate',
+    unit: '%',
+    thresholds: { good: 80, satisfactory: 65, poor: 50, direction: 'higher_is_better' },
+    defaultTarget: 80,
+    weight: 1,
+    isActive: true,
+  },
+  {
+    name: 'Opportunity Realization Rate',
+    description:
+      'Percentage of strategic opportunities identified in the ROR registry that have been completed and realized.',
+    category: 'risk_management',
+    formula: 'opportunity_realization_rate',
+    dataSource: 'opportunity_realization_rate',
+    unit: '%',
+    thresholds: { good: 75, satisfactory: 60, poor: 40, direction: 'higher_is_better' },
+    defaultTarget: 75,
+    weight: 1,
+    isActive: true,
+  },
 ];
 
 export async function GET() {
@@ -159,27 +224,34 @@ export async function GET() {
     }
 
     const col = firestore.collection('kpiDefinitions');
-    const existing = await col.limit(1).get();
+    const existingSnap = await col.get();
+    const existingSources = new Set<string>();
+    existingSnap.forEach((doc) => {
+      const data = doc.data();
+      if (data.dataSource) existingSources.add(data.dataSource);
+    });
 
-    if (!existing.empty) {
-      const countSnap = await col.count().get();
+    const missingKpis = KPI_DEFINITIONS.filter((k) => !existingSources.has(k.dataSource));
+
+    if (missingKpis.length === 0) {
       return NextResponse.json({
-        message: `Already seeded (${countSnap.data().count} docs exist)`,
-        count: countSnap.data().count,
+        message: `All KPI definitions are already present (${existingSnap.size} docs exist)`,
+        count: existingSnap.size,
       });
     }
 
     const batch = firestore.batch();
     const now = Timestamp.now();
-    for (const kpi of KPI_DEFINITIONS) {
+    for (const kpi of missingKpis) {
       const ref = col.doc();
       batch.set(ref, { ...kpi, createdAt: now, updatedAt: now });
     }
     await batch.commit();
 
     return NextResponse.json({
-      message: `Seeded ${KPI_DEFINITIONS.length} KPI definitions`,
-      count: KPI_DEFINITIONS.length,
+      message: `Seeded ${missingKpis.length} new KPI definition(s). Total: ${existingSnap.size + missingKpis.length}`,
+      newlyAdded: missingKpis.length,
+      totalCount: existingSnap.size + missingKpis.length,
     });
   } catch (error: any) {
     console.error('Seed error:', error);

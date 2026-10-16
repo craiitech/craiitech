@@ -55,11 +55,15 @@ import {
   Filter,
   X,
   MessageSquare,
+  Share2,
+  Pencil,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FormRegistrationDialog } from '@/components/manuals/form-registration-dialog';
 import { FormDownloadDialog } from '@/components/manuals/form-download-dialog';
 import { FormRequestReviewDialog } from '@/components/manuals/form-request-review-dialog';
+import { RequestOtherUnitFormsTab } from '@/components/manuals/request-other-unit-forms-tab';
+import { EditFormDriveLinkDialog } from '@/components/manuals/edit-form-drive-link-dialog';
 import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
@@ -106,6 +110,7 @@ export default function UnitFormsPage() {
   const [editMasterlistDate, setEditMasterlistDate] = useState('');
 
   const [downloadingForm, setDownloadingForm] = useState<UnitForm | null>(null);
+  const [editingFormDrive, setEditingFormDrive] = useState<UnitForm | null>(null);
   const [isRosterLogOpen, setIsRosterLogOpen] = useState(false);
   const [reviewRequestId, setReviewRequestId] = useState<string | null>(null);
   const [isHistoryActive, setIsHistoryActive] = useState(false);
@@ -278,6 +283,17 @@ export default function UnitFormsPage() {
     return false;
   }, [userProfile, isAdmin, userRole, selectedUnit, selectedUnitId, allUnits]);
 
+  const canManageUnitLinks = useMemo(() => {
+    if (!userProfile) return false;
+    if (isAdmin) return true;
+    if (selectedUnitId === userProfile.unitId) return true;
+    if (selectedUnitId === SHARED_ACADEMIC_ID) {
+      const myUnitObj = allUnits?.find((u) => u.id === userProfile.unitId);
+      return myUnitObj?.category === 'Academic';
+    }
+    return false;
+  }, [userProfile, isAdmin, selectedUnitId, allUnits]);
+
   const academicSharedRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'campusSettings', 'academic-shared') : null),
     [firestore],
@@ -379,27 +395,35 @@ export default function UnitFormsPage() {
                 Access official operating forms for verified university units.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="lg:hidden"
-                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-              >
-                {isSidebarVisible ? (
-                  <PanelLeftClose className="mr-2 h-4 w-4" />
-                ) : (
-                  <PanelLeftOpen className="mr-2 h-4 w-4" />
-                )}
-                {isSidebarVisible ? 'Hide Units' : 'Show Units'}
-              </Button>
-            </div>
+            {currentTab !== 'request-other' && currentTab !== 'inbox' && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="lg:hidden"
+                  onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+                >
+                  {isSidebarVisible ? (
+                    <PanelLeftClose className="mr-2 h-4 w-4" />
+                  ) : (
+                    <PanelLeftOpen className="mr-2 h-4 w-4" />
+                  )}
+                  {isSidebarVisible ? 'Hide Units' : 'Show Units'}
+                </Button>
+              </div>
+            )}
           </div>
 
           <ScrollArea className="w-full">
             <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-auto grid grid-cols-2 md:inline-flex animate-tab-highlight rounded-md">
               <TabsTrigger value="roster" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                 <ListChecks className="h-3.5 w-3.5" /> Unit Forms
+              </TabsTrigger>
+              <TabsTrigger
+                value="request-other"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+              >
+                <Share2 className="h-3.5 w-3.5" /> Request Other Unit Forms
               </TabsTrigger>
               <TabsTrigger value="register" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
                 <FilePlus className="h-3.5 w-3.5" /> Apply for New Form
@@ -417,7 +441,11 @@ export default function UnitFormsPage() {
           <div
             className={cn(
               'transition-all duration-300 overflow-hidden flex flex-col gap-2 shrink-0',
-              isSidebarVisible ? 'w-full lg:w-1/4 opacity-100' : 'w-0 opacity-0 lg:-mr-6',
+              currentTab === 'request-other' || currentTab === 'inbox'
+                ? 'hidden'
+                : isSidebarVisible
+                  ? 'w-full lg:w-1/4 opacity-100'
+                  : 'w-0 opacity-0 lg:-mr-6',
             )}
           >
             <Card className="flex flex-col h-[300px] lg:h-full shadow-sm border-primary/10">
@@ -563,18 +591,31 @@ export default function UnitFormsPage() {
           </div>
 
           <div className="flex-1 min-0 flex flex-col relative">
-            <Button
-              variant="secondary"
-              size="icon"
-              className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
-              onClick={() => setIsSidebarVisible(!isSidebarVisible)}
-            >
-              {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-            </Button>
+            {currentTab !== 'request-other' && currentTab !== 'inbox' && (
+              <Button
+                variant="secondary"
+                size="icon"
+                className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 rounded-full border shadow-md hidden lg:flex hover:bg-primary hover:text-white transition-colors"
+                onClick={() => setIsSidebarVisible(!isSidebarVisible)}
+              >
+                {isSidebarVisible ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            )}
 
             {currentTab === 'inbox' ? (
               <div className="flex-1 overflow-y-auto pt-4">
                 <TabsContent value="inbox" className="animate-in fade-in duration-500 space-y-4">
+                  ) : currentTab === 'request-other' ? (
+                  <div className="flex-1 overflow-y-auto pt-4">
+                    <TabsContent value="request-other" className="animate-in fade-in duration-500 space-y-4">
+                      <RequestOtherUnitFormsTab
+                        units={allUnits || []}
+                        campuses={campuses || []}
+                        userUnitId={userProfile?.unitId}
+                        isAdmin={isAdmin}
+                      />
+                    </TabsContent>
+                  </div>
                   {!isHistoryActive ? (
                     <div className="p-12 text-center bg-white border rounded-2xl shadow-sm">
                       <Button
@@ -842,13 +883,18 @@ export default function UnitFormsPage() {
                                   </div>
                                 )}
                               </div>
-                              {isAdmin && (
+                              {canManageUnitLinks && (
                                 <div className="w-full xl:w-[450px] p-5 bg-white rounded-2xl border border-primary/20 shadow-xl space-y-4">
                                   <div className="flex items-center gap-2 border-b pb-2 mb-2">
-                                    <PlusCircle className="h-4 w-4 text-primary" />
-                                    <h4 className="text-[10px] font-black uppercase text-slate-900 dark:text-slate-100">
-                                      Log New Roster Revision
-                                    </h4>
+                                    <FolderKanban className="h-4 w-4 text-primary" />
+                                    <div>
+                                      <h4 className="text-[10px] font-black uppercase text-slate-900 dark:text-slate-100">
+                                        Configure Google Drive Repository
+                                      </h4>
+                                      <p className="text-[9px] text-muted-foreground font-bold">
+                                        Set Drive folder link so other units can download forms
+                                      </p>
+                                    </div>
                                   </div>
                                   <div className="space-y-3">
                                     <div className="space-y-1">
@@ -978,14 +1024,27 @@ export default function UnitFormsPage() {
                                           </Badge>
                                         </TableCell>
                                         <TableCell className="text-right pr-6">
-                                          <Button
-                                            variant="default"
-                                            size="sm"
-                                            className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
-                                            onClick={() => setDownloadingForm(form)}
-                                          >
-                                            <Download className="h-3 w-3" /> Request Download
-                                          </Button>
+                                          <div className="flex items-center justify-end gap-1.5">
+                                            <Button
+                                              variant="default"
+                                              size="sm"
+                                              className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
+                                              onClick={() => setDownloadingForm(form)}
+                                            >
+                                              <Download className="h-3 w-3" /> Request Download
+                                            </Button>
+                                            {canManageUnitLinks && (
+                                              <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="h-8 text-[9px] font-black uppercase text-muted-foreground hover:text-primary gap-1 px-2.5"
+                                                onClick={() => setEditingFormDrive(form)}
+                                                title="Set or update Google Drive link for this form"
+                                              >
+                                                <Pencil className="h-3 w-3" /> Link
+                                              </Button>
+                                            )}
+                                          </div>
                                         </TableCell>
                                       </TableRow>
                                     ))
@@ -1090,6 +1149,13 @@ export default function UnitFormsPage() {
           unitId={selectedUnitId}
           isOpen={isRosterLogOpen}
           onOpenChange={setIsRosterLogOpen}
+        />
+      )}
+      {editingFormDrive && (
+        <EditFormDriveLinkDialog
+          form={editingFormDrive}
+          isOpen={!!editingFormDrive}
+          onOpenChange={(open) => !open && setEditingFormDrive(null)}
         />
       )}
       {reviewRequestId && (

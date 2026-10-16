@@ -788,6 +788,33 @@ export type FormDownloadLog = {
   createdAt: any; // serverTimestamp()
 };
 
+export type CrossUnitFormRequest = {
+  id: string;
+  formId: string;
+  formCode: string;
+  formName: string;
+  formRevision?: string;
+  googleDriveLink: string;
+  // Requester details
+  requesterId: string;
+  requesterName: string;
+  requesterEmail?: string;
+  requesterUnitId: string;
+  requesterUnitName: string;
+  requesterCampusId?: string;
+  requesterCampusName?: string;
+  // Form owner (provider) details
+  ownerUnitId: string;
+  ownerUnitName: string;
+  ownerCampusId?: string;
+  ownerCampusName?: string;
+  // Exchange purpose & audit metadata
+  purpose: string;
+  status: 'Fulfilled';
+  downloadDate: string; // YYYY-MM-DD
+  createdAt: any; // serverTimestamp()
+};
+
 export type AcademicProgram = {
   id: string;
   name: string;

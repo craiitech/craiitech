@@ -5,6 +5,8 @@ import type {
   Unit,
   CorrectiveActionRequest,
   AuditPlan,
+  AuditFinding,
+  ProcedureManual,
   CsmResponse,
   GADPlan,
   GADActivity,
@@ -31,6 +33,8 @@ type KpiComputationInput = {
   units?: Unit[];
   cars?: CorrectiveActionRequest[];
   auditPlans?: AuditPlan[];
+  auditFindings?: AuditFinding[];
+  procedureManuals?: ProcedureManual[];
   csmResponses?: CsmResponse[];
   gadPlans?: GADPlan[];
   gadActivities?: GADActivity[];
@@ -70,6 +74,8 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
     units,
     cars,
     auditPlans,
+    auditFindings,
+    procedureManuals,
     csmResponses,
     selectedYear,
     entityType,
@@ -85,10 +91,17 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
   const yearSubmissions = submissions?.filter((s) => s.year === selectedYear) || [];
   const yearRisks = risks?.filter((r) => r.year === selectedYear) || [];
 
-  function filterByEntity<T extends { campusId?: string; unitId?: string }>(items: T[]): T[] {
+  function filterByEntity<T extends { id?: string; campusId?: string; unitId?: string }>(items: T[]): T[] {
     if (entityType === 'institution') return items;
-    if (entityType === 'campus') return items.filter((i) => i.campusId === entityId);
-    return items.filter((i) => i.unitId === entityId);
+    if (entityType === 'campus') {
+      return items.filter((i) => {
+        if (i.campusId) return i.campusId === entityId;
+        const uId = i.unitId || i.id;
+        const matchingUnit = units?.find((u) => u.id === uId);
+        return Boolean(matchingUnit?.campusIds?.includes(entityId));
+      });
+    }
+    return items.filter((i) => (i.unitId || i.id) === entityId);
   }
 
   const entitySubmissions = filterByEntity(yearSubmissions);
@@ -246,6 +259,60 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
         } else {
           result = { value: 85 };
         }
+        break;
+      }
+      case 'copc_issuance_rate': {
+        const compliances = programCompliances ? filterByEntity(programCompliances) : [];
+        if (compliances.length > 0) {
+          const withCopc = compliances.filter((c) => c.ched?.copcStatus === 'With COPC').length;
+          result = { value: Math.round((withCopc / compliances.length) * 100) };
+        } else {
+          result = { value: 0 };
+        }
+        break;
+      }
+      case 'procedure_manual_currency_rate': {
+        const manuals = procedureManuals ? filterByEntity(procedureManuals) : [];
+        const total = manuals.length || (units ? filterByEntity(units).length : 1);
+        const updated = manuals.filter((m) => m.status === 'Updated').length;
+        result = { value: Math.round((updated / Math.max(total, 1)) * 100) };
+        break;
+      }
+      case 'submission_link_accessibility_rate': {
+        const total = entitySubmissions.length || 1;
+        const accessible = entitySubmissions.filter((s) => {
+          const link = s.googleDriveLink;
+          if (!link || typeof link !== 'string') return false;
+          const trimmed = link.trim();
+          return (
+            trimmed.startsWith('https://drive.google.com/') &&
+            (trimmed.includes('/folders/') ||
+              trimmed.includes('/file/d/') ||
+              trimmed.includes('id=') ||
+              trimmed.includes('/drive/'))
+          );
+        }).length;
+        result = { value: Math.round((accessible / total) * 100) };
+        break;
+      }
+      case 'ofi_implementation_rate': {
+        const findings = auditFindings || [];
+        const ofis = findings.filter(
+          (f) =>
+            f.type === 'Observation for Improvement' ||
+            f.type?.toLowerCase().includes('improvement') ||
+            f.type?.toLowerCase().includes('ofi'),
+        );
+        const total = ofis.length || 1;
+        const implemented = ofis.filter((f) => f.verification?.status === 'Implemented').length;
+        result = { value: ofis.length > 0 ? Math.round((implemented / total) * 100) : 100 };
+        break;
+      }
+      case 'opportunity_realization_rate': {
+        const opportunities = entityRisks.filter((r) => r.type === 'Opportunity');
+        const total = opportunities.length || 1;
+        const closed = opportunities.filter((r) => r.status === 'Closed').length;
+        result = { value: opportunities.length > 0 ? Math.round((closed / total) * 100) : 0 };
         break;
       }
       default: {

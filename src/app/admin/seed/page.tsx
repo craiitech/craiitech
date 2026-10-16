@@ -197,6 +197,71 @@ const KPI_DEFINITIONS = [
     weight: 1,
     isActive: true,
   },
+  {
+    name: 'COPC Issuance Rate',
+    description:
+      'Percentage of active academic programs with an issued Certificate of Program Compliance (COPC) from CHED.',
+    category: 'academic_programs',
+    formula: 'copc_issuance_rate',
+    dataSource: 'copc_issuance_rate',
+    unit: '%',
+    thresholds: { good: 90, satisfactory: 75, poor: 60, direction: 'higher_is_better' },
+    defaultTarget: 90,
+    weight: 1,
+    isActive: true,
+  },
+  {
+    name: 'Procedure Manual Currency Rate',
+    description:
+      'Percentage of organizational units maintaining updated, compliant procedure manuals conforming to ISO 21001 Clause 7.5.',
+    category: 'eoms_compliance',
+    formula: 'procedure_manual_currency_rate',
+    dataSource: 'procedure_manual_currency_rate',
+    unit: '%',
+    thresholds: { good: 90, satisfactory: 75, poor: 55, direction: 'higher_is_better' },
+    defaultTarget: 90,
+    weight: 1,
+    isActive: true,
+  },
+  {
+    name: 'Submission Link Accessibility Rate',
+    description:
+      'Percentage of submitted reports with accessible, valid Google Drive repository links conforming to sharing protocols.',
+    category: 'system_operations',
+    formula: 'submission_link_accessibility_rate',
+    dataSource: 'submission_link_accessibility_rate',
+    unit: '%',
+    thresholds: { good: 98, satisfactory: 90, poor: 80, direction: 'higher_is_better' },
+    defaultTarget: 98,
+    weight: 1,
+    isActive: true,
+  },
+  {
+    name: 'OFI Implementation Rate',
+    description:
+      'Percentage of internal quality audit Opportunities for Improvement (OFI) that have been successfully verified and implemented.',
+    category: 'audit_car',
+    formula: 'ofi_implementation_rate',
+    dataSource: 'ofi_implementation_rate',
+    unit: '%',
+    thresholds: { good: 80, satisfactory: 65, poor: 50, direction: 'higher_is_better' },
+    defaultTarget: 80,
+    weight: 1,
+    isActive: true,
+  },
+  {
+    name: 'Opportunity Realization Rate',
+    description:
+      'Percentage of strategic opportunities identified in the ROR registry that have been completed and realized.',
+    category: 'risk_management',
+    formula: 'opportunity_realization_rate',
+    dataSource: 'opportunity_realization_rate',
+    unit: '%',
+    thresholds: { good: 75, satisfactory: 60, poor: 40, direction: 'higher_is_better' },
+    defaultTarget: 75,
+    weight: 1,
+    isActive: true,
+  },
 ];
 
 export default function SeedKpiDefinitionsPage() {
@@ -211,19 +276,28 @@ export default function SeedKpiDefinitionsPage() {
     try {
       const col = collection(firestore, 'kpiDefinitions');
       const existing = await getDocs(col);
-      if (!existing.empty) {
+      const existingSources = new Set<string>();
+      existing.forEach((doc) => {
+        const data = doc.data();
+        if (data.dataSource) existingSources.add(data.dataSource);
+      });
+
+      const missing = KPI_DEFINITIONS.filter((k) => !existingSources.has(k.dataSource));
+
+      if (missing.length === 0) {
         setStatus('done');
-        setMessage(`Already seeded (${existing.size} KPI definitions exist).`);
+        setMessage(`All ${existing.size} KPI definitions are already present in Firestore.`);
         return;
       }
+
       let count = 0;
       const now = Timestamp.now();
-      for (const kpi of KPI_DEFINITIONS) {
+      for (const kpi of missing) {
         await addDoc(col, { ...kpi, createdAt: now, updatedAt: now });
         count++;
       }
       setStatus('done');
-      setMessage(`Seeded ${count} KPI definitions successfully.`);
+      setMessage(`Seeded ${count} new KPI definition(s) successfully (Total: ${existing.size + count}).`);
     } catch (err: any) {
       setStatus('error');
       setMessage(`Error: ${err.message}`);

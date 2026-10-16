@@ -23,6 +23,9 @@ import type {
   Unit,
   CorrectiveActionRequest,
   AuditPlan,
+  AuditFinding,
+  ProcedureManual,
+  ProgramComplianceRecord,
   CsmResponse,
 } from '@/lib/types';
 import { computeKpis } from '@/lib/kpi-engine';
@@ -79,6 +82,21 @@ export default function KpiDashboardPage() {
   const csmQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'csmResponses') : null), [firestore]);
   const { data: csmResponses } = useCollection<CsmResponse>(csmQuery);
 
+  const findingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditFindings') : null), [firestore]);
+  const { data: auditFindings } = useCollection<AuditFinding>(findingsQuery);
+
+  const manualsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'procedureManuals') : null),
+    [firestore],
+  );
+  const { data: procedureManuals } = useCollection<ProcedureManual>(manualsQuery);
+
+  const compliancesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'programCompliances') : null),
+    [firestore],
+  );
+  const { data: programCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+
   const entityType = useMemo(() => {
     if (isAdmin) return 'institution';
     if (userProfile?.campusId) return 'campus';
@@ -101,6 +119,9 @@ export default function KpiDashboardPage() {
       units: (units || []) as any,
       cars: (cars || []) as any,
       auditPlans: (auditPlans || []) as any,
+      auditFindings: (auditFindings || []) as any,
+      procedureManuals: (procedureManuals || []) as any,
+      programCompliances: (programCompliances || []) as any,
       csmResponses: (csmResponses || []) as any,
       selectedYear,
       entityType,
@@ -114,6 +135,9 @@ export default function KpiDashboardPage() {
     units,
     cars,
     auditPlans,
+    auditFindings,
+    procedureManuals,
+    programCompliances,
     csmResponses,
     selectedYear,
     entityType,

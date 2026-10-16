@@ -146,6 +146,7 @@ service cloud.firestore {
 
     match /unitForms/{id} {
       allow get, list: if isSignedIn();
+      allow update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('unitId', '') == resource.data.unitId));
       allow write: if isAdmin();
     }
 
@@ -362,6 +363,7 @@ service cloud.firestore {
     
     match /units/{id} { 
       allow read: if true; // Required for Registration unit filter
+      allow update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('unitId', '') == id));
       allow write: if isAdmin(); 
     }
     
@@ -448,7 +450,13 @@ service cloud.firestore {
 
     match /formDownloadLogs/{id} {
       allow create: if isSignedIn();
-      allow get, list: if isAdmin();
+      allow get, list: if isSignedIn();
+    }
+
+    match /crossUnitFormRequests/{id} {
+      allow create: if isSignedIn();
+      allow get, list: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
 
     match /softwareEvaluations/{id} {
@@ -457,8 +465,10 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Admin-specific override for Form Roster Management
+    // Form Roster Management
     match /unitForms/{allPaths=**} {
+        allow get, list: if isSignedIn();
+        allow update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('unitId', '') == resource.data.unitId));
         allow write: if isAdmin();
     }
 

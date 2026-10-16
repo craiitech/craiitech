@@ -16,6 +16,9 @@ import type {
   GADActivity,
   OkrObjective,
   OkrKeyResult,
+  ProcedureManual,
+  AuditFinding,
+  ProgramComplianceRecord,
 } from './types';
 import { KPI_CATEGORIES, DEFAULT_KPI_THRESHOLDS } from './constants';
 
@@ -26,6 +29,9 @@ export type DataInventory = {
   units: Unit[] | null;
   cycles: Cycle[] | null;
   auditPlans: AuditPlan[] | null;
+  auditFindings?: AuditFinding[] | null;
+  procedureManuals?: ProcedureManual[] | null;
+  programCompliances?: ProgramComplianceRecord[] | null;
   csmResponses: CsmResponse[] | null;
   activities: AttendanceActivity[] | null;
   activityLogs: ActivityAttendanceLog[] | null;
@@ -490,6 +496,145 @@ const TEMPLATES: SuggestionTemplate[] = [
     }),
     generateDescription: (d) =>
       `Percentage of academic programs meeting accredited maturity status and quality recommendations for AY ${d.selectedYear}.`,
+  },
+  {
+    dataSource: 'copc_issuance_rate',
+    defaultName: 'COPC Issuance Rate',
+    defaultCategory: 'academic_programs',
+    defaultUnit: '%',
+    defaultWeight: 1,
+    requiredInventory: ['programCompliances'],
+    confidenceCheck: (d) => (hasData(d, 'programCompliances') ? 'high' : 'medium'),
+    estimateTarget: (d) => {
+      const compliances = d.programCompliances || [];
+      if (compliances.length === 0)
+        return { target: 90, current: 0, reason: 'No program compliance records found.', hasData: false };
+      const withCopc = compliances.filter((c) => c.ched?.copcStatus === 'With COPC').length;
+      const rate = Math.round((withCopc / compliances.length) * 100);
+      return {
+        target: Math.max(rate + 10, 90),
+        current: rate,
+        reason: `${withCopc} of ${compliances.length} programs possess an approved CHED COPC (${rate}%).`,
+        hasData: true,
+      };
+    },
+    generateDescription: (d) =>
+      `Percentage of active academic programs with an issued Certificate of Program Compliance (COPC) from CHED for AY ${d.selectedYear}.`,
+  },
+  {
+    dataSource: 'procedure_manual_currency_rate',
+    defaultName: 'Procedure Manual Currency Rate',
+    defaultCategory: 'eoms_compliance',
+    defaultUnit: '%',
+    defaultWeight: 1,
+    requiredInventory: ['procedureManuals'],
+    confidenceCheck: (d) => (hasData(d, 'procedureManuals') ? 'high' : 'medium'),
+    estimateTarget: (d) => {
+      const manuals = d.procedureManuals || [];
+      const total = manuals.length || d.units?.length || 1;
+      if (manuals.length === 0)
+        return { target: 90, current: 0, reason: 'No procedure manuals recorded.', hasData: false };
+      const updated = manuals.filter((m) => m.status === 'Updated').length;
+      const rate = Math.round((updated / total) * 100);
+      return {
+        target: Math.max(rate + 10, 90),
+        current: rate,
+        reason: `${updated} of ${total} units have updated procedure manuals (${rate}%).`,
+        hasData: true,
+      };
+    },
+    generateDescription: (d) =>
+      `Percentage of organizational units maintaining updated, compliant procedure manuals conforming to ISO 21001 Clause 7.5 for AY ${d.selectedYear}.`,
+  },
+  {
+    dataSource: 'submission_link_accessibility_rate',
+    defaultName: 'Submission Link Accessibility Rate',
+    defaultCategory: 'system_operations',
+    defaultUnit: '%',
+    defaultWeight: 1,
+    requiredInventory: ['submissions'],
+    confidenceCheck: (d) => (hasData(d, 'submissions') ? 'high' : 'medium'),
+    estimateTarget: (d) => {
+      const subs = d.submissions || [];
+      if (subs.length === 0)
+        return { target: 98, current: 0, reason: 'No submissions recorded to evaluate.', hasData: false };
+      const valid = subs.filter((s) => {
+        const link = s.googleDriveLink;
+        if (!link || typeof link !== 'string') return false;
+        const trimmed = link.trim();
+        return (
+          trimmed.startsWith('https://drive.google.com/') &&
+          (trimmed.includes('/folders/') ||
+            trimmed.includes('/file/d/') ||
+            trimmed.includes('id=') ||
+            trimmed.includes('/drive/'))
+        );
+      }).length;
+      const rate = Math.round((valid / subs.length) * 100);
+      return {
+        target: 98,
+        current: rate,
+        reason: `${valid} of ${subs.length} submission links adhere to Google Drive URL criteria (${rate}%).`,
+        hasData: true,
+      };
+    },
+    generateDescription: (d) =>
+      `Percentage of submitted reports with accessible, valid Google Drive repository links conforming to sharing protocols for AY ${d.selectedYear}.`,
+  },
+  {
+    dataSource: 'ofi_implementation_rate',
+    defaultName: 'OFI Implementation Rate',
+    defaultCategory: 'audit_car',
+    defaultUnit: '%',
+    defaultWeight: 1,
+    requiredInventory: ['auditFindings'],
+    confidenceCheck: (d) => (hasData(d, 'auditFindings') ? 'high' : 'medium'),
+    estimateTarget: (d) => {
+      const findings = d.auditFindings || [];
+      const ofis = findings.filter(
+        (f) =>
+          f.type === 'Observation for Improvement' ||
+          f.type?.toLowerCase().includes('improvement') ||
+          f.type?.toLowerCase().includes('ofi'),
+      );
+      if (ofis.length === 0)
+        return { target: 80, current: 100, reason: 'No open Opportunities for Improvement recorded.', hasData: false };
+      const implemented = ofis.filter((f) => f.verification?.status === 'Implemented').length;
+      const rate = Math.round((implemented / ofis.length) * 100);
+      return {
+        target: Math.max(rate + 10, 80),
+        current: rate,
+        reason: `${implemented} of ${ofis.length} audit Opportunities for Improvement implemented (${rate}%).`,
+        hasData: true,
+      };
+    },
+    generateDescription: (d) =>
+      `Percentage of internal quality audit Opportunities for Improvement (OFI) verified and implemented for AY ${d.selectedYear}.`,
+  },
+  {
+    dataSource: 'opportunity_realization_rate',
+    defaultName: 'Opportunity Realization Rate',
+    defaultCategory: 'risk_management',
+    defaultUnit: '%',
+    defaultWeight: 1,
+    requiredInventory: ['risks'],
+    confidenceCheck: (d) => (hasData(d, 'risks') ? 'high' : 'medium'),
+    estimateTarget: (d) => {
+      const risks = d.risks || [];
+      const opps = risks.filter((r) => r.type === 'Opportunity');
+      if (opps.length === 0)
+        return { target: 75, current: 0, reason: 'No opportunities currently logged in ROR.', hasData: false };
+      const closed = opps.filter((r) => r.status === 'Closed').length;
+      const rate = Math.round((closed / opps.length) * 100);
+      return {
+        target: Math.max(rate + 10, 75),
+        current: rate,
+        reason: `${closed} of ${opps.length} logged opportunities successfully closed and realized (${rate}%).`,
+        hasData: true,
+      };
+    },
+    generateDescription: (d) =>
+      `Percentage of strategic opportunities identified in the ROR registry that have been completed and realized for AY ${d.selectedYear}.`,
   },
 ];
 
