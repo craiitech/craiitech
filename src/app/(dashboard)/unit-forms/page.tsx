@@ -608,17 +608,6 @@ export default function UnitFormsPage() {
             {currentTab === 'inbox' ? (
               <div className="flex-1 overflow-y-auto pt-4">
                 <TabsContent value="inbox" className="animate-in fade-in duration-500 space-y-4">
-                  ) : currentTab === 'request-other' ? (
-                  <div className="flex-1 overflow-y-auto pt-4">
-                    <TabsContent value="request-other" className="animate-in fade-in duration-500 space-y-4">
-                      <RequestOtherUnitFormsTab
-                        units={allUnits || []}
-                        campuses={campuses || []}
-                        userUnitId={userProfile?.unitId}
-                        isAdmin={isAdmin}
-                      />
-                    </TabsContent>
-                  </div>
                   {!isHistoryActive ? (
                     <div className="p-12 text-center bg-white border rounded-2xl shadow-sm">
                       <Button
@@ -810,6 +799,17 @@ export default function UnitFormsPage() {
                       </CardContent>
                     </Card>
                   )}
+                </TabsContent>
+              </div>
+            ) : currentTab === 'request-other' ? (
+              <div className="flex-1 overflow-y-auto pt-4">
+                <TabsContent value="request-other" className="animate-in fade-in duration-500 space-y-4">
+                  <RequestOtherUnitFormsTab
+                    units={allUnits || []}
+                    campuses={campuses || []}
+                    userUnitId={userProfile?.unitId}
+                    isAdmin={isAdmin}
+                  />
                 </TabsContent>
               </div>
             ) : selectedUnit ? (
