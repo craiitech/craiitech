@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, setDoc } from '@/firebase/firestore-wrapper';
+import { collection, query, where, doc, setDoc, addDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import type { Unit, UnitForm, Campus, CrossUnitFormRequest } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -143,13 +143,23 @@ export function RequestOtherUnitFormsTab({
   );
 
   // Query forms of the selected target unit
-  const formsQuery = useMemoFirebase(
-    () =>
-      firestore && effectiveTargetUnitId
-        ? query(collection(firestore, 'unitForms'), where('unitId', '==', effectiveTargetUnitId))
-        : null,
-    [firestore, effectiveTargetUnitId],
-  );
+  // If the selected unit is Academic, include forms under 'academic-shared' as well so academic forms are listed
+  const isTargetAcademic = selectedTargetUnit?.category === 'Academic';
+  const targetUnitIds = useMemo(() => {
+    if (!effectiveTargetUnitId) return [];
+    if (isTargetAcademic && effectiveTargetUnitId !== 'academic-shared') {
+      return [effectiveTargetUnitId, 'academic-shared'];
+    }
+    return [effectiveTargetUnitId];
+  }, [effectiveTargetUnitId, isTargetAcademic]);
+
+  const formsQuery = useMemoFirebase(() => {
+    if (!firestore || targetUnitIds.length === 0) return null;
+    if (targetUnitIds.length === 1) {
+      return query(collection(firestore, 'unitForms'), where('unitId', '==', targetUnitIds[0]));
+    }
+    return query(collection(firestore, 'unitForms'), where('unitId', 'in', targetUnitIds));
+  }, [firestore, targetUnitIds]);
   const { data: targetForms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
 
   // Filter forms within selected unit
@@ -161,6 +171,107 @@ export function RequestOtherUnitFormsTab({
       (f) => f.formCode.toLowerCase().includes(lower) || f.formName.toLowerCase().includes(lower),
     );
   }, [targetForms, formSearch]);
+
+  // Direct 1-click Download handler with mutual audit logging
+  const [downloadingFormId, setDownloadingFormId] = useState<string | null>(null);
+
+  const handleInstantDownload = async (
+    formItem: {
+      id: string;
+      formCode: string;
+      formName: string;
+      googleDriveLink: string;
+      revision?: string;
+    },
+    ownerUnitObj: {
+      id: string;
+      name: string;
+      campusIds?: string[];
+    },
+  ) => {
+    if (!firestore || !formItem.googleDriveLink) return;
+
+    setDownloadingFormId(formItem.id);
+
+    // Open target window synchronously to avoid popup blockers
+    const downloadWindow = window.open('', '_blank');
+    if (downloadWindow) {
+      downloadWindow.document.title = `Opening ${formItem.formCode}...`;
+      downloadWindow.document.body.innerHTML = `
+        <div style="font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100dvh; background-color: #f8fafc; color: #0f172a; margin: 0;">
+          <div style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem; text-transform: uppercase;">Opening Form Document</div>
+          <div style="font-size: 0.875rem; color: #64748b;">Logging mutual audit record and redirecting to verified Google Drive repository...</div>
+        </div>
+      `;
+    }
+
+    try {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      const requesterDisplayName = userProfile
+        ? `${userProfile.firstName} ${userProfile.lastName}`.trim()
+        : 'Authorized Personnel';
+      const myCampusName = userProfile?.campusId ? campusMap.get(userProfile.campusId) || '' : '';
+      const ownerCampusName = ownerUnitObj.campusIds?.[0] ? campusMap.get(ownerUnitObj.campusIds[0]) || '' : '';
+
+      // 1. Log to crossUnitFormRequests (visible in "Forms Requested by Us" & "Forms Provided to Other Units")
+      await addDoc(collection(firestore, 'crossUnitFormRequests'), {
+        formId: formItem.id,
+        formCode: formItem.formCode,
+        formName: formItem.formName,
+        formRevision: formItem.revision || '00',
+        googleDriveLink: formItem.googleDriveLink,
+        requesterId: userProfile?.id || '',
+        requesterName: requesterDisplayName,
+        requesterEmail: userProfile?.email || '',
+        requesterUnitId: userProfile?.unitId || '',
+        requesterUnitName: userProfile?.unitName || 'Institutional Unit',
+        requesterCampusId: userProfile?.campusId || '',
+        requesterCampusName: myCampusName,
+        ownerUnitId: ownerUnitObj.id,
+        ownerUnitName: ownerUnitObj.name,
+        ownerCampusId: ownerUnitObj.campusIds?.[0] || '',
+        ownerCampusName: ownerCampusName,
+        purpose: 'Direct Unit Form Access & Operational Coordination',
+        status: 'Fulfilled',
+        downloadDate: todayStr,
+        createdAt: serverTimestamp(),
+      });
+
+      // 2. Log to formDownloadLogs for standard compliance audit trail
+      await addDoc(collection(firestore, 'formDownloadLogs'), {
+        unitId: ownerUnitObj.id,
+        formId: formItem.id,
+        formName: formItem.formName,
+        formCode: formItem.formCode,
+        requesterName: `${requesterDisplayName} (${userProfile?.unitName || 'Other Unit'})`,
+        requestDate: todayStr,
+        createdAt: serverTimestamp(),
+      });
+
+      if (downloadWindow) {
+        downloadWindow.location.href = formItem.googleDriveLink;
+      } else {
+        window.open(formItem.googleDriveLink, '_blank');
+      }
+
+      toast({
+        title: 'Form Download Initiated',
+        description: `Logged download for ${formItem.formCode} (${ownerUnitObj.name}). Mutual audit record recorded.`,
+      });
+    } catch (err) {
+      console.error(err);
+      if (downloadWindow) {
+        downloadWindow.close();
+      }
+      toast({
+        title: 'Download Logging Failed',
+        description: 'Failed to record the mutual form download audit log.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDownloadingFormId(null);
+    }
+  };
 
   // Query cross-unit logs
   // 1. Outgoing: Forms our unit requested
@@ -464,20 +575,48 @@ export function RequestOtherUnitFormsTab({
                         {/* Roster Folder Direct Access */}
                         <div className="flex items-center gap-2 shrink-0">
                           {selectedTargetUnit.formsDriveLink ? (
-                            <Button
-                              onClick={() =>
-                                setRequestingForm({
-                                  id: 'roster-folder',
-                                  formCode: 'ROSTER-FOLDER',
-                                  formName: `${selectedTargetUnit.name} - Complete Official Forms Roster`,
-                                  googleDriveLink: selectedTargetUnit.formsDriveLink!,
-                                  revision: selectedTargetUnit.formsDriveRevision || '00',
-                                })
-                              }
-                              className="h-9 font-black uppercase text-[10px] tracking-widest shadow-md shadow-primary/20 gap-1.5"
-                            >
-                              <FolderKanban className="h-3.5 w-3.5" /> Request Roster Folder
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                disabled={downloadingFormId === 'roster-folder'}
+                                onClick={() =>
+                                  handleInstantDownload(
+                                    {
+                                      id: 'roster-folder',
+                                      formCode: 'ROSTER-FOLDER',
+                                      formName: `${selectedTargetUnit.name} - Complete Official Forms Roster`,
+                                      googleDriveLink: selectedTargetUnit.formsDriveLink!,
+                                      revision: selectedTargetUnit.formsDriveRevision || '00',
+                                    },
+                                    selectedTargetUnit,
+                                  )
+                                }
+                                className="h-9 font-black uppercase text-[10px] tracking-widest shadow-md shadow-primary/20 gap-1.5"
+                              >
+                                {downloadingFormId === 'roster-folder' ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <FolderKanban className="h-3.5 w-3.5" />
+                                )}
+                                Open Roster Folder
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                className="h-9 w-9 text-muted-foreground hover:text-primary"
+                                title="Request with customized remarks"
+                                onClick={() =>
+                                  setRequestingForm({
+                                    id: 'roster-folder',
+                                    formCode: 'ROSTER-FOLDER',
+                                    formName: `${selectedTargetUnit.name} - Complete Official Forms Roster`,
+                                    googleDriveLink: selectedTargetUnit.formsDriveLink!,
+                                    revision: selectedTargetUnit.formsDriveRevision || '00',
+                                  })
+                                }
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
                           ) : (
                             <Badge
                               variant="outline"
@@ -628,13 +767,41 @@ export function RequestOtherUnitFormsTab({
                                   <TableCell className="text-right pr-6">
                                     <div className="flex items-center justify-end gap-1.5">
                                       {hasDriveLink ? (
-                                        <Button
-                                          size="sm"
-                                          onClick={() => setRequestingForm(form)}
-                                          className="h-7 text-[9px] font-black uppercase tracking-widest gap-1"
-                                        >
-                                          <Download className="h-3 w-3" /> Request & Download
-                                        </Button>
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            size="sm"
+                                            disabled={downloadingFormId === form.id}
+                                            onClick={() =>
+                                              handleInstantDownload(
+                                                {
+                                                  id: form.id,
+                                                  formCode: form.formCode,
+                                                  formName: form.formName,
+                                                  googleDriveLink: form.googleDriveLink!,
+                                                  revision: form.revision,
+                                                },
+                                                selectedTargetUnit,
+                                              )
+                                            }
+                                            className="h-7 text-[9px] font-black uppercase tracking-widest gap-1 shadow-xs"
+                                          >
+                                            {downloadingFormId === form.id ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <Download className="h-3 w-3" />
+                                            )}
+                                            Download
+                                          </Button>
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-7 w-7 text-muted-foreground hover:text-primary"
+                                            title="Request with custom remarks / justification"
+                                            onClick={() => setRequestingForm(form)}
+                                          >
+                                            <FileText className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
                                       ) : canManageSelectedUnit ? (
                                         <Button
                                           size="sm"

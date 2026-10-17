@@ -320,6 +320,27 @@ export default function UnitFormsPage() {
     };
   }, [selectedUnitId, sharedSettings, selectedUnit]);
 
+  const allUnitsWithAcademic = useMemo<Unit[]>(() => {
+    if (!allUnits) return [];
+    const list: Unit[] = [...allUnits];
+    const hasAcademic = allUnits.some((u) => u.category === 'Academic');
+    if (hasAcademic && !list.some((u) => u.id === SHARED_ACADEMIC_ID)) {
+      list.push({
+        id: SHARED_ACADEMIC_ID,
+        name: 'Academic Units (Shared Registry)',
+        category: 'Academic',
+        isShared: true,
+        formsDriveLink: sharedSettings?.formsDriveLink || '',
+        formsDriveRevision: sharedSettings?.formsDriveRevision || '00',
+        formsDriveUpdatedAt: sharedSettings?.formsDriveUpdatedAt || '',
+        masterlistPdfLink: sharedSettings?.masterlistPdfLink || '',
+        masterlistRevision: sharedSettings?.masterlistRevision || '00',
+        masterlistUpdatedAt: sharedSettings?.masterlistUpdatedAt || '',
+      } as unknown as Unit);
+    }
+    return list;
+  }, [allUnits, sharedSettings]);
+
   const activeMasterlistData = useMemo(() => {
     if (selectedUnitId === SHARED_ACADEMIC_ID)
       return {
@@ -805,7 +826,7 @@ export default function UnitFormsPage() {
               <div className="flex-1 overflow-y-auto pt-4">
                 <TabsContent value="request-other" className="animate-in fade-in duration-500 space-y-4">
                   <RequestOtherUnitFormsTab
-                    units={allUnits || []}
+                    units={allUnitsWithAcademic}
                     campuses={campuses || []}
                     userUnitId={userProfile?.unitId}
                     isAdmin={isAdmin}
