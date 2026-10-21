@@ -255,6 +255,11 @@ export type CampusSetting = {
   submissionDriveFolderId?: string; // Extracted folder ID
   submissionDriveUpdatedAt?: string;
   googleScriptWebhookUrl?: string; // Global or campus-specific Google Apps Script Webhook URL
+  // Archipelagic Intelligence (AQ) Settings
+  archipelagicUniversityVision?: string;
+  archipelagicUniversityMission?: string;
+  archipelagicUniversityGoals?: string;
+  archipelagicUniversityQualityPolicy?: string;
   // Institutional Home Dashboard Settings
   enableUnifiedHomeDashboard?: boolean;
   homeDashboardDefaultTab?: string;

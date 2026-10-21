@@ -27,6 +27,13 @@ const settingsSchema = z.object({
   announcement2EndsAt: z.string().optional(),
   submissionDriveFolderUrl: z.string().url('Please enter a valid Google Drive URL').optional().or(z.literal('')),
   googleScriptWebhookUrl: z.string().url('Please enter a valid URL').optional().or(z.literal('')),
+  archipelagicUniversityVision: z.string().max(1000, 'Vision must be 1000 characters or less.').optional(),
+  archipelagicUniversityMission: z.string().max(1000, 'Mission must be 1000 characters or less.').optional(),
+  archipelagicUniversityGoals: z.string().max(1000, 'Goals must be 1000 characters or less.').optional(),
+  archipelagicUniversityQualityPolicy: z
+    .string()
+    .max(1000, 'Quality Policy must be 1000 characters or less.')
+    .optional(),
 });
 
 export function CampusSettingsManagement() {
@@ -75,6 +82,10 @@ export function CampusSettingsManagement() {
       announcement2EndsAt: '',
       submissionDriveFolderUrl: '',
       googleScriptWebhookUrl: '',
+      archipelagicUniversityVision: '',
+      archipelagicUniversityMission: '',
+      archipelagicUniversityGoals: '',
+      archipelagicUniversityQualityPolicy: '',
     },
   });
 
@@ -90,6 +101,10 @@ export function CampusSettingsManagement() {
         googleScriptWebhookUrl:
           campusSetting.googleScriptWebhookUrl ||
           (campusSetting.id !== 'global' ? globalSetting?.googleScriptWebhookUrl || '' : ''),
+        archipelagicUniversityVision: campusSetting.archipelagicUniversityVision || '',
+        archipelagicUniversityMission: campusSetting.archipelagicUniversityMission || '',
+        archipelagicUniversityGoals: campusSetting.archipelagicUniversityGoals || '',
+        archipelagicUniversityQualityPolicy: campusSetting.archipelagicUniversityQualityPolicy || '',
       });
     } else {
       form.reset({
@@ -99,6 +114,10 @@ export function CampusSettingsManagement() {
         announcement2EndsAt: '',
         submissionDriveFolderUrl: '',
         googleScriptWebhookUrl: globalSetting?.googleScriptWebhookUrl || '',
+        archipelagicUniversityVision: '',
+        archipelagicUniversityMission: '',
+        archipelagicUniversityGoals: '',
+        archipelagicUniversityQualityPolicy: '',
       });
     }
   }, [campusSetting, globalSetting, form]);
@@ -124,11 +143,19 @@ export function CampusSettingsManagement() {
         if (values.googleScriptWebhookUrl !== undefined) {
           updateData.googleScriptWebhookUrl = values.googleScriptWebhookUrl.trim();
         }
+        updateData.archipelagicUniversityVision = values.archipelagicUniversityVision || '';
+        updateData.archipelagicUniversityMission = values.archipelagicUniversityMission || '';
+        updateData.archipelagicUniversityGoals = values.archipelagicUniversityGoals || '';
+        updateData.archipelagicUniversityQualityPolicy = values.archipelagicUniversityQualityPolicy || '';
       } else {
         const folderUrl = (values.submissionDriveFolderUrl || '').trim();
         updateData.submissionDriveFolderUrl = folderUrl;
         updateData.submissionDriveFolderId = extractDriveFolderId(folderUrl);
         updateData.submissionDriveUpdatedAt = new Date().toISOString();
+        updateData.archipelagicUniversityVision = values.archipelagicUniversityVision || '';
+        updateData.archipelagicUniversityMission = values.archipelagicUniversityMission || '';
+        updateData.archipelagicUniversityGoals = values.archipelagicUniversityGoals || '';
+        updateData.archipelagicUniversityQualityPolicy = values.archipelagicUniversityQualityPolicy || '';
       }
       await setDoc(settingRef, updateData, { merge: true });
       toast({ title: 'Success', description: 'Campus settings updated.' });
@@ -500,6 +527,82 @@ export function CampusSettingsManagement() {
                     </FormItem>
                   )}
                 />
+
+                <Separator className="my-6" />
+
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="archipelagicUniversityVision"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Archipelagic University Vision</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="e.g., To become a leading archipelagic university transforming lives across islands..."
+                            {...field}
+                            disabled={isSubmitting || !canSubmit}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="archipelagicUniversityMission"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Archipelagic University Mission</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="e.g., To provide quality education, research, and extension services across the archipelago..."
+                            {...field}
+                            disabled={isSubmitting || !canSubmit}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="archipelagicUniversityGoals"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Archipelagic University Goals</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="e.g., 1) Multi-island responsive education 2) Transregenerative research 3) Island-rooted extension..."
+                            {...field}
+                            disabled={isSubmitting || !canSubmit}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="archipelagicUniversityQualityPolicy"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Archipelagic University Quality Policy</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="e.g., ISO 21001:2025 EOMS compliance, continuous improvement, student-centered quality assurance..."
+                            {...field}
+                            disabled={isSubmitting || !canSubmit}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="rounded-lg bg-amber-50/80 border border-amber-200/60 p-3 text-[11px] text-amber-900 space-y-1">
                   <div className="flex items-center gap-1.5 font-bold text-amber-800">
