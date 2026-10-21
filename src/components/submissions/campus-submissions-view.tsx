@@ -1091,6 +1091,69 @@ export function CampusSubmissionsView({
                   </div>
                 </div>
 
+                {/* Missing / Not Yet Submitted Documents per Cycle */}
+                {(unitData.missingFirst.length > 0 || unitData.missingFinal.length > 0) && (
+                  <div className="space-y-3 border border-rose-100 bg-rose-50/40 rounded-xl p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <FileWarning className="h-4 w-4 text-rose-600" />
+                      <h4 className="text-xs font-black uppercase tracking-wider text-rose-700">
+                        Missing / Not Yet Submitted Documents
+                      </h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="bg-white p-4 rounded-lg border border-rose-200 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-50 text-blue-700 border-blue-200 px-3 py-1 font-black text-[9px] uppercase"
+                          >
+                            1st Cycle — Not Yet Submitted
+                          </Badge>
+                        </div>
+                        {unitData.missingFirst.length > 0 ? (
+                          <ul className="space-y-1.5">
+                            {unitData.missingFirst.map((type) => (
+                              <li key={type} className="flex items-center gap-2 text-[10px] text-rose-700 font-medium">
+                                <AlertTriangle className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{type}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-[10px] text-emerald-600 font-medium italic">All documents submitted</p>
+                        )}
+                      </div>
+                      <div className="bg-white p-4 rounded-lg border border-rose-200 shadow-sm">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge
+                            variant="outline"
+                            className="bg-green-50 text-green-700 border-green-200 px-3 py-1 font-black text-[9px] uppercase"
+                          >
+                            Final Cycle — Not Yet Submitted
+                          </Badge>
+                        </div>
+                        {unitData.missingFinal.length > 0 ? (
+                          <ul className="space-y-1.5">
+                            {unitData.missingFinal.map((type) => (
+                              <li key={type} className="flex items-center gap-2 text-[10px] text-rose-700 font-medium">
+                                <AlertTriangle className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{type}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p className="text-[10px] text-emerald-600 font-medium italic">All documents submitted</p>
+                        )}
+                      </div>
+                    </div>
+                    <p className="mt-3 text-[9px] text-muted-foreground italic">
+                      A document is considered missing if no approved submission exists for that report type in the
+                      active cycle. Risk and Opportunity Action Plan is excluded when the unit&apos;s Risk and
+                      Opportunity Registry is rated low risk.
+                    </p>
+                  </div>
+                )}
+
                 {/* Organizational Structure History */}
                 <div className="space-y-3 bg-muted/5 border border-primary/10 rounded-2xl p-5">
                   <div className="flex items-center justify-between border-b pb-2">
@@ -1399,6 +1462,98 @@ export function CampusSubmissionsView({
                     </CardFooter>
                   </Card>
                 </div>
+                {/* Unit Submission Gaps Table */}
+                {campusSummary && campusSummary.unitPerformance.length > 0 && (
+                  <div className="space-y-4 border border-primary/10 rounded-2xl p-5 bg-white dark:bg-slate-900/50">
+                    <div className="flex items-center justify-between border-b pb-3 mb-4">
+                      <div className="flex items-center gap-2">
+                        <ListChecks className="h-4 w-4 text-primary" />
+                        <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                          Unit Submission Gaps — AY {selectedYear}
+                        </h4>
+                      </div>
+                      <Badge variant="outline" className="text-[8px] font-black uppercase tracking-wider">
+                        {campusSummary.unitPerformance.reduce(
+                          (acc, u) => acc + u.missingFirst.length + u.missingFinal.length,
+                          0,
+                        )}{' '}
+                        Total Gaps
+                      </Badge>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <Table className="text-[10px]">
+                        <TableHeader className="bg-muted/30">
+                          <TableRow>
+                            <TableHead className="pl-6 py-3 font-bold uppercase text-muted-foreground">Unit</TableHead>
+                            <TableHead className="py-3 font-bold uppercase text-muted-foreground text-center">
+                              1st Cycle — Missing
+                            </TableHead>
+                            <TableHead className="py-3 font-bold uppercase text-muted-foreground text-center">
+                              Final Cycle — Missing
+                            </TableHead>
+                            <TableHead className="py-3 font-bold uppercase text-muted-foreground text-right">
+                              Status
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {campusSummary.unitPerformance.map((u) => {
+                            const totalMissing = u.missingFirst.length + u.missingFinal.length;
+                            const isCompliant = totalMissing === 0;
+                            return (
+                              <TableRow key={u.id} className="hover:bg-muted/50 transition-colors">
+                                <TableCell className="pl-6 py-3 font-medium">{u.name}</TableCell>
+                                <TableCell className="py-3 text-center">
+                                  {u.missingFirst.length > 0 ? (
+                                    <div className="flex flex-col items-center justify-center gap-1 text-[9px]">
+                                      <span className="text-rose-600 font-bold">{u.missingFirst.length}</span>
+                                      <span className="text-slate-400 text-[8px]">item(s)</span>
+                                      <div className="text-[8px] text-rose-500/60 truncate max-w-[160px] leading-none">
+                                        {u.missingFirst.join(', ')}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-emerald-600 font-medium text-[9px]">Complete</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="py-3 text-center">
+                                  {u.missingFinal.length > 0 ? (
+                                    <div className="flex flex-col items-center justify-center gap-1 text-[9px]">
+                                      <span className="text-rose-600 font-bold">{u.missingFinal.length}</span>
+                                      <span className="text-slate-400 text-[8px]">item(s)</span>
+                                      <div className="text-[8px] text-rose-500/60 truncate max-w-[160px] leading-none">
+                                        {u.missingFinal.join(', ')}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className="text-emerald-600 font-medium text-[9px]">Complete</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="py-3 text-right">
+                                  <Badge
+                                    className={cn(
+                                      'font-black uppercase text-[8px] px-2.5 py-1',
+                                      isCompliant
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                        : 'bg-rose-50 text-rose-700 border-rose-200',
+                                    )}
+                                  >
+                                    {isCompliant ? 'COMPLIANT' : 'NON-COMPLIANT'}
+                                  </Badge>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    <p className="mt-3 text-[9px] text-muted-foreground italic">
+                      A document is considered missing if no approved submission exists for that report type in the
+                      active cycle. Risk and Opportunity Action Plan is excluded when the unit&apos;s Risk and
+                      Opportunity Registry is rated low risk.
+                    </p>
+                  </div>
+                )}
               </div>
             </ScrollArea>
           ) : (
