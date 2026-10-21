@@ -5,12 +5,13 @@ import { useSearchParams } from 'next/navigation';
 import { OperationalPlanWorkspace } from '@/components/operational-plan/operational-plan-workspace';
 import { EomsComplianceWizard } from '@/components/wizard/eoms-compliance-wizard';
 import { UnitKpiTracker } from '@/components/operational-plan/unit-kpi-tracker';
+import { UniversitySubmissionChecking } from '@/components/operational-plan/university-submission-checking';
 import { useUser } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
-import { Info, ArrowRight, Sparkles, FileSpreadsheet, Target } from 'lucide-react';
+import { Info, ArrowRight, Sparkles, FileSpreadsheet, Target, School } from 'lucide-react';
 
 export default function OperationalPlanPage() {
   const { systemSettings } = useUser();
@@ -54,15 +55,18 @@ export default function OperationalPlanPage() {
       {/* Mode Switcher Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <div className="flex items-center justify-between border-b pb-2">
-          <TabsList className="bg-muted p-1 rounded-xl">
-            <TabsTrigger value="grid" className="text-xs font-bold gap-1.5 px-4">
+          <TabsList className="bg-muted p-1 rounded-xl overflow-x-auto max-w-full justify-start">
+            <TabsTrigger value="grid" className="text-xs font-bold gap-1.5 px-4 whitespace-nowrap">
               <FileSpreadsheet className="h-3.5 w-3.5 text-blue-600" /> Quality Objectives Monitoring
             </TabsTrigger>
-            <TabsTrigger value="kpis" className="text-xs font-bold gap-1.5 px-4">
+            <TabsTrigger value="kpis" className="text-xs font-bold gap-1.5 px-4 whitespace-nowrap">
               <Target className="h-3.5 w-3.5 text-emerald-600" /> Unit Deliverables &amp; Implementation Tracker
             </TabsTrigger>
-            <TabsTrigger value="wizard" className="text-xs font-bold gap-1.5 px-4">
+            <TabsTrigger value="wizard" className="text-xs font-bold gap-1.5 px-4 whitespace-nowrap">
               <Sparkles className="h-3.5 w-3.5 text-primary" /> Guided Compliance Wizard (All-in-One)
+            </TabsTrigger>
+            <TabsTrigger value="university-submissions" className="text-xs font-bold gap-1.5 px-4 whitespace-nowrap">
+              <School className="h-3.5 w-3.5 text-indigo-600" /> University Submission Checking
             </TabsTrigger>
           </TabsList>
         </div>
@@ -83,6 +87,10 @@ export default function OperationalPlanPage() {
             onClearTarget={() => setWizardTarget(null)}
             onNavigateBackToMonitoring={() => setActiveTab('grid')}
           />
+        </TabsContent>
+
+        <TabsContent value="university-submissions" className="space-y-4">
+          <UniversitySubmissionChecking />
         </TabsContent>
       </Tabs>
     </div>

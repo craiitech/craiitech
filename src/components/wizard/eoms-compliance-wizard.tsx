@@ -56,6 +56,7 @@ import type {
 } from '@/lib/types';
 import { cn, formatRiskTargetDate } from '@/lib/utils';
 import { ARCHIPELAGIC_PILLARS, getAgendaList } from '@/lib/constants';
+import { DIGITAL_SUITE_REPORT_TYPES, syncDigitalPlanToSubmissions } from '@/lib/digital-submission-sync';
 import {
   Compass,
   Users2,
@@ -112,7 +113,7 @@ export function EomsComplianceWizard({
   onNavigateBackToMonitoring,
 }: EomsComplianceWizardProps = {}) {
   const firestore = useFirestore();
-  const { userProfile, isAdmin, isSupervisor } = useUser();
+  const { userProfile, isAdmin, isSupervisor, userRole } = useUser();
   const { toast } = useToast();
   const { selectedYear } = useYear();
 
@@ -1164,13 +1165,41 @@ export function EomsComplianceWizard({
     if (!firestore || !userProfile || !planDocId) return;
     setIsSubmitting(true);
     try {
+      const submittedAt = new Date();
       await updateDoc(doc(firestore, 'operationalPlans', planDocId), {
         status: 'Submitted',
         preparedById: userProfile.id,
         preparedByName: `${userProfile.firstName} ${userProfile.lastName}`,
         preparedAt: serverTimestamp(),
+        submittedAt,
         updatedAt: serverTimestamp(),
       });
+
+      await syncDigitalPlanToSubmissions({
+        firestore,
+        plan: {
+          ...(planDoc || {}),
+          id: planDocId,
+          unitId: selectedUnitId,
+          unitName: currentUnit?.name || userProfile.unitName || 'Unit',
+          campusId: currentUnit?.campusIds?.[0] || userProfile.campusId || 'Main',
+          year: selectedYear,
+          cycleId: selectedCycle,
+          status: 'Submitted',
+          preparedById: userProfile.id,
+          preparedByName: `${userProfile.firstName} ${userProfile.lastName}`,
+          submittedAt,
+        } as OperationalPlanDocument,
+        reportTypes: DIGITAL_SUITE_REPORT_TYPES,
+        status: 'submitted',
+        effectiveDate: submittedAt,
+        actor: {
+          id: userProfile.id,
+          name: `${userProfile.firstName} ${userProfile.lastName}`,
+          role: userRole || 'User',
+        },
+      });
+
       toast({
         title: 'Full EOMS Suite Submitted!',
         description:

@@ -80,6 +80,8 @@ export type Submission = {
   dataEntryCompletedAt?: any;
   dataEntryCompletedBy?: string;
   dataEntryCompletedByName?: string;
+  sourcePlanId?: string;
+  source?: 'unit-eoms-digital-document' | string;
 };
 
 export type Risk = {
@@ -2033,6 +2035,7 @@ export type OperationalPlanDocument = {
   cycleId: 'first' | 'final';
   status: OperationalPlanStatus;
   opControlNumber?: string; // e.g. "QAO-01-025-2026-ENG-01"
+  submittedAt?: any;
   preparedById: string;
   preparedByName: string;
   preparedAt: any;

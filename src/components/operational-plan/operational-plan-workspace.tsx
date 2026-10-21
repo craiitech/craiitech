@@ -38,6 +38,11 @@ import { useToast } from '@/hooks/use-toast';
 import { printQualityObjectivesMonitoringForm } from './print-quality-objectives-monitoring';
 import { printOperationalPlanForm } from './print-qao-01-025';
 import { getUserVpContext } from '@/lib/utils';
+import {
+  DIGITAL_WORKSPACE_REPORT_TYPES,
+  syncDigitalPlanStatus,
+  syncDigitalPlanToSubmissions,
+} from '@/lib/digital-submission-sync';
 import { VpStrategicGoalsDialog } from './vp-strategic-goals-dialog';
 import type {
   OperationalPlanDocument,
@@ -974,11 +979,38 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
     setIsSubmitting(true);
     try {
       await ensureParentPlanDoc();
+      const submittedAt = new Date();
       await updateDoc(doc(firestore, 'operationalPlans', planDocId), {
         status: 'Submitted',
-        submittedAt: serverTimestamp(),
+        submittedAt,
         updatedAt: serverTimestamp(),
       });
+
+      await syncDigitalPlanToSubmissions({
+        firestore,
+        plan: {
+          ...(planDoc || {}),
+          id: planDocId,
+          unitId: selectedUnitId,
+          unitName: currentUnit?.name || userProfile?.unitName || 'Unit',
+          campusId: currentUnit?.campusIds?.[0] || userProfile?.campusId || 'Main',
+          year: selectedYear,
+          cycleId: selectedCycle,
+          status: 'Submitted',
+          preparedById: userProfile?.id || '',
+          preparedByName: `${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`.trim(),
+          submittedAt,
+        } as OperationalPlanDocument,
+        reportTypes: DIGITAL_WORKSPACE_REPORT_TYPES,
+        status: 'submitted',
+        effectiveDate: submittedAt,
+        actor: {
+          id: userProfile?.id,
+          name: `${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`.trim(),
+          role: userRole || 'User',
+        },
+      });
+
       toast({
         title: 'Submitted to VP',
         description: 'Your Quality Objectives Monitoring is now queued for supervisor review.',
@@ -995,13 +1027,44 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
     setIsApproving(true);
     try {
       await ensureParentPlanDoc();
+      const approvedAt = new Date();
       await updateDoc(doc(firestore, 'operationalPlans', planDocId), {
         status: 'Approved',
         approvedById: userProfile?.id,
         approvedByName: `${userProfile?.firstName} ${userProfile?.lastName}`,
-        approvedAt: serverTimestamp(),
+        approvedAt,
         updatedAt: serverTimestamp(),
       });
+
+      await syncDigitalPlanToSubmissions({
+        firestore,
+        plan: {
+          ...(planDoc || {}),
+          id: planDocId,
+          unitId: selectedUnitId,
+          unitName: currentUnit?.name || userProfile?.unitName || 'Unit',
+          campusId: currentUnit?.campusIds?.[0] || userProfile?.campusId || 'Main',
+          year: selectedYear,
+          cycleId: selectedCycle,
+          status: 'Approved',
+          preparedById: planDoc?.preparedById || userProfile?.id || '',
+          preparedByName:
+            planDoc?.preparedByName || `${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`.trim(),
+          approvedById: userProfile?.id,
+          approvedByName: `${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`.trim(),
+          approvedAt,
+        } as OperationalPlanDocument,
+        reportTypes: DIGITAL_WORKSPACE_REPORT_TYPES,
+        status: 'approved',
+        effectiveDate: approvedAt,
+        actor: {
+          id: userProfile?.id,
+          name: `${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`.trim(),
+          role: userRole || 'User',
+        },
+      });
+      await syncDigitalPlanStatus(firestore, planDocId, 'approved');
+
       toast({ title: 'Approved & Locked', description: 'Quality Objectives Monitoring baseline locked.' });
     } catch (e: any) {
       toast({ title: 'Approval Failed', description: e.message, variant: 'destructive' });
@@ -1020,6 +1083,7 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
         feedbackNotes: feedbackNote.trim(),
         updatedAt: serverTimestamp(),
       });
+      await syncDigitalPlanStatus(firestore, planDocId, 'rejected');
       toast({ title: 'Revision Requested', description: 'Feedback returned to unit head.' });
       setIsFeedbackDialogOpen(false);
     } catch (e: any) {

@@ -15,6 +15,7 @@ import {
 } from '@/firebase/firestore-wrapper';
 import { useParams, useRouter } from 'next/navigation';
 import type { Submission, User as AppUser, Campus, Unit, Comment, Risk, Signatories } from '@/lib/types';
+import { syncDigitalSubmissionStatusToPlan } from '@/lib/digital-submission-sync';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -306,7 +307,7 @@ export default function SubmissionDetailPage() {
   const isSubmitter = user && submission && user.uid === submission.userId;
 
   const handleApprove = async () => {
-    if (!submissionDocRef || !user || !userProfile) return;
+    if (!firestore || !submissionDocRef || !user || !userProfile) return;
     setIsSubmitting(true);
 
     const updateData: any = { statusId: 'approved' };
@@ -323,7 +324,18 @@ export default function SubmissionDetailPage() {
     }
 
     updateDoc(submissionDocRef, updateData)
-      .then(() => {
+      .then(async () => {
+        if (submission) {
+          await syncDigitalSubmissionStatusToPlan(
+            firestore,
+            { ...submission, statusId: 'approved' },
+            {
+              id: user.uid,
+              name: `${userProfile.firstName} ${userProfile.lastName}`,
+              role: userRole || 'User',
+            },
+          );
+        }
         toast({
           title: submission?.isDraft ? 'Draft Cleared' : 'Submission Approved',
           description: submission?.isDraft
@@ -349,7 +361,7 @@ export default function SubmissionDetailPage() {
   };
 
   const handleReject = async () => {
-    if (!submissionDocRef || !user || !userProfile) return;
+    if (!firestore || !submissionDocRef || !user || !userProfile) return;
 
     const reasons = submission?.isDraft
       ? []
@@ -399,7 +411,10 @@ export default function SubmissionDetailPage() {
     };
     const updateData = { statusId: 'rejected', comments: arrayUnion(newComment) };
     updateDoc(submissionDocRef, updateData)
-      .then(() => {
+      .then(async () => {
+        if (submission) {
+          await syncDigitalSubmissionStatusToPlan(firestore, { ...submission, statusId: 'rejected' });
+        }
         toast({ title: 'Success', description: 'Submission has been rejected.' });
         setFeedback('');
         router.back();
