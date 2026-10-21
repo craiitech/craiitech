@@ -188,17 +188,16 @@ export function SucLevellingSettingsManagement() {
     setIsSavingProfile(true);
     try {
       const parsedPoints = profileOfficialPoints.trim() ? parseFloat(profileOfficialPoints) : undefined;
-      const profileData: SucInstitutionalProfile = {
+      const rawProfileData: Record<string, any> = {
         currentLevel: profileCurrentLevel,
-        officialPoints: parsedPoints !== undefined && !isNaN(parsedPoints) ? parsedPoints : undefined,
-        conferredYear: Number(profileConferredYear) || undefined,
-        validityPeriod: profileValidityPeriod.trim() || undefined,
-        legalBasis: profileLegalBasis.trim() || undefined,
-        conferredBy: profileConferredBy.trim() || undefined,
-        targetNextLevel: profileTargetNextLevel || undefined,
-        targetYear: Number(profileTargetYear) || undefined,
-        evidenceDriveUrl: profileEvidenceDriveUrl.trim() || undefined,
-        strategicVision: profileStrategicVision.trim() || undefined,
+        conferredYear: Number(profileConferredYear) || currentYear,
+        validityPeriod: profileValidityPeriod.trim() || '',
+        legalBasis: profileLegalBasis.trim() || '',
+        conferredBy: profileConferredBy.trim() || '',
+        targetNextLevel: profileTargetNextLevel || 'Level IV',
+        targetYear: Number(profileTargetYear) || currentYear + 2,
+        evidenceDriveUrl: profileEvidenceDriveUrl.trim() || '',
+        strategicVision: profileStrategicVision.trim() || '',
         updatedAt: new Date().toISOString(),
         updatedBy: userProfile?.id || '',
         updatedByName: userProfile
@@ -206,9 +205,16 @@ export function SucLevellingSettingsManagement() {
           : 'Administrator',
       };
 
+      if (parsedPoints !== undefined && !isNaN(parsedPoints)) {
+        rawProfileData.officialPoints = parsedPoints;
+      }
+
+      // Filter out any undefined values to prevent Firestore setDoc error
+      const cleanedProfileData = Object.fromEntries(Object.entries(rawProfileData).filter(([_, v]) => v !== undefined));
+
       await setDoc(
         settingsDocRef,
-        { sucLevellingProfile: profileData, updatedAt: new Date().toISOString() },
+        { sucLevellingProfile: cleanedProfileData, updatedAt: new Date().toISOString() },
         { merge: true },
       );
 
