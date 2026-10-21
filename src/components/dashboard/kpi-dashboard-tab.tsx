@@ -3,7 +3,17 @@
 import { useMemo, useState, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit, doc, updateDoc, Timestamp } from '@/firebase/firestore-wrapper';
-import { Loader2, BarChart, TrendingUp, AlertTriangle, Download, CalendarSearch, Sparkles } from 'lucide-react';
+import {
+  Loader2,
+  BarChart,
+  TrendingUp,
+  AlertTriangle,
+  Download,
+  CalendarSearch,
+  Sparkles,
+  Landmark,
+  Building2,
+} from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KpiScorecard, KpiScorecardGrid } from '@/components/kpi/kpi-scorecard';
@@ -16,6 +26,7 @@ import { useYear } from '@/lib/year-provider';
 import { computeKpis } from '@/lib/kpi-engine';
 import { KPI_CATEGORIES } from '@/lib/constants';
 import { KpiAutoGeneratorDialog } from '@/components/kpi/kpi-auto-generator-dialog';
+import { cn } from '@/lib/utils';
 import type {
   KpiDefinition,
   KpiSnapshot,
@@ -46,6 +57,8 @@ interface KpiDashboardTabProps {
   allCars: CorrectiveActionRequest[] | null;
   allAuditPlans: AuditPlan[] | null;
   selectedYear: number;
+  initialScope?: 'institution' | 'unit';
+  unitId?: string;
 }
 
 export function KpiDashboardTab({
@@ -56,12 +69,20 @@ export function KpiDashboardTab({
   allCars,
   allAuditPlans,
   selectedYear,
+  initialScope,
+  unitId,
 }: KpiDashboardTabProps) {
   const { isAdmin, isSupervisor, userProfile } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const [scopeMode, setScopeMode] = useState<'institution' | 'unit'>(
+    initialScope || (isAdmin || isSupervisor ? 'institution' : 'unit'),
+  );
+  const [selectedUnitId, setSelectedUnitId] = useState<string>(
+    unitId || userProfile?.unitId || allUnits?.[0]?.id || '',
+  );
 
   const canManage = isAdmin;
 
@@ -139,16 +160,14 @@ export function KpiDashboardTab({
   const { data: programCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const entityType = useMemo(() => {
-    if (isAdmin) return 'institution';
-    if (userProfile?.campusId) return 'campus';
+    if (scopeMode === 'institution') return 'institution';
     return 'unit';
-  }, [isAdmin, userProfile]);
+  }, [scopeMode]);
 
   const entityId = useMemo(() => {
-    if (isAdmin) return 'institution';
-    if (userProfile?.campusId) return userProfile.campusId;
-    return userProfile?.unitId || 'unknown';
-  }, [isAdmin, userProfile]);
+    if (scopeMode === 'institution') return 'institution';
+    return selectedUnitId || userProfile?.unitId || allUnits?.[0]?.id || 'unknown';
+  }, [scopeMode, selectedUnitId, userProfile?.unitId, allUnits]);
 
   const snapshots = useMemo(() => {
     if (!definitions?.length) return [];
@@ -297,6 +316,70 @@ export function KpiDashboardTab({
           </CardContent>
         </Card>
       )}
+
+      {/* Scope Switcher Banner */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center p-0.5 bg-slate-200/80 dark:bg-slate-800 rounded-lg">
+            <Button
+              type="button"
+              variant={scopeMode === 'institution' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setScopeMode('institution')}
+              className={cn(
+                'h-7 px-3 text-[10px] font-black uppercase tracking-wider rounded-md transition-all gap-1.5',
+                scopeMode === 'institution' && 'bg-primary text-primary-foreground shadow-sm',
+              )}
+            >
+              <Landmark className="h-3 w-3" />
+              University-Wide KPIs
+            </Button>
+            <Button
+              type="button"
+              variant={scopeMode === 'unit' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setScopeMode('unit')}
+              className={cn(
+                'h-7 px-3 text-[10px] font-black uppercase tracking-wider rounded-md transition-all gap-1.5',
+                scopeMode === 'unit' && 'bg-primary text-primary-foreground shadow-sm',
+              )}
+            >
+              <Building2 className="h-3 w-3" />
+              Unit KPIs
+            </Button>
+          </div>
+
+          <Badge variant="outline" className="text-[9px] font-black uppercase tracking-wider">
+            {scopeMode === 'institution' ? 'Institutional Overview' : 'Delivery Unit Scope'}
+          </Badge>
+        </div>
+
+        {scopeMode === 'unit' && (
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <span className="text-[10px] font-bold uppercase text-muted-foreground whitespace-nowrap">
+              {isAdmin || isSupervisor ? 'Select Unit:' : 'My Unit:'}
+            </span>
+            {isAdmin || isSupervisor ? (
+              <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
+                <SelectTrigger className="h-7 text-xs font-semibold w-full sm:w-[220px]">
+                  <SelectValue placeholder="Choose Unit..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(allUnits || []).map((u) => (
+                    <SelectItem key={u.id} value={u.id} className="text-xs">
+                      {u.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900/60 dark:text-indigo-200 border-indigo-200 text-xs font-bold py-1">
+                {allUnits?.find((u) => u.id === selectedUnitId)?.name || userProfile?.unitId || 'Assigned Unit'}
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center justify-between">
         <div>

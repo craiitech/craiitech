@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import {
   LayoutDashboard,
@@ -35,6 +35,8 @@ import {
   FolderArchive,
   FileSpreadsheet,
   Layers,
+  Target,
+  Landmark,
 } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
@@ -79,11 +81,22 @@ export function SidebarNav({
 }: SidebarNavProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const currentScope = searchParams.get('scope');
   const isOnline = useNetworkStatus();
   const { toast } = useToast();
   const { isAdmin, userRole, isSupervisor, userProfile, isDoi: isDoiUser } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
   const { theme, toggleTheme } = useTheme();
+
+  const isExecOrAdmin =
+    isAdmin ||
+    isSupervisor ||
+    (userRole
+      ? ['president', 'vice president', 'campus director', 'qms head', 'director'].some((r) =>
+          userRole.toLowerCase().includes(r),
+        )
+      : false);
 
   const [isVisitorDialogOpen, setIsVisitorDialogOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -321,7 +334,7 @@ export function SidebarNav({
    * OFFLINE CONDUCT PROTOCOL
    * When offline (actual or forced), we allow navigation to the core conduct routes.
    */
-  const ALLOWED_OFFLINE_ROUTES = ['/dashboard', '/audit', '/activity-log', '/visitor-logbook'];
+  const ALLOWED_OFFLINE_ROUTES = ['/dashboard', '/audit', '/activity-log', '/visitor-logbook', '/kpi-dashboard'];
 
   const handleNavClick = (e: React.MouseEvent, href: string) => {
     if (!isOnline || isForcedOffline) {
@@ -330,7 +343,8 @@ export function SidebarNav({
         e.preventDefault();
         toast({
           title: 'Focused Conduct Mode Active',
-          description: 'While offline or locked, only the Home, IQA Conduct, and Activity Log modules are enabled.',
+          description:
+            'While offline or locked, only the Home, IQA Conduct, Activity Log, and KPI modules are enabled.',
           variant: 'destructive',
         });
       }
@@ -339,10 +353,23 @@ export function SidebarNav({
 
   const allRoutes = [
     {
-      href: '/dashboard',
-      label: 'Home',
-      active: pathname === '/dashboard',
-      icon: <LayoutDashboard />,
+      href: '/dashboard?scope=university',
+      label: isExecOrAdmin ? 'Institutional Dashboard' : 'University-Wide Overview',
+      active: pathname === '/dashboard' && currentScope !== 'unit',
+      icon: <Landmark />,
+    },
+    {
+      href: '/dashboard?scope=unit',
+      label: isExecOrAdmin ? 'Unit Operations View' : 'My Unit Dashboard',
+      active: pathname === '/dashboard' && currentScope === 'unit',
+      icon: <Building2 />,
+    },
+    {
+      href: '/kpi-dashboard',
+      label: isExecOrAdmin ? 'Key Performance Indicators (KPIs)' : 'Unit & University KPIs',
+      active: pathname.startsWith('/kpi-dashboard'),
+      icon: <Target />,
+      showBadge: true,
     },
     {
       href: '/activity-log',

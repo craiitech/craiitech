@@ -2586,6 +2586,8 @@ export default function HomePage() {
   const renderHomeContent = () => {
     // Check if the administrator activated the Unified Home Dashboard from Settings
     const isUnifiedHomeActive = (globalSetting as any)?.enableUnifiedHomeDashboard === true;
+    const scopeParam = searchParams.get('scope');
+    const effectiveScope: 'university' | 'unit' = scopeParam === 'unit' ? 'unit' : 'university';
 
     if (isUnifiedHomeActive && !showPersonalWorkspace) {
       return (
@@ -2605,6 +2607,8 @@ export default function HomePage() {
           onSwitchToWorkspace={() => setShowPersonalWorkspace(true)}
           userRole={userRole}
           isAdmin={isAdmin}
+          initialScope={effectiveScope}
+          userProfile={userProfile}
         />
       );
     }
@@ -2614,10 +2618,10 @@ export default function HomePage() {
         <div className="p-3 mb-6 rounded-xl bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
           <div className="flex items-center gap-2">
             <Badge className="bg-white/20 text-white border-white/30 text-[9px] font-black uppercase">
-              Personal Workspace View
+              Unit Operations Center
             </Badge>
             <span className="text-xs font-bold">
-              You are currently viewing your personal operational unit/auditor workspace.
+              You are currently viewing the dedicated operational unit verification & audit execution workspace.
             </span>
           </div>
           <Button
@@ -2625,7 +2629,7 @@ export default function HomePage() {
             size="sm"
             className="bg-white text-emerald-900 hover:bg-emerald-50 font-black uppercase text-[10px] tracking-wider h-8 shadow-sm"
           >
-            Return to Institutional Dashboard
+            Return to Unified Dashboard
           </Button>
         </div>
       ) : null;

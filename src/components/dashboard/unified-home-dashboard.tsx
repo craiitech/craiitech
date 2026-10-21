@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   LayoutDashboard,
   Compass,
@@ -30,6 +31,8 @@ import {
   Filter,
   FileCheck,
   Zap,
+  Target,
+  Landmark,
 } from 'lucide-react';
 import type {
   Submission,
@@ -51,8 +54,10 @@ import { AccreditationPerformanceTab } from '@/components/dashboard/executive/ac
 import { ExecutiveRiskIntelligence } from '@/components/dashboard/executive/executive-risk-intelligence';
 import { IslandCampusEquityTab } from '@/components/dashboard/strategic/island-campus-equity-tab';
 import { ExecutiveOverview } from '@/components/dashboard/executive-overview';
+import { KpiDashboardTab } from '@/components/dashboard/kpi-dashboard-tab';
 import { getUnitProgramsChedWarnings } from '@/lib/ched-compliance-warnings';
 import { calculateBaselineKraScores, evaluateSucClassification } from '@/lib/suc-levelling-engine';
+import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
 export interface UnifiedHomeDashboardProps {
@@ -71,6 +76,8 @@ export interface UnifiedHomeDashboardProps {
   onSwitchToWorkspace?: () => void;
   userRole?: any;
   isAdmin?: boolean;
+  initialScope?: 'university' | 'unit';
+  userProfile?: AppUser | null;
 }
 
 export function UnifiedHomeDashboard({
@@ -89,12 +96,46 @@ export function UnifiedHomeDashboard({
   onSwitchToWorkspace,
   userRole,
   isAdmin,
+  initialScope = 'university',
+  userProfile,
 }: UnifiedHomeDashboardProps) {
   const [activeTab, setActiveTab] = useState(defaultTab || 'overview');
+  const [scope, setScope] = useState<'university' | 'unit'>(initialScope);
+  const [selectedUnitId, setSelectedUnitId] = useState<string>(userProfile?.unitId || units?.[0]?.id || '');
+
+  const currentUnit = useMemo(() => {
+    return units.find((u) => u.id === selectedUnitId);
+  }, [units, selectedUnitId]);
+
+  // Filter metrics and datasets when in unit scope
+  const scopedSubmissions = useMemo(() => {
+    if (scope === 'university') return submissions;
+    return submissions.filter((s) => s.unitId === selectedUnitId);
+  }, [submissions, scope, selectedUnitId]);
+
+  const scopedCars = useMemo(() => {
+    if (scope === 'university') return cars;
+    return cars.filter(
+      (c) => c.unitId === selectedUnitId || c.assignedUnits?.some((au) => au.unitId === selectedUnitId),
+    );
+  }, [cars, scope, selectedUnitId]);
+
+  const scopedRisks = useMemo(() => {
+    if (scope === 'university') return risks;
+    return risks.filter((r) => r.unitId === selectedUnitId);
+  }, [risks, scope, selectedUnitId]);
+
+  const scopedPrograms = useMemo(() => {
+    if (scope === 'university') return academicPrograms;
+    if (!currentUnit) return academicPrograms;
+    const campusList = currentUnit.campusIds || [];
+    const progs = academicPrograms.filter((p) => campusList.includes(p.campusId));
+    return progs.length > 0 ? progs : academicPrograms;
+  }, [academicPrograms, scope, currentUnit]);
 
   // Compute key executive pulse metrics
   const executivePulse = useMemo(() => {
-    const activeProgs = academicPrograms.filter((p) => p.isActive !== false);
+    const activeProgs = scopedPrograms.filter((p) => p.isActive !== false);
     const totalPrograms = activeProgs.length;
 
     // Compliance lookup
@@ -129,24 +170,24 @@ export function UnifiedHomeDashboard({
     );
 
     // CARs resolution rate
-    const totalCars = cars.length;
-    const closedCars = cars.filter((c) => c.status === 'Closed').length;
+    const totalCars = scopedCars.length;
+    const closedCars = scopedCars.filter((c) => c.status === 'Closed').length;
     const carResolutionRate = totalCars > 0 ? Math.round((closedCars / totalCars) * 100) : 100;
 
     // High Risks
-    const highRisksCount = risks.filter(
+    const highRisksCount = scopedRisks.filter(
       (r) => (r.preTreatment?.rating === 'High' || r.preTreatment?.rating === 'Very High') && r.status !== 'Closed',
     ).length;
 
     // Live SUC Levelling Evaluation from real database metrics
     const baselineSuc = calculateBaselineKraScores(
-      academicPrograms,
+      scopedPrograms,
       allCompliances,
-      submissions,
+      scopedSubmissions,
       selectedYear,
       undefined,
-      cars,
-      risks,
+      scopedCars,
+      scopedRisks,
     );
     const sucEval = evaluateSucClassification(baselineSuc);
 
@@ -165,7 +206,7 @@ export function UnifiedHomeDashboard({
       sucLevel: sucEval.achievedLevel,
       sucScore: sucEval.totalScore,
     };
-  }, [academicPrograms, allCompliances, cars, risks, submissions, selectedYear]);
+  }, [scopedPrograms, allCompliances, scopedCars, scopedRisks, scopedSubmissions, selectedYear]);
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
@@ -173,9 +214,9 @@ export function UnifiedHomeDashboard({
       <div className="sticky top-0 z-30 pt-2 pb-3 -mx-4 px-4 lg:-mx-8 lg:px-8 bg-background/95 backdrop-blur-md border-b institutional-header space-y-3">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] font-black uppercase tracking-wider">
-                Institutional Decision Support
+                {scope === 'university' ? 'Institutional Decision Support' : 'Delivery Unit Operations'}
               </Badge>
               <Badge
                 variant="outline"
@@ -188,12 +229,79 @@ export function UnifiedHomeDashboard({
               </span>
             </div>
             <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight text-slate-900 dark:text-slate-100 mt-1">
-              Unified Institutional Home Dashboard
+              {scope === 'university' ? 'Unified Institutional Home Dashboard' : 'Unit Operations & Decision Dashboard'}
             </h1>
+            {scope === 'unit' && currentUnit && (
+              <p className="text-xs text-slate-500 font-semibold mt-0.5 flex items-center gap-1.5">
+                <Building2 className="h-3.5 w-3.5 text-primary" />
+                <span>
+                  Unit View: <strong className="text-slate-800 dark:text-slate-200">{currentUnit.name}</strong>
+                </span>
+              </p>
+            )}
           </div>
 
-          {/* Quick Actions & Workspace Switcher */}
+          {/* Quick Actions, Scope Switcher & Workspace Switcher */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Prominent Scope Switcher (Institutional vs Unit) */}
+            <div className="flex items-center p-0.5 bg-slate-200/80 dark:bg-slate-800 rounded-lg border border-slate-300/60 dark:border-slate-700">
+              <Button
+                type="button"
+                variant={scope === 'university' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setScope('university')}
+                className={cn(
+                  'h-7 px-2.5 text-[10px] font-black uppercase tracking-wider rounded-md transition-all gap-1.5',
+                  scope === 'university' && 'bg-primary text-primary-foreground shadow-sm',
+                )}
+              >
+                <Landmark className="h-3 w-3" />
+                <span>Institutional</span>
+              </Button>
+              <Button
+                type="button"
+                variant={scope === 'unit' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setScope('unit')}
+                className={cn(
+                  'h-7 px-2.5 text-[10px] font-black uppercase tracking-wider rounded-md transition-all gap-1.5',
+                  scope === 'unit' && 'bg-primary text-primary-foreground shadow-sm',
+                )}
+              >
+                <Building2 className="h-3 w-3" />
+                <span>Unit View</span>
+              </Button>
+            </div>
+
+            {/* If in unit scope, allow selection if Admin/Supervisor or show unit name badge */}
+            {scope === 'unit' && (
+              <>
+                {isAdmin ||
+                userRole?.toLowerCase()?.includes('director') ||
+                userRole?.toLowerCase()?.includes('supervisor') ? (
+                  <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
+                    <SelectTrigger className="h-8 text-xs font-bold w-[200px] bg-white dark:bg-slate-900 border-slate-300">
+                      <SelectValue placeholder="Select Unit..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {units.map((u) => (
+                        <SelectItem key={u.id} value={u.id} className="text-xs">
+                          {u.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="h-8 px-2.5 text-xs font-bold bg-white dark:bg-slate-900 border-primary/30 text-primary"
+                  >
+                    {currentUnit?.name || 'Assigned Unit'}
+                  </Badge>
+                )}
+              </>
+            )}
+
             {allowWorkspaceSwitch && onSwitchToWorkspace && (
               <Button
                 onClick={onSwitchToWorkspace}
@@ -202,7 +310,7 @@ export function UnifiedHomeDashboard({
                 className="h-8 text-xs font-black uppercase tracking-wider gap-1.5 border-slate-300 hover:bg-slate-100"
               >
                 <Briefcase className="h-3.5 w-3.5 text-primary" />
-                <span>My Unit Workspace</span>
+                <span>{scope === 'unit' ? 'Full Ops Center' : 'My Unit Workspace'}</span>
               </Button>
             )}
 
@@ -214,7 +322,7 @@ export function UnifiedHomeDashboard({
                   className="h-8 text-xs font-bold uppercase tracking-wider gap-1 text-slate-600 hover:text-primary"
                 >
                   <Settings className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">Dashboard Settings</span>
+                  <span className="hidden sm:inline">Settings</span>
                 </Button>
               </Link>
             )}
@@ -318,6 +426,15 @@ export function UnifiedHomeDashboard({
             >
               <Building2 className="h-3.5 w-3.5 text-teal-600" />
               9. Island Campus Equity
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="kpis"
+              onClick={() => setActiveTab('kpis')}
+              className="text-[10px] font-black uppercase tracking-wider px-3.5 h-8 gap-1.5"
+            >
+              <Target className="h-3.5 w-3.5 text-indigo-600" />
+              10. KPIs & Scorecards
             </TabsTrigger>
           </TabsList>
         </ScrollArea>
@@ -532,6 +649,46 @@ export function UnifiedHomeDashboard({
           submissions={submissions}
           units={units}
           selectedYear={selectedYear}
+        />
+      </TabsContent>
+
+      {/* TAB 10: KPIS & SCORECARDS */}
+      <TabsContent value="kpis" className="space-y-6 animate-in fade-in duration-300">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-5 bg-gradient-to-r from-indigo-900 via-indigo-950 to-slate-900 text-white rounded-2xl shadow-md">
+          <div className="space-y-1">
+            <Badge className="bg-indigo-500/20 text-indigo-200 border-indigo-400/30 text-[9px] font-black uppercase">
+              Institutional & Unit Performance
+            </Badge>
+            <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight text-white flex items-center gap-2">
+              <Target className="h-6 w-6 text-indigo-400" />
+              Key Performance Indicators (KPIs) & Scorecards
+            </h2>
+            <p className="text-xs text-indigo-200/80 max-w-2xl">
+              Continuous quality metrics, institutional targets, delivery unit performance, ISO compliance, and client
+              satisfaction scorecards.
+            </p>
+          </div>
+          <Link href="/kpi-dashboard">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs font-bold bg-white/10 hover:bg-white/20 text-white border-white/20 gap-1.5 shadow-sm"
+            >
+              <ExternalLink className="h-3.5 w-3.5" /> Open Dedicated KPI Studio
+            </Button>
+          </Link>
+        </div>
+
+        <KpiDashboardTab
+          submissions={scopedSubmissions}
+          risks={scopedRisks}
+          allUnits={units}
+          allCycles={cycles || []}
+          allCars={scopedCars}
+          allAuditPlans={[]}
+          selectedYear={selectedYear}
+          initialScope={scope === 'unit' ? 'unit' : 'institution'}
+          unitId={selectedUnitId}
         />
       </TabsContent>
     </Tabs>
