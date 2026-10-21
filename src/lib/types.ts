@@ -2209,3 +2209,12 @@ export type TenPointAgendaSettings = {
   updatedBy?: string;
   updatedByName?: string;
 };
+
+export type ArchipelagicStatements = {
+  vision?: string;
+  mission?: string;
+  qualityPolicy?: string;
+  updatedAt?: any;
+  updatedBy?: string;
+  updatedByName?: string;
+};

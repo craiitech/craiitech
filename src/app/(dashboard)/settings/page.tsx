@@ -24,6 +24,7 @@ import { NotificationSettingsManagement } from '@/components/notifications/notif
 import { FiamoSettingsManagement } from '@/components/fiamo/settings/fiamo-settings-management';
 import { OperationalPlanSettingsManagement } from '@/components/admin/operational-plan-settings-management';
 import { TenPointAgendaManagement } from '@/components/admin/ten-point-agenda-management';
+import { ArchipelagicStatementsManagement } from '@/components/admin/archipelagic-statements-management';
 import { HomeDashboardSettingsManagement } from '@/components/admin/home-dashboard-settings-management';
 import { SucLevellingSettingsManagement } from '@/components/admin/suc-levelling-settings-management';
 
@@ -110,12 +111,6 @@ export default function SettingsPage() {
                   className="text-[10px] font-black uppercase tracking-widest px-6 h-8 bg-primary/10 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   Archipelagic Intelligence (AQ) Settings
-                </TabsTrigger>
-                <TabsTrigger
-                  value="ten-point-agenda"
-                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
-                >
-                  10-Point Agenda (AQ)
                 </TabsTrigger>
                 <TabsTrigger value="signatories" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   Signatories
@@ -221,10 +216,11 @@ export default function SettingsPage() {
           <TabsContent value="suc-levelling" className="space-y-4 animate-in fade-in duration-500">
             <SucLevellingSettingsManagement />
           </TabsContent>
-          <TabsContent value="operational-plan" className="space-y-4 animate-in fade-in duration-500">
+          <TabsContent value="operational-plan" className="space-y-6 animate-in fade-in duration-500">
+            <ArchipelagicStatementsManagement />
+            <Separator />
             <OperationalPlanSettingsManagement />
-          </TabsContent>
-          <TabsContent value="ten-point-agenda" className="space-y-4 animate-in fade-in duration-500">
+            <Separator />
             <TenPointAgendaManagement />
           </TabsContent>
           <TabsContent value="signatories" className="space-y-4 animate-in fade-in duration-500">
@@ -298,7 +294,7 @@ export default function SettingsPage() {
   const userVpContext = getUserVpContext(userProfile);
 
   if (userVpContext.isVpOffice) {
-    const validVpTabs = ['operational-plan', 'ten-point-agenda', 'notifications'];
+    const validVpTabs = ['operational-plan', 'notifications'];
     const activeVpTab = validVpTabs.includes(currentTab) ? currentTab : 'operational-plan';
 
     return (
@@ -321,12 +317,6 @@ export default function SettingsPage() {
                   Archipelagic Intelligence (AQ) Settings
                 </TabsTrigger>
                 <TabsTrigger
-                  value="ten-point-agenda"
-                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
-                >
-                  10-Point Agenda (AQ)
-                </TabsTrigger>
-                <TabsTrigger
                   value="notifications"
                   className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
                 >
@@ -336,10 +326,11 @@ export default function SettingsPage() {
             </ScrollArea>
           </div>
 
-          <TabsContent value="operational-plan" className="space-y-4 animate-in fade-in duration-500">
+          <TabsContent value="operational-plan" className="space-y-6 animate-in fade-in duration-500">
+            <ArchipelagicStatementsManagement />
+            <Separator />
             <OperationalPlanSettingsManagement forcedVpCode={userVpContext.vpCode} hideSystemModeToggle={true} />
-          </TabsContent>
-          <TabsContent value="ten-point-agenda" className="space-y-4 animate-in fade-in duration-500">
+            <Separator />
             <TenPointAgendaManagement />
           </TabsContent>
           <TabsContent value="notifications" className="space-y-4 animate-in fade-in duration-500">

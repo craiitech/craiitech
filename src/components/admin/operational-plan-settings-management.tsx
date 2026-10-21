@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import Link from 'next/link';
 import { useFirestore, useUser, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import {
   doc,
@@ -47,7 +46,6 @@ import {
   FileSpreadsheet,
   Building2,
   UserCheck,
-  Compass,
 } from 'lucide-react';
 import {
   UNIVERSITY_QUALITY_OBJECTIVES,
@@ -650,16 +648,6 @@ export function OperationalPlanSettingsManagement({
               </CardDescription>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Link href="/settings?tab=ten-point-agenda">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="text-xs gap-1.5 border-cyan-300 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-950/40"
-                >
-                  <Compass className="h-3.5 w-3.5 text-cyan-600" />
-                  10-Point Agenda Settings (AQ)
-                </Button>
-              </Link>
               {isAdmin && (!goals || goals.length === 0) && (
                 <Button
                   variant="outline"
