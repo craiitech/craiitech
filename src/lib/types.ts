@@ -274,11 +274,30 @@ export type HomeDashboardSettings = {
 
 export type OperationalPlanSubmissionMode = 'legacy_link' | 'structured_data';
 
+export type SucOfficialLevel = 'Level I' | 'Level II' | 'Level III' | 'Level IV' | 'Level V';
+
+export type SucInstitutionalProfile = {
+  currentLevel: SucOfficialLevel;
+  officialPoints?: number;
+  conferredYear?: number;
+  validityPeriod?: string; // e.g. "AY 2022–2025" or "Active"
+  legalBasis?: string; // e.g. "DBM-CHED Joint Circular No. 1, s. 2016" or "BOR Resolution No. 45, s. 2022"
+  conferredBy?: string; // e.g. "DBM-CHED Joint Evaluation Committee (JREC / NREC)"
+  targetNextLevel?: SucOfficialLevel;
+  targetYear?: number;
+  evidenceDriveUrl?: string; // Link to official DBM-CHED certificate / documentation in Google Drive
+  strategicVision?: string; // Narrative on goals and focal areas
+  updatedAt?: any;
+  updatedBy?: string;
+  updatedByName?: string;
+};
+
 export type SystemSettings = {
   logoUrl?: string;
   operationalPlanMode?: OperationalPlanSubmissionMode;
   enableUnifiedHomeDashboard?: boolean;
   homeDashboardDefaultTab?: string;
+  sucLevellingProfile?: SucInstitutionalProfile;
   updatedAt?: any;
   updatedBy?: string;
 };

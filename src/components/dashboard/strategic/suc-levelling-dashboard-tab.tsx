@@ -60,7 +60,7 @@ import {
   DEFAULT_SUC_INDICATORS,
 } from '@/lib/suc-levelling-engine';
 import { Chart3DDefs } from '@/components/ui/chart-3d-defs';
-import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
+import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from '@/firebase/firestore-wrapper';
 import { SucClaimsManagementDialog } from '@/components/suc-levelling/suc-claims-management-dialog';
 import { SucTransmutationReportDialog } from '@/components/suc-levelling/suc-transmutation-report-dialog';
@@ -87,6 +87,8 @@ export function SucLevellingDashboardTab({
   risks = [],
 }: SucLevellingDashboardTabProps) {
   const firestore = useFirestore();
+  const { systemSettings } = useUser();
+  const currentProfile = systemSettings?.sucLevellingProfile;
 
   // Dialog States
   const [isClaimsOpen, setIsClaimsOpen] = useState(false);
@@ -300,20 +302,41 @@ export function SucLevellingDashboardTab({
             </div>
           </div>
 
-          <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20">
+          <div className="flex flex-wrap items-center gap-4 bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20">
+            {currentProfile?.currentLevel && (
+              <>
+                <div className="text-right">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-amber-200 block">
+                    Current Official
+                  </span>
+                  <span className="text-2xl font-black text-amber-300">{currentProfile.currentLevel}</span>
+                  <span className="text-[9px] text-amber-100/70 block font-semibold">
+                    {currentProfile.officialPoints !== undefined
+                      ? `${currentProfile.officialPoints.toFixed(1)} pts (Conferred)`
+                      : 'DBM-CHED Conferred'}
+                  </span>
+                </div>
+                <div className="h-10 w-px bg-white/20 hidden sm:block" />
+              </>
+            )}
+
             <div className="text-right">
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-200 block">
-                Official Standing
+              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-200 block">
+                {currentProfile?.currentLevel ? 'Projected Standing' : 'Official Standing'}
               </span>
               <span className="text-2xl font-black text-white">{evaluation.achievedLevel}</span>
-              <span className="text-[9px] text-amber-100/70 block font-semibold">
+              <span className="text-[9px] text-emerald-100/70 block font-semibold">
                 {actualKraScores.total} / 100 Points
               </span>
             </div>
             <div className="h-10 w-px bg-white/20" />
             <div className="text-left">
               <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300 block">
-                {evaluation.nextLevelName ? `Target: ${evaluation.nextLevelName}` : 'Top Tier'}
+                {currentProfile?.targetNextLevel
+                  ? `Target: ${currentProfile.targetNextLevel}`
+                  : evaluation.nextLevelName
+                    ? `Target: ${evaluation.nextLevelName}`
+                    : 'Top Tier'}
               </span>
               <span className="text-2xl font-black text-emerald-300">
                 {evaluation.pointsToNextLevel > 0 ? `+${evaluation.pointsToNextLevel}` : '0'} pts
