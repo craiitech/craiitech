@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { Cycle, Unit } from './types';
+import { Cycle, Unit, User } from './types';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -364,6 +364,58 @@ export function parseDate(d: unknown): Date {
 }
 
 /**
+ * Safely parses various Firestore timestamp representations, serialized timestamp objects,
+ * strings, numbers, and Date objects into a valid JavaScript Date, or returns null.
+ */
+export function parseDateSafe(d: unknown): Date | null {
+  if (!d) return null;
+  if (d instanceof Date) return isNaN(d.getTime()) ? null : d;
+  const ts = d as any;
+  if (typeof ts.toDate === 'function') {
+    try {
+      const parsed = ts.toDate();
+      return isNaN(parsed.getTime()) ? null : parsed;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof ts.toMillis === 'function') {
+    try {
+      const parsed = new Date(ts.toMillis());
+      return isNaN(parsed.getTime()) ? null : parsed;
+    } catch {
+      return null;
+    }
+  }
+  if (typeof ts.seconds === 'number') {
+    const parsed = new Date(ts.seconds * 1000 + Math.floor((ts.nanoseconds || 0) / 1000000));
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+  if (typeof d === 'string' || typeof d === 'number') {
+    const parsed = new Date(d);
+    if (!isNaN(parsed.getTime())) return parsed;
+  }
+  return null;
+}
+
+/**
+ * Formats a risk targetDate (which could be a string like 'Q4', an ISO date string, a Date, or a Firestore Timestamp)
+ * into a safe string representation. Never returns an object.
+ */
+export function formatRiskTargetDate(val: unknown, fallback: string = 'Q4'): string {
+  if (!val) return fallback;
+  if (typeof val === 'string') return val;
+  const parsed = parseDateSafe(val);
+  if (parsed) {
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  return fallback;
+}
+
+/**
  * Checks if a specific submission cycle has started by checking its configured startDate.
  * If the cycle is not configured or allCycles is null, it defaults to active (true) to ensure backward compatibility.
  */
@@ -558,4 +610,109 @@ export function isUnitExemptFromPriorYear(
   if (!unit || !targetYear) return false;
   const estYear = getUnitEstablishedYear(unit);
   return estYear !== null && estYear >= targetYear;
+}
+
+export interface UserVpContext {
+  isVpOffice: boolean;
+  isVpHead: boolean;
+  vpCode: string | null;
+  officeTitle: string | null;
+}
+
+/**
+ * Resolves whether a user profile is a Vice President or works within a Vice President office,
+ * and maps them to their official office code (VPAA, VPAF, VPREDI, OVPSAS, OP).
+ */
+export function getUserVpContext(
+  user?: (Partial<User> & { unitName?: string; unitId?: string; role?: string }) | null,
+  allUnits?: Array<{ id: string; name: string }> | null,
+): UserVpContext {
+  if (!user) {
+    return { isVpOffice: false, isVpHead: false, vpCode: null, officeTitle: null };
+  }
+
+  const roleLower = (user.role || '').toLowerCase();
+  const directUnitName = user.unitName || '';
+  const matchedUnit = allUnits?.find((u) => u.id === user.unitId || u.name === user.unitName);
+  const effectiveUnitName = (matchedUnit?.name || directUnitName).toLowerCase();
+
+  const isVpHead =
+    roleLower.includes('vice president') ||
+    (roleLower.includes('president') && !roleLower.includes('vice')) ||
+    roleLower.includes('vpaa') ||
+    roleLower.includes('vpaf') ||
+    roleLower.includes('vpre') ||
+    roleLower.includes('vpsas');
+
+  const isVpUnit =
+    effectiveUnitName.includes('vice president') ||
+    effectiveUnitName.includes('ovp') ||
+    effectiveUnitName.includes('office of the president') ||
+    effectiveUnitName.includes('ovpaa') ||
+    effectiveUnitName.includes('ovpaf') ||
+    effectiveUnitName.includes('ovpre') ||
+    effectiveUnitName.includes('ovpsas');
+
+  let vpCode: string | null = null;
+  let officeTitle: string | null = user.unitName || null;
+
+  if (
+    roleLower.includes('academic') ||
+    effectiveUnitName.includes('academic') ||
+    effectiveUnitName.includes('vpaa') ||
+    roleLower.includes('vpaa')
+  ) {
+    vpCode = 'VPAA';
+    officeTitle = 'Office of the Vice President for Academic Affairs';
+  } else if (
+    roleLower.includes('admin') ||
+    roleLower.includes('finance') ||
+    effectiveUnitName.includes('admin') ||
+    effectiveUnitName.includes('finance') ||
+    effectiveUnitName.includes('vpaf') ||
+    roleLower.includes('vpaf')
+  ) {
+    vpCode = 'VPAF';
+    officeTitle = 'Office of the Vice President for Administration and Finance';
+  } else if (
+    roleLower.includes('research') ||
+    roleLower.includes('extension') ||
+    roleLower.includes('innovation') ||
+    roleLower.includes('development') ||
+    effectiveUnitName.includes('vpredi') ||
+    effectiveUnitName.includes('vpre') ||
+    roleLower.includes('vpredi') ||
+    roleLower.includes('vpre')
+  ) {
+    vpCode = 'VPREDI';
+    officeTitle = 'Office of the Vice President for Research, Extension, Development, and Innovation';
+  } else if (
+    roleLower.includes('student') ||
+    roleLower.includes('service') ||
+    roleLower.includes('affair') ||
+    effectiveUnitName.includes('student') ||
+    effectiveUnitName.includes('ovpsas') ||
+    effectiveUnitName.includes('vpsas') ||
+    effectiveUnitName.includes('vsas') ||
+    roleLower.includes('ovpsas') ||
+    roleLower.includes('vpsas')
+  ) {
+    vpCode = 'OVPSAS';
+    officeTitle = 'Office of the Vice President for Student Affairs and Services';
+  } else if (
+    roleLower.includes('president') ||
+    effectiveUnitName.includes('president') ||
+    effectiveUnitName === 'op' ||
+    roleLower === 'op'
+  ) {
+    vpCode = 'OP';
+    officeTitle = 'Office of the President';
+  }
+
+  return {
+    isVpOffice: isVpHead || isVpUnit || !!vpCode,
+    isVpHead,
+    vpCode,
+    officeTitle: officeTitle || (vpCode ? `Office of the ${vpCode}` : null),
+  };
 }

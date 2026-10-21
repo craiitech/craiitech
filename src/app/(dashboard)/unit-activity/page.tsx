@@ -2716,6 +2716,14 @@ export default function UnitActivityPage() {
                       </ResponsiveContainer>
                     )}
                   </CardContent>
+                  <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                    <Clock className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                      Tracking participant check-in timeliness categorizes attendance into on-time arrivals, permissible
+                      grace periods, and late entries relative to scheduled session windows, providing operational data
+                      on stakeholder engagement and logistical compliance during university events.
+                    </p>
+                  </CardFooter>
                 </Card>
 
                 {/* Chart 2: Demographics */}
@@ -2756,6 +2764,14 @@ export default function UnitActivityPage() {
                       </ResponsiveContainer>
                     )}
                   </CardContent>
+                  <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                    <Users className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                      Sex-disaggregated participant profiling fulfills institutional Gender and Development (GAD)
+                      reporting guidelines, verifying equitable representation across male, female, and non-specified
+                      attendees across all co-curricular and administrative university assemblies.
+                    </p>
+                  </CardFooter>
                 </Card>
 
                 {/* Chart 3: Evaluation Ratings */}
@@ -2800,6 +2816,14 @@ export default function UnitActivityPage() {
                       </ResponsiveContainer>
                     )}
                   </CardContent>
+                  <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                    <Star className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                      Aggregating post-activity feedback scores across objective criteria—including program delivery,
+                      resource speaker effectiveness, logistical coordination, and venue quality—measures event
+                      effectiveness on a 5-point scale to guide continuous procedural improvement.
+                    </p>
+                  </CardFooter>
                 </Card>
               </div>
 

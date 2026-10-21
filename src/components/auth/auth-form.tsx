@@ -55,6 +55,9 @@ const firebaseErrorMap: Record<string, string> = {
     'The sign-in popup was blocked by your browser. Please allow popups or try again to use redirect.',
   'auth/unauthorized-domain':
     'This domain is not authorized for Google Sign-In. Please contact the administrator to add this URL to the Authorized Domains list in Firebase.',
+  'auth/too-many-requests':
+    'Access to this account has been temporarily disabled due to many failed login attempts. Please reset your password or try again later.',
+  'auth/quota-exceeded': 'The university server is experiencing high traffic. Please wait a moment and try again.',
   'auth/internal-error': 'A temporary internal error occurred. Please refresh the page and try again.',
 };
 
@@ -230,6 +233,13 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
     if (!email || !password || !firstName || !lastName || !sex) {
       setAuthError('Please fill out all fields, including sex identification.');
+      return;
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const isInstitutional = normalizedEmail.endsWith('@rsu.edu.ph');
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (!isInstitutional && !isDev) {
+      setAuthError('Institutional Requirement: Please register using your official university email (@rsu.edu.ph).');
       return;
     }
     if (!privacyPolicyAgreed) {

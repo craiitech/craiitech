@@ -41,7 +41,7 @@ import {
   AlertTriangle,
   ChevronRight,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, parseDateSafe } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 
@@ -116,22 +116,22 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
     const upcomingDeadlines = risks
       .filter((r) => r.status !== 'Closed' && r.targetDate)
       .map((r) => {
-        const date = r.targetDate instanceof Timestamp ? r.targetDate.toDate() : new Date(r.targetDate);
+        const date = parseDateSafe(r.targetDate);
         return {
           ...r,
           date,
-          daysLeft: differenceInDays(date, now),
+          daysLeft: date ? differenceInDays(date, now) : 9999,
         };
       })
+      .filter((r): r is typeof r & { date: Date } => r.date !== null)
       .sort((a, b) => a.daysLeft - b.daysLeft)
       .slice(0, 5);
 
-    const overdueCount = risks.filter(
-      (r) =>
-        r.status !== 'Closed' &&
-        r.targetDate &&
-        (r.targetDate instanceof Timestamp ? r.targetDate.toDate() : new Date(r.targetDate)) < now,
-    ).length;
+    const overdueCount = risks.filter((r) => {
+      if (r.status === 'Closed' || !r.targetDate) return false;
+      const d = parseDateSafe(r.targetDate);
+      return d ? d < now : false;
+    }).length;
 
     return {
       total,
@@ -332,6 +332,17 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Objective Balance Interpretation:</strong> This chart contrasts threats (rose) against positive
+                opportunities (emerald) across institutional quality objectives. A higher ratio of opportunities signals
+                mature, forward-looking strategic planning, whereas heavy risk concentrations highlight vulnerable
+                operational domains where treatment action plans must be reinforced.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </div>
 
@@ -361,7 +372,7 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
                         {r.responsiblePersonName || 'No Lead'}
                       </Badge>
                       <span className="text-[9px] text-muted-foreground font-bold">
-                        {format(r.date, 'MMM dd, yyyy')}
+                        {r.date ? format(r.date, 'MMM dd, yyyy') : 'No Date'}
                       </span>
                     </div>
                   </div>
@@ -495,6 +506,17 @@ export function RiskDashboard({ risks, isLoading, selectedYear }: RiskDashboardP
             </ChartContainer>
           ) : null}
         </CardContent>
+        <CardFooter className="bg-emerald-50/50 border-t py-3 px-6">
+          <div className="flex items-start gap-3">
+            <ArrowDownToLine className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              <strong>Risk Reduction Efficacy:</strong> This paired chart evaluates treatment effectiveness by
+              contrasting initial inherent risk severity (indigo) against residual risk severity (emerald)
+              post-mitigation. Downward steps demonstrate that internal controls and contingency plans actively diminish
+              severity to safe operational levels in accordance with ISO 31000 standards.
+            </p>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );

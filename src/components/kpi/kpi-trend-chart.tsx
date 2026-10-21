@@ -1,7 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { TrendingUp, Target } from 'lucide-react';
 import {
   Area,
   AreaChart,
@@ -122,6 +123,15 @@ export function KpiTrendChart({ title, description, data, target, isLoading, hei
           </AreaChart>
         </ResponsiveContainer>
       </CardContent>
+      <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+        <TrendingUp className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+          This longitudinal area curve visualizes indicator trajectory against established institutional targets across
+          reporting cycles. Sustained performance above the target threshold denotes process capability and strategic
+          goal attainment, while negative variances signal operational degradation that requires root-cause
+          investigation and corrective action intervention.
+        </p>
+      </CardFooter>
     </Card>
   );
 }

@@ -27,6 +27,7 @@ import {
   FileCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -105,7 +106,9 @@ export function SubmissionForm({ reportType, year, cycleId, onSuccess }: Submiss
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationStatus, setValidationStatus] = useState<ValidationStatus>('idle');
   const { toast } = useToast();
-  const { user, userProfile, userRole, isAdmin, firestore } = useUser();
+  const { user, userProfile, userRole, isAdmin, firestore, systemSettings } = useUser();
+  const isInteractiveEomsEnabled = systemSettings?.operationalPlanMode !== 'legacy_link';
+  const [isHardCopySubmission, setIsHardCopySubmission] = useState(false);
   const { logSessionActivity } = useSessionActivity();
   const router = useRouter();
   const [previewUrl, setPreviewUrl] = useState<string>('');
@@ -404,8 +407,12 @@ export function SubmissionForm({ reportType, year, cycleId, onSuccess }: Submiss
         : file.name;
       formData.append('fileName', cleanFileName);
 
+      const idToken = user ? await user.getIdToken().catch(() => '') : '';
       const response = await fetch('/api/upload-to-drive', {
         method: 'POST',
+        headers: {
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
         body: formData,
       });
 
@@ -697,6 +704,9 @@ export function SubmissionForm({ reportType, year, cycleId, onSuccess }: Submiss
           controlNumber: newControlNumber,
           campusId: targetCampusId,
           unitId: targetUnitId,
+          isHardCopySubmission: isInteractiveEomsEnabled ? isHardCopySubmission : false,
+          submissionNeedsEntry: isInteractiveEomsEnabled ? isHardCopySubmission : false,
+          dataEntryCompleted: false,
         };
 
         if (isRorForm) {
@@ -711,6 +721,17 @@ export function SubmissionForm({ reportType, year, cycleId, onSuccess }: Submiss
 
         if (newComment) {
           updateData.comments = arrayUnion(newComment);
+        } else if (isInteractiveEomsEnabled && isHardCopySubmission) {
+          const autoComment: Comment = {
+            text: '(Hard Copy Submission) Attached signed physical copy for administrative database entry.',
+            authorId: user.uid,
+            authorName: userProfile
+              ? `${userProfile.firstName} ${userProfile.lastName}`
+              : user.displayName || 'Unit Official',
+            createdAt: new Date(),
+            authorRole: userRole || 'User',
+          };
+          updateData.comments = arrayUnion(autoComment);
         }
 
         await updateDoc(existingDocRef, updateData);
@@ -739,9 +760,26 @@ export function SubmissionForm({ reportType, year, cycleId, onSuccess }: Submiss
           unitName: unit.name,
           statusId: 'submitted',
           submissionDate: serverTimestamp(),
-          comments: newComment ? [newComment] : [],
+          comments: newComment
+            ? [newComment]
+            : isInteractiveEomsEnabled && isHardCopySubmission
+              ? [
+                  {
+                    text: '(Hard Copy Submission) Attached signed physical copy for administrative database entry.',
+                    authorId: user.uid,
+                    authorName: userProfile
+                      ? `${userProfile.firstName} ${userProfile.lastName}`
+                      : user.displayName || 'Unit Official',
+                    createdAt: new Date(),
+                    authorRole: userRole || 'User',
+                  },
+                ]
+              : [],
           revision: initialRevision,
           controlNumber: initialControlNumber,
+          isHardCopySubmission: isInteractiveEomsEnabled ? isHardCopySubmission : false,
+          submissionNeedsEntry: isInteractiveEomsEnabled ? isHardCopySubmission : false,
+          dataEntryCompleted: false,
         };
 
         if (isRorForm) {
@@ -1257,339 +1295,430 @@ export function SubmissionForm({ reportType, year, cycleId, onSuccess }: Submiss
             />
           </div>
 
-          <div className="rounded-xl border border-primary/20 bg-muted/20 p-4 space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                  <Folder className="h-4 w-4" />
-                </div>
-                <div>
+          {/* Interactive EOMS vs Hard Copy Protocol */}
+          {isInteractiveEomsEnabled && (
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-black uppercase tracking-wider text-primary">
-                      Site Repository: {currentCampusName} Google Drive
-                    </span>
-                    {activeCampusDriveFolderUrl ? (
-                      <Badge
-                        variant="outline"
-                        className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[9px] uppercase tracking-wider"
-                      >
-                        Connected
+                    <Label htmlFor="hard-copy-toggle" className="text-sm font-bold text-foreground cursor-pointer">
+                      Submit the Hard Copy
+                    </Label>
+                    {isHardCopySubmission ? (
+                      <Badge className="bg-amber-600 hover:bg-amber-700 text-white text-[9px] font-black uppercase tracking-wider">
+                        Needs Admin Entry
                       </Badge>
                     ) : (
                       <Badge
                         variant="outline"
-                        className="bg-amber-50 text-amber-800 border-amber-300 font-bold text-[9px] uppercase tracking-wider"
+                        className="text-[9px] font-bold border-primary/40 text-primary uppercase"
                       >
-                        Needs Folder Link
+                        Direct System Entry Active
                       </Badge>
                     )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    Documents submitted by your unit are permanently archived in the official {currentCampusName} Google
-                    Drive repository.
+                  <p className="text-xs text-muted-foreground">
+                    {isHardCopySubmission
+                      ? 'Upload your signed physical / scanned document below. The Admin will encode the data directly into the database on your behalf.'
+                      : 'Interactive EOMS submission is enabled. The old Google Drive link is hidden because operational plan data is entered directly in the system.'}
                   </p>
                 </div>
+                <Switch
+                  id="hard-copy-toggle"
+                  checked={isHardCopySubmission}
+                  onCheckedChange={(checked) => {
+                    setIsHardCopySubmission(checked);
+                    if (!checked) {
+                      form.setValue('googleDriveLink', '');
+                      setPendingFileToUpload(null);
+                    }
+                  }}
+                  disabled={isSubmissionBlocked}
+                />
               </div>
-              {activeCampusDriveFolderUrl && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className="h-7 text-[10px] font-bold text-primary hover:bg-primary/10"
-                >
-                  <a href={activeCampusDriveFolderUrl} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-3 w-3 mr-1" />
-                    Open Site Drive
-                  </a>
-                </Button>
-              )}
-            </div>
 
-            {/* Quick config banner if activeCampusDriveFolderUrl is missing */}
-            {!activeCampusDriveFolderUrl && (
-              <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3 text-amber-900 dark:text-amber-200 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-                    <span className="text-xs font-bold">Set Google Drive Folder for {currentCampusName}</span>
+              {!isHardCopySubmission ? (
+                <div className="rounded-lg bg-background/80 border border-primary/20 p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-1">
+                    <span className="font-bold text-primary flex items-center gap-1.5">
+                      <LayoutList className="h-4 w-4" />
+                      Direct System Data Entry Active
+                    </span>
+                    <p className="text-muted-foreground text-[11px] leading-relaxed">
+                      Manual Google Drive link submissions are disabled in favor of structured data entry. To input your
+                      unit&apos;s Strategic Goals, Activities, SWOT, and NED, please use the interactive workspace. If
+                      you only have a paper document to submit, toggle <strong>&quot;Submit the Hard Copy&quot;</strong>{' '}
+                      above to upload your file.
+                    </p>
                   </div>
-                  <span className="text-[10px] text-amber-700/80 font-medium">One-time Site Setup</span>
-                </div>
-                <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90 leading-tight">
-                  Paste the Google Drive folder link for <strong>{currentCampusName}</strong> below. All unit
-                  submissions under this site will automatically upload to this folder.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                  <Input
-                    placeholder="https://drive.google.com/drive/folders/..."
-                    value={quickFolderLink}
-                    onChange={(e) => setQuickFolderLink(e.target.value)}
-                    className="h-8 text-xs bg-white dark:bg-slate-900 font-mono"
-                  />
                   <Button
                     type="button"
                     size="sm"
-                    onClick={() => handleSaveQuickFolder()}
-                    disabled={isSavingQuickFolder || !quickFolderLink.trim()}
-                    className="h-8 text-xs font-bold shrink-0 bg-amber-600 hover:bg-amber-700 text-white"
+                    variant="default"
+                    asChild
+                    className="shrink-0 text-xs font-bold shadow-sm"
                   >
-                    {isSavingQuickFolder ? (
-                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                    ) : (
-                      <Folder className="h-3 w-3 mr-1" />
-                    )}
-                    Save &amp; Enable Repository
+                    <Link href={`/operational-plan?unitId=${targetUnitId}&year=${year}`}>
+                      Interactive Workspace
+                      <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                    </Link>
                   </Button>
                 </div>
-              </div>
-            )}
-
-            {/* Always-visible Dropzone */}
-            <div className="space-y-3">
-              <input
-                type="file"
-                ref={fileInputRef}
-                accept=".pdf,application/pdf"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleFileUpload(file);
-                }}
-              />
-
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  if (!isSubmissionBlocked && !isUploadingToDrive) setIsDraggingFile(true);
-                }}
-                onDragLeave={() => setIsDraggingFile(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDraggingFile(false);
-                  if (isSubmissionBlocked || isUploadingToDrive) return;
-                  const file = e.dataTransfer.files?.[0];
-                  if (file) handleFileUpload(file);
-                }}
-                onClick={() => {
-                  if (!isSubmissionBlocked && !isUploadingToDrive) {
-                    fileInputRef.current?.click();
-                  }
-                }}
-                className={cn(
-                  'border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer select-none',
-                  isDraggingFile
-                    ? 'border-primary bg-primary/10 scale-[1.01]'
-                    : 'border-primary/30 hover:border-primary hover:bg-primary/5',
-                  (isSubmissionBlocked || isUploadingToDrive) && 'opacity-70 cursor-not-allowed',
-                  googleDriveLinkValue
-                    ? 'bg-emerald-50/40 border-emerald-300 dark:bg-emerald-950/20'
-                    : 'bg-white/60 dark:bg-slate-900/40',
-                )}
-              >
-                {isUploadingToDrive ? (
-                  <div className="py-3 space-y-2">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-                    <p className="text-xs font-black uppercase tracking-wider text-primary">{uploadProgress}</p>
-                    <p className="text-[10px] text-muted-foreground animate-pulse">
-                      Uploading document directly into {currentCampusName} Google Drive folder...
-                    </p>
-                  </div>
-                ) : googleDriveLinkValue ? (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                        <FileCheck className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
-                            {uploadedFileDetails?.fileName || 'Official Document Attached'}
-                          </p>
-                          <Badge className="bg-emerald-600 text-white text-[9px] font-black h-4 px-1.5 uppercase shrink-0">
-                            Secured in Drive
-                          </Badge>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground truncate max-w-md">
-                          Drive Link: {googleDriveLinkValue}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isSubmissionBlocked}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        fileInputRef.current?.click();
-                      }}
-                      className="shrink-0 text-xs font-bold h-8"
-                    >
-                      <RefreshCw className="h-3 w-3 mr-1.5" />
-                      Replace File
-                    </Button>
-                  </div>
-                ) : pendingFileToUpload ? (
-                  <div className="py-2 space-y-2">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
-                      <Paperclip className="h-3.5 w-3.5" />
-                      Selected: {pendingFileToUpload.name}
-                    </div>
-                    <p className="text-xs text-amber-700 font-semibold">
-                      Paste the Google Drive folder link above and click "Save &amp; Enable Repository" to complete
-                      uploading this file.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="py-2 space-y-1">
-                    <UploadCloud className="h-10 w-10 text-primary/70 animate-bounce mx-auto mb-2" />
-                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Drag &amp; drop your signed PDF here, or{' '}
-                      <span className="text-primary underline">browse file</span>
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Accepted: Official PDF (Max 25MB) • Auto-uploaded directly to {currentCampusName} Google Drive
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex justify-between items-center px-1">
-                <button
-                  type="button"
-                  onClick={() => setIsManualLinkMode(!isManualLinkMode)}
-                  className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-                >
-                  {isManualLinkMode
-                    ? '▲ Hide manual Google Drive link'
-                    : '▼ Need to manually paste or inspect Google Drive link?'}
-                </button>
-                {googleDriveLinkValue && (
-                  <a
-                    href={googleDriveLinkValue}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    View in Drive
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Collapsible Manual Google Drive Link field */}
-          {isManualLinkMode && (
-            <FormField
-              control={form.control}
-              name="googleDriveLink"
-              render={({ field, fieldState }) => (
-                <FormItem className="rounded-xl border p-4 bg-muted/10 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <FormLabel className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                      Google Drive Link (Manual / Fallback)
-                    </FormLabel>
-                    <span className="text-[10px] text-muted-foreground font-medium">
-                      Auto-populated when file is uploaded
-                    </span>
-                  </div>
-                  <FormControl>
-                    <div className="relative">
-                      <Input placeholder="https://drive.google.com/..." {...field} disabled={isSubmissionBlocked} />
-                      <div className="absolute inset-y-0 right-3 flex items-center">{renderValidationIcon()}</div>
-                    </div>
-                  </FormControl>
-                  {!fieldState.error && (
-                    <FormDescription className="flex items-center gap-1">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="link" className="p-0 h-auto text-xs animate-pulse font-bold text-primary">
-                            <HelpCircle className="mr-1 h-3 w-3" />
-                            How to get the correct link?
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent className="max-w-md border-primary/20 shadow-2xl">
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>How to Get Your Google Drive File Link</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Follow these steps to ensure your file is shared correctly for submission.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <ScrollArea className="max-h-[400px] pr-4">
-                            <ol className="list-decimal space-y-4 pl-5 text-sm text-muted-foreground py-2">
-                              <li>Open your file in Google Drive.</li>
-                              <li>
-                                Click the blue <strong>"Share"</strong> button in the top right corner.
-                              </li>
-                              <li>
-                                In the popup window, find the <strong>"General access"</strong> section. If it says
-                                "Restricted", click on it.
-                              </li>
-                              <li>
-                                Select <strong>"Anyone with the link"</strong> from the dropdown menu. This is critical
-                                for the Quality Assurance Office to be able to view your file.
-                              </li>
-                              <li>
-                                To the right of "Anyone with the link", ensure the role is set to{' '}
-                                <strong>"Viewer"</strong>.
-                              </li>
-                              <li>
-                                Finally, click the <strong>"Copy link"</strong> button. The link is now copied to your
-                                clipboard.
-                              </li>
-                              <li>Paste the copied link into the "Google Drive Link" field in the submission form.</li>
-                            </ol>
-                          </ScrollArea>
-                          <AlertDialogFooter className="border-t pt-4">
-                            <AlertDialogAction className="bg-primary font-black uppercase text-[10px] tracking-widest px-10">
-                              Got it!
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </FormDescription>
-                  )}
-                  <FormMessage />
-                </FormItem>
+              ) : (
+                <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                  <p className="text-[11px] leading-tight">
+                    <strong>Hard Copy Submission Mode:</strong> Please upload your scanned or signed PDF file below.
+                    This submission will be marked with a <strong>&quot;Submission Needs Entry&quot;</strong> flag so
+                    the Admin team will encode the data into the system database.
+                  </p>
+                </div>
               )}
-            />
+            </div>
           )}
 
-          {/* Live File Preview (Compact when empty, expands to iframe when previewUrl is present) */}
-          {previewUrl ? (
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between px-1">
-                <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                  <FileText className="h-3 w-3 text-primary" />
-                  Live Document Preview
-                </span>
-                <a
-                  href={previewUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
-                >
-                  <ExternalLink className="h-3 w-3" />
-                  Open Preview in New Tab
-                </a>
+          {(!isInteractiveEomsEnabled || isHardCopySubmission) && (
+            <>
+              <div className="rounded-xl border border-primary/20 bg-muted/20 p-4 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                      <Folder className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-wider text-primary">
+                          Site Repository: {currentCampusName} Google Drive
+                        </span>
+                        {activeCampusDriveFolderUrl ? (
+                          <Badge
+                            variant="outline"
+                            className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-[9px] uppercase tracking-wider"
+                          >
+                            Connected
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="bg-amber-50 text-amber-800 border-amber-300 font-bold text-[9px] uppercase tracking-wider"
+                          >
+                            Needs Folder Link
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        Documents submitted by your unit are permanently archived in the official {currentCampusName}{' '}
+                        Google Drive repository.
+                      </p>
+                    </div>
+                  </div>
+                  {activeCampusDriveFolderUrl && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      asChild
+                      className="h-7 text-[10px] font-bold text-primary hover:bg-primary/10"
+                    >
+                      <a href={activeCampusDriveFolderUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        Open Site Drive
+                      </a>
+                    </Button>
+                  )}
+                </div>
+
+                {/* Quick config banner if activeCampusDriveFolderUrl is missing */}
+                {!activeCampusDriveFolderUrl && (
+                  <div className="bg-amber-50/90 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 rounded-xl p-3 text-amber-900 dark:text-amber-200 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+                        <span className="text-xs font-bold">Set Google Drive Folder for {currentCampusName}</span>
+                      </div>
+                      <span className="text-[10px] text-amber-700/80 font-medium">One-time Site Setup</span>
+                    </div>
+                    <p className="text-[11px] text-amber-800/90 dark:text-amber-300/90 leading-tight">
+                      Paste the Google Drive folder link for <strong>{currentCampusName}</strong> below. All unit
+                      submissions under this site will automatically upload to this folder.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                      <Input
+                        placeholder="https://drive.google.com/drive/folders/..."
+                        value={quickFolderLink}
+                        onChange={(e) => setQuickFolderLink(e.target.value)}
+                        className="h-8 text-xs bg-white dark:bg-slate-900 font-mono"
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => handleSaveQuickFolder()}
+                        disabled={isSavingQuickFolder || !quickFolderLink.trim()}
+                        className="h-8 text-xs font-bold shrink-0 bg-amber-600 hover:bg-amber-700 text-white"
+                      >
+                        {isSavingQuickFolder ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        ) : (
+                          <Folder className="h-3 w-3 mr-1" />
+                        )}
+                        Save &amp; Enable Repository
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Always-visible Dropzone */}
+                <div className="space-y-3">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept=".pdf,application/pdf"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleFileUpload(file);
+                    }}
+                  />
+
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      if (!isSubmissionBlocked && !isUploadingToDrive) setIsDraggingFile(true);
+                    }}
+                    onDragLeave={() => setIsDraggingFile(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setIsDraggingFile(false);
+                      if (isSubmissionBlocked || isUploadingToDrive) return;
+                      const file = e.dataTransfer.files?.[0];
+                      if (file) handleFileUpload(file);
+                    }}
+                    onClick={() => {
+                      if (!isSubmissionBlocked && !isUploadingToDrive) {
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                    className={cn(
+                      'border-2 border-dashed rounded-xl p-6 text-center transition-all cursor-pointer select-none',
+                      isDraggingFile
+                        ? 'border-primary bg-primary/10 scale-[1.01]'
+                        : 'border-primary/30 hover:border-primary hover:bg-primary/5',
+                      (isSubmissionBlocked || isUploadingToDrive) && 'opacity-70 cursor-not-allowed',
+                      googleDriveLinkValue
+                        ? 'bg-emerald-50/40 border-emerald-300 dark:bg-emerald-950/20'
+                        : 'bg-white/60 dark:bg-slate-900/40',
+                    )}
+                  >
+                    {isUploadingToDrive ? (
+                      <div className="py-3 space-y-2">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                        <p className="text-xs font-black uppercase tracking-wider text-primary">{uploadProgress}</p>
+                        <p className="text-[10px] text-muted-foreground animate-pulse">
+                          Uploading document directly into {currentCampusName} Google Drive folder...
+                        </p>
+                      </div>
+                    ) : googleDriveLinkValue ? (
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+                        <div className="flex items-center gap-3">
+                          <div className="h-10 w-10 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                            <FileCheck className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                                {uploadedFileDetails?.fileName || 'Official Document Attached'}
+                              </p>
+                              <Badge className="bg-emerald-600 text-white text-[9px] font-black h-4 px-1.5 uppercase shrink-0">
+                                Secured in Drive
+                              </Badge>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground truncate max-w-md">
+                              Drive Link: {googleDriveLinkValue}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={isSubmissionBlocked}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fileInputRef.current?.click();
+                          }}
+                          className="shrink-0 text-xs font-bold h-8"
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1.5" />
+                          Replace File
+                        </Button>
+                      </div>
+                    ) : pendingFileToUpload ? (
+                      <div className="py-2 space-y-2">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
+                          <Paperclip className="h-3.5 w-3.5" />
+                          Selected: {pendingFileToUpload.name}
+                        </div>
+                        <p className="text-xs text-amber-700 font-semibold">
+                          Paste the Google Drive folder link above and click "Save &amp; Enable Repository" to complete
+                          uploading this file.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="py-2 space-y-1">
+                        <UploadCloud className="h-10 w-10 text-primary/70 animate-bounce mx-auto mb-2" />
+                        <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Drag &amp; drop your signed PDF here, or{' '}
+                          <span className="text-primary underline">browse file</span>
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Accepted: Official PDF (Max 25MB) • Auto-uploaded directly to {currentCampusName} Google Drive
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-between items-center px-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsManualLinkMode(!isManualLinkMode)}
+                      className="text-[10px] font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
+                    >
+                      {isManualLinkMode
+                        ? '▲ Hide manual Google Drive link'
+                        : '▼ Need to manually paste or inspect Google Drive link?'}
+                    </button>
+                    {googleDriveLinkValue && (
+                      <a
+                        href={googleDriveLinkValue}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View in Drive
+                      </a>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div className="aspect-video w-full rounded-xl border bg-muted shadow-sm overflow-hidden">
-                <iframe src={previewUrl} className="h-full w-full" allow="autoplay" title="File Preview" />
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed bg-muted/20 p-4 text-center text-muted-foreground flex items-center justify-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <FileText className="h-4 w-4" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Document Preview</p>
-                <p className="text-[10px] text-muted-foreground">
-                  A live preview of your uploaded PDF will appear here automatically.
-                </p>
-              </div>
-            </div>
+
+              {/* Collapsible Manual Google Drive Link field */}
+              {isManualLinkMode && (
+                <FormField
+                  control={form.control}
+                  name="googleDriveLink"
+                  render={({ field, fieldState }) => (
+                    <FormItem className="rounded-xl border p-4 bg-muted/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                          Google Drive Link (Manual / Fallback)
+                        </FormLabel>
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          Auto-populated when file is uploaded
+                        </span>
+                      </div>
+                      <FormControl>
+                        <div className="relative">
+                          <Input placeholder="https://drive.google.com/..." {...field} disabled={isSubmissionBlocked} />
+                          <div className="absolute inset-y-0 right-3 flex items-center">{renderValidationIcon()}</div>
+                        </div>
+                      </FormControl>
+                      {!fieldState.error && (
+                        <FormDescription className="flex items-center gap-1">
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="link"
+                                className="p-0 h-auto text-xs animate-pulse font-bold text-primary"
+                              >
+                                <HelpCircle className="mr-1 h-3 w-3" />
+                                How to get the correct link?
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="max-w-md border-primary/20 shadow-2xl">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>How to Get Your Google Drive File Link</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Follow these steps to ensure your file is shared correctly for submission.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <ScrollArea className="max-h-[400px] pr-4">
+                                <ol className="list-decimal space-y-4 pl-5 text-sm text-muted-foreground py-2">
+                                  <li>Open your file in Google Drive.</li>
+                                  <li>
+                                    Click the blue <strong>"Share"</strong> button in the top right corner.
+                                  </li>
+                                  <li>
+                                    In the popup window, find the <strong>"General access"</strong> section. If it says
+                                    "Restricted", click on it.
+                                  </li>
+                                  <li>
+                                    Select <strong>"Anyone with the link"</strong> from the dropdown menu. This is
+                                    critical for the Quality Assurance Office to be able to view your file.
+                                  </li>
+                                  <li>
+                                    To the right of "Anyone with the link", ensure the role is set to{' '}
+                                    <strong>"Viewer"</strong>.
+                                  </li>
+                                  <li>
+                                    Finally, click the <strong>"Copy link"</strong> button. The link is now copied to
+                                    your clipboard.
+                                  </li>
+                                  <li>
+                                    Paste the copied link into the "Google Drive Link" field in the submission form.
+                                  </li>
+                                </ol>
+                              </ScrollArea>
+                              <AlertDialogFooter className="border-t pt-4">
+                                <AlertDialogAction className="bg-primary font-black uppercase text-[10px] tracking-widest px-10">
+                                  Got it!
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Live File Preview (Compact when empty, expands to iframe when previewUrl is present) */}
+              {previewUrl ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <FileText className="h-3 w-3 text-primary" />
+                      Live Document Preview
+                    </span>
+                    <a
+                      href={previewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Open Preview in New Tab
+                    </a>
+                  </div>
+                  <div className="aspect-video w-full rounded-xl border bg-muted shadow-sm overflow-hidden">
+                    <iframe src={previewUrl} className="h-full w-full" allow="autoplay" title="File Preview" />
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed bg-muted/20 p-4 text-center text-muted-foreground flex items-center justify-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                    <FileText className="h-4 w-4" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Document Preview</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      A live preview of your uploaded PDF will appear here automatically.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
           <FormField
             control={form.control}
@@ -1695,7 +1824,8 @@ export function SubmissionForm({ reportType, year, cycleId, onSuccess }: Submiss
               validationStatus === 'validating' ||
               validationStatus === 'invalid' ||
               !isChecklistComplete ||
-              isSubmissionBlocked
+              isSubmissionBlocked ||
+              (isInteractiveEomsEnabled && !isHardCopySubmission)
             }
           >
             {isSubmitting ? (
@@ -1703,6 +1833,14 @@ export function SubmissionForm({ reportType, year, cycleId, onSuccess }: Submiss
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Submitting...
               </>
+            ) : isInteractiveEomsEnabled && !isHardCopySubmission ? (
+              'Enable "Submit the Hard Copy" to Upload Document'
+            ) : isHardCopySubmission ? (
+              existingSubmission ? (
+                `Submit Hard Copy Revision ${String((existingSubmission.revision || 0) + 1).padStart(2, '0')} (Needs Admin Entry)`
+              ) : (
+                `Submit Hard Copy (Needs Admin Entry) ${isDraftValue ? '(Draft)' : ''}`
+              )
             ) : existingSubmission ? (
               `Submit Revision ${String((existingSubmission.revision || 0) + 1).padStart(2, '0')} ${isDraftValue ? '(Draft)' : ''}`
             ) : (

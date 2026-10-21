@@ -1380,6 +1380,15 @@ export function ChedFourTierAnalytics({
                   <span className="font-black text-rose-500 text-sm">{descriptiveMetrics.copcNoCount}</span>
                 </div>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <ShieldCheck className="h-4 w-4 text-[#0284c7] shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  The Certificate of Program Compliance (COPC) verifies statutory operational legitimacy under CHED CMO
+                  No. 46 and RA 10931, distinguishing programs possessing full regulatory authorization from provisional
+                  or in-process offerings that require expedited curricular notation to safeguard student financial aid
+                  subsidies and institutional standing.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* Chart 2: AACCUP Accreditation Spectrum */}
@@ -1426,6 +1435,15 @@ export function ChedFourTierAnalytics({
                   </strong>
                 </span>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <Award className="h-4 w-4 text-[#16a34a] shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Tracking program progression across AACCUP accreditation tiers demonstrates third-party external
+                  quality validation, evidencing sustained adherence to curricular, faculty, research, and community
+                  extension benchmarks required for university leveling, performance-based budgeting, and global
+                  academic recognition.
+                </p>
+              </CardFooter>
             </Card>
           </div>
 
@@ -1465,6 +1483,14 @@ export function ChedFourTierAnalytics({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <Building2 className="h-4 w-4 text-[#6366f1] shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Cross-campus benchmarking highlights geographical equity across satellite units, ensuring that
+                  academic programs in peripheral island communities maintain equivalent regulatory compliance, faculty
+                  qualifications, and learning facility standards to those at the central campus.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* Board Licensure Performance */}
@@ -1506,6 +1532,15 @@ export function ChedFourTierAnalytics({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <GraduationCap className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Benchmarking Professional Regulation Commission (PRC) licensure results against national averages
+                  measures institutional academic rigor, verifying that professional degree curricula successfully
+                  prepare graduates for certified practice in regulated disciplines such as education, engineering, and
+                  nursing.
+                </p>
+              </CardFooter>
             </Card>
           </div>
 
@@ -1543,6 +1578,14 @@ export function ChedFourTierAnalytics({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <Users className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Disaggregating graduation output by sex fulfills GAD monitoring directives under PCW-NEDA-DBM Joint
+                  Circulars, verifying balanced degree completion rates and enabling collegiate leadership to evaluate
+                  gender-differentiated retention and academic success trends.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* Faculty Qualifications */}
@@ -1579,6 +1622,14 @@ export function ChedFourTierAnalytics({
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <UserCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Faculty qualification profiling quantifies the proportion of faculty holding Master's and Doctorate
+                  degrees aligned with specific program discipline CMOs, ensuring full compliance with CHED minimum
+                  faculty credentials and driving SUC leveling faculty points.
+                </p>
+              </CardFooter>
             </Card>
           </div>
         </TabsContent>
@@ -1664,6 +1715,15 @@ export function ChedFourTierAnalytics({
                   , followed closely by faculty credential CMO alignment deficits.
                 </p>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Root-cause failure categorization identifies systemic bottlenecks obstructing Certificate of Program
+                  Compliance (COPC) approval under CHED standards, revealing that unnoted curricula and faculty
+                  qualification gaps constitute the primary compliance barriers requiring targeted institutional
+                  intervention.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* AACCUP 10-Area Accreditation Bottleneck Radar */}
@@ -1713,6 +1773,15 @@ export function ChedFourTierAnalytics({
                   institutional accreditation averages below Level III benchmarks.
                 </p>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <Target className="h-4 w-4 text-[#16a34a] shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  This multi-dimensional radar identifies quality deficits across the ten statutory AACCUP accreditation
+                  areas relative to the 4.00 Level III qualifying benchmark, isolating Research productivity (Area V)
+                  and Laboratory physical infrastructure (Area IX) as the primary constraints pulling down
+                  university-wide accreditation scores.
+                </p>
+              </CardFooter>
             </Card>
           </div>
 
@@ -1773,6 +1842,15 @@ export function ChedFourTierAnalytics({
                   highlighting that academic remediation and financial aid must be concentrated in the freshman year.
                 </p>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <TrendingDown className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Tracking student cohort retention across consecutive academic stages reveals that the overwhelming
+                  majority of academic dropouts occur during the freshman-to-sophomore transition, demonstrating the
+                  strategic necessity of focusing academic advising, financial support, and tutorial interventions on
+                  first-year students.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* Licensure Diagnostic: First-Takers vs Retakers */}
@@ -1821,6 +1899,14 @@ export function ChedFourTierAnalytics({
                   {descriptiveMetrics.retakersPassRate}%) drags down overall institutional standing.
                 </p>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <Scale className="h-4 w-4 text-[#6366f1] shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Distinguishing fresh first-time examinees from repeat retakers isolates instructional quality from
+                  legacy examinee backlogs, proving that core degree curricula achieve above-national passing rates for
+                  first-takers while demonstrating the need for specialized board review clinics for repeat candidates.
+                </p>
+              </CardFooter>
             </Card>
           </div>
         </TabsContent>
@@ -1889,6 +1975,14 @@ export function ChedFourTierAnalytics({
                   survey window within 12 months.
                 </p>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <Clock className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Forecasting accreditation validity expirations over rolling 6, 12, and 24-month horizons prevents
+                  inadvertent accreditation lapses, enabling academic deans and campus directors to complete internal
+                  self-surveys and file formal survey requests well in advance of AACCUP compliance deadlines.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* Risk Stratification Donut */}
@@ -1945,6 +2039,14 @@ export function ChedFourTierAnalytics({
                   <span className="font-black text-emerald-600 text-sm">{predictiveMetrics.lowRiskCount} Programs</span>
                 </div>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+                <ShieldAlert className="h-4 w-4 text-[#7c3aed] shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  This composite risk model aggregates regulatory status, faculty CMO alignment, curricular notation,
+                  accreditation validity, and cohort attrition into a single risk score, alerting university executives
+                  to high-vulnerability academic offerings that require immediate administrative remediation.
+                </p>
+              </CardFooter>
             </Card>
           </div>
 
@@ -2066,12 +2168,20 @@ export function ChedFourTierAnalytics({
                 </TableBody>
               </Table>
             </ScrollArea>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+              <Filter className="h-4 w-4 text-[#7c3aed] shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                The program risk roster provides actionable early-warning surveillance across all collegiate units and
+                campuses, pinpointing specific vulnerability drivers for each degree program to guide resource
+                prioritization, faculty retooling, and fast-tracked curriculum restructuring.
+              </p>
+            </CardFooter>
           </Card>
         </TabsContent>
 
         {/* ========================================================
             TAB 4: PRESCRIPTIVE ANALYTICS (WHAT SHOULD WE DO?)
-           ======================================================== */}
+            ======================================================== */}
         <TabsContent value="prescriptive" className="space-y-6 m-0 animate-in fade-in duration-300">
           <div className="bg-[#ea580c]/10 border border-[#ea580c]/20 rounded-xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -2238,6 +2348,15 @@ export function ChedFourTierAnalytics({
                 </p>
               </div>
             </div>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
+              <Compass className="h-4 w-4 text-[#ea580c] shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This 2×2 decision matrix maps prescribed quality interventions by implementation effort and
+                institutional impact, establishing a structured roadmap that sequences rapid-execution quick wins
+                alongside multi-year strategic capital and faculty investments to maximize institutional accreditation
+                performance.
+              </p>
+            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>

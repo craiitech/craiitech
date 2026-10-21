@@ -30,6 +30,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { getUnitProgramsChedWarnings, getProgramChedWarnings } from '@/lib/ched-compliance-warnings';
+import { AcademicUnitChedWarningsCard } from '@/components/programs/academic-unit-ched-warnings-card';
 
 export interface ChedMonitoringViewProps {
   programs: AcademicProgram[];
@@ -43,14 +45,21 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
   const unitMap = useMemo(() => new Map(units.map((u) => [u.id, u.name])), [units]);
 
+  const [activeTab, setActiveTab] = useState('yearly-trend');
   const [detailSearch, setDetailSearch] = useState('');
   const [detailCampusFilter, setDetailCampusFilter] = useState('all');
   const [detailUnitFilter, setDetailUnitFilter] = useState('all');
   const [detailCopcFilter, setDetailCopcFilter] = useState<string>('all');
   const [detailLevelFilter, setDetailLevelFilter] = useState<string>('all');
+  const [detailWarningFilter, setDetailWarningFilter] = useState<string>('all');
   const [detailSortBy, setDetailSortBy] = useState<string>('name');
 
   const activePrograms = useMemo(() => programs.filter((p) => p.isActive), [programs]);
+
+  // Aggregate CHED & Student Data Warnings across active programs
+  const warningStats = useMemo(() => {
+    return getUnitProgramsChedWarnings(activePrograms, compliances, selectedYear);
+  }, [activePrograms, compliances, selectedYear]);
 
   // Yearly COPC Compliance Summary
   const yearlySummary = useMemo(() => {
@@ -142,6 +151,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
           rqatVisitsCount,
           lastRqatDate: lastRqat?.date || null,
           isNewProgram: p.isNewProgram,
+          warningSummary: getProgramChedWarnings(p, c, selectedYear),
         };
       })
       .filter((item) => {
@@ -149,6 +159,11 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
         if (detailUnitFilter !== 'all' && item.unitId !== detailUnitFilter) return false;
         if (detailCopcFilter !== 'all' && item.copcStatus !== detailCopcFilter) return false;
         if (detailLevelFilter !== 'all' && item.level !== detailLevelFilter) return false;
+        if (detailWarningFilter === 'warnings' && !item.warningSummary.hasWarnings) return false;
+        if (detailWarningFilter === 'enrollment' && !item.warningSummary.missingEnrollment) return false;
+        if (detailWarningFilter === 'graduation' && !item.warningSummary.missingGraduation) return false;
+        if (detailWarningFilter === 'board' && !item.warningSummary.missingBoard) return false;
+        if (detailWarningFilter === 'docs' && !item.warningSummary.missingOtherChed) return false;
         if (detailSearch) {
           const s = detailSearch.toLowerCase();
           if (!item.name.toLowerCase().includes(s) && !item.abbreviation.toLowerCase().includes(s)) return false;
@@ -160,6 +175,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
         if (detailSortBy === 'campus') return a.campus.localeCompare(b.campus);
         if (detailSortBy === 'copc') return b.copcStatus.localeCompare(a.copcStatus);
         if (detailSortBy === 'date') return (b.copcAwardDate || '').localeCompare(a.copcAwardDate || '');
+        if (detailSortBy === 'warnings') return b.warningSummary.warnings.length - a.warningSummary.warnings.length;
         return a.name.localeCompare(b.name);
       });
   }, [
@@ -173,6 +189,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
     detailUnitFilter,
     detailCopcFilter,
     detailLevelFilter,
+    detailWarningFilter,
     detailSortBy,
   ]);
 
@@ -394,9 +411,9 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
   return (
     <div className="space-y-6">
       {/* Top Highlight KPI Cards for CHED */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
         <Card className="border-primary/10 shadow-sm bg-gradient-to-br from-white to-slate-50">
-          <CardContent className="p-4 flex items-center justify-between">
+          <CardContent className="p-3.5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
                 Total Active Programs
@@ -404,50 +421,86 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
               <h3 className="text-2xl font-black text-slate-900 mt-1">{currentYearStats.total}</h3>
               <p className="text-[9px] font-semibold text-slate-500 mt-0.5">AY {selectedYear} Registry</p>
             </div>
-            <div className="p-3 bg-primary/10 text-primary rounded-xl">
-              <GraduationCap className="h-6 w-6" />
+            <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
+              <GraduationCap className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-emerald-200 shadow-sm bg-gradient-to-br from-emerald-50/50 to-white">
-          <CardContent className="p-4 flex items-center justify-between">
+          <CardContent className="p-3.5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">With Valid COPC</p>
               <div className="flex items-baseline gap-2 mt-1">
                 <h3 className="text-2xl font-black text-emerald-700">{currentYearStats.withCopc}</h3>
                 <span className="text-xs font-black text-emerald-600">({currentYearStats.rate}%)</span>
               </div>
-              <p className="text-[9px] font-semibold text-emerald-600 mt-0.5">Compliant to CHED Standard</p>
+              <p className="text-[9px] font-semibold text-emerald-600 mt-0.5">Compliant to Standard</p>
             </div>
-            <div className="p-3 bg-emerald-100 text-emerald-700 rounded-xl">
-              <CheckCircle2 className="h-6 w-6" />
+            <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
+              <CheckCircle2 className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-amber-200 shadow-sm bg-gradient-to-br from-amber-50/50 to-white">
-          <CardContent className="p-4 flex items-center justify-between">
+          <CardContent className="p-3.5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-amber-800 tracking-wider">COPC In Progress</p>
               <h3 className="text-2xl font-black text-amber-700 mt-1">{currentYearStats.inProgress}</h3>
-              <p className="text-[9px] font-semibold text-amber-600 mt-0.5">Pending RQAT/CHED Action</p>
+              <p className="text-[9px] font-semibold text-amber-600 mt-0.5">Pending RQAT/CHED</p>
             </div>
-            <div className="p-3 bg-amber-100 text-amber-700 rounded-xl">
-              <Clock className="h-6 w-6" />
+            <div className="p-2.5 bg-amber-100 text-amber-700 rounded-xl">
+              <Clock className="h-5 w-5" />
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-rose-200 shadow-sm bg-gradient-to-br from-rose-50/50 to-white">
-          <CardContent className="p-4 flex items-center justify-between">
+          <CardContent className="p-3.5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-rose-800 tracking-wider">Without COPC</p>
               <h3 className="text-2xl font-black text-rose-700 mt-1">{currentYearStats.noCopc}</h3>
-              <p className="text-[9px] font-semibold text-rose-600 mt-0.5">Requires Immediate Action</p>
+              <p className="text-[9px] font-semibold text-rose-600 mt-0.5">Requires Action</p>
             </div>
-            <div className="p-3 bg-rose-100 text-rose-700 rounded-xl">
-              <AlertTriangle className="h-6 w-6" />
+            <div className="p-2.5 bg-rose-100 text-rose-700 rounded-xl">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setActiveTab('student-warnings')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') setActiveTab('student-warnings');
+          }}
+          className={cn(
+            'shadow-sm cursor-pointer transition-all hover:scale-[1.01]',
+            warningStats.warningProgramsCount > 0
+              ? 'border-amber-400 bg-gradient-to-br from-amber-500/10 via-background to-orange-500/10 ring-1 ring-amber-400/50'
+              : 'border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white',
+          )}
+        >
+          <CardContent className="p-3.5 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase text-amber-900 dark:text-amber-300 tracking-wider">
+                Student Data Warnings
+              </p>
+              <div className="flex items-baseline gap-1.5 mt-1">
+                <h3 className="text-2xl font-black text-amber-800 dark:text-amber-200">
+                  {warningStats.warningProgramsCount}
+                </h3>
+                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">Programs</span>
+              </div>
+              <p className="text-[9px] font-semibold text-amber-700 dark:text-amber-300 mt-0.5">
+                {warningStats.missingEnrollmentCount} Enr • {warningStats.missingGraduationCount} Grad •{' '}
+                {warningStats.missingBoardCount} Board
+              </p>
+            </div>
+            <div className="p-2.5 bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 rounded-xl border border-amber-300/40">
+              <AlertTriangle className="h-5 w-5 animate-pulse" />
             </div>
           </CardContent>
         </Card>
@@ -491,7 +544,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
         </CardHeader>
 
         <CardContent className="p-0">
-          <Tabs defaultValue="yearly-trend" className="flex flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col">
             <div className="bg-slate-50/80 border-b px-4 py-2.5 flex items-center justify-between">
               <TabsList className="bg-white border shadow-sm h-8 p-0.5">
                 <TabsTrigger
@@ -506,12 +559,28 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                 >
                   <FileCheck className="h-3.5 w-3.5 text-teal-600" /> Program Compliance (AY {selectedYear})
                 </TabsTrigger>
+                <TabsTrigger
+                  value="student-warnings"
+                  className="text-[9px] font-black uppercase tracking-widest px-4 h-7 gap-1.5 text-amber-700 dark:text-amber-300 data-[state=active]:bg-amber-600 data-[state=active]:text-white font-black"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-600" /> Student Data Warnings (
+                  {warningStats.warningProgramsCount})
+                </TabsTrigger>
               </TabsList>
               <div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 uppercase">
                 <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
                 Regulatory Compliance System
               </div>
             </div>
+
+            {/* TAB: Student Data Warnings */}
+            <TabsContent value="student-warnings" className="p-5 m-0 space-y-4">
+              <AcademicUnitChedWarningsCard
+                programs={activePrograms}
+                compliances={compliances}
+                selectedYear={selectedYear}
+              />
+            </TabsContent>
 
             {/* TAB 1: Yearly COPC Trend */}
             <TabsContent value="yearly-trend" className="m-0">
@@ -862,8 +931,9 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                         ))}
                     </SelectContent>
                   </Select>
+
                   <Select value={detailCopcFilter} onValueChange={setDetailCopcFilter}>
-                    <SelectTrigger className="h-8 w-[130px] text-xs bg-white border-slate-200">
+                    <SelectTrigger className="h-8 w-[120px] text-xs bg-white border-slate-200">
                       <SelectValue placeholder="COPC Status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -881,6 +951,38 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                       </SelectItem>
                     </SelectContent>
                   </Select>
+
+                  <Select value={detailWarningFilter} onValueChange={setDetailWarningFilter}>
+                    <SelectTrigger
+                      className={cn(
+                        'h-8 w-[155px] text-xs bg-white border-slate-200',
+                        detailWarningFilter !== 'all' && 'border-amber-400 bg-amber-50/60 text-amber-900 font-bold',
+                      )}
+                    >
+                      <SelectValue placeholder="Data Warnings" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all" className="text-[10px] font-bold">
+                        All Data Status
+                      </SelectItem>
+                      <SelectItem value="warnings" className="text-[10px] font-bold text-amber-600">
+                        ⚠️ With Warnings ({warningStats.warningProgramsCount})
+                      </SelectItem>
+                      <SelectItem value="enrollment" className="text-[10px] font-bold text-rose-600">
+                        👥 Missing Enrollment ({warningStats.missingEnrollmentCount})
+                      </SelectItem>
+                      <SelectItem value="graduation" className="text-[10px] font-bold text-orange-600">
+                        🎓 Missing Graduation ({warningStats.missingGraduationCount})
+                      </SelectItem>
+                      <SelectItem value="board" className="text-[10px] font-bold text-purple-600">
+                        📋 Missing Board Exams ({warningStats.missingBoardCount})
+                      </SelectItem>
+                      <SelectItem value="docs" className="text-[10px] font-bold text-blue-600">
+                        📄 Incomplete Docs ({warningStats.missingChedDocCount})
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+
                   <Select value={detailSortBy} onValueChange={setDetailSortBy}>
                     <SelectTrigger className="h-8 w-[130px] text-xs bg-white border-slate-200">
                       <SelectValue placeholder="Sort by" />
@@ -897,6 +999,9 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                       </SelectItem>
                       <SelectItem value="date" className="text-[10px] font-bold">
                         Sort: Award Date
+                      </SelectItem>
+                      <SelectItem value="warnings" className="text-[10px] font-bold text-amber-700">
+                        Sort: Most Warnings
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -936,6 +1041,11 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                           <ShieldCheck className="h-3 w-3" /> COPC Status
                         </div>
                       </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-amber-700 tracking-wider">
+                        <div className="flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" /> CHED Student Data
+                        </div>
+                      </TableHead>
                       <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider">
                         Award Date
                       </TableHead>
@@ -953,7 +1063,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                   <TableBody>
                     {programDetailData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={8} className="text-center py-16">
+                        <TableCell colSpan={9} className="text-center py-16">
                           <GraduationCap className="h-8 w-8 text-slate-300 mx-auto mb-2 stroke-[1.5]" />
                           <p className="text-xs font-bold text-slate-500">No programs match the selected filters</p>
                           <p className="text-[10px] text-slate-400 mt-1">
@@ -1001,6 +1111,36 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                             ) : (
                               <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-[8px] font-black">
                                 No Data
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {item.warningSummary.hasWarnings ? (
+                              <div className="flex flex-wrap items-center gap-1 max-w-[240px]">
+                                {item.warningSummary.missingEnrollment && (
+                                  <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-[8px] font-black py-0 px-1 hover:bg-rose-100">
+                                    No Enrollment
+                                  </Badge>
+                                )}
+                                {item.warningSummary.missingGraduation && (
+                                  <Badge className="bg-orange-50 text-orange-700 border-orange-200 text-[8px] font-black py-0 px-1 hover:bg-orange-100">
+                                    No Grad Stats
+                                  </Badge>
+                                )}
+                                {item.warningSummary.missingBoard && (
+                                  <Badge className="bg-purple-50 text-purple-700 border-purple-200 text-[8px] font-black py-0 px-1 hover:bg-purple-100">
+                                    No Board Data
+                                  </Badge>
+                                )}
+                                {item.warningSummary.missingOtherChed && (
+                                  <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-[8px] font-black py-0 px-1 hover:bg-blue-100">
+                                    Docs Incomplete
+                                  </Badge>
+                                )}
+                              </div>
+                            ) : (
+                              <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[8px] font-black py-0 px-1.5 flex items-center gap-0.5 w-fit">
+                                <CheckCircle2 className="h-2.5 w-2.5" /> Complete
                               </Badge>
                             )}
                           </TableCell>

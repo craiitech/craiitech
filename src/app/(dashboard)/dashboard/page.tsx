@@ -40,6 +40,7 @@ import {
   Trash2,
   ExternalLink,
   Gauge,
+  Compass,
 } from 'lucide-react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { useYear } from '@/lib/year-provider';
@@ -88,10 +89,12 @@ import { ExecutiveRiskIntelligence } from '@/components/dashboard/executive/exec
 import { CorrectiveActionsTab } from '@/components/dashboard/executive/corrective-actions-tab';
 import { ActionableDecisionsTab } from '@/components/dashboard/executive/actionable-decisions-tab';
 import { ScheduleTab } from '@/components/dashboard/executive/schedule-tab';
+import { ArchipelagicIntelligenceTab } from '@/components/dashboard/executive/archipelagic-intelligence-tab';
 import { AccreditationPerformanceTab } from '@/components/dashboard/executive/accreditation-performance-tab';
 import { KpiDashboardTab } from '@/components/dashboard/kpi-dashboard-tab';
 import { OkrWorkspaceTab } from '@/components/dashboard/okr-workspace-tab';
 import { UpcomingCarActionsCard } from '@/components/dashboard/upcoming-car-actions-card';
+import { UnifiedHomeDashboard } from '@/components/dashboard/unified-home-dashboard';
 import type {
   Submission,
   User as AppUser,
@@ -678,6 +681,7 @@ export default function HomePage() {
   const { selectedYear, setSelectedYear } = useYear();
   const [selectedDetail, setSelectedDetail] = useState<{ unitId: string; campusId: string } | null>(null);
   const [isPortfolioDialogOpen, setIsPortfolioDialogOpen] = useState(false);
+  const [showPersonalWorkspace, setShowPersonalWorkspace] = useState(false);
 
   const roleLower = userRole?.toLowerCase() || '';
   const isDOI = isDoi;
@@ -742,10 +746,12 @@ export default function HomePage() {
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
     const baseRef = collection(firestore, 'risks');
-    if (isUniversityExecutive) return baseRef;
-    if (isCampusSupervisor) return query(baseRef, where('campusId', '==', userProfile.campusId));
-    return query(baseRef, where('unitId', '==', userProfile.unitId));
-  }, [firestore, userProfile, isUniversityExecutive, isCampusSupervisor, isUserLoading]);
+    if (isUniversityExecutive) return query(baseRef, where('year', '==', selectedYear));
+    if (isCampusSupervisor && userProfile.campusId) {
+      return query(baseRef, where('campusId', '==', userProfile.campusId), where('year', '==', selectedYear));
+    }
+    return query(baseRef, where('unitId', '==', userProfile.unitId), where('year', '==', selectedYear));
+  }, [firestore, userProfile, isUniversityExecutive, isCampusSupervisor, isUserLoading, selectedYear]);
 
   const { data: risks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
@@ -786,8 +792,15 @@ export default function HomePage() {
 
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || !selectedYear) return null;
-    return query(collection(firestore, 'programCompliances'), where('academicYear', '==', selectedYear));
-  }, [firestore, selectedYear]);
+    const baseRef = collection(firestore, 'programCompliances');
+    if (isUniversityExecutive || isMainCampusDOI) {
+      return query(baseRef, where('academicYear', '==', selectedYear));
+    }
+    if (userProfile?.campusId) {
+      return query(baseRef, where('campusId', '==', userProfile.campusId), where('academicYear', '==', selectedYear));
+    }
+    return query(baseRef, where('academicYear', '==', selectedYear));
+  }, [firestore, selectedYear, isUniversityExecutive, isMainCampusDOI, userProfile?.campusId]);
   const { data: allCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const unitCompliances = useMemo(() => {
@@ -1271,6 +1284,10 @@ export default function HomePage() {
           <ScrollArea className="w-full">
             <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
               <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="archipelagic-intelligence">
+                <Compass className="mr-2 h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                Archipelagic Intelligence (AQ)
+              </TabsTrigger>
               <TabsTrigger value="actions">Maturity Checklist</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
               <TabsTrigger value="kpi">KPI Dashboard</TabsTrigger>
@@ -1371,6 +1388,16 @@ export default function HomePage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="archipelagic-intelligence" className="space-y-6">
+          <ArchipelagicIntelligenceTab
+            campuses={campuses || []}
+            allUnits={allUnits || []}
+            academicPrograms={academicPrograms || []}
+            allCompliances={allCompliances || []}
+            selectedYear={selectedYear}
+          />
         </TabsContent>
 
         <TabsContent value="actions" className="space-y-6">
@@ -1486,6 +1513,10 @@ export default function HomePage() {
             <TabsTrigger value="overview">
               <LayoutDashboard className="mr-2 h-4 w-4" />
               Overview
+            </TabsTrigger>
+            <TabsTrigger value="archipelagic-intelligence">
+              <Compass className="mr-2 h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+              Archipelagic Intelligence (AQ)
             </TabsTrigger>
             <TabsTrigger value="schedule">
               <Calendar className="mr-2 h-4 w-4" />
@@ -1603,6 +1634,17 @@ export default function HomePage() {
           </div>
         </div>
       </TabsContent>
+
+      <TabsContent value="archipelagic-intelligence" className="space-y-6">
+        <ArchipelagicIntelligenceTab
+          campuses={campuses || []}
+          allUnits={allUnits || []}
+          academicPrograms={academicPrograms || []}
+          allCompliances={allCompliances || []}
+          selectedYear={selectedYear}
+        />
+      </TabsContent>
+
       <TabsContent value="schedule" className="space-y-6">
         <ScheduleTab
           schedules={dashboardSchedules || []}
@@ -1803,6 +1845,10 @@ export default function HomePage() {
               <LayoutDashboard className="mr-2 h-4 w-4" />
               Overview
             </TabsTrigger>
+            <TabsTrigger value="archipelagic-intelligence">
+              <Compass className="mr-2 h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+              Archipelagic Intelligence (AQ)
+            </TabsTrigger>
             <TabsTrigger value="schedule">
               <Calendar className="mr-2 h-4 w-4" />
               Schedule Today | Upcoming
@@ -1951,6 +1997,16 @@ export default function HomePage() {
             </Card>
           </div>
         </div>
+      </TabsContent>
+
+      <TabsContent value="archipelagic-intelligence" className="space-y-6">
+        <ArchipelagicIntelligenceTab
+          campuses={campuses || []}
+          allUnits={allUnits || []}
+          academicPrograms={filteredAcademicPrograms || []}
+          allCompliances={filteredCompliances || []}
+          selectedYear={selectedYear}
+        />
       </TabsContent>
 
       <TabsContent value="schedule" className="space-y-6">
@@ -2528,10 +2584,64 @@ export default function HomePage() {
   );
 
   const renderHomeContent = () => {
-    if (isUniversityExecutive) return renderAdminHome();
-    if (isIqaUser) return renderAuditorHome();
-    if (isCampusSupervisor) return renderSupervisorHome();
-    return renderUnitUserHome();
+    // Check if the administrator activated the Unified Home Dashboard from Settings
+    const isUnifiedHomeActive = (globalSetting as any)?.enableUnifiedHomeDashboard === true;
+
+    if (isUnifiedHomeActive && !showPersonalWorkspace) {
+      return (
+        <UnifiedHomeDashboard
+          submissions={submissions || []}
+          risks={risks || []}
+          cars={allCars || []}
+          allCompliances={allCompliances || []}
+          academicPrograms={academicPrograms || []}
+          schedules={dashboardSchedules || []}
+          units={allUnits || []}
+          campuses={campuses || []}
+          cycles={allCycles || []}
+          selectedYear={selectedYear}
+          defaultTab={(globalSetting as any)?.homeDashboardDefaultTab || 'overview'}
+          allowWorkspaceSwitch={(globalSetting as any)?.allowUserWorkspaceSwitch !== false}
+          onSwitchToWorkspace={() => setShowPersonalWorkspace(true)}
+          userRole={userRole}
+          isAdmin={isAdmin}
+        />
+      );
+    }
+
+    const personalWorkspaceBanner =
+      isUnifiedHomeActive && showPersonalWorkspace ? (
+        <div className="p-3 mb-6 rounded-xl bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-white/20 text-white border-white/30 text-[9px] font-black uppercase">
+              Personal Workspace View
+            </Badge>
+            <span className="text-xs font-bold">
+              You are currently viewing your personal operational unit/auditor workspace.
+            </span>
+          </div>
+          <Button
+            onClick={() => setShowPersonalWorkspace(false)}
+            size="sm"
+            className="bg-white text-emerald-900 hover:bg-emerald-50 font-black uppercase text-[10px] tracking-wider h-8 shadow-sm"
+          >
+            Return to Institutional Dashboard
+          </Button>
+        </div>
+      ) : null;
+
+    let content = null;
+    if (isUniversityExecutive) content = renderAdminHome();
+    else if (isIqaUser) content = renderAuditorHome();
+    else if (isCampusSupervisor) content = renderSupervisorHome();
+    else content = renderUnitUserHome();
+
+    return (
+      <>
+        {personalWorkspaceBanner}
+        {content}
+      </>
+    );
   };
 
   if (isUserLoading || isLoadingSubmissions) {

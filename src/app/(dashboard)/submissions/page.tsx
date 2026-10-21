@@ -54,6 +54,7 @@ import { UnitSubmissionsView } from '@/components/submissions/unit-submissions-v
 import { CampusSubmissionsView } from '@/components/submissions/campus-submissions-view';
 import { OrgStructureDirectoryView } from '@/components/submissions/org-structure-directory-view';
 import { SubmissionDashboard } from '@/components/submissions/submission-dashboard';
+import { NewSubmissionGuidanceDialog } from '@/components/submissions/new-submission-guidance-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn, normalizeReportType, getSupervisedUnitIds, isVpOffice } from '@/lib/utils';
@@ -128,13 +129,14 @@ export default function SubmissionsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [campusFilter, setCampusFilter] = useState<string>('all');
   const [unitFilter, setUnitFilter] = useState<string>('all');
-  const [modeFilter, setModeFilter] = useState<'all' | 'draft' | 'final'>('all');
+  const [modeFilter, setModeFilter] = useState<'all' | 'draft' | 'final' | 'needs_entry'>('all');
   const [cycleFilter, setCycleFilter] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'recent' | 'oldest'>('recent');
 
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [feedbackToShow, setFeedbackToShow] = useState('');
   const [isDecisionSupportOpen, setIsDecisionSupportOpen] = useState(false);
+  const [showNewSubmissionGuidance, setShowNewSubmissionGuidance] = useState(false);
   const [deletingSubmission, setDeletingSubmission] = useState<Submission | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');
@@ -240,16 +242,19 @@ export default function SubmissionsPage() {
 
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || isUserLoading) return null;
+    const currentYear = Number(yearFilter) || new Date().getFullYear();
+    const baseRef = collection(firestore, 'risks');
     if (isInstitutionalViewer || isUserVpOffice || can('risks.view_all')) {
-      return collection(firestore, 'risks');
+      return query(baseRef, where('year', '==', currentYear));
     }
     if (isSupervisor && !isUnitRole && userProfile.campusId) {
-      return query(collection(firestore, 'risks'), where('campusId', '==', userProfile.campusId));
+      return query(baseRef, where('campusId', '==', userProfile.campusId), where('year', '==', currentYear));
     }
     return query(
-      collection(firestore, 'risks'),
+      baseRef,
       where('unitId', '==', userProfile.unitId),
       where('campusId', '==', userProfile.campusId),
+      where('year', '==', currentYear),
     );
   }, [
     firestore,
@@ -261,6 +266,7 @@ export default function SubmissionsPage() {
     userProfile,
     isUserLoading,
     can,
+    yearFilter,
   ]);
 
   const { data: allRisks } = useCollection<Risk>(risksQuery);
@@ -428,9 +434,10 @@ export default function SubmissionsPage() {
     if (statusFilter !== 'all') filtered = filtered.filter((s) => s.statusId === statusFilter);
     if (cycleFilter !== 'all') filtered = filtered.filter((s) => s.cycleId === cycleFilter);
 
-    // Draft vs Final Filtering
+    // Draft vs Final vs Needs Entry Filtering
     if (modeFilter === 'draft') filtered = filtered.filter((s) => s.isDraft === true);
     if (modeFilter === 'final') filtered = filtered.filter((s) => s.isDraft === false || s.isDraft === undefined);
+    if (modeFilter === 'needs_entry') filtered = filtered.filter((s) => s.submissionNeedsEntry === true);
 
     // Internal Tab Filtering
     if (activeDetailedTab !== 'all') {
@@ -548,7 +555,7 @@ export default function SubmissionsPage() {
                   </Button>
                   {canSubmit && (
                     <Button
-                      onClick={() => router.push('/submissions/new')}
+                      onClick={() => setShowNewSubmissionGuidance(true)}
                       className="shadow-lg shadow-primary/20 h-9 font-black uppercase text-[10px] tracking-widest"
                     >
                       <PlusCircle className="mr-2 h-4 w-4" /> New Submission
@@ -705,6 +712,7 @@ export default function SubmissionsPage() {
                         <SelectItem value="all">All (Drafts & Finals)</SelectItem>
                         <SelectItem value="draft">Drafts Only</SelectItem>
                         <SelectItem value="final">Final Records Only</SelectItem>
+                        <SelectItem value="needs_entry">Needs Data Entry</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -891,6 +899,16 @@ export default function SubmissionsPage() {
                                       >
                                         {getStatusText(sub)}
                                       </Badge>
+                                      {sub.submissionNeedsEntry && (
+                                        <Badge className="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200 text-[8px] font-black uppercase tracking-wider">
+                                          Needs Entry
+                                        </Badge>
+                                      )}
+                                      {sub.dataEntryCompleted && (
+                                        <Badge className="bg-emerald-100 hover:bg-emerald-200 text-emerald-900 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-200 text-[8px] font-black uppercase tracking-wider">
+                                          Data Encoded
+                                        </Badge>
+                                      )}
                                       {sub.comments && sub.comments.length > 0 ? (
                                         <Tooltip>
                                           <TooltipTrigger asChild>
@@ -1001,6 +1019,7 @@ export default function SubmissionsPage() {
                 userProfile={userProfile}
                 isLoading={isLoadingSubmissions}
                 selectedYear={reportSelectedYear}
+                onNewSubmission={() => setShowNewSubmissionGuidance(true)}
               />
             </TabsContent>
           )}
@@ -1071,6 +1090,8 @@ export default function SubmissionsPage() {
           signatories={signatories || undefined}
           defaultReportId="non-submission-audit"
         />
+
+        <NewSubmissionGuidanceDialog open={showNewSubmissionGuidance} onOpenChange={setShowNewSubmissionGuidance} />
       </div>
     </TooltipProvider>
   );

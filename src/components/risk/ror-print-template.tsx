@@ -4,6 +4,7 @@ import React from 'react';
 import type { Risk, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
+import { parseDateSafe } from '@/lib/utils';
 
 interface RORPrintTemplateProps {
   risks: Risk[];
@@ -33,8 +34,12 @@ export function RORPrintTemplate({
 }: RORPrintTemplateProps) {
   const safeDate = (d: any) => {
     if (!d) return '';
-    const date = d instanceof Timestamp ? d.toDate() : new Date(d);
-    return isNaN(date.getTime()) ? '' : format(date, 'MM/dd/yyyy');
+    if (typeof d === 'string') {
+      const date = new Date(d);
+      return isNaN(date.getTime()) ? d : format(date, 'MM/dd/yyyy');
+    }
+    const date = parseDateSafe(d);
+    return date ? format(date, 'MM/dd/yyyy') : '';
   };
 
   const riskEntries = risks.filter((r) => r.type === 'Risk');
@@ -438,7 +443,7 @@ export function RORPrintTemplate({
                   {safeDate(r.targetDate)}
                 </td>
                 <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>
-                  {isFinal ? r.postTreatment?.dateImplemented || '' : ''}
+                  {isFinal ? safeDate(r.postTreatment?.dateImplemented) : ''}
                 </td>
                 <td style={{ border: '1px solid black', padding: '2px', verticalAlign: 'top', fontSize: '7pt' }}>
                   {isFinal ? r.monitoringScore || '' : ''}
@@ -546,7 +551,7 @@ export function RORPrintTemplate({
                   {safeDate(r.targetDate)}
                 </td>
                 <td style={{ border: '1px solid black', padding: '2px', textAlign: 'center' }}>
-                  {isFinal ? r.postTreatment?.dateImplemented || '' : ''}
+                  {isFinal ? safeDate(r.postTreatment?.dateImplemented) : ''}
                 </td>
                 <td style={{ border: '1px solid black', padding: '2px', verticalAlign: 'top', fontSize: '7pt' }}>
                   {isFinal ? r.monitoringScore || '' : ''}

@@ -79,20 +79,44 @@ export function KpiDashboardTab({
   }, [firestore]);
   const { data: alerts } = useCollection<KpiAlert>(alertsQuery);
 
-  const csmQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'csmResponses') : null), [firestore]);
+  const csmQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    const base = collection(firestore, 'csmResponses');
+    if (isAdmin) return base;
+    if (userProfile?.campusId) return query(base, where('campusId', '==', userProfile.campusId));
+    if (userProfile?.unitId) return query(base, where('unitId', '==', userProfile.unitId));
+    return base;
+  }, [firestore, isAdmin, userProfile?.campusId, userProfile?.unitId]);
   const { data: csmResponses } = useCollection<CsmResponse>(csmQuery);
 
-  const actQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unitActivities') : null), [firestore]);
+  const actQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    const base = collection(firestore, 'unitActivities');
+    if (isAdmin) return base;
+    if (userProfile?.campusId) return query(base, where('campusId', '==', userProfile.campusId));
+    if (userProfile?.unitId) return query(base, where('unitId', '==', userProfile.unitId));
+    return base;
+  }, [firestore, isAdmin, userProfile?.campusId, userProfile?.unitId]);
   const { data: activities } = useCollection<AttendanceActivity>(actQuery);
-  const logQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'unitActivityAttendanceLogs') : null),
-    [firestore],
-  );
+
+  const logQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    const base = collection(firestore, 'unitActivityAttendanceLogs');
+    if (isAdmin) return base;
+    if (userProfile?.campusId) return query(base, where('campusId', '==', userProfile.campusId));
+    if (userProfile?.unitId) return query(base, where('unitId', '==', userProfile.unitId));
+    return base;
+  }, [firestore, isAdmin, userProfile?.campusId, userProfile?.unitId]);
   const { data: activityLogs } = useCollection<ActivityAttendanceLog>(logQuery);
-  const evalQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'unitActivityEvaluations') : null),
-    [firestore],
-  );
+
+  const evalQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    const base = collection(firestore, 'unitActivityEvaluations');
+    if (isAdmin) return base;
+    if (userProfile?.campusId) return query(base, where('campusId', '==', userProfile.campusId));
+    if (userProfile?.unitId) return query(base, where('unitId', '==', userProfile.unitId));
+    return base;
+  }, [firestore, isAdmin, userProfile?.campusId, userProfile?.unitId]);
   const { data: evaluations } = useCollection<ActivityEvaluation>(evalQuery);
 
   const findingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditFindings') : null), [firestore]);
@@ -104,10 +128,14 @@ export function KpiDashboardTab({
   );
   const { data: procedureManuals } = useCollection<ProcedureManual>(manualsQuery);
 
-  const compliancesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'programCompliances') : null),
-    [firestore],
-  );
+  const compliancesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    const base = collection(firestore, 'programCompliances');
+    if (isAdmin) return query(base, where('academicYear', '==', selectedYear));
+    if (userProfile?.campusId)
+      return query(base, where('campusId', '==', userProfile.campusId), where('academicYear', '==', selectedYear));
+    return query(base, where('academicYear', '==', selectedYear));
+  }, [firestore, isAdmin, userProfile?.campusId, selectedYear]);
   const { data: programCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
 
   const entityType = useMemo(() => {

@@ -141,12 +141,14 @@ export function MaturityRadar({ campuses, submissions, risks, mrOutputs, selecte
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
             <p className="text-[11px] text-muted-foreground leading-relaxed italic">
-              <strong>Strategic Insight:</strong> This radar chart identifies the "shape" of your quality system. A
-              balanced radar indicates consistent adherence across modules. Sharp indentations suggest specific pillars
-              (e.g., Risk Closure) that may require targeted administrative intervention or resource allocation.
+              <strong>Strategic Interpretation:</strong> This radar chart models the balance and institutional health of
+              each campus across three vital ISO 21001 pillars: Documentation completeness, Risk mitigation proactivity,
+              and Management Review action resolution. A balanced, expansive radar polygon indicates holistic governance
+              maturity, whereas acute inward notches pinpoint specific process bottlenecks where delayed evidence
+              uploads or unresolved risks require targeted administrative intervention and resource reallocation.
             </p>
           </div>
         </div>

@@ -313,11 +313,10 @@ export function QaAnalyticsTab() {
     let pipelineText = 'No corrective actions have been logged in the system for this period.';
     if (totalCount > 0) {
       if (openCount === 0) {
-        pipelineText = 'Excellent — all corrective actions in the system have been successfully verified and closed.';
+        pipelineText =
+          'Outstanding resolution performance: All recorded corrective action requests across academic and administrative departments have achieved verified closure with zero pending non-conformances under ISO 21001 requirements.';
       } else {
-        pipelineText = `Out of ${totalCount} total corrective actions, ${openCount} (${openPct}%) remain unresolved. The primary bottleneck is the ${awaitingCount} items awaiting unit response, which requires departments to submit treatment actions.`;
-        if (verificationCount > 0)
-          pipelineText += ` Additionally, ${verificationCount} items are awaiting final QMS verification before closure.`;
+        pipelineText = `Of the ${totalCount} recorded corrective action requests, ${openCount} (${openPct}%) remain active within the institutional remediation pipeline. The primary operational bottleneck centers on ${awaitingCount} items awaiting department responses, requiring active engagement with unit coordinators to submit corrective action plans.${verificationCount > 0 ? ` Additionally, ${verificationCount} resolved submissions await formal Quality Assurance Office verification before final closure.` : ''}`;
       }
     }
 
@@ -326,13 +325,13 @@ export function QaAnalyticsTab() {
     const ncPct = ncCount + ofiCount > 0 ? Math.round((ncCount / (ncCount + ofiCount)) * 100) : 0;
     let natureText = 'No findings recorded for this period.';
     if (ncCount + ofiCount > 0) {
-      natureText = `Mandatory Non-Conformances (NC) constitute ${ncPct}% (${ncCount} items) of findings. Focus resolution resources on NCs to ensure standard alignment, while treating the ${ofiCount} Opportunities for Improvement (OFI) as quality enhancements.`;
+      natureText = `Mandatory Non-Conformances (NC) represent ${ncPct}% (${ncCount} items) of all audited findings, alongside ${ofiCount} Opportunities for Improvement (OFI). While OFIs foster developmental innovation and procedural maturity, NCs denote direct compliance lapses against established management standards and regulatory mandates, requiring prioritized containment to prevent recurring non-compliance.`;
     }
 
     let sourceText = 'No CAR sources recorded.';
     if (sourceData.length > 0) {
       const topSource = sourceData[0];
-      sourceText = `The main driver of corrective actions is '${topSource.name}' with ${topSource.value} CARs, indicating it is the most active detection channel.`;
+      sourceText = `The predominant origination channel for corrective actions is '${topSource.name}' (${topSource.value} CARs), confirming it as the primary discovery mechanism within the institutional feedback cycle. Integrating findings across internal audits, accreditation surveys, and stakeholder feedback ensures that quality improvements rectify root organizational causes rather than isolated symptoms.`;
     }
 
     const overdueCount = agingBuckets['90+ days'];
@@ -340,18 +339,18 @@ export function QaAnalyticsTab() {
     let agingText = 'No active CARs to analyze.';
     if (openCount > 0) {
       if (overdueCount > 0) {
-        agingText = `Critical Attention Required: ${overdueCount} CARs are overdue (exceeding 90 days). These represent long-standing compliance gaps and must be escalated to respective unit heads.`;
+        agingText = `Critical Escalation Alert: ${overdueCount} corrective actions have exceeded the 90-day resolution threshold. Unresolved aged findings expose the institution to external audit sanctions and accreditation downgrades, demanding executive QA intervention and administrative support to unblock delayed remediation workflows.`;
       } else if (intermediateCount > 0) {
-        agingText = `Good pacing, but ${intermediateCount} active CARs are between 31-90 days old. Monitor closely to prevent them from slipping into the overdue (>90 days) category.`;
+        agingText = `Remediation pacing is operational, yet ${intermediateCount} active CARs have reached the 31–90 day maturation bracket. Focused desk coaching and progress monitoring are essential to assist unit heads in completing evidence verification before these actions transition into the overdue category.`;
       } else {
-        agingText = `All ${openCount} active CARs are under 30 days old. Resolution pacing is currently optimal and on schedule.`;
+        agingText = `All ${openCount} active corrective action requests remain within the initial 30-day investigation cycle. Remediation pacing complies with institutional service benchmarks, demonstrating swift acknowledgment and proactive root-cause evaluation by designated unit quality teams.`;
       }
     }
 
     let unitsText = 'No departments have open corrective action requests.';
     if (topUnits.length > 0) {
       const highest = topUnits[0];
-      unitsText = `'${highest.name}' has the largest active workload with ${highest.open} open CARs (${highest.nc} are critical Non-Conformances). High priority should be given to support this department in completing their compliance actions.`;
+      unitsText = `'${highest.name}' currently manages the largest open compliance workload with ${highest.open} active CARs (${highest.nc} mandatory Non-Conformances). Focused technical guidance and administrative reinforcement should be directed toward this department to assist staff in satisfying compliance requirements without impeding daily operations.`;
     }
 
     const createdThisYear = monthlyTrend.reduce((sum, m) => sum + m.Created, 0);
@@ -359,10 +358,10 @@ export function QaAnalyticsTab() {
     let trendText = 'No trend data for the selected period.';
     if (createdThisYear > 0 || closedThisYear > 0) {
       if (closedThisYear >= createdThisYear) {
-        trendText = `Outstanding Resolution Rate: The university closed ${closedThisYear} CARs while creating ${createdThisYear}, successfully reducing the active quality backlog.`;
+        trendText = `Positive Quality Velocity: The university successfully closed ${closedThisYear} CARs while registering ${createdThisYear} new entries, demonstrating an effective remediation throughput that actively reduces the cumulative institutional quality debt.`;
       } else {
         const gap = createdThisYear - closedThisYear;
-        trendText = `Quality Deficit: ${createdThisYear} CARs were created but only ${closedThisYear} were closed. The backlog grew by ${gap} items, indicating resolution pacing needs to be accelerated.`;
+        trendText = `Quality Backlog Warning: New CAR generation (${createdThisYear}) exceeded verified closures (${closedThisYear}) by a deficit of ${gap} items. Accelerating root-cause evaluations and verification reviews is vital to restore pipeline equilibrium before external surveillance audits.`;
       }
     }
 
@@ -375,9 +374,10 @@ export function QaAnalyticsTab() {
         highestCampus['Awaiting Response/Update'] +
         highestCampus['For Final Verification'];
       if (totalCampusOpen > 0) {
-        campusText = `'${highestCampus.campus}' Campus has the highest corrective action burden with ${totalCampusOpen} unresolved items. Site-level QMS monitoring visits should focus on this location.`;
+        campusText = `'${highestCampus.campus}' Campus bears the highest corrective action concentration with ${totalCampusOpen} unresolved items. Site-level QA monitoring visits and localized quality coaching should be prioritized for this campus to uphold cross-campus parity.`;
       } else {
-        campusText = 'All campuses exhibit clean compliance with no active corrective action backlog.';
+        campusText =
+          'Exemplary compliance demonstrated: All university campuses show clean compliance profiles with zero outstanding corrective actions across all academic and administrative divisions.';
       }
     }
 
@@ -803,6 +803,19 @@ export function QaAnalyticsTab() {
               <div className="h-[220px] flex flex-col items-center justify-center text-muted-foreground opacity-40">
                 <ShieldAlert className="h-10 w-10 mb-2" />
                 <p className="text-xs font-bold uppercase tracking-widest">No active CARs to visualize</p>
+              </div>
+            )}
+            {analytics.totalCars > 0 && (
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 flex items-start gap-2">
+                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                    Analysis & Action Plan
+                  </p>
+                  <p className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mt-0.5 leading-relaxed">
+                    {analytics.pipelineText}
+                  </p>
+                </div>
               </div>
             )}
           </CardContent>

@@ -217,11 +217,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setHasHydrated(true);
     setIsEvalSkipped(sessionStorage.getItem('rsu_eval_skipped_session') === 'true');
 
-    // Register Service Worker for offline capability
+    // Register Service Worker for offline capability (production only to prevent HMR chunk caching conflicts in dev)
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .catch((err) => console.error('Service Worker registration failed:', err));
+      if (process.env.NODE_ENV === 'production') {
+        navigator.serviceWorker
+          .register('/sw.js')
+          .catch((err) => console.error('Service Worker registration failed:', err));
+      } else {
+        // In local development, unregister any active service worker and clear caches to prevent stale HMR chunks
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          for (const reg of registrations) {
+            reg.unregister();
+          }
+        });
+        if ('caches' in window) {
+          caches.keys().then((keys) => {
+            for (const key of keys) {
+              caches.delete(key);
+            }
+          });
+        }
+      }
     }
   }, []);
 
@@ -325,8 +341,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const getRisksNotificationQuery = (): Query | null => {
     if (!firestore || !userProfile || !userRole) return null;
     const col = collection(firestore, 'risks');
-    if (isAdmin || isSupervisor) return col;
-    if (userProfile.unitId && userProfile.campusId) return query(col, where('unitId', '==', userProfile.unitId));
+    if (isAdmin) return col;
+    if (isSupervisor && userProfile.campusId) return query(col, where('campusId', '==', userProfile.campusId));
+    if (userProfile.unitId) return query(col, where('unitId', '==', userProfile.unitId));
     return null;
   };
 
@@ -350,8 +367,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const compliancesNotifQuery = useMemoFirebase(() => {
     if (!firestore || !user) return null;
-    return collection(firestore, 'programCompliances');
-  }, [firestore, user]);
+    const base = collection(firestore, 'programCompliances');
+    if (isAdmin) return base;
+    if (userProfile?.campusId) return query(base, where('campusId', '==', userProfile.campusId));
+    return base;
+  }, [firestore, user, isAdmin, userProfile?.campusId]);
   const { data: complianceNotifications } = useCollection<ProgramComplianceRecord>(compliancesNotifQuery);
 
   const decisionsNotifQuery = useMemoFirebase(() => {

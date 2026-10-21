@@ -69,7 +69,7 @@ const statusVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'o
 };
 
 export default function NewSubmissionPage() {
-  const { user, userProfile, userRole, isAdmin } = useUser();
+  const { user, userProfile, userRole, isAdmin, systemSettings } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -426,23 +426,55 @@ export default function NewSubmissionPage() {
 
   const isCycleSelected = selectedYear !== null && selectedCycle !== null;
 
+  // Unit selector for campus-wide uploaders (Campus Director / Campus ODIMO / Admins)
+  // so they can upload org structures for units in their campus that lack a
+  // Unit Coordinator / Unit ODIMO. Unit-level roles stay scoped to their own unit.
+  const isOrgAdmin = useMemo(() => {
+    if (isAdmin) return true;
+    const role = (userProfile?.role || '').toLowerCase();
+    return ['admin', 'administrator', 'system administrator', 'super admin'].some((r) => role.includes(r));
+  }, [userProfile, isAdmin]);
+
+  const isCampusOrgManager = useMemo(() => {
+    if (!userProfile) return false;
+    const role = (userProfile.role || '').toLowerCase();
+    return role.includes('campus director') || role.includes('campus odimo');
+  }, [userProfile]);
+
+  const [orgStructureUnitId, setOrgStructureUnitId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOrgStructureUnitId(userProfile?.unitId || null);
+  }, [userProfile?.unitId]);
+
   const canSubmitOrgStructure = useMemo(() => {
     if (!userProfile) return false;
-    const role = userProfile.role || '';
-    // Fallback: Campus Director / Campus ODIMO can upload org structures for
-    // units within their own campus, in addition to the unit-level roles.
-    return [
-      'Unit Coordinator',
-      'Unit ODIMO',
-      'Campus Director',
-      'Campus ODIMO',
-      'Admin',
+    if (isAdmin || isOrgAdmin || isCampusOrgManager) return true;
+
+    const role = (userProfile.role || '').toLowerCase().trim();
+
+    // Any user associated with the target unit can submit for their unit
+    const targetUnitId = orgStructureUnitId || userProfile.unitId;
+    if (userProfile.unitId && targetUnitId && userProfile.unitId === targetUnitId) {
+      return true;
+    }
+
+    // Role-based keywords for unit officials, coordinators, heads, deans, directors, etc.
+    const allowedKeywords = [
+      'coordinator',
+      'head',
+      'dean',
+      'chair',
+      'director',
+      'odimo',
       'admin',
-      'Administrator',
-      'System Administrator',
-      'Super Admin',
-    ].includes(role);
-  }, [userProfile]);
+      'officer',
+      'lead',
+      'faculty',
+      'staff',
+    ];
+    return allowedKeywords.some((keyword) => role.includes(keyword));
+  }, [userProfile, isAdmin, isOrgAdmin, isCampusOrgManager, orgStructureUnitId]);
 
   // Track whether the org structure has been uploaded for the current cycle
   // Reset to null (loading) whenever year or cycle changes so we never show stale state
@@ -460,26 +492,6 @@ export default function NewSubmissionPage() {
     if (!units || !userProfile?.unitId) return 'Unknown Unit';
     return units.find((u) => u.id === userProfile.unitId)?.name || 'Unknown Unit';
   }, [units, userProfile?.unitId]);
-
-  // Unit selector for campus-wide uploaders (Campus Director / Campus ODIMO / Admins)
-  // so they can upload org structures for units in their campus that lack a
-  // Unit Coordinator / Unit ODIMO. Unit-level roles stay scoped to their own unit.
-  const isOrgAdmin = useMemo(() => {
-    const role = userProfile?.role || '';
-    return ['Admin', 'admin', 'Administrator', 'System Administrator', 'Super Admin'].includes(role);
-  }, [userProfile]);
-
-  const isCampusOrgManager = useMemo(() => {
-    if (!userProfile) return false;
-    const role = userProfile.role || '';
-    return ['Campus Director', 'Campus ODIMO'].includes(role);
-  }, [userProfile]);
-
-  const [orgStructureUnitId, setOrgStructureUnitId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setOrgStructureUnitId(userProfile?.unitId || null);
-  }, [userProfile?.unitId]);
 
   const handleOrgStructureStatusChange = (isSubmitted: boolean) => {
     setSelectedOrgStructureStatus(isSubmitted);
@@ -1468,13 +1480,34 @@ export default function NewSubmissionPage() {
                         </AlertDialogContent>
                       </AlertDialog>
                     ) : (
-                      <SubmissionForm
-                        reportType={selectedReport}
-                        year={selectedYear}
-                        cycleId={selectedCycle}
-                        onSuccess={handleFormSuccess}
-                        key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
-                      />
+                      <>
+                        {selectedReport === 'Operational Plan' &&
+                          systemSettings?.operationalPlanMode !== 'legacy_link' && (
+                            <div className="mb-6 p-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
+                              <div className="space-y-1">
+                                <div className="text-sm font-bold text-primary flex items-center gap-1.5">
+                                  <Sparkles className="h-4 w-4" /> Form QAO-01-025 Interactive Workspace Active
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  You can draft, manage, and print your official Form QAO-01-025 directly with automated
+                                  KPI calculations and VP goal cascading.
+                                </p>
+                              </div>
+                              <Button asChild size="sm" className="font-bold text-xs whitespace-nowrap shadow-xs">
+                                <Link href="/operational-plan">
+                                  Open Workspace <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                                </Link>
+                              </Button>
+                            </div>
+                          )}
+                        <SubmissionForm
+                          reportType={selectedReport}
+                          year={selectedYear}
+                          cycleId={selectedCycle}
+                          onSuccess={handleFormSuccess}
+                          key={`${selectedReport}-${selectedYear}-${selectedCycle}`}
+                        />
+                      </>
                     )}
                   </CardContent>
                 </Card>

@@ -201,12 +201,10 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
     let pipelineText = 'No corrective actions have been logged in the system.';
     if (totalCount > 0) {
       if (openCount === 0) {
-        pipelineText = 'Excellent! All corrective actions in the system have been successfully verified and closed.';
+        pipelineText =
+          'Outstanding compliance status: All recorded corrective actions across the university have completed root-cause remediation, formal effectiveness verification, and official closure under ISO 21001 requirements.';
       } else {
-        pipelineText = `Out of ${totalCount} total corrective actions, ${openCount} (${openPct}% of total) remain unresolved. The primary bottleneck is the '${awaitingCount}' items awaiting unit response, which requires departments to submit treatment actions.`;
-        if (verificationCount > 0) {
-          pipelineText += ` Additionally, ${verificationCount} items are awaiting final QMS verification before closure.`;
-        }
+        pipelineText = `Of the ${totalCount} recorded corrective action requests, ${openCount} (${openPct}%) remain active within the resolution pipeline. The primary operational bottleneck centers on ${awaitingCount} items awaiting department response, necessitating close coordination with accountable unit heads to finalize root-cause analyses and mitigation commitments.${verificationCount > 0 ? ` Concurrently, ${verificationCount} resolved actions await final QA verification before formal sign-off.` : ''}`;
       }
     }
 
@@ -216,14 +214,14 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
     const ncPct = ncCount + ofiCount > 0 ? Math.round((ncCount / (ncCount + ofiCount)) * 100) : 0;
     let natureText = 'No findings recorded.';
     if (ncCount + ofiCount > 0) {
-      natureText = `Mandatory Non-Conformances (NC) constitute ${ncPct}% (${ncCount} items) of findings. Focus resolution resources on NCs to ensure standard alignment, while treating the ${ofiCount} Opportunities for Improvement (OFI) as quality enhancements.`;
+      natureText = `Mandatory Non-Conformances (NC) constitute ${ncPct}% (${ncCount} items) of total findings, whereas Opportunities for Improvement (OFI) account for ${ofiCount} items. While OFIs serve as continuous quality recommendations, NCs indicate direct procedural non-compliance against ISO standards and statutory requirements, demanding priority containment to prevent systemic audit findings.`;
     }
 
     // 3. Source Insight
     let sourceText = 'No CAR sources recorded.';
     if (sourceData.length > 0) {
       const topSource = sourceData[0];
-      sourceText = `The main driver of corrective actions is '${topSource.name}' with ${topSource.value} CARs, indicating it is the most active detection channel.`;
+      sourceText = `The predominant catalyst triggering corrective actions is '${topSource.name}' (${topSource.value} CARs), confirming it as the primary detection mechanism in the institutional quality feedback loop. Cross-referencing findings from internal audits, external accreditations, and client feedback guarantees that corrective interventions address systemic vulnerabilities rather than localized symptoms.`;
     }
 
     // 4. Aging Insight
@@ -234,11 +232,11 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
     let agingText = 'No active CARs to analyze.';
     if (openCount > 0) {
       if (overdueCount > 0) {
-        agingText = `Critical Attention Required: ${overdueCount} CARs are overdue (exceeding 90 days). These represent long-standing compliance gaps and must be escalated to respective unit heads.`;
+        agingText = `Critical Escalation Required: ${overdueCount} corrective action requests exceed the 90-day resolution threshold. Stagnant corrective actions jeopardize institutional ISO certification and SUC accreditation ratings, requiring executive management intervention and administrative support to unblock stalled remediation workflows.`;
       } else if (intermediateCount > 0) {
-        agingText = `Good pacing, but ${intermediateCount} active CARs are between 31-90 days old. Monitor closely to prevent them from slipping into the overdue (>90 days) category.`;
+        agingText = `Resolution cadence is stable, but ${intermediateCount} active CARs fall within the 31–90 day maturation window. Focused desk monitoring and mid-cycle progress reviews are vital to assist unit heads in completing evidence verification before these actions lapse into the overdue bracket.`;
       } else {
-        agingText = `All ${openCount} active CARs are under 30 days old. Resolution pacing is currently optimal and on schedule.`;
+        agingText = `All ${openCount} active corrective action requests remain within the initial 30-day investigation cycle. Remediation pacing aligns with institutional service charters, indicating prompt acknowledgment and proactive root-cause evaluation by designated unit quality coordinators.`;
       }
     }
 
@@ -247,7 +245,7 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
     if (topUnits.length > 0) {
       const highest = topUnits[0];
       const ncHigh = highest.nc;
-      unitsText = `'${highest.name}' has the largest active workload with ${highest.open} open CARs (${ncHigh} are critical Non-Conformances). High priority should be given to support this department in completing their compliance actions.`;
+      unitsText = `'${highest.name}' currently bears the highest active compliance workload with ${highest.open} open CARs, of which ${ncHigh} represent mandatory Non-Conformances. The Quality Assurance Management Office should prioritize technical desk assistance and targeted coaching for this unit to resolve its corrective action backlog without disrupting core operations.`;
     }
 
     // 6. Trend Insight
@@ -256,10 +254,10 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
     let trendText = 'No trend data for the selected academic year.';
     if (createdThisYear > 0 || closedThisYear > 0) {
       if (closedThisYear >= createdThisYear) {
-        trendText = `Outstanding Resolution Rate: In AY ${selectedYear}, the university closed ${closedThisYear} CARs while creating ${createdThisYear}, successfully reducing the active quality backlog.`;
+        trendText = `Positive Quality Velocity: For AY ${selectedYear}, the university verified and closed ${closedThisYear} CARs against ${createdThisYear} newly opened items. Outpacing new entries indicates that institutional corrective mechanisms are operating effectively and progressively diminishing historical audit non-conformances.`;
       } else {
         const gap = createdThisYear - closedThisYear;
-        trendText = `Quality Deficit: In AY ${selectedYear}, ${createdThisYear} CARs were created but only ${closedThisYear} were closed. The backlog grew by ${gap} items, indicating resolution pacing needs to be accelerated.`;
+        trendText = `Backlog Accumulation Alert: In AY ${selectedYear}, ${createdThisYear} CARs were issued while only ${closedThisYear} reached closure, creating an active quality deficit of ${gap} unresolved items. Accelerating root-cause reviews and verification visits is imperative to restore pipeline equilibrium before year-end surveillance reviews.`;
       }
     }
 
@@ -273,9 +271,10 @@ export function CorrectiveActionsTab({ cars, allUnits, campuses, selectedYear }:
         highestCampus['Awaiting Response/Update'] +
         highestCampus['For Final Verification'];
       if (totalCampusOpen > 0) {
-        campusText = `'${highestCampus.campus}' Campus has the highest corrective action burden with ${totalCampusOpen} unresolved items. Site-level QMS monitoring visits should focus on this location.`;
+        campusText = `'${highestCampus.campus}' Campus exhibits the largest unresolved corrective action concentration with ${totalCampusOpen} items in progress. Executive QA site visits and localized quality coaching should be directed toward this location to balance cross-campus compliance parity.`;
       } else {
-        campusText = 'All campuses exhibit clean compliance with no active corrective action backlog.';
+        campusText =
+          'Exemplary compliance demonstrated: All university campuses show clean compliance profiles with zero outstanding corrective actions across all academic and administrative divisions.';
       }
     }
 

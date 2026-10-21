@@ -74,6 +74,12 @@ export type Submission = {
   siteDriveFolderId?: string;
   uploadedFileName?: string;
   uploadedViaSiteRepo?: boolean;
+  isHardCopySubmission?: boolean;
+  submissionNeedsEntry?: boolean;
+  dataEntryCompleted?: boolean;
+  dataEntryCompletedAt?: any;
+  dataEntryCompletedBy?: string;
+  dataEntryCompletedByName?: string;
 };
 
 export type Risk = {
@@ -249,12 +255,123 @@ export type CampusSetting = {
   submissionDriveFolderId?: string; // Extracted folder ID
   submissionDriveUpdatedAt?: string;
   googleScriptWebhookUrl?: string; // Global or campus-specific Google Apps Script Webhook URL
+  // Institutional Home Dashboard Settings
+  enableUnifiedHomeDashboard?: boolean;
+  homeDashboardDefaultTab?: string;
+  allowUserWorkspaceSwitch?: boolean;
 };
+
+export type HomeDashboardSettings = {
+  enableUnifiedHomeDashboard: boolean;
+  defaultTab?: string;
+  allowUserWorkspaceSwitch?: boolean;
+  headlineTitle?: string;
+  headlineSubtitle?: string;
+  updatedAt?: any;
+  updatedBy?: string;
+  updatedByName?: string;
+};
+
+export type OperationalPlanSubmissionMode = 'legacy_link' | 'structured_data';
 
 export type SystemSettings = {
   logoUrl?: string;
+  operationalPlanMode?: OperationalPlanSubmissionMode;
+  enableUnifiedHomeDashboard?: boolean;
+  homeDashboardDefaultTab?: string;
   updatedAt?: any;
   updatedBy?: string;
+};
+
+// SUC Levelling Types
+export type SucKraId = 'KRA_1' | 'KRA_2' | 'KRA_3' | 'KRA_4';
+
+export type SucLevellingCycleStatus = 'Draft' | 'DataCollection' | 'InternalReview' | 'Submitted' | 'Finalized';
+
+export type SucLevellingCycle = {
+  id: string;
+  cycleName: string; // e.g. "AY 2024–2027 SUC Levelling Assessment"
+  targetYearStart: number;
+  targetYearEnd: number;
+  status: SucLevellingCycleStatus;
+  isFinalized: boolean;
+  scoringCeilings?: {
+    kra1Max: number;
+    kra2Max: number;
+    kra3Max: number;
+    kra4Max: number;
+  };
+  totalPoints?: number;
+  achievedLevel?: string;
+  notes?: string;
+  createdAt: any;
+  updatedAt: any;
+};
+
+export type SucIndicator = {
+  id: string;
+  kraId: SucKraId;
+  code: string;
+  title: string;
+  description: string;
+  calculationType: 'TABLE_LOOKUP' | 'RATIO_PERCENT' | 'TIERED_POINTS' | 'DIRECT_VALUE';
+  maxAllowablePoints: number;
+  targetUnit: 'PERCENTAGE' | 'COUNT' | 'PESOS' | 'POINTS';
+  requiresDriveEvidence: boolean;
+  movDescription?: string;
+};
+
+export type SucMovDriveLink = {
+  title: string;
+  driveFolderUrl: string;
+  fileId?: string;
+  directViewLink?: string;
+  mimeType?: string;
+};
+
+export type SucIndicatorSubmission = {
+  id: string;
+  cycleId: string;
+  indicatorId: string;
+  unitId: string;
+  unitName?: string;
+  campusId: string;
+  campusName?: string;
+  academicYear: number;
+  numeratorValue: number;
+  denominatorValue: number;
+  rawMetricValue: number;
+  selfAwardedPoints: number;
+  validatedPoints?: number;
+  externalPoints?: number;
+  movDriveLinks: SucMovDriveLink[];
+  validationStatus: 'Pending' | 'Verified' | 'Flagged' | 'Rejected';
+  validatorRemarks?: string;
+  validatedById?: string;
+  validatedByName?: string;
+  validatedAt?: any;
+  createdAt: any;
+  updatedAt: any;
+};
+
+export type SucLevelThreshold = {
+  level: 'Level V' | 'Level IV' | 'Level III' | 'Level II' | 'Level I';
+  title: string;
+  minTotal: number;
+  minKra1: number;
+  minKra2: number;
+  minKra3: number;
+  minKra4: number;
+  badgeClass: string;
+  description: string;
+};
+
+export type SucKraScores = {
+  kra1: number;
+  kra2: number;
+  kra3: number;
+  kra4: number;
+  total: number;
 };
 
 export type GadSettings = {
@@ -1297,6 +1414,13 @@ export type ActionEntry = {
   submittedById: string;
   submittedAt: any; // Timestamp
 
+  // Unit and Campus tracking
+  campusId?: string;
+  campusName?: string;
+  unitId?: string;
+  unitName?: string;
+  actionStatus?: 'In Progress' | 'Completed' | 'Pending Verification';
+
   // Admin confirmation
   isConfirmed?: boolean;
   confirmationRemarks?: string;
@@ -1847,3 +1971,217 @@ export interface FiamoSettings {
   updatedAt: any;
   updatedBy: string;
 }
+
+// ============================================================
+// OPERATIONAL PLAN (FORM QAO-01-025) TYPES
+// ============================================================
+
+export type VpStrategicGoal = {
+  id: string;
+  year: number;
+  vpCluster: 'VPAA' | 'VPAF' | 'VPREDI' | 'OVPSAS' | 'OVP' | 'General' | string;
+  vpOfficeName?: string;
+  vpUserId?: string;
+  vpUserName?: string;
+  title: string;
+  description?: string;
+  targetMetric?: string;
+  qualityObjective?: string;
+  sucLevellingKra?: string;
+  archipelagicPillar?: string;
+  tenPointAgenda?: string;
+  tenPointAgendas?: string[];
+  isActive: boolean;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: any;
+  updatedAt?: any;
+};
+
+export type OperationalPlanStatus = 'Draft' | 'Submitted' | 'NeedsRevision' | 'Approved';
+
+export type OperationalPlanDocument = {
+  id: string;
+  unitId: string;
+  unitName: string;
+  campusId: string;
+  year: number;
+  cycleId: 'first' | 'final';
+  status: OperationalPlanStatus;
+  opControlNumber?: string; // e.g. "QAO-01-025-2026-ENG-01"
+  preparedById: string;
+  preparedByName: string;
+  preparedAt: any;
+  approvedById?: string;
+  approvedByName?: string;
+  approvedAt?: any;
+  feedbackNotes?: string;
+  totalBudget?: number;
+  totalTasks?: number;
+  achievementRate?: number;
+  swotStatus?: 'updated' | 'retained';
+  nedStatus?: 'updated' | 'retained';
+  // Quality Objectives Monitoring Form Fields
+  baselineData?: string;
+  policyIndicator?: string;
+  unitQualityObjective?: string;
+  reviewedById?: string;
+  reviewedByName?: string;
+  reviewedByTitle?: string;
+  preparedByTitle?: string;
+  approvedByTitle?: string;
+  analysisBelowTarget?: string;
+  problemsEncountered?: string;
+  createdAt: any;
+  updatedAt: any;
+};
+
+export type OperationalPlanItem = {
+  id: string;
+  planId: string;
+  unitId: string;
+  year: number;
+  sortOrder: number;
+  // Baseline fields (IMMUTABLE ONCE APPROVED)
+  vpObjectiveId?: string;
+  vpObjectiveTitle?: string;
+  objective: string;
+  tasks: string;
+  timelineStart: string;
+  timelineEnd: string;
+  personsResponsible: string;
+  resources?: string;
+  budget: number;
+  successIndicator: string;
+  targetMetricValue?: number;
+  targetMetricUnit?: string;
+  sucLevellingKra?: string;
+  archipelagicPillar?: string;
+  tenPointAgenda?: string;
+  tenPointAgendas?: string[];
+  qualityObjective?: string;
+  isBaselineLocked: boolean;
+  // Progress/Updates & Remarks (Editable in Final Cycle)
+  progressUpdates?: string;
+  actualMetricValue?: number;
+  remarks?: string;
+  movDriveLink?: string;
+  // Performance Metrics
+  isCompleted?: boolean;
+  attainmentPercentage?: number;
+  status?: string;
+  createdAt: any;
+  updatedAt?: any;
+};
+
+export type QualityObjectiveItem = {
+  id: string;
+  planId: string;
+  unitId: string;
+  year: number;
+  cycleId: 'first' | 'final';
+  objectiveText: string;
+  taskText: string;
+  targetIndicator: string;
+  activeMonths: number[]; // 1 = Jan, 12 = Dec
+  actualMonths?: number[]; // Months where activity was actually conducted
+  inCharge?: string; // e.g. QA UNIT / Assigned Office
+  resourcesNeeded?: string; // e.g. Human Resource / Budget / Supplies & Materials
+  quarterlyMilestones?: {
+    q1?: string;
+    q2?: string;
+    q3?: string;
+    q4?: string;
+  };
+  responsiblePerson: string;
+  status: 'Pending' | 'Ongoing' | 'Achieved' | 'Delayed';
+  actualOutput?: string;
+  movLink?: string;
+  remarks?: string;
+  attainmentPercentage?: number; // 0 to 100%
+  monthlyAccomplishments?: Record<number, MonthlyAccomplishmentEntry>;
+  sucLevellingKra?: string;
+  archipelagicPillar?: string;
+  tenPointAgenda?: string;
+  tenPointAgendas?: string[];
+  qualityObjective?: string;
+  opItemId?: string;
+  createdAt: any;
+  updatedAt?: any;
+};
+
+export type MonthlyAccomplishmentEntry = {
+  implemented?: boolean; // whether activity was actually implemented during this month
+  completed?: boolean;
+  notes?: string; // unique report / accomplishment narrative for this month
+  output?: string; // milestone / deliverable output produced
+  attainment?: number; // 0 - 100%
+  evidenceLink?: string; // Google Drive or direct URL evidence for this month
+  evidenceName?: string; // Descriptive title / label of evidence document
+  reportedBy?: string; // Name of person who logged the accomplishment
+  date?: string; // ISO date string of update
+};
+
+// ============================================================
+// SWOT ANALYSIS (FORM QAO-01-001) & INTERESTED PARTIES (FORM QAO-01-003)
+// ============================================================
+
+export type SwotAnalysisItem = {
+  id: string;
+  planId: string;
+  unitId: string;
+  year: number;
+  focusArea: string;
+  strengths: string;
+  weaknesses: string;
+  opportunities: string;
+  threats: string;
+  createdAt: any;
+  updatedAt?: any;
+};
+
+export type SwotMetadata = {
+  id: string;
+  unitId: string;
+  year: number;
+  mission: string;
+  vision: string;
+  qualityPolicy: string;
+  saNo?: string;
+  updatedAt?: any;
+};
+
+export type NeedExpectationPair = {
+  need: string;
+  expectation: string;
+};
+
+export type InterestedPartyItem = {
+  id: string;
+  planId: string;
+  unitId: string;
+  year: number;
+  partyName: string;
+  needs: string;
+  expectations: string;
+  pairs?: NeedExpectationPair[];
+  createdAt: any;
+  updatedAt?: any;
+};
+
+// ============================================================
+// 10-POINT AGENDA SETTINGS (ARCHIPELAGIC INTELLIGENCE - AQ)
+// ============================================================
+
+export type TenPointAgendaItem = {
+  code: string;
+  title: string;
+  description: string;
+};
+
+export type TenPointAgendaSettings = {
+  items: TenPointAgendaItem[];
+  updatedAt?: any;
+  updatedBy?: string;
+  updatedByName?: string;
+};

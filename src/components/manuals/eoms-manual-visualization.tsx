@@ -690,9 +690,14 @@ export function EomsManualVisualization({
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
-          <CardFooter className="border-t bg-muted/10 py-2.5 px-4 text-[10px] text-muted-foreground flex justify-between items-center">
-            <span>Core concentration: Clause 8 (Educational Operational Delivery) & Clause 7 (Support)</span>
-            <span className="font-black text-primary font-mono">{metrics.totalPages} Total Pages</span>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <BookOpen className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This chart details documentation volume distributed across the 10 clauses of the ISO 21001:2018 standard.
+              Heavy concentration in Clause 8 (Educational Operational Delivery) and Clause 7 (Support Resources)
+              underscores institutional procedural rigor in core academic design, curriculum execution, learner
+              assessment, and faculty competency management.
+            </p>
           </CardFooter>
         </Card>
 
@@ -753,6 +758,15 @@ export function EomsManualVisualization({
               ))}
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <PieChartIcon className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This proportional distribution visualizes manual content across the Plan-Do-Check-Act (PDCA) governance
+              architecture of ISO 21001. A balanced structural allocation confirms that strategic leadership and
+              planning (Clauses 4–6), operational execution (Clauses 7–8), and evaluation and improvement (Clauses 9–10)
+              are systematically codified to support third-party accreditation and certification audits.
+            </p>
+          </CardFooter>
         </Card>
       </div>
 

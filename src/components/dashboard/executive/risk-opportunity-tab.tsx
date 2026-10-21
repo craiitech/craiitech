@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { Risk, Unit, Campus } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   PieChart,
@@ -20,7 +20,16 @@ import {
   LineChart,
   Line,
 } from 'recharts';
-import { ShieldAlert, TrendingUp, CheckCircle2, AlertTriangle, Lightbulb, ArrowDown } from 'lucide-react';
+import {
+  ShieldAlert,
+  TrendingUp,
+  CheckCircle2,
+  AlertTriangle,
+  Lightbulb,
+  ArrowDown,
+  Info,
+  ShieldCheck,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
@@ -273,6 +282,17 @@ export function RiskOpportunityTab({ risks, allUnits, campuses, selectedYear }: 
               </p>
             )}
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Risk Severity Interpretation:</strong> This distribution segments active institutional risks by
+                initial severity (Low, Medium, High, and Critical). Dominant high-or-critical proportions signal acute
+                vulnerability across administrative or instructional systems, requiring immediate escalation to
+                executive management for resource prioritization.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         {/* Risks vs Opportunities by Status */}
@@ -314,6 +334,17 @@ export function RiskOpportunityTab({ risks, allUnits, campuses, selectedYear }: 
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Pipeline Balance Interpretation:</strong> This chart contrasts threats against positive
+                institutional opportunities across lifecycle stages (Open, In Progress, and Closed). A balanced
+                organizational posture couples defensive risk controls with proactive opportunity realization, driving
+                continuous quality improvement under ISO 9001/21001.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </div>
 
@@ -387,6 +418,17 @@ export function RiskOpportunityTab({ risks, allUnits, campuses, selectedYear }: 
             ))}
           </div>
         </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-3 px-6">
+          <div className="flex items-start gap-3">
+            <Info className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              <strong>Heat Map Matrix Interpretation:</strong> This 5×5 matrix correlates Likelihood against Consequence
+              according to ISO 31000 standards. Risky events clustering in the upper-right red cells represent
+              high-impact, high-probability threats that demand urgent mitigation plans and contingency budgets, while
+              clusters in lower green cells represent tolerable operational variances.
+            </p>
+          </div>
+        </CardFooter>
       </Card>
 
       {/* Row 3: Top Risky Units + Pre/Post Treatment */}
@@ -423,6 +465,17 @@ export function RiskOpportunityTab({ risks, allUnits, campuses, selectedYear }: 
               </div>
             )}
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Unit Vulnerability Interpretation:</strong> This chart highlights organizational units carrying
+                the highest concentrations of unresolved risks. Rose-colored bars denote units facing critical or
+                high-level risks, signaling where internal audits and executive corrective assistance should be directed
+                immediately.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         {/* Pre vs Post Treatment Impact */}
@@ -475,6 +528,17 @@ export function RiskOpportunityTab({ risks, allUnits, campuses, selectedYear }: 
               </div>
             )}
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Treatment Efficacy Interpretation:</strong> This metric tracks risk mitigation effectiveness by
+                contrasting inherent risk severity (rose) against residual risk severity (emerald) after action plan
+                execution. A substantial downward shift proves that risk treatments are actively dampening vulnerability
+                rather than functioning merely as paper compliance.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </div>
 
@@ -515,6 +579,17 @@ export function RiskOpportunityTab({ risks, allUnits, campuses, selectedYear }: 
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-3 px-6">
+          <div className="flex items-start gap-3">
+            <TrendingUp className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              <strong>Campus Treatment Execution Interpretation:</strong> This stacked comparative chart illustrates
+              risk resolution progress across campuses. Prominent green (closed) portions reflect proactive operational
+              oversight and timely mitigation, while prolonged open or treating phases flag campuses needing reinforced
+              risk champion coordination.
+            </p>
+          </div>
+        </CardFooter>
       </Card>
     </div>
   );

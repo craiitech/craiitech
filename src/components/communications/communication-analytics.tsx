@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import type { Communication, Unit, Campus } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -774,6 +774,15 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
               </div>
             )}
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <TrendingUp className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This longitudinal timeline tracks monthly communication volume, comparing outgoing dispatches against
+              incoming receipts across academic terms. Seasonal peaks coincide with academic cycle transitions,
+              enrollment registrations, and accreditation audits, illustrating institutional administrative
+              communication velocity.
+            </p>
+          </CardFooter>
         </Card>
 
         {/* Categories / Kinds Donut Chart with Direct 3D Labels */}
@@ -854,6 +863,15 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
               </div>
             )}
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This distribution classifies official institutional releases across ISO 21001 document typologies—such as
+              Memorandum Orders, Office Orders, and Communication Requests. Monitoring category distribution verifies
+              that institutional directives and operational requests are correctly channeled and codified under standard
+              documentation protocols.
+            </p>
+          </CardFooter>
         </Card>
       </div>
 
@@ -901,6 +919,15 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
               </ResponsiveContainer>
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <Activity className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              Categorizing institutional issuances by operational intent differentiates actionable administrative
+              mandates and formal approvals from advisory notices, ensuring that time-sensitive compliance directives
+              receive priority routing, turnaround tracking, and automated reminder escalation under ISO 21001:2025
+              Clause 7.4 communication governance standards.
+            </p>
+          </CardFooter>
         </Card>
 
         {/* Target Stakeholders with 3D Gradients & Direct Labels */}
@@ -944,6 +971,15 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
               </ResponsiveContainer>
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <Users className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              Mapping audience dissemination evaluates stakeholder reach across learners, faculty, administrative staff,
+              and external regulatory bodies, verifying that academic policies and administrative protocols are
+              systematically communicated to all affected constituencies without informational bottlenecks or compliance
+              blind spots.
+            </p>
+          </CardFooter>
         </Card>
 
         {/* Top Originating Units with 3D Badge Ranking */}
@@ -996,6 +1032,15 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
               )}
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <Building2 className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              Tracking originating units highlights primary institutional policy drivers and administrative workflow
+              density, enabling the quality management office to monitor departmental transmission volume, ensure
+              adherence to standard serial numbering schemes, and maintain balanced communication channels across all
+              university divisions.
+            </p>
+          </CardFooter>
         </Card>
       </div>
 
@@ -1108,6 +1153,15 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
             </p>
           </div>
         </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+          <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+          <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+            This matrix validates full institutional alignment against the six explicit mandate pillars of ISO
+            21001:2025 Clause 7.4, confirming that all university communications possess verifiable content definitions,
+            defined schedules, designated recipients, authenticated transmission modes, authorized originators, and
+            traceable acknowledgement mechanisms.
+          </p>
+        </CardFooter>
       </Card>
     </div>
   );

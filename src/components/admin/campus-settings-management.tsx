@@ -30,7 +30,7 @@ const settingsSchema = z.object({
 });
 
 export function CampusSettingsManagement() {
-  const { userProfile, isAdmin, isUserLoading } = useUser();
+  const { user, userProfile, isAdmin, isUserLoading } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -150,9 +150,13 @@ export function CampusSettingsManagement() {
       'https://script.google.com/macros/s/AKfycbww5SZCg_SUIBP9x-gcuUlTmjiirEPuxgpUKdSYhv-_2j_7hBMPMyR2n7OvmraMfZIRuA/exec';
     setIsTestingScript(true);
     try {
+      const idToken = user ? await user.getIdToken().catch(() => '') : '';
       const res = await fetch('/api/upload-to-drive', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+        },
         body: JSON.stringify({
           folderId: 'ping-test',
           fileName: 'ping.txt',

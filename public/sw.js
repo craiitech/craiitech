@@ -52,6 +52,11 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (!event.request.url.startsWith('http')) return;
 
+  // Bypass Service Worker completely in development to avoid breaking Turbopack HMR chunks
+  if (self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1') {
+    return;
+  }
+
   // Skip auth endpoints
   if (
     requestUrl.pathname.startsWith('/__/auth') ||

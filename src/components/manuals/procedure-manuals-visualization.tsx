@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { ProcedureManual, Unit, Campus, ProcedureRevisionRequest } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -524,6 +524,15 @@ export function ProcedureManualsVisualization({
               </div>
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <PieChartIcon className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This distribution profiles institutional Standard Operating Procedure (SOP) compliance across university
+              units, categorizing offices into fully updated manuals, those undergoing formal revision, and pending
+              submissions. A high updated ratio guarantees alignment with ISO 21001 Clause 7.5 (Documented Information)
+              and ensures operational resilience across academic and administrative processes.
+            </p>
+          </CardFooter>
         </Card>
 
         {/* CHART 2: CATEGORY BREAKDOWN (UNITS & PROCESSES) */}
@@ -600,6 +609,15 @@ export function ProcedureManualsVisualization({
               </ResponsiveContainer>
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <BarChart3 className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This comparative analysis benchmarks documented process density and manual compliance between Academic and
+              Administrative units. Tracking codified SOP volumes by classification ensures that core teaching-learning
+              processes and vital institutional support services maintain equal operational standardization across
+              university departments.
+            </p>
+          </CardFooter>
         </Card>
 
         {/* CHART 3: TOP UNITS BY DOCUMENTED PROCESSES */}
@@ -657,6 +675,15 @@ export function ProcedureManualsVisualization({
               </ResponsiveContainer>
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <TrendingUp className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This ranking highlights organizational units leading the university in procedural codification by mapping
+              comprehensive operational workflows and SOP inventories. Offices with extensive documented processes serve
+              as institutional benchmarks for process transparency and facilitate seamless knowledge transfer during
+              staff reassignments.
+            </p>
+          </CardFooter>
         </Card>
 
         {/* CHART 4: REVISION LEVEL MATURITY */}
@@ -711,6 +738,15 @@ export function ProcedureManualsVisualization({
               </ResponsiveContainer>
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <Award className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This maturity ledger charts the distribution of manual revision levels (Rev 00 through successive
+              amendments), serving as a direct barometer of Continuous Quality Improvement (CQI). High revision
+              frequencies reflect dynamic SOP updates triggered by Internal Quality Audit (IQA) findings, customer
+              satisfaction feedback, and statutory mandate changes under ISO 21001 Clause 10.2.
+            </p>
+          </CardFooter>
         </Card>
       </div>
 

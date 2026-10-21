@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { Risk, Unit, Campus } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -712,6 +712,17 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
               </p>
             )}
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Strategic Exposure Interpretation:</strong> This ranking evaluates which core institutional
+                objectives face the greatest threat concentration. Normalized risk scores integrate open critical items,
+                untreated risks, and average magnitude, providing leadership with clear visibility into which strategic
+                pillars require enhanced operational controls or resource reinforcement.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         {/* === CAMPUS RISK PROFILE === */}
@@ -777,6 +788,17 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Building2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Campus Risk Posture Interpretation:</strong> This chart provides a direct comparison of total
+                identified risks against active critical vulnerabilities across campuses. Campuses displaying elevated
+                critical counts or subdued treatment rates highlight locations where regional quality teams must
+                intervene to implement tailored controls.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         {/* === RISK STATEMENT REGISTER === */}
@@ -1086,6 +1108,17 @@ export function ExecutiveRiskIntelligence({ risks, allUnits, campuses, selectedY
               )}
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Lightbulb className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Strategic Recommendations Interpretation:</strong> These automated recommendations are generated
+                by synthesizing severity ratings, untreated risk counts, and historical mitigation efficacy across the
+                active register. Prioritizing critical and high items ensures leadership addresses legal, financial, and
+                operational risks before regulatory reviews and budget allocation deadlines.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </div>
     </TooltipProvider>

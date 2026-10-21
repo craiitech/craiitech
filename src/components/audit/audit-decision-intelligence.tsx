@@ -10,7 +10,7 @@ import type {
   Campus,
   CorrectiveActionRequest,
 } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -730,6 +730,16 @@ export function IqaDecisionIntelligence({
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This distribution profiles institutional audit observations across full conformance, positive
+                opportunities for improvement (OFI), and systemic non-conformances (NC). A healthy Educational
+                Organizations Management System (EOMS) exhibits robust compliance paired with actionable OFIs, whereas
+                an elevated proportion of NCs signals operational vulnerabilities requiring root-cause remediation and
+                immediate Corrective Action Request (CAR) issuance under ISO 21001 Clause 10.
+              </p>
+            </CardFooter>
           </Card>
 
           {/* NC → CAR Funnel */}
@@ -775,6 +785,15 @@ export function IqaDecisionIntelligence({
                 </div>
               )}
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This pipeline measures remediation throughput by tracking the conversion of audit findings into formal
+                corrective actions and verified closures. Drop-offs between non-conformance discovery and CAR creation
+                signify governance gaps, while low final closure percentages highlight operational inertia or delayed
+                validation of preventive controls by lead auditors.
+              </p>
+            </CardFooter>
           </Card>
         </div>
 
@@ -873,6 +892,15 @@ export function IqaDecisionIntelligence({
                 </p>
               )}
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This compliance matrix benchmarks operational units using a weighted scoring formula (Compliance: 100%,
+                OFI: 50%, NC: 0%) to identify organizational pockets of excellence versus areas requiring targeted QMS
+                coaching. Units scoring below the 75% threshold represent compliance risks that warrant prioritized
+                internal quality audit (IQA) resurveys and structured management intervention.
+              </p>
+            </CardFooter>
           </Card>
 
           {/* ISO Clause Risk Map */}
@@ -935,6 +963,15 @@ export function IqaDecisionIntelligence({
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <FileSearch className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This risk map highlights standard-specific compliance friction by weighing non-conformance severity
+                against Opportunities for Improvement across ISO 21001 requirements. Clauses exhibiting peak risk
+                indices indicate systemic execution difficulties or documentation ambiguities across academic and
+                administrative departments, dictating priorities for university-wide QMS capability-building.
+              </p>
+            </CardFooter>
           </Card>
         </div>
 
@@ -1030,6 +1067,15 @@ export function IqaDecisionIntelligence({
                 </div>
               )}
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <AlertTriangle className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This diagnostic identifies repetitive operational non-conformances and persistent OFIs recorded against
+                the same standard clause across multiple audit runs. Chronic recurrence exposes inadequate root-cause
+                isolation or superficial corrective action deployment, serving as an escalation trigger for executive
+                management review.
+              </p>
+            </CardFooter>
           </Card>
 
           {/* Process Category Health */}
@@ -1083,6 +1129,15 @@ export function IqaDecisionIntelligence({
                 )}
               </div>
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <GanttChartSquare className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This metric aggregates process robustness across the three functional tiers of higher education
+                governance: Management Processes, Core Operations (Instruction, Research, Extension), and Support
+                Services. Variations in health scores highlight functional disparities where support friction or
+                procedural bottlenecks may impede primary academic service delivery.
+              </p>
+            </CardFooter>
           </Card>
         </div>
 

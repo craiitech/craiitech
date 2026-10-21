@@ -1,8 +1,10 @@
 'use client';
 
+import { useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserManagement } from '@/components/admin/user-management';
 import { CampusManagement } from '@/components/admin/campus-management';
+import { getUserVpContext } from '@/lib/utils';
 import { RoleManagement } from '@/components/admin/role-management';
 import { CampusSettingsManagement } from '@/components/admin/campus-settings-management';
 import { useUser } from '@/firebase';
@@ -20,6 +22,10 @@ import { PbbSettingsManagement } from '@/components/admin/pbb-settings-managemen
 import { CommunicationSettingsManagement } from '@/components/admin/communication-settings-management';
 import { NotificationSettingsManagement } from '@/components/notifications/notification-settings';
 import { FiamoSettingsManagement } from '@/components/fiamo/settings/fiamo-settings-management';
+import { OperationalPlanSettingsManagement } from '@/components/admin/operational-plan-settings-management';
+import { TenPointAgendaManagement } from '@/components/admin/ten-point-agenda-management';
+import { HomeDashboardSettingsManagement } from '@/components/admin/home-dashboard-settings-management';
+import { SucLevellingSettingsManagement } from '@/components/admin/suc-levelling-settings-management';
 
 import { SignatoryManagement } from '@/components/admin/signatory-management';
 import { DataBackupManagement } from '@/components/admin/data-backup-management';
@@ -34,7 +40,7 @@ import { Button } from '@/components/ui/button';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 
 export default function SettingsPage() {
-  const { isAdmin, isUserLoading, userRole } = useUser();
+  const { isAdmin, isUserLoading, userRole, userProfile } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -86,6 +92,30 @@ export default function SettingsPage() {
                 </TabsTrigger>
                 <TabsTrigger value="logo" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   System Logo
+                </TabsTrigger>
+                <TabsTrigger
+                  value="home-dashboard"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 data-[state=active]:bg-emerald-600 data-[state=active]:text-white"
+                >
+                  🏛️ Home Dashboard
+                </TabsTrigger>
+                <TabsTrigger
+                  value="suc-levelling"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8 bg-amber-500/10 text-amber-700 dark:text-amber-400 data-[state=active]:bg-amber-600 data-[state=active]:text-white"
+                >
+                  🎓 SUC Levelling
+                </TabsTrigger>
+                <TabsTrigger
+                  value="operational-plan"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8 bg-primary/10 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  Archipelagic Intelligence (AQ) Settings
+                </TabsTrigger>
+                <TabsTrigger
+                  value="ten-point-agenda"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
+                >
+                  10-Point Agenda (AQ)
                 </TabsTrigger>
                 <TabsTrigger value="signatories" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   Signatories
@@ -185,6 +215,18 @@ export default function SettingsPage() {
           <TabsContent value="logo" className="space-y-4 animate-in fade-in duration-500">
             <LogoManagement />
           </TabsContent>
+          <TabsContent value="home-dashboard" className="space-y-4 animate-in fade-in duration-500">
+            <HomeDashboardSettingsManagement />
+          </TabsContent>
+          <TabsContent value="suc-levelling" className="space-y-4 animate-in fade-in duration-500">
+            <SucLevellingSettingsManagement />
+          </TabsContent>
+          <TabsContent value="operational-plan" className="space-y-4 animate-in fade-in duration-500">
+            <OperationalPlanSettingsManagement />
+          </TabsContent>
+          <TabsContent value="ten-point-agenda" className="space-y-4 animate-in fade-in duration-500">
+            <TenPointAgendaManagement />
+          </TabsContent>
           <TabsContent value="signatories" className="space-y-4 animate-in fade-in duration-500">
             <SignatoryManagement />
           </TabsContent>
@@ -247,6 +289,61 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="security" className="space-y-4 animate-in fade-in duration-500">
             <SecuritySpecificationsManagement />
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
+
+  const userVpContext = getUserVpContext(userProfile);
+
+  if (userVpContext.isVpOffice) {
+    const validVpTabs = ['operational-plan', 'ten-point-agenda', 'notifications'];
+    const activeVpTab = validVpTabs.includes(currentTab) ? currentTab : 'operational-plan';
+
+    return (
+      <div className="space-y-4">
+        <Tabs value={activeVpTab} onValueChange={handleTabChange} className="space-y-4">
+          <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b space-y-4">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight">Executive Office Settings</h2>
+              <p className="text-muted-foreground">
+                Manage institutional strategic objectives and review the university 10-point agenda for{' '}
+                <strong className="text-foreground">{userVpContext.officeTitle || 'your office'}</strong>.
+              </p>
+            </div>
+            <ScrollArea className="w-full">
+              <TabsList className="inline-flex w-max h-auto bg-muted p-1 animate-tab-highlight rounded-md whitespace-nowrap">
+                <TabsTrigger
+                  value="operational-plan"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8 bg-primary/10 text-primary data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  Archipelagic Intelligence (AQ) Settings
+                </TabsTrigger>
+                <TabsTrigger
+                  value="ten-point-agenda"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 data-[state=active]:bg-cyan-600 data-[state=active]:text-white"
+                >
+                  10-Point Agenda (AQ)
+                </TabsTrigger>
+                <TabsTrigger
+                  value="notifications"
+                  className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
+                >
+                  Notifications
+                </TabsTrigger>
+              </TabsList>
+            </ScrollArea>
+          </div>
+
+          <TabsContent value="operational-plan" className="space-y-4 animate-in fade-in duration-500">
+            <OperationalPlanSettingsManagement forcedVpCode={userVpContext.vpCode} hideSystemModeToggle={true} />
+          </TabsContent>
+          <TabsContent value="ten-point-agenda" className="space-y-4 animate-in fade-in duration-500">
+            <TenPointAgendaManagement />
+          </TabsContent>
+          <TabsContent value="notifications" className="space-y-4 animate-in fade-in duration-500">
+            <NotificationSettingsManagement />
           </TabsContent>
         </Tabs>
       </div>

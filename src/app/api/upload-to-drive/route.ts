@@ -3,6 +3,7 @@ import https from 'https';
 import http from 'http';
 import { URL } from 'url';
 import { extractDriveFolderId } from '@/lib/utils';
+import { getAdminAuth } from '@/firebase/admin';
 
 const DEFAULT_SCRIPT_URL =
   process.env.GOOGLE_SCRIPT_WEBHOOK_URL ||
@@ -93,6 +94,33 @@ function sendToGoogleAppsScript(
 
 export async function POST(req: NextRequest) {
   try {
+    // Security check: Verify caller identity to prevent unauthorized uploads
+    const authHeader = req.headers.get('authorization');
+    const auth = getAdminAuth();
+    if (auth) {
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Unauthorized: Valid authentication credentials required to upload documents.',
+          },
+          { status: 401 },
+        );
+      }
+      const token = authHeader.split('Bearer ')[1];
+      try {
+        await auth.verifyIdToken(token);
+      } catch (authError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Unauthorized: Invalid or expired authentication session.',
+          },
+          { status: 401 },
+        );
+      }
+    }
+
     let folderId = '';
     let fileName = '';
     let fileBase64 = '';

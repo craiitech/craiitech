@@ -2,7 +2,12 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,10 +23,21 @@ import { Badge } from '@/components/ui/badge';
 import { KPI_CATEGORIES } from '@/lib/constants';
 import { scanForKpiSuggestions, type KpiSuggestion, type DataInventory } from '@/lib/kpi-suggestions';
 import type {
-  Submission, Risk, CorrectiveActionRequest, Unit, Cycle,
-  AuditPlan, CsmResponse, GADPlan, GADActivity,
-  AttendanceActivity, ActivityAttendanceLog, ActivityEvaluation,
-  OkrObjective, OkrKeyResult, KpiDefinition,
+  Submission,
+  Risk,
+  CorrectiveActionRequest,
+  Unit,
+  Cycle,
+  AuditPlan,
+  CsmResponse,
+  GADPlan,
+  GADActivity,
+  AttendanceActivity,
+  ActivityAttendanceLog,
+  ActivityEvaluation,
+  OkrObjective,
+  OkrKeyResult,
+  KpiDefinition,
 } from '@/lib/types';
 
 interface KpiAutoGeneratorDialogProps {
@@ -40,9 +56,18 @@ interface KpiAutoGeneratorDialogProps {
 }
 
 export function KpiAutoGeneratorDialog({
-  open, onOpenChange,
-  submissions, risks, cars, units, cycles, auditPlans, csmResponses,
-  gadPlans, gadActivities, selectedYear,
+  open,
+  onOpenChange,
+  submissions,
+  risks,
+  cars,
+  units,
+  cycles,
+  auditPlans,
+  csmResponses,
+  gadPlans,
+  gadActivities,
+  selectedYear,
 }: KpiAutoGeneratorDialogProps) {
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -53,44 +78,90 @@ export function KpiAutoGeneratorDialog({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [editedSuggestions, setEditedSuggestions] = useState<Map<string, KpiSuggestion>>(new Map());
 
-  const actQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unitActivities') : null), [firestore]);
+  const actQuery = useMemoFirebase(
+    () => (firestore && open ? collection(firestore, 'unitActivities') : null),
+    [firestore, open],
+  );
   const { data: activities } = useCollection<AttendanceActivity>(actQuery);
-  const logQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unitActivityAttendanceLogs') : null), [firestore]);
+  const logQuery = useMemoFirebase(
+    () => (firestore && open ? collection(firestore, 'unitActivityAttendanceLogs') : null),
+    [firestore, open],
+  );
   const { data: activityLogs } = useCollection<ActivityAttendanceLog>(logQuery);
-  const evalQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unitActivityEvaluations') : null), [firestore]);
+  const evalQuery = useMemoFirebase(
+    () => (firestore && open ? collection(firestore, 'unitActivityEvaluations') : null),
+    [firestore, open],
+  );
   const { data: evaluations } = useCollection<ActivityEvaluation>(evalQuery);
-  const okrObjQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'okrObjectives') : null), [firestore]);
+  const okrObjQuery = useMemoFirebase(
+    () => (firestore && open ? collection(firestore, 'okrObjectives') : null),
+    [firestore, open],
+  );
   const { data: okrObjectives } = useCollection<OkrObjective>(okrObjQuery);
-  const okrKrQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'okrKeyResults') : null), [firestore]);
+  const okrKrQuery = useMemoFirebase(
+    () => (firestore && open ? collection(firestore, 'okrKeyResults') : null),
+    [firestore, open],
+  );
   const { data: okrKeyResults } = useCollection<OkrKeyResult>(okrKrQuery);
-  const defsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'kpiDefinitions') : null), [firestore]);
+  const defsQuery = useMemoFirebase(
+    () => (firestore && open ? collection(firestore, 'kpiDefinitions') : null),
+    [firestore, open],
+  );
   const { data: existingDefinitions } = useCollection<KpiDefinition>(defsQuery);
 
-  const dataInventory: DataInventory = useMemo(() => ({
-    submissions, risks, cars, units, cycles, auditPlans, csmResponses,
-    activities: activities || null,
-    activityLogs: activityLogs || null,
-    evaluations: evaluations || null,
-    gadPlans, gadActivities,
-    okrObjectives: okrObjectives || null,
-    okrKeyResults: okrKeyResults || null,
-    existingDefinitions: existingDefinitions || null,
-    selectedYear,
-  }), [submissions, risks, cars, units, cycles, auditPlans, csmResponses,
-      activities, activityLogs, evaluations, gadPlans, gadActivities,
-      okrObjectives, okrKeyResults, existingDefinitions, selectedYear]);
+  const dataInventory: DataInventory = useMemo(
+    () => ({
+      submissions,
+      risks,
+      cars,
+      units,
+      cycles,
+      auditPlans,
+      csmResponses,
+      activities: activities || null,
+      activityLogs: activityLogs || null,
+      evaluations: evaluations || null,
+      gadPlans,
+      gadActivities,
+      okrObjectives: okrObjectives || null,
+      okrKeyResults: okrKeyResults || null,
+      existingDefinitions: existingDefinitions || null,
+      selectedYear,
+    }),
+    [
+      submissions,
+      risks,
+      cars,
+      units,
+      cycles,
+      auditPlans,
+      csmResponses,
+      activities,
+      activityLogs,
+      evaluations,
+      gadPlans,
+      gadActivities,
+      okrObjectives,
+      okrKeyResults,
+      existingDefinitions,
+      selectedYear,
+    ],
+  );
 
   const suggestions = useMemo(() => {
     if (!hasScanned) return [];
     return scanForKpiSuggestions(dataInventory);
   }, [dataInventory, hasScanned]);
 
-  const getSuggestion = useCallback((id: string): KpiSuggestion | undefined => {
-    return editedSuggestions.get(id) || suggestions.find(s => s.id === id);
-  }, [editedSuggestions, suggestions]);
+  const getSuggestion = useCallback(
+    (id: string): KpiSuggestion | undefined => {
+      return editedSuggestions.get(id) || suggestions.find((s) => s.id === id);
+    },
+    [editedSuggestions, suggestions],
+  );
 
   const toggleSelected = useCallback((id: string) => {
-    setSelectedIds(prev => {
+    setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -98,13 +169,16 @@ export function KpiAutoGeneratorDialog({
     });
   }, []);
 
-  const updateSuggestion = useCallback((id: string, field: string, value: any) => {
-    const original = suggestions.find(s => s.id === id);
-    if (!original) return;
-    const current = editedSuggestions.get(id) || original;
-    editedSuggestions.set(id, { ...current, [field]: value });
-    setEditedSuggestions(new Map(editedSuggestions));
-  }, [suggestions, editedSuggestions]);
+  const updateSuggestion = useCallback(
+    (id: string, field: string, value: any) => {
+      const original = suggestions.find((s) => s.id === id);
+      if (!original) return;
+      const current = editedSuggestions.get(id) || original;
+      editedSuggestions.set(id, { ...current, [field]: value });
+      setEditedSuggestions(new Map(editedSuggestions));
+    },
+    [suggestions, editedSuggestions],
+  );
 
   const handleScan = useCallback(() => {
     setIsScanning(true);
@@ -112,7 +186,7 @@ export function KpiAutoGeneratorDialog({
     setTimeout(() => {
       setIsScanning(false);
       setHasScanned(true);
-      setSelectedIds(new Set(scanned.map(s => s.id)));
+      setSelectedIds(new Set(scanned.map((s) => s.id)));
       setStep(1);
     }, 800);
   }, [dataInventory]);
@@ -164,7 +238,12 @@ export function KpiAutoGeneratorDialog({
   }, [onOpenChange]);
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) handleClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) handleClose();
+      }}
+    >
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg font-black flex items-center gap-2">
@@ -188,10 +267,9 @@ export function KpiAutoGeneratorDialog({
                     System Data Scan
                   </p>
                   <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-1 leading-relaxed">
-                    The generator will analyze your available collections —
-                    submissions, risks, CARs, audits, CSM responses, GAD, unit activities, and OKRs —
-                    and suggest KPI definitions that match the available data patterns.
-                    You can review, customize, and batch-create them.
+                    The generator will analyze your available collections — submissions, risks, CARs, audits, CSM
+                    responses, GAD, unit activities, and OKRs — and suggest KPI definitions that match the available
+                    data patterns. You can review, customize, and batch-create them.
                   </p>
                 </div>
               </div>
@@ -206,9 +284,12 @@ export function KpiAutoGeneratorDialog({
                 { key: 'auditPlans', label: 'Audit Plans', count: auditPlans?.length || 0 },
                 { key: 'csmResponses', label: 'CSM Responses', count: csmResponses?.length || 0 },
                 { key: 'activities', label: 'Unit Activities', count: activities?.length || 0 },
-                { key: 'evaluations', label: 'Activity Eval\'ns', count: evaluations?.length || 0 },
-              ].map(item => (
-                <div key={item.key} className="flex items-center justify-between p-3 rounded-lg border bg-white dark:bg-slate-900">
+                { key: 'evaluations', label: "Activity Eval'ns", count: evaluations?.length || 0 },
+              ].map((item) => (
+                <div
+                  key={item.key}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-white dark:bg-slate-900"
+                >
                   <span className="text-[10px] font-bold uppercase text-muted-foreground">{item.label}</span>
                   <span className="text-sm font-black tabular-nums">{item.count}</span>
                 </div>
@@ -223,26 +304,41 @@ export function KpiAutoGeneratorDialog({
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <Check className="h-10 w-10 text-emerald-500 mb-3" />
                 <p className="text-sm font-bold text-muted-foreground">All KPI types already defined</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">No new KPI suggestions available — all data sources already have definitions.</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">
+                  No new KPI suggestions available — all data sources already have definitions.
+                </p>
               </div>
             ) : (
-              suggestions.map(sug => {
+              suggestions.map((sug) => {
                 const s = getSuggestion(sug.id);
                 if (!s) return null;
                 const isSelected = selectedIds.has(sug.id);
                 return (
-                  <div key={sug.id} className={`p-4 rounded-xl border transition-all cursor-pointer ${isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
+                  <div
+                    key={sug.id}
+                    className={`p-4 rounded-xl border transition-all cursor-pointer ${isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
                     onClick={() => toggleSelected(sug.id)}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <div className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-slate-300'}`}>
+                        <div
+                          className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${isSelected ? 'border-primary bg-primary' : 'border-slate-300'}`}
+                        >
                           {isSelected && <Check className="h-3 w-3 text-white" />}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-black">{s.name}</span>
-                            <Badge variant={s.confidence === 'high' ? 'default' : s.confidence === 'medium' ? 'secondary' : 'outline'} className="text-[7px] h-4 px-1 font-black uppercase">
+                            <Badge
+                              variant={
+                                s.confidence === 'high'
+                                  ? 'default'
+                                  : s.confidence === 'medium'
+                                    ? 'secondary'
+                                    : 'outline'
+                              }
+                              className="text-[7px] h-4 px-1 font-black uppercase"
+                            >
                               {s.confidence}
                             </Badge>
                             <Badge variant="outline" className="text-[7px] h-4 px-1 font-black">
@@ -251,16 +347,28 @@ export function KpiAutoGeneratorDialog({
                           </div>
                           <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{s.description}</p>
                           <div className="flex items-center gap-4 mt-2 text-[9px] font-bold text-muted-foreground">
-                            <span>Target: {s.defaultTarget}{s.unit}</span>
-                            {s.hasData && <span>Current: ~{s.currentEstimate}{s.unit}</span>}
+                            <span>
+                              Target: {s.defaultTarget}
+                              {s.unit}
+                            </span>
+                            {s.hasData && (
+                              <span>
+                                Current: ~{s.currentEstimate}
+                                {s.unit}
+                              </span>
+                            )}
                           </div>
-                          {s.reason && (
-                            <p className="text-[8px] text-muted-foreground/60 mt-1 italic">{s.reason}</p>
-                          )}
+                          {s.reason && <p className="text-[8px] text-muted-foreground/60 mt-1 italic">{s.reason}</p>}
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" className="h-7 text-[9px] font-black shrink-0"
-                        onClick={(e) => { e.stopPropagation(); setStep(2); }}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-[9px] font-black shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStep(2);
+                        }}
                       >
                         Edit
                       </Button>
@@ -274,7 +382,7 @@ export function KpiAutoGeneratorDialog({
 
         {step === 2 && (
           <div className="py-4 space-y-4">
-            {Array.from(selectedIds).map(id => {
+            {Array.from(selectedIds).map((id) => {
               const s = getSuggestion(id);
               if (!s) return null;
               return (
@@ -282,48 +390,82 @@ export function KpiAutoGeneratorDialog({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5 md:col-span-2">
                       <Label className="text-[10px] font-bold">Name</Label>
-                      <Input value={s.name} onChange={(e) => updateSuggestion(id, 'name', e.target.value)} className="text-sm font-bold" />
+                      <Input
+                        value={s.name}
+                        onChange={(e) => updateSuggestion(id, 'name', e.target.value)}
+                        className="text-sm font-bold"
+                      />
                     </div>
                     <div className="space-y-1.5 md:col-span-2">
                       <Label className="text-[10px] font-bold">Description</Label>
-                      <Textarea value={s.description} onChange={(e) => updateSuggestion(id, 'description', e.target.value)} className="text-sm min-h-[50px]" />
+                      <Textarea
+                        value={s.description}
+                        onChange={(e) => updateSuggestion(id, 'description', e.target.value)}
+                        className="text-sm min-h-[50px]"
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold">Category</Label>
                       <Select value={s.category} onValueChange={(v) => updateSuggestion(id, 'category', v)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           {Object.entries(KPI_CATEGORIES).map(([key, label]) => (
-                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                            <SelectItem key={key} value={key}>
+                              {label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold">Target ({s.unit})</Label>
-                      <Input type="number" value={s.defaultTarget} onChange={(e) => updateSuggestion(id, 'defaultTarget', Number(e.target.value))} className="text-sm font-bold" min={0} max={100} />
+                      <Input
+                        type="number"
+                        value={s.defaultTarget}
+                        onChange={(e) => updateSuggestion(id, 'defaultTarget', Number(e.target.value))}
+                        className="text-sm font-bold"
+                        min={0}
+                        max={100}
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold">Good &ge;</Label>
-                      <Input type="number" value={s.thresholds.good} onChange={(e) => {
-                        const t = { ...s.thresholds, good: Number(e.target.value) };
-                        updateSuggestion(id, 'thresholds', t);
-                      }} className="text-sm font-bold" />
+                      <Input
+                        type="number"
+                        value={s.thresholds.good}
+                        onChange={(e) => {
+                          const t = { ...s.thresholds, good: Number(e.target.value) };
+                          updateSuggestion(id, 'thresholds', t);
+                        }}
+                        className="text-sm font-bold"
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold">Satisfactory &ge;</Label>
-                      <Input type="number" value={s.thresholds.satisfactory} onChange={(e) => {
-                        const t = { ...s.thresholds, satisfactory: Number(e.target.value) };
-                        updateSuggestion(id, 'thresholds', t);
-                      }} className="text-sm font-bold" />
+                      <Input
+                        type="number"
+                        value={s.thresholds.satisfactory}
+                        onChange={(e) => {
+                          const t = { ...s.thresholds, satisfactory: Number(e.target.value) };
+                          updateSuggestion(id, 'thresholds', t);
+                        }}
+                        className="text-sm font-bold"
+                      />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold">Threshold Direction</Label>
-                      <Select value={s.thresholds.direction} onValueChange={(v: 'higher_is_better' | 'lower_is_better') => {
-                        const t = { ...s.thresholds, direction: v };
-                        updateSuggestion(id, 'thresholds', t);
-                      }}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
+                      <Select
+                        value={s.thresholds.direction}
+                        onValueChange={(v: 'higher_is_better' | 'lower_is_better') => {
+                          const t = { ...s.thresholds, direction: v };
+                          updateSuggestion(id, 'thresholds', t);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="higher_is_better">Higher is Better</SelectItem>
                           <SelectItem value="lower_is_better">Lower is Better</SelectItem>
@@ -332,7 +474,15 @@ export function KpiAutoGeneratorDialog({
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-[10px] font-bold">Weight</Label>
-                      <Input type="number" value={s.weight} onChange={(e) => updateSuggestion(id, 'weight', Number(e.target.value))} className="text-sm font-bold" min={0} max={10} step={0.5} />
+                      <Input
+                        type="number"
+                        value={s.weight}
+                        onChange={(e) => updateSuggestion(id, 'weight', Number(e.target.value))}
+                        className="text-sm font-bold"
+                        min={0}
+                        max={10}
+                        step={0.5}
+                      />
                     </div>
                   </div>
                 </div>
@@ -349,7 +499,15 @@ export function KpiAutoGeneratorDialog({
           )}
           {step === 0 && (
             <Button onClick={handleScan} disabled={isScanning} className="text-xs font-bold">
-              {isScanning ? <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Scanning...</> : <><Sparkles className="h-3.5 w-3.5 mr-1" /> Scan Data & Generate</>}
+              {isScanning ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Scanning...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5 mr-1" /> Scan Data & Generate
+                </>
+              )}
             </Button>
           )}
           {step === 1 && selectedIds.size > 0 && (
@@ -358,16 +516,26 @@ export function KpiAutoGeneratorDialog({
             </Button>
           )}
           {step === 1 && selectedIds.size === 0 && suggestions.length > 0 && (
-            <Button variant="secondary" onClick={() => {
-              const allIds = suggestions.map(s => s.id);
-              setSelectedIds(new Set(allIds));
-            }} className="text-xs font-bold">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                const allIds = suggestions.map((s) => s.id);
+                setSelectedIds(new Set(allIds));
+              }}
+              className="text-xs font-bold"
+            >
               Select All
             </Button>
           )}
           {step === 2 && (
             <Button onClick={handleCreate} disabled={isSaving} className="text-xs font-bold">
-              {isSaving ? <><Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Creating...</> : `Create ${selectedIds.size} KPI(s)`}
+              {isSaving ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> Creating...
+                </>
+              ) : (
+                `Create ${selectedIds.size} KPI(s)`
+              )}
             </Button>
           )}
         </DialogFooter>

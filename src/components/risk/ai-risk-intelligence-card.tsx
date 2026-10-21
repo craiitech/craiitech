@@ -29,7 +29,7 @@ import {
   Activity,
   Gavel,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, parseDateSafe } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
@@ -121,8 +121,8 @@ export function AiRiskIntelligenceCard({
     // Overdue items
     const overdueRisks = risksOnly.filter((r) => {
       if (r.status === 'Closed' || !r.targetDate) return false;
-      const target = r.targetDate instanceof Timestamp ? r.targetDate.toDate() : new Date(r.targetDate);
-      return target < now;
+      const target = parseDateSafe(r.targetDate);
+      return target ? target < now : false;
     });
 
     // Escalated or watchlist items
@@ -230,11 +230,12 @@ export function AiRiskIntelligenceCard({
         campusDistribution: riskAnalytics.campusCounts,
         unitDistribution: riskAnalytics.unitCounts.slice(0, 6),
         attentionRisks: riskAnalytics.topAttentionItems.slice(0, 8).map((r) => {
-          const target = r.targetDate
-            ? r.targetDate instanceof Timestamp
-              ? format(r.targetDate.toDate(), 'MMM dd, yyyy')
-              : format(new Date(r.targetDate), 'MMM dd, yyyy')
-            : 'No target set';
+          const targetParsed = parseDateSafe(r.targetDate);
+          const target = targetParsed
+            ? format(targetParsed, 'MMM dd, yyyy')
+            : typeof r.targetDate === 'string'
+              ? r.targetDate
+              : 'No target set';
 
           return {
             id: r.id.substring(0, 8),
@@ -420,8 +421,8 @@ export function AiRiskIntelligenceCard({
       const now = new Date();
       return riskAnalytics.topAttentionItems.filter((r) => {
         if (!r.targetDate) return false;
-        const target = r.targetDate instanceof Timestamp ? r.targetDate.toDate() : new Date(r.targetDate);
-        return target < now;
+        const target = parseDateSafe(r.targetDate);
+        return target ? target < now : false;
       });
     }
     if (selectedAttentionTab === 'escalated') {
@@ -678,11 +679,7 @@ export function AiRiskIntelligenceCard({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {displayedAttentionRisks.map((risk) => {
                   const now = new Date();
-                  const targetDate = risk.targetDate
-                    ? risk.targetDate instanceof Timestamp
-                      ? risk.targetDate.toDate()
-                      : new Date(risk.targetDate)
-                    : null;
+                  const targetDate = parseDateSafe(risk.targetDate);
                   const isOverdue = targetDate && targetDate < now && risk.status !== 'Closed';
 
                   return (

@@ -1315,6 +1315,16 @@ export function ProgramAnalytics({
                     </p>
                   </div>
                 </CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                  <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                    This strategic radar measures institutional academic maturity across five statutory and
+                    accreditation pillars: COPC Authority, AACCUP Accreditation, Curriculum Currency & OBEd compliance,
+                    Faculty Vertical Articulation, and PRC Licensure Outcomes. Uniform expansion across all five
+                    dimensions reflects balanced quality assurance, whereas lower pillar scores pinpoint specific areas
+                    requiring immediate administrative support.
+                  </p>
+                </CardFooter>
               </Card>
               <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
                 <CardHeader className="py-5 px-8 border-b flex flex-row items-center justify-between gap-2">
@@ -1439,6 +1449,15 @@ export function ProgramAnalytics({
                     </ScrollArea>
                   </div>
                 </CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                  <Award className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                    This breakdown displays the institutional distribution of academic programs across AACCUP
+                    accreditation tiers (Candidate, Level I through Level IV). Progression toward Level III and Level IV
+                    Re-accredited status directly impacts SUC Levelling scores and qualifies the university for
+                    increased state fiscal autonomy and CHED institutional grants.
+                  </p>
+                </CardFooter>
               </Card>
               <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
                 <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
@@ -1491,6 +1510,15 @@ export function ProgramAnalytics({
                     </ResponsiveContainer>
                   </ChartContainer>
                 </CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                  <BookOpen className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                    This visualization maps the academic credentials of the university teaching force across
+                    postgraduate tiers (Master's and Doctorate degrees) disaggregated under gender mainstreaming
+                    guidelines. Elevating the proportion of vertically articulate postgraduate degree holders is
+                    mandatory for maintaining CHED Certificate of Program Compliance (COPC) eligibility.
+                  </p>
+                </CardFooter>
               </Card>
               <Card className="lg:col-span-1 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-3xl overflow-hidden flex flex-col bg-white min-h-[420px]">
                 <CardHeader className="py-5 px-8 border-b flex flex-row items-center gap-2">
@@ -1525,6 +1553,14 @@ export function ProgramAnalytics({
                     </ResponsiveContainer>
                   </ChartContainer>
                 </CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                  <CalendarDays className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                    This survey pipeline forecasts upcoming AACCUP accreditation cycles and revisits across academic
+                    terms, enabling colleges to schedule internal mock surveys, curate documentary evidence across all
+                    ten areas, and budget for external evaluation visits well prior to accreditation expiration.
+                  </p>
+                </CardFooter>
               </Card>
             </div>
 
@@ -1558,6 +1594,15 @@ export function ProgramAnalytics({
                     </ResponsiveContainer>
                   </ChartContainer>
                 </CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                    This longitudinal trend tracks the historical pace of Certificate of Program Compliance (COPC)
+                    approvals issued by CHED. Sustaining an upward trajectory verifies institutional compliance with
+                    statutory Policies, Standards, and Guidelines (PSGs), securing students' entitlement to Universal
+                    Access to Quality Tertiary Education subsidies under RA 10931.
+                  </p>
+                </CardFooter>
               </Card>
               <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
                 <CardHeader className="bg-muted/5 border-b">
@@ -1586,6 +1631,15 @@ export function ProgramAnalytics({
                     </ResponsiveContainer>
                   </ChartContainer>
                 </CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                  <TrendingUp className="h-4 w-4 text-indigo-700 shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                    This velocity metric measures the annual rate of program advancement into advanced AACCUP
+                    accreditation levels (Level II, Level III, and Level IV). Faster velocity demonstrates institutional
+                    agility in addressing prior survey recommendations and embedding continuous quality improvement
+                    (CQI) across academic units.
+                  </p>
+                </CardFooter>
               </Card>
             </div>
 
@@ -1640,6 +1694,15 @@ export function ProgramAnalytics({
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Enrollment</p>
                     </div>
                   </CardContent>
+                  <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                    <GraduationCap className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                      This census monitors the sex-disaggregated composition of the student body across programs and
+                      campuses in accordance with the Philippine Harmonized Gender and Development Guidelines (HGDG).
+                      Identifying gender imbalances guides targeted scholarship allocation and gender-responsive student
+                      support services.
+                    </p>
+                  </CardFooter>
                 </Card>
                 <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
                   <CardHeader className="pb-2 border-b bg-emerald-50/30">
@@ -1686,6 +1749,14 @@ export function ProgramAnalytics({
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Deduplicated Personnel</p>
                     </div>
                   </CardContent>
+                  <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                    <Briefcase className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                      This audit tracks sex-disaggregated participation among faculty, administrators, and quality
+                      assurance personnel operating within the institutional portal. Monitoring staff gender ratios
+                      supports statutory reporting compliance under PCW-NEDA-DBM Joint Circulars.
+                    </p>
+                  </CardFooter>
                 </Card>
                 <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
                   <CardHeader className="pb-2 border-b bg-purple-50/30">
@@ -1732,6 +1803,14 @@ export function ProgramAnalytics({
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Graduates</p>
                     </div>
                   </CardContent>
+                  <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                    <CheckCircle2 className="h-4 w-4 text-purple-600 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                      This audit benchmarks degree conferral and graduation output disaggregated by sex to ensure equal
+                      academic progression and completion. Analyzing graduation parity informs curriculum enhancements
+                      and student academic assistance interventions.
+                    </p>
+                  </CardFooter>
                 </Card>
               </div>
             </div>

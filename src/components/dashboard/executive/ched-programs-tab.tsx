@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord, Campus } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   PieChart,
@@ -27,6 +27,7 @@ import {
   ExternalLink,
   School,
   BookOpen,
+  Info,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
@@ -280,6 +281,18 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
               ))}
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>COPC Status Interpretation:</strong> This distribution tracks academic programs holding valid
+                CHED Certificates of Program Compliance (COPC) versus those in application, under deficiency
+                remediation, or non-compliant. Sustaining high certified coverage is essential for regulatory legitimacy
+                and state university funding, as uncertified programs risk sanctions or exclusion from government
+                tuition subsidies.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         {/* Programs by Level Grouped Bar */}
@@ -315,6 +328,17 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Academic Level Breakdown:</strong> This comparison isolates compliance status across
+                undergraduate, master's, and doctoral offerings. Clustering of non-compliant or pending statuses within
+                specific tiers indicates where faculty credential deficiencies, curriculum alignment gaps, or laboratory
+                equipment needs require focused institutional intervention.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </div>
 
@@ -355,6 +379,17 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-3 px-6">
+          <div className="flex items-start gap-3">
+            <School className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              <strong>Campus Distribution Interpretation:</strong> This stacked visualization highlights geographic
+              equity in CHED compliance across main and satellite campuses. Campuses with pronounced non-compliant or
+              pending segments pinpoint localized infrastructure, library, or faculty qualification shortages requiring
+              centralized university support.
+            </p>
+          </div>
+        </CardFooter>
       </Card>
 
       {/* Row 3: RQAT Visit Status + Board Exam */}
@@ -475,6 +510,17 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
               </div>
             )}
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Award className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Board Performance Interpretation:</strong> This chart contrasts university first-taker licensure
+                passing percentages with national PRC averages. Programs rendering green bars surpass the national
+                standard, reinforcing program excellence, whereas red indicators point to academic areas requiring
+                curriculum enhancement, standardized review programs, and adjusted admissions retention criteria.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </div>
     </div>

@@ -195,8 +195,11 @@ export default function ReportsPage() {
   const csmResponsesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || !canViewReports) return null;
     const base = collection(firestore, 'csmResponses');
-    if (hasAllAccess || isSupervisor) {
+    if (hasAllAccess) {
       return base;
+    }
+    if (isSupervisor && userProfile.campusId) {
+      return query(base, where('campusId', '==', userProfile.campusId));
     }
     return query(base, where('unitId', '==', userProfile.unitId));
   }, [firestore, hasAllAccess, isSupervisor, userProfile, canViewReports]);
@@ -205,8 +208,11 @@ export default function ReportsPage() {
   const visitorLogsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || !canViewReports) return null;
     const base = collection(firestore, 'visitorLogs');
-    if (hasAllAccess || isSupervisor) {
+    if (hasAllAccess) {
       return base;
+    }
+    if (isSupervisor && userProfile.campusId) {
+      return query(base, where('campusId', '==', userProfile.campusId));
     }
     return query(base, where('unitId', '==', userProfile.unitId));
   }, [firestore, hasAllAccess, isSupervisor, userProfile, canViewReports]);
@@ -641,14 +647,13 @@ export default function ReportsPage() {
                       </ResponsiveContainer>
                     </ChartContainer>
                   </CardContent>
-                  <CardFooter className="bg-muted/5 border-t py-3">
-                    <div className="flex items-start gap-3">
-                      <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                      <p className="text-[9px] text-muted-foreground italic leading-tight">
-                        <strong>Analytical Perspective:</strong> This profile tracks verified documentation maturity
-                        across different campuses.
-                      </p>
-                    </div>
+                  <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                    <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                      This multi-campus radar plots verified documentation maturity across institutional quality
+                      dimensions, highlighting operational equilibrium and identifying regional campuses requiring
+                      focused procedural support to achieve standardized EOMS certification under ISO 21001:2025.
+                    </p>
                   </CardFooter>
                 </Card>
 
@@ -695,14 +700,13 @@ export default function ReportsPage() {
                       </ResponsiveContainer>
                     </ChartContainer>
                   </CardContent>
-                  <CardFooter className="bg-muted/5 border-t py-3">
-                    <div className="flex items-start gap-3">
-                      <Zap className="h-3.5 w-3.5 text-amber-600 shrink-0 mt-0.5" />
-                      <p className="text-[9px] text-muted-foreground italic leading-tight">
-                        <strong>Analytical Perspective:</strong> Benchmarks total approved documents against those
-                        awaiting verification.
-                      </p>
-                    </div>
+                  <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                    <TrendingUp className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                      Comparative verification volume contrasts approved evidentiary documents against submissions
+                      pending quality assurance review across campuses, providing university leadership with real-time
+                      audit readiness metrics and clearing regional backlog bottlenecks.
+                    </p>
                   </CardFooter>
                 </Card>
               </div>
@@ -760,6 +764,14 @@ export default function ReportsPage() {
                         </p>
                       </div>
                     </CardContent>
+                    <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                      <GraduationCap className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                        Disaggregated enrollment ratios quantify male and female student representation across academic
+                        divisions, establishing empirical baselines for gender mainstreaming interventions and parity
+                        reporting pursuant to PCW-NEDA-DBM Joint Circular standards.
+                      </p>
+                    </CardFooter>
                   </Card>
 
                   <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
@@ -809,6 +821,14 @@ export default function ReportsPage() {
                         </p>
                       </div>
                     </CardContent>
+                    <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                      <Briefcase className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                        Personnel demographic distribution tracks registered institutional faculty and administrative
+                        staff across genders, supporting human resource equity audits, faculty development equal
+                        opportunity mandates, and SUC Levelling workforce indicators.
+                      </p>
+                    </CardFooter>
                   </Card>
 
                   <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl flex flex-col bg-white dark:bg-slate-900">
@@ -858,6 +878,14 @@ export default function ReportsPage() {
                         </p>
                       </div>
                     </CardContent>
+                    <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                      <CheckCircle2 className="h-4 w-4 text-purple-500 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                        Longitudinal graduate completion ratios disaggregated by sex validate equitable educational
+                        completion outcomes across disciplines, confirming institutional efficacy in mitigating
+                        sex-differentiated attrition rates under CHED equity mandates.
+                      </p>
+                    </CardFooter>
                   </Card>
                 </div>
               </div>
@@ -908,6 +936,14 @@ export default function ReportsPage() {
                     </ResponsiveContainer>
                   </ChartContainer>
                 </CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                  <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                    This risk severity distribution categorizes institutional vulnerabilities from low to critical
+                    impact levels, guiding university executive leadership in proactive resource allocation, internal
+                    controls strengthening, and preventive action deployment under ISO 31000 risk management frameworks.
+                  </p>
+                </CardFooter>
               </Card>
             </>
           ) : (

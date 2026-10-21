@@ -1195,8 +1195,13 @@ export function ExecutiveOverview({
             </div>
           </div>
 
-          <CardFooter className="bg-primary/5 border-t py-3 px-6 text-[10px] font-medium text-slate-500 italic">
-            {statusDetails.desc}
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This composite EOMS health score synthesizes documentation submission compliance, audit resolution
+              velocity, risk containment efficacy, and faculty accreditation maturity into an aggregate performance
+              index benchmarking institutional governance standards under ISO 21001:2025.
+            </p>
           </CardFooter>
         </Card>
 
@@ -1273,8 +1278,13 @@ export function ExecutiveOverview({
               )}
             </CardContent>
 
-            <CardFooter className="bg-primary/5 border-t py-3 px-6 text-[9px] font-semibold text-slate-400 uppercase tracking-wider">
-              Ranked by percentage of verified approved submissions
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <TrendingUp className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                Comparative standing distributions quantify verified submission completion rates against required
+                statutory deliverables per operational unit, surfacing top-performing sectors and spotlighting
+                operational delays requiring targeted administrative intervention.
+              </p>
             </CardFooter>
           </Card>
         )}

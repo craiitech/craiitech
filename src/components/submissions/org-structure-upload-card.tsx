@@ -44,7 +44,7 @@ interface OrgStructureUploadCardProps {
   unitId: string;
   campusId: string;
   unitName: string;
-  canSubmit: boolean;
+  canSubmit?: boolean;
   /** Called whenever the submitted status changes — true = submitted, false = missing */
   onStatusChange?: (isSubmitted: boolean) => void;
 }
@@ -55,7 +55,7 @@ export function OrgStructureUploadCard({
   unitId,
   campusId,
   unitName,
-  canSubmit,
+  canSubmit = true,
   onStatusChange,
 }: OrgStructureUploadCardProps) {
   const firestore = useFirestore();
@@ -69,6 +69,33 @@ export function OrgStructureUploadCard({
   const [formLink, setFormLink] = useState('');
   const [formRevision, setFormRevision] = useState('');
   const [formDate, setFormDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+
+  // Effective submission authorization: check canSubmit prop or fallback to userProfile context
+  const isAuthorized = useMemo(() => {
+    if (canSubmit) return true;
+    if (!userProfile) return false;
+    const roleLower = (userProfile.role || '').toLowerCase().trim();
+    if (roleLower.includes('admin') || roleLower.includes('director') || roleLower.includes('odimo')) {
+      return true;
+    }
+    if (userProfile.unitId && userProfile.unitId === unitId) {
+      return true;
+    }
+    const allowedKeywords = [
+      'coordinator',
+      'head',
+      'dean',
+      'chair',
+      'director',
+      'odimo',
+      'admin',
+      'officer',
+      'lead',
+      'faculty',
+      'staff',
+    ];
+    return allowedKeywords.some((keyword) => roleLower.includes(keyword));
+  }, [canSubmit, userProfile, unitId]);
 
   // Fetch records for this unit + year
   const orgStructuresQuery = useMemoFirebase(
@@ -135,20 +162,16 @@ export function OrgStructureUploadCard({
   };
 
   const handleSubmit = async () => {
-    const trimmedLink = formLink.trim();
+    let trimmedLink = formLink.trim();
     const trimmedRevision = formRevision.trim();
 
     if (!trimmedLink) {
       toast({ title: 'Missing Link', description: 'Please provide a Google Drive link.', variant: 'destructive' });
       return;
     }
+    // Auto-prepend https:// if protocol was omitted
     if (!trimmedLink.startsWith('http://') && !trimmedLink.startsWith('https://')) {
-      toast({
-        title: 'Invalid URL Format',
-        description: 'Google Drive link must begin with http:// or https://',
-        variant: 'destructive',
-      });
-      return;
+      trimmedLink = `https://${trimmedLink}`;
     }
     if (!trimmedRevision) {
       toast({ title: 'Missing Revision', description: 'Please provide a revision number.', variant: 'destructive' });
@@ -318,7 +341,7 @@ export function OrgStructureUploadCard({
               </Alert>
             )}
 
-            {canSubmit ? (
+            {isAuthorized ? (
               <div className="flex flex-col sm:flex-row gap-3">
                 {hasFirstCycleBaseline && (
                   <Button
@@ -342,7 +365,7 @@ export function OrgStructureUploadCard({
               </div>
             ) : (
               <p className="text-[10px] text-muted-foreground font-bold uppercase text-center opacity-60">
-                Read-only — Only Unit Coordinators / ODIMOs / Campus Officers can upload.
+                Read-only — Only Unit Coordinators / Heads / ODIMOs / Campus Officers can upload.
               </p>
             )}
           </CardContent>
@@ -481,6 +504,19 @@ export function OrgStructureUploadCard({
           </div>
         </div>
 
+        {!isAuthorized && (
+          <Alert className="bg-amber-50 border-amber-200">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-xs font-black uppercase text-amber-800">
+              Submission Permission Required
+            </AlertTitle>
+            <AlertDescription className="text-[11px] font-medium text-amber-700 leading-relaxed mt-1">
+              You are currently viewing this form in read-only mode. Only authorized unit personnel ({unitName}) or
+              campus officers can submit the organizational structure.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-rose-100">
           {cycleId === 'final' && showForm && (
             <Button
@@ -495,7 +531,7 @@ export function OrgStructureUploadCard({
           <Button
             className={cn('flex-1 h-10 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/20')}
             onClick={handleSubmit}
-            disabled={isSubmitting || !canSubmit}
+            disabled={isSubmitting || !isAuthorized}
           >
             {isSubmitting ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />

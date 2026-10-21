@@ -1314,6 +1314,15 @@ export function SubmissionDashboard({
               </ChartContainer>
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <CalendarCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This index tracks the percentage of unit documentary evidence submitted on or before designated quality
+              cycle deadlines versus delayed submissions. Timely evidence lodgment guarantees adequate lead time for
+              Internal Quality Audit (IQA) document reviews and eliminates administrative bottlenecks preceding
+              institutional management review meetings.
+            </p>
+          </CardFooter>
         </Card>
 
         <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
@@ -1369,6 +1378,15 @@ export function SubmissionDashboard({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <ShieldCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This lifecycle donut visualizes the status distribution of all submitted deliverables across Accepted,
+              Needs Revision, and Pending Review stages. A predominant Accepted proportion indicates high initial
+              submission quality and rubric alignment, whereas an expansion in Needs Revision signals documentary
+              ambiguity requiring targeted coaching by the Quality Assurance Office.
+            </p>
+          </CardFooter>
         </Card>
 
         <Card className="lg:col-span-2 shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
@@ -1408,6 +1426,15 @@ export function SubmissionDashboard({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This horizontal Pareto ranks documentary evidence deliverables by submission volume across the
+              university's compliance portfolio. High-density document types reflect routine compliance evidence, while
+              low-volume items highlight specialized statutory submissions that require proactive tracking to avoid
+              institutional non-conformances.
+            </p>
+          </CardFooter>
         </Card>
       </div>
     </div>

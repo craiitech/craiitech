@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { getAdminFirestore } from '@/firebase/admin';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 
 export const dynamic = 'force-dynamic';
@@ -216,11 +216,41 @@ const KPI_DEFINITIONS = [
   },
 ];
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const auth = getAdminAuth();
     const firestore = getAdminFirestore();
     if (!firestore) {
       return NextResponse.json({ error: 'Firebase Admin not available' }, { status: 500 });
+    }
+
+    // Require authorization: either a valid Admin Bearer token or ADMIN_SEED_SECRET
+    const authHeader = req.headers.get('authorization');
+    const secretParam = req.nextUrl.searchParams.get('secret');
+    const expectedSecret = process.env.ADMIN_SEED_SECRET;
+
+    let isAuthorized = false;
+    if (expectedSecret && secretParam === expectedSecret) {
+      isAuthorized = true;
+    } else if (auth && authHeader?.startsWith('Bearer ')) {
+      const idToken = authHeader.split('Bearer ')[1];
+      try {
+        const decoded = await auth.verifyIdToken(idToken);
+        const userDoc = await firestore.collection('users').doc(decoded.uid).get();
+        const role = userDoc.data()?.role;
+        if (role === 'Admin' || role === 'Super Admin' || decoded.email === 'admin@eoms.com') {
+          isAuthorized = true;
+        }
+      } catch {
+        // invalid token
+      }
+    }
+
+    if (!isAuthorized) {
+      return NextResponse.json(
+        { error: 'Forbidden: Admin credentials or valid seed secret required.' },
+        { status: 403 },
+      );
     }
 
     const col = firestore.collection('kpiDefinitions');

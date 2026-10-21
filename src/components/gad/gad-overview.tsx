@@ -727,6 +727,15 @@ export function GADOverview({
             </div>
           </div>
         </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+          <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+          <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+            This diagnostic evaluates institutional Gender and Development performance by synthesizing budget
+            liquidation velocity against the statutory 5% GAD expenditure floor, activity execution completeness,
+            sex-disaggregated reach, and vulnerable sector mainstreaming. A composite health index above 75 demonstrates
+            robust gender mainstreaming aligned with PCW-NEDA-DBM Joint Circular requirements.
+          </p>
+        </CardFooter>
       </Card>
 
       {/* 3. CHARTS & MAINSTREAMING CONTEXT */}
@@ -791,14 +800,15 @@ export function GADOverview({
               </div>
             )}
           </CardContent>
-          <CardFooter className="bg-muted/5 border-t py-3">
-            <div className="flex items-start gap-3">
-              <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-              <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                <strong>Strategic Guide:</strong> This data aggregates student enrollment and employee census sectoral
-                tags. It identifies groups that are under-represented or receiving high institutional support.
-              </p>
-            </div>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This distribution disaggregates beneficiaries across recognized marginalized sectors—including Solo
+              Parents, Persons with Disabilities (PWD), Indigenous Peoples (IP), 4Ps recipients, and working
+              students—subdivided by sex. Tracking sectoral penetration ensures that affirmative-action initiatives,
+              assistive accommodations, and targeted welfare interventions fulfill national statutory mandates and
+              institutional equity commitments.
+            </p>
           </CardFooter>
         </Card>
 

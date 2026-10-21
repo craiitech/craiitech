@@ -137,11 +137,13 @@ export function RiskMatrix({ allRisks, selectedYear }: RiskMatrixProps) {
         <div className="flex items-start gap-3">
           <Zap className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
-              <strong>Strategic Perspective:</strong> Bubble size indicates total <strong>Magnitude (L x C)</strong>.
-              Entries in the top-right quadrant (High Likelihood & High Consequence) represent critical threats to
-              university operations or accreditation status. These should be prioritize for immediate treatment funding
-              or administrative oversight.
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium italic">
+              <strong>Risk Matrix Interpretation:</strong> Each plot point positions an identified risk factor according
+              to its Severity of Consequence (horizontal axis) versus Likelihood of Occurrence (vertical axis), with
+              circle diameter reflecting composite <strong>Risk Magnitude (Likelihood &times; Consequence)</strong>.
+              Entries clustered in the upper-right red sector denote severe institutional threats capable of disrupting
+              academic delivery or regulatory compliance; these require top-priority budget allocation, mandatory
+              treatment action plans, and continuous executive monitoring.
             </p>
           </div>
         </div>

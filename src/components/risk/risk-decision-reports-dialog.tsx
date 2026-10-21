@@ -48,7 +48,7 @@ import {
   RiskDecisionMemorandumPage,
   type UnitComplianceAuditItem,
 } from '@/components/risk/risk-decision-print-templates';
-import { cn, normalizeReportType } from '@/lib/utils';
+import { cn, normalizeReportType, parseDateSafe } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { submissionTypes } from '@/lib/constants';
 import { useUser } from '@/firebase/provider';
@@ -307,8 +307,8 @@ export function RiskDecisionReportsDialog({
         } else if (selectedStatusScope === 'overdue') {
           if (r.status === 'Closed') return false;
           if (!r.targetDate) return false;
-          const target = r.targetDate?.toDate ? r.targetDate.toDate() : new Date(r.targetDate);
-          if (isNaN(target.getTime()) || target >= today) return false;
+          const target = parseDateSafe(r.targetDate);
+          if (!target || target >= today) return false;
         } else if (r.status !== selectedStatusScope) {
           return false;
         }
@@ -389,8 +389,8 @@ export function RiskDecisionReportsDialog({
       const openRisks = uRisks.filter((r) => r.status === 'Open').length;
       const overdueRisks = uRisks.filter((r) => {
         if (r.status === 'Closed' || !r.targetDate) return false;
-        const target = r.targetDate?.toDate ? r.targetDate.toDate() : new Date(r.targetDate);
-        return target < new Date();
+        const target = parseDateSafe(r.targetDate);
+        return target ? target < new Date() : false;
       }).length;
 
       const firstCount = submissionTypes.length - missingFirst.length;

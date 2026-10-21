@@ -532,6 +532,35 @@ export default function SubmissionDetailPage() {
     }
   };
 
+  const [isMarkingEntryComplete, setIsMarkingEntryComplete] = useState(false);
+
+  const handleMarkDataEntryComplete = async () => {
+    if (!firestore || !submissionDocRef || !userProfile) return;
+    setIsMarkingEntryComplete(true);
+    try {
+      await updateDoc(submissionDocRef, {
+        submissionNeedsEntry: false,
+        dataEntryCompleted: true,
+        dataEntryCompletedAt: serverTimestamp(),
+        dataEntryCompletedBy: userProfile.id || user?.uid || '',
+        dataEntryCompletedByName:
+          `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email || 'Admin',
+      });
+      toast({
+        title: 'Data Entry Completed',
+        description: 'Hard copy submission marked as successfully encoded in the system database.',
+      });
+    } catch (e) {
+      toast({
+        title: 'Action Failed',
+        description: 'Failed to update submission data entry status.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsMarkingEntryComplete(false);
+    }
+  };
+
   const getStatusText = (sub: Submission) => {
     if (sub.statusId === 'submitted') return 'AWAITING APPROVAL';
     if (sub.statusId === 'approved' && sub.isDraft) return 'DRAFT CLEARED';
@@ -626,6 +655,75 @@ export default function SubmissionDetailPage() {
             </Alert>
           )}
 
+          {/* Hard Copy Submission - Needs Entry Alert */}
+          {submission.submissionNeedsEntry && (
+            <Alert className="bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-200 shadow-sm animate-in slide-in-from-top-2 duration-300">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full">
+                <div className="space-y-1">
+                  <AlertTitle className="font-bold flex items-center gap-2">
+                    Hard Copy Submission — Database Entry Required
+                    <Badge className="bg-amber-600 text-white font-black text-[9px] uppercase tracking-wider">
+                      Needs Entry
+                    </Badge>
+                  </AlertTitle>
+                  <AlertDescription className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
+                    This unit submitted a physical/scanned hard copy. The operational plan and strategic data must be
+                    encoded into the official database on behalf of the unit.
+                  </AlertDescription>
+                </div>
+                {isAdmin && (
+                  <div className="flex items-center gap-2 shrink-0 pt-1 sm:pt-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      asChild
+                      className="border-amber-400/60 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-amber-950 dark:text-amber-100 text-xs font-bold h-8"
+                    >
+                      <Link href={`/operational-plan?unitId=${submission.unitId}&year=${submission.year}`}>
+                        <Edit className="h-3.5 w-3.5 mr-1" />
+                        Encode in System
+                      </Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={handleMarkDataEntryComplete}
+                      disabled={isMarkingEntryComplete}
+                      className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold h-8"
+                    >
+                      {isMarkingEntryComplete ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                      )}
+                      Mark Entry Complete
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </Alert>
+          )}
+
+          {/* Hard Copy Submission - Completed Alert */}
+          {submission.dataEntryCompleted && (
+            <Alert className="bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200 shadow-sm animate-in slide-in-from-top-2 duration-300">
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+              <div>
+                <AlertTitle className="font-bold flex items-center gap-2">
+                  Hard Copy Data Encoded into System
+                  <Badge className="bg-emerald-600 text-white font-black text-[9px] uppercase tracking-wider">
+                    Data Encoded
+                  </Badge>
+                </AlertTitle>
+                <AlertDescription className="text-xs text-emerald-800 dark:text-emerald-300 mt-1">
+                  Data from this hard copy submission was encoded into the database
+                  {submission.dataEntryCompletedByName && ` by ${submission.dataEntryCompletedByName}`}
+                  {submission.dataEntryCompletedAt && ` on ${getFormattedDate(submission.dataEntryCompletedAt)}`}.
+                </AlertDescription>
+              </div>
+            </Alert>
+          )}
+
           {/* DOCUMENT INFORMATION CARD - Sticky Sub-header */}
           <div className="sticky top-[5rem] z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border rounded-xl p-4 md:p-6 shadow-md mb-6 transition-all">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 gap-x-6">
@@ -657,6 +755,14 @@ export default function SubmissionDetailPage() {
                   {submission.isDraft && (
                     <Badge className="bg-blue-600 text-white border-none h-4 px-1 text-[8px] font-black uppercase">
                       DRAFT
+                    </Badge>
+                  )}
+                  {submission.isHardCopySubmission && (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-400 bg-amber-50 text-amber-900 dark:bg-amber-950/60 dark:text-amber-200 text-[8px] font-black uppercase tracking-wider"
+                    >
+                      Hard Copy
                     </Badge>
                   )}
                 </div>

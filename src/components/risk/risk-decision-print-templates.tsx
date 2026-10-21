@@ -4,13 +4,14 @@ import React from 'react';
 import type { Risk, Signatories } from '@/lib/types';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
-import { cn } from '@/lib/utils';
+import { cn, parseDateSafe } from '@/lib/utils';
 
 const safeFormatDate = (d: any) => {
   if (!d) return '—';
+  if (typeof d === 'string') return d;
   try {
-    const date = d instanceof Timestamp ? d.toDate() : d?.toDate ? d.toDate() : new Date(d);
-    return isNaN(date.getTime()) ? '—' : format(date, 'MM/dd/yyyy');
+    const date = parseDateSafe(d);
+    return date ? format(date, 'MM/dd/yyyy') : '—';
   } catch {
     return '—';
   }

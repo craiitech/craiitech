@@ -377,10 +377,12 @@ export function DecisionAnalytics({
           <div className="p-4 bg-muted/5 border-t">
             <div className="flex items-start gap-3">
               <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
-                <strong>Guidance for use:</strong> This trend chart benchmarks the speed of decision closure. A healthy
-                system shows decreasing segments of "Open" items as they move through the lifecycle into the verified
-                "Closed" status.
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Decision Velocity Interpretation:</strong> This trend chart benchmarks the velocity of executive
+                decision fulfillment from Management Review (MR) sessions. A healthy governance trajectory exhibits
+                shrinking proportions of 'Open' decisions as tasks transition into verified 'Closed' status under ISO
+                9.3, confirming that leadership mandates translate into tangible organizational enhancements rather than
+                remaining unresolved directives.
               </p>
             </div>
           </div>
@@ -430,10 +432,11 @@ export function DecisionAnalytics({
           <div className="p-4 bg-muted/5 border-t">
             <div className="flex items-start gap-3">
               <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
-                <strong>Guidance for use:</strong> Highlights which campuses are most impacted by Management Review
-                decisions. Use this to identify sites that may require additional administrative support or follow-up
-                oversight.
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Accountability Allocation Interpretation:</strong> This chart maps the distribution of
+                Management Review decisions delegated across university campuses. Concentrated allocations highlight
+                locations undertaking major strategic upgrades or quality remediation, directing executive leadership to
+                allocate specialized technical and budgetary support to guarantee successful implementation.
               </p>
             </div>
           </div>
@@ -473,10 +476,11 @@ export function DecisionAnalytics({
           <div className="p-4 bg-muted/5 border-t">
             <div className="flex items-start gap-3">
               <Activity className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
-                <strong>Guidance for use:</strong> Recognizes proactive leadership in identified improvement areas.
-                Units appearing consistently as initiators demonstrate high engagement with the ISO Quality Management
-                System.
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Initiator Engagement Interpretation:</strong> This breakdown showcases offices and leaders
+                proactively proposing continuous improvement actions during Management Review sessions. Consistently
+                active initiators reflect mature QMS engagement, demonstrating that quality leadership originates
+                organically across functional units rather than depending entirely on audit non-conformances.
               </p>
             </div>
           </div>

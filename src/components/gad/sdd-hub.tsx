@@ -412,6 +412,14 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
                 </div>
               )}
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <Users className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This baseline establishes the verified first-semester student population disaggregated by sex for the
+                active academic year. Establishing a validated sex-ratio baseline is essential for proportional GAD
+                expenditure attribution, equity audits, and statutory reporting under PCW Memorandum Circular 2011-01.
+              </p>
+            </CardFooter>
           </Card>
         </div>
 
@@ -494,6 +502,15 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
                 </div>
               )}
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This analysis profiles student representation across vulnerable sectors—such as Solo Parents, Persons
+                with Disabilities, Indigenous Peoples, and 4Ps beneficiaries—disaggregated by gender. Measuring sectoral
+                enrollment informs targeted scholarship allocations, barrier-free campus initiatives, and academic
+                retention interventions aligned with the Magna Carta of Women and Philippine Harmonized GAD Guidelines.
+              </p>
+            </CardFooter>
           </Card>
         </div>
       </div>
@@ -730,15 +747,14 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
               </section>
             </div>
           </CardContent>
-          <CardFooter className="bg-indigo-100/30 border-t py-4 px-8">
-            <div className="flex items-start gap-3">
-              <ShieldCheck className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
-              <p className="text-[9px] text-indigo-800/80 leading-relaxed italic font-medium">
-                <strong>Data Accuracy Mandate:</strong> This census provides the denominator for unit-wide gender
-                participation rates. Ensure these numbers reflect the actual verified personnel list of your office or
-                unit for the selected year.
-              </p>
-            </div>
+          <CardFooter className="bg-indigo-100/30 border-t py-4 px-8 flex items-start gap-3">
+            <ShieldCheck className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-indigo-900/90 leading-relaxed font-medium">
+              This personnel census establishes verified institutional denominators for faculty and administrative
+              workforce participation disaggregated by sex and vulnerable sector classifications. Accurate reporting
+              ensures compliance with PCW-NEDA-DBM Joint Circular guidelines and guarantees precise attribution
+              calculations for institutional GAD Plan and Budget (GPB) submissions.
+            </p>
           </CardFooter>
         </Card>
       )}

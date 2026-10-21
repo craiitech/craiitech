@@ -237,6 +237,17 @@ export function SubmissionAnalytics({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Lifecycle Status Interpretation:</strong> This distribution classifies documents across
+                verification stages (Approved, Submitted, or Rejected). A predominant green sector reflects compliance
+                clearance across units, whereas swelling amber or red slices indicate review bottlenecks or substantive
+                compliance deficits requiring targeted desk intervention.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         {/* First-Time-Right Verification Score */}
@@ -282,6 +293,17 @@ export function SubmissionAnalytics({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>First-Time-Right Interpretation:</strong> This efficiency metric measures the proportion of
+                submissions accepted without requiring rework or corrective edits. A high ratio indicates that
+                submitting departments understand compliance templates and rubric requirements, dramatically curtailing
+                administrative back-and-forth and shortening review turnaround times.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-primary/10 rounded-2xl overflow-hidden flex flex-col bg-gradient-to-b from-white to-indigo-50/20 dark:from-slate-900 dark:to-slate-850">
@@ -321,6 +343,17 @@ export function SubmissionAnalytics({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Volume By Level Interpretation:</strong> This chart quantifies documentation throughput
+                generated across organizational tiers. Significant volume disparities identify whether governance
+                workload is evenly distributed across colleges and units, or if specific administrative units bear
+                disproportionate documentation obligations.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </div>
 
@@ -363,6 +396,17 @@ export function SubmissionAnalytics({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Timer className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Review Efficiency Interpretation:</strong> This chart contrasts submissions approved immediately
+                on first submission against those requiring iterative cycles of revision. A higher volume of
+                first-iteration approvals confirms institutional clarity in quality standards and reduces administrative
+                review backlogs across evaluators.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-primary/10 rounded-2xl overflow-hidden flex flex-col bg-gradient-to-b from-white to-violet-50/20 dark:from-slate-900 dark:to-slate-850">
@@ -408,6 +452,18 @@ export function SubmissionAnalytics({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Info className="h-4 w-4 text-violet-600 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Document Type Interpretation:</strong> This horizontal breakdown visualizes portfolio
+                distribution across statutory ISO 21001 requirements. A healthy balance across Operational Plans, Risk
+                Registries, Opportunity Action Plans, and SWOT analyses demonstrates holistic institutional compliance,
+                while deficiencies in any single category point to procedural gaps that must be corrected before formal
+                external surveillance audits.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </div>
     </div>

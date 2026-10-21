@@ -118,13 +118,14 @@ export function CycleSubmissionBreakdown({ allSubmissions, selectedYear }: Cycle
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
-              <strong>Guidance for usage:</strong> This profile identifies "Document Friction". Uneven bars indicate
-              procedural gaps where specific documents (e.g., SWOT vs. Action Plans) are lagging. High first-cycle
-              density with low final-cycle density suggests a need for targeted follow-up on end-of-year evidence
-              closure.
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium italic">
+              <strong>Cycle Friction Interpretation:</strong> This chart contrasts submission counts between the First
+              Cycle (initial baseline planning, SWOT analysis, and quality objectives formulation) and the Final Cycle
+              (monitoring verification and accomplishment closure). Pronounced discrepancies where first-cycle targets
+              far exceed final-cycle submissions expose 'documentation friction,' highlighting areas where units
+              struggle to document end-of-year evidence and need targeted compliance coaching.
             </p>
           </div>
         </div>

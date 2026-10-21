@@ -15,6 +15,7 @@ import type {
   ManagementReviewOutput,
   Cycle,
   UnitOrgStructure,
+  AcademicProgram,
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -48,7 +49,7 @@ import {
 import { Badge } from '../ui/badge';
 import { format } from 'date-fns';
 import { useRouter } from 'next/navigation';
-import { cn, isCycleActive, isVpOffice, getSupervisedUnitIds } from '@/lib/utils';
+import { cn, isCycleActive, isVpOffice, getSupervisedUnitIds, isProgramInUnit } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -67,6 +68,7 @@ import { NoticeOfCompliance, NoticeOfNonCompliance } from './notices-print-templ
 import { useFirestore, useDoc, useMemoFirebase, useUser, useCollection } from '@/firebase';
 import { doc, Timestamp, collection, query, where } from '@/firebase/firestore-wrapper';
 import { StrategicSwotAnalysis } from './strategic-swot-analysis';
+import { AcademicUnitChedWarningsCard } from '@/components/programs/academic-unit-ched-warnings-card';
 import { TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
 
 const COLORS: Record<string, string> = {
@@ -116,6 +118,7 @@ interface UnitSubmissionsViewProps {
   userProfile: AppUser | null;
   isLoading: boolean;
   selectedYear: string;
+  onNewSubmission?: () => void;
 }
 
 export function UnitSubmissionsView({
@@ -125,6 +128,7 @@ export function UnitSubmissionsView({
   userProfile,
   isLoading,
   selectedYear,
+  onNewSubmission,
 }: UnitSubmissionsViewProps) {
   const router = useRouter();
   const firestore = useFirestore();
@@ -191,6 +195,32 @@ export function UnitSubmissionsView({
     );
   }, [firestore, selectedUnitId, selectedYear]);
   const { data: unitCompliances } = useCollection<ProgramComplianceRecord>(compliancesQuery);
+
+  // Fetch all academic programs to detect programs under this unit
+  const programsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'academicPrograms') : null),
+    [firestore],
+  );
+  const { data: allAcademicPrograms } = useCollection<AcademicProgram>(programsQuery);
+
+  // Also fetch all compliances for the target year across campus for reliable mapping
+  const allYearCompliancesQuery = useMemoFirebase(() => {
+    if (!firestore || !selectedYear) return null;
+    return query(collection(firestore, 'programCompliances'), where('academicYear', '==', Number(selectedYear)));
+  }, [firestore, selectedYear]);
+  const { data: allYearCompliances } = useCollection<ProgramComplianceRecord>(allYearCompliancesQuery);
+
+  const unitAcademicPrograms = useMemo(() => {
+    if (!allAcademicPrograms || !selectedUnitId) return [];
+    return allAcademicPrograms.filter((p) => isProgramInUnit(p, selectedUnitId, allUnits, userProfile?.campusId));
+  }, [allAcademicPrograms, selectedUnitId, allUnits, userProfile?.campusId]);
+
+  const effectiveUnitCompliances = useMemo(() => {
+    if (!unitAcademicPrograms.length) return unitCompliances || [];
+    const progIds = new Set(unitAcademicPrograms.map((p) => p.id));
+    const list = (allYearCompliances || []).filter((c) => progIds.has(c.programId));
+    return list.length > 0 ? list : unitCompliances || [];
+  }, [unitAcademicPrograms, allYearCompliances, unitCompliances]);
 
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !selectedUnitId || !userProfile?.campusId) return null;
@@ -534,11 +564,20 @@ export function UnitSubmissionsView({
             </DropdownMenu>
           </div>
 
+          {unitAcademicPrograms.length > 0 && (
+            <AcademicUnitChedWarningsCard
+              unit={currentUnit}
+              programs={unitAcademicPrograms}
+              compliances={effectiveUnitCompliances}
+              selectedYear={Number(selectedYear)}
+            />
+          )}
+
           <StrategicSwotAnalysis
             submissions={unitData.yearSubmissions}
             risks={unitRisks || []}
             monitoringRecords={unitMonitoring || []}
-            programCompliances={unitCompliances || []}
+            programCompliances={effectiveUnitCompliances}
             correctiveActionRequests={unitCars || []}
             mrOutputs={mrOutputs?.filter((o) => o.assignments?.some((a) => a.unitId === selectedUnitId)) || []}
             scope="unit"
@@ -592,6 +631,14 @@ export function UnitSubmissionsView({
                   Quality Achievement Index
                 </p>
               </div>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 w-full mt-6">
+                <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium text-left">
+                  This maturity gauge calculates the unit's documentary verification rate by dividing officially
+                  validated deliverables by total required compliance artifacts. Scores at or above 90% qualify the
+                  office for premier status during annual internal quality audits and executive review assessments.
+                </p>
+              </CardFooter>
             </Card>
 
             <div className="lg:col-span-2 space-y-6">
@@ -732,15 +779,15 @@ export function UnitSubmissionsView({
                         Select Academic Year <strong>{selectedYear}</strong> and select the target submission cycle
                         (First or Final Cycle).
                       </li>
-                      <li>Choose the missing report type from the list and download the template if needed.</li>
+                      <li>Choose the missing report type from the list and use the interactive form or wizard.</li>
                       <li>
-                        Upload your unit's finalized signed document PDF to Google Drive, set permissions to{' '}
-                        <strong>"Anyone with the link can view"</strong>, and submit the link.
+                        Input required data directly into the system and attach your Google Drive folder for PPA{' '}
+                        <strong>implementation evidences</strong> (CSW Terminal Report).
                       </li>
                     </ol>
                     <Button
                       size="sm"
-                      onClick={() => router.push('/submissions/new')}
+                      onClick={() => (onNewSubmission ? onNewSubmission() : router.push('/submissions/new'))}
                       className="w-full h-8 text-[10px] font-black uppercase tracking-wider bg-rose-600 hover:bg-rose-700 text-white shadow-sm mt-2"
                     >
                       Submit New Document <ArrowRight className="ml-1.5 h-3 w-3" />
@@ -922,16 +969,28 @@ function UnitTable({ cycleSubs, onView }: { cycleSubs: any[]; onView: (id: strin
                 </div>
               </TableCell>
               <TableCell className="text-center">
-                <Badge
-                  className={cn(
-                    'capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm',
-                    sub.statusId === 'approved' && 'bg-emerald-600 text-white',
-                    sub.statusId === 'rejected' && 'bg-rose-600 text-white',
-                    sub.statusId === 'submitted' && 'bg-amber-50 text-amber-950',
+                <div className="flex flex-col items-center justify-center gap-1">
+                  <Badge
+                    className={cn(
+                      'capitalize font-black text-[9px] px-2 py-0.5 border-none shadow-sm',
+                      sub.statusId === 'approved' && 'bg-emerald-600 text-white',
+                      sub.statusId === 'rejected' && 'bg-rose-600 text-white',
+                      sub.statusId === 'submitted' && 'bg-amber-50 text-amber-950',
+                    )}
+                  >
+                    {sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}
+                  </Badge>
+                  {sub.submissionNeedsEntry && (
+                    <Badge className="bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-950 dark:text-amber-200 text-[8px] font-black uppercase tracking-wider">
+                      Needs Entry
+                    </Badge>
                   )}
-                >
-                  {sub.statusId === 'submitted' ? 'AWAITING' : sub.statusId.toUpperCase()}
-                </Badge>
+                  {sub.dataEntryCompleted && (
+                    <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-300 dark:bg-emerald-950 dark:text-emerald-200 text-[8px] font-black uppercase tracking-wider">
+                      Data Encoded
+                    </Badge>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-right pr-6">
                 <Button

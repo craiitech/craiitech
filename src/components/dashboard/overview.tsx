@@ -10,7 +10,7 @@ import type { ChartConfig } from '@/components/ui/chart';
 import { Chart3DDefs, RenderBar3DLabel } from '@/components/ui/chart-3d-defs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Play, Pause, RotateCcw, Sparkles, Layers, Activity } from 'lucide-react';
+import { Play, Pause, RotateCcw, Sparkles, Layers, Activity, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface OverviewProps {
@@ -214,6 +214,18 @@ export function Overview({ submissions, isLoading }: OverviewProps) {
           </BarChart>
         </ResponsiveContainer>
       </ChartContainer>
+
+      <div className="mt-4 pt-3 border-t flex items-start gap-3 bg-muted/20 p-3 rounded-xl border border-muted/30">
+        <Info className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+        <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+          <strong>Submission Momentum Interpretation:</strong> This 12-month rolling histogram tracks institutional
+          document throughput and submission momentum across academic and administrative departments. Periodic peaks
+          typically coincide with mid-year IQA compliance cycles, semester clearances, or accreditation deadlines, while
+          troughs reveal operational lulls between evaluation milestones. Monitoring these cadence fluctuations helps
+          administrative leaders balance review workloads, eliminate operational bottlenecks, and forecast auditor
+          allocation requirements.
+        </p>
+      </div>
     </div>
   );
 }

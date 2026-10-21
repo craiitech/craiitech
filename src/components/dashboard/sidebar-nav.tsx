@@ -33,6 +33,8 @@ import {
   Building2,
   Copy,
   FolderArchive,
+  FileSpreadsheet,
+  Layers,
 } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
@@ -421,6 +423,12 @@ export function SidebarNav({
       ],
       icon: <FileText />,
       showBadge: true,
+    },
+    {
+      href: '/operational-plan',
+      label: 'Unit EOMS Digital Document',
+      active: pathname.startsWith('/operational-plan'),
+      icon: <Layers />,
     },
     {
       href: '/approvals',

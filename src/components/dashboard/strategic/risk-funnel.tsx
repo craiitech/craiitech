@@ -78,13 +78,15 @@ export function RiskFunnel({ allRisks, selectedYear }: RiskFunnelProps) {
       </CardContent>
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+          <Info className="h-5 w-5 text-indigo-600 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
-              <strong>Process Guide:</strong> Visualizes the conversion of threats into controlled factors. A healthy
-              funnel shows a strong movement of items from the top (Analysis) into the "Mitigated / Closed" stage. Items
-              stuck in "Treatment Execution" for long periods may indicate a lack of resources or ineffective mitigation
-              plans.
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium italic">
+              <strong>Funnel Lifecycle Interpretation:</strong> This chart illustrates the operational throughput of
+              risk control across Romblon State University, tracing items from initial logging and risk assessment
+              through active mitigation into verified closure. A progressive narrowing with a healthy volume
+              transitioning into the 'Mitigated / Closed' stage indicates effective internal controls and proactive
+              leadership, whereas an accumulation of stalled items in 'Treatment Execution' signals resource constraints
+              or the need to re-evaluate mitigation actions.
             </p>
           </div>
         </div>

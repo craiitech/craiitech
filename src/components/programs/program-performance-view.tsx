@@ -371,14 +371,16 @@ export function ProgramPerformanceView({
               </p>
             </div>
           </CardContent>
-          <CardFooter className="bg-muted/5 border-t py-3">
-            <div className="flex items-start gap-3">
-              <Zap className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-[9px] text-muted-foreground leading-relaxed italic">
-                <strong>Insight:</strong> Measures balance across 5 compliance pillars. A symmetrical radar indicates
-                consistent quality assurance across all modules.
-              </p>
-            </div>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <Zap className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This radar assesses holistic academic program quality across five core statutory and accreditation
+              dimensions: CHED Minimum Standards (CMO), Accreditation Maturity (AACCUP), Curriculum Currency & OBEd
+              compliance, Faculty Credential Alignment, and Licensure/Board Competency. Symmetrical polygon expansion
+              reflects balanced institutional execution, whereas asymmetrical indentation isolates targeted operational
+              deficiencies that threaten Certificate of Program Compliance (COPC) validity or accreditation survey
+              progression.
+            </p>
           </CardFooter>
         </Card>
 
@@ -545,14 +547,14 @@ export function ProgramPerformanceView({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
-          <CardFooter className="bg-muted/5 border-t py-3 px-6">
-            <div className="flex items-start gap-3">
-              <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-              <p className="text-[9px] text-muted-foreground italic leading-tight">
-                <strong>Insight:</strong> Tracks population retention and growth. Disparities between semesters or years
-                indicate potential high-risk attrition points.
-              </p>
-            </div>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This longitudinal cohort chart monitors student retention dynamics and academic load distribution across
+              successive academic years and terms. Significant drops between first and second semesters or across year
+              levels pinpoint critical student attrition intervals, informing targeted retention interventions, academic
+              advising reinforcement, and enrollment forecasting in compliance with CHED normative financing standards.
+            </p>
           </CardFooter>
         </Card>
 
@@ -597,9 +599,13 @@ export function ProgramPerformanceView({
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">Total Faculty Pool</p>
               </div>
             </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3">
-              <p className="text-[8px] text-center w-full text-muted-foreground italic">
-                Percent Aligned with Program Standards (CMO)
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <Users className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This distribution profiles the academic program's instructional workforce against vertical postgraduate
+                alignment thresholds mandated by CHED Policies, Standards, and Guidelines (PSGs). A high proportion of
+                vertically articulated master's and doctoral degree holders satisfies AACCUP Area III faculty
+                qualification benchmarks and mitigates non-conformance risks during institutional regulatory audits.
               </p>
             </CardFooter>
           </Card>
@@ -653,9 +659,13 @@ export function ProgramPerformanceView({
                 </div>
               )}
             </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3">
-              <p className="text-[8px] text-center w-full text-muted-foreground italic">
-                Source: PRC Official Board Results Ledger
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <GraduationCap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This index benchmarks the program's first-time taker passing percentage directly against the
+                Professional Regulation Commission (PRC) National Passing Rate. Consistent positive margins above
+                national averages satisfy SUC Levelling Major Final Output (MFO) 1 criteria and fulfill Key Result Area
+                metrics required for CHED Center of Development/Excellence designations.
               </p>
             </CardFooter>
           </Card>

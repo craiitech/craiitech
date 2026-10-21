@@ -155,21 +155,40 @@ export function ActionableDecisionPrintTemplate({
             <table className="w-full border-collapse text-[9pt]">
               <thead>
                 <tr className="bg-gray-100 border border-black text-left">
-                  <th className="p-1.5 border-r border-black font-bold uppercase text-[8pt] w-10 text-center">#</th>
-                  <th className="p-1.5 border-r border-black font-bold uppercase text-[8pt]">Campus Location</th>
-                  <th className="p-1.5 font-bold uppercase text-[8pt]">Assigned Unit / Department / Scope</th>
+                  <th className="p-1.5 border-r border-black font-bold uppercase text-[8pt] w-8 text-center">#</th>
+                  <th className="p-1.5 border-r border-black font-bold uppercase text-[8pt] w-40">Campus Location</th>
+                  <th className="p-1.5 border-r border-black font-bold uppercase text-[8pt]">Assigned Unit / Office</th>
+                  <th className="p-1.5 font-bold uppercase text-[8pt] w-36 text-center">Unit Action Status</th>
                 </tr>
               </thead>
               <tbody>
-                {assignments.map((a, i) => (
-                  <tr key={i} className="border border-black">
-                    <td className="p-1.5 border-r border-black text-center font-bold">{i + 1}</td>
-                    <td className="p-1.5 border-r border-black font-semibold uppercase">
-                      {campusMap.get(a.campusId) || a.campusId}
-                    </td>
-                    <td className="p-1.5 font-bold text-gray-900">{unitMap.get(a.unitId) || a.unitId}</td>
-                  </tr>
-                ))}
+                {assignments.map((a, i) => {
+                  const unitActions = (output.actionEntries || []).filter(
+                    (e) => e.unitId === a.unitId || (!e.unitId && a.unitId === 'all-units'),
+                  );
+                  const hasResponded = unitActions.length > 0;
+
+                  return (
+                    <tr key={i} className="border border-black">
+                      <td className="p-1.5 border-r border-black text-center font-bold">{i + 1}</td>
+                      <td className="p-1.5 border-r border-black font-semibold uppercase">
+                        {campusMap.get(a.campusId) || a.campusId}
+                      </td>
+                      <td className="p-1.5 border-r border-black font-bold text-gray-900">
+                        {unitMap.get(a.unitId) || a.unitId}
+                      </td>
+                      <td className="p-1.5 text-center font-bold text-[8pt]">
+                        {hasResponded ? (
+                          <span className="text-emerald-800">
+                            ✓ Responded ({unitActions.length} action{unitActions.length > 1 ? 's' : ''})
+                          </span>
+                        ) : (
+                          <span className="text-amber-800 italic">⏳ Awaiting Action</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : (
@@ -255,8 +274,21 @@ export function ActionableDecisionPrintTemplate({
                         {safeDate(entry.implementationDate)}
                       </td>
                       <td className="p-1.5 border-r border-black">
-                        <p className="font-bold leading-tight">{entry.submittedBy}</p>
+                        {entry.unitName && (
+                          <p className="font-bold text-[8.5pt] text-primary leading-tight">
+                            {entry.unitName}
+                            {entry.campusName && (
+                              <span className="text-gray-500 font-normal"> ({entry.campusName})</span>
+                            )}
+                          </p>
+                        )}
+                        <p className="font-medium text-black leading-tight text-[8pt]">{entry.submittedBy}</p>
                         <p className="text-[7pt] text-gray-500">{safeDate(entry.submittedAt)}</p>
+                        {entry.actionStatus && (
+                          <span className="inline-block mt-0.5 px-1 py-0.2 rounded text-[6.5pt] font-semibold bg-gray-100 text-gray-700 border border-gray-300">
+                            {entry.actionStatus}
+                          </span>
+                        )}
                       </td>
                       <td className="p-1.5 border-r border-black">
                         {entry.googleDriveLink ? (

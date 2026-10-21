@@ -36,6 +36,13 @@ service cloud.firestore {
       );
     }
 
+    function isVpOffice() {
+      return isSignedIn() && hasProfile() && (
+        profile().get('role', '').matches('(?i).*(vice president|president).*') ||
+        profile().get('unitName', '').matches('(?i).*(vice president|ovp|ovpaa|ovpaf|ovpre|ovpsas|office of the president).*')
+      );
+    }
+
     // --------------------------------------------------------------------------
     // FIAMO Helper Functions
     // --------------------------------------------------------------------------
@@ -153,36 +160,75 @@ service cloud.firestore {
     }
 
     match /submissions/{id} {
-      allow get, list, write: if isSignedIn();
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    match /operationalPlans/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.status == 'Draft');
+    }
+
+    match /operationalPlanItems/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isAdmin() || (isSignedIn() && resource.data.get('isBaselineLocked', false) == false);
+    }
+
+    match /vpStrategicGoals/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isSupervisor() || isVpOffice();
+    }
+
+    match /qualityObjectives/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin() || isSignedIn();
+    }
+
+    match /swotMetadata/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    match /swotItems/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin() || isSignedIn();
+    }
+
+    match /interestedPartyItems/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin() || isSignedIn();
     }
 
     match /unitOrgStructures/{id} {
       // All authenticated users can read (for admin/supervisor review)
       allow read: if isSignedIn() && hasProfile();
-      // Unit Coordinators and ODIMOs can create records for their own unit.
-      // Fallback: Campus Directors and Campus ODIMOs can create for units
-      // within their own campus (when a unit lacks a coordinator/ODIMO).
+      // Any authenticated user belonging to the unit can submit records for their unit.
+      // Fallback: Campus Directors, Campus ODIMOs, and Admins can create for units
+      // within their own campus.
       allow create: if isSignedIn() && hasProfile() && (
         isAdmin() ||
-        (
-          profile().get('unitId', '') == request.resource.data.unitId &&
-          profile().get('role', '') in ['Unit Coordinator', 'Unit ODIMO']
-        ) ||
+        (profile().get('unitId', '') != '' && profile().get('unitId', '') == request.resource.data.unitId) ||
         (
           profile().get('campusId', '') == request.resource.data.campusId &&
-          profile().get('role', '') in ['Campus Director', 'Campus ODIMO']
+          profile().get('role', '').matches('(?i).*(director|odimo|admin|head|coordinator).*')
         )
       );
       // Same restriction for updates
       allow update: if isSignedIn() && hasProfile() && (
         isAdmin() ||
-        (
-          profile().get('unitId', '') == resource.data.unitId &&
-          profile().get('role', '') in ['Unit Coordinator', 'Unit ODIMO']
-        ) ||
+        (profile().get('unitId', '') != '' && profile().get('unitId', '') == resource.data.unitId) ||
         (
           profile().get('campusId', '') == resource.data.campusId &&
-          profile().get('role', '') in ['Campus Director', 'Campus ODIMO']
+          profile().get('role', '').matches('(?i).*(director|odimo|admin|head|coordinator).*')
         )
       );
       // Only admins can delete
@@ -190,11 +236,15 @@ service cloud.firestore {
     }
 
     match /pbbSubmissions/{id} {
-      allow read, write: if isSignedIn();
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
     
     match /risks/{id} {
-      allow get, list, write: if isSignedIn();
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin() || isSupervisor();
     }
 
     match /employeeActivities/{id} {
@@ -271,7 +321,9 @@ service cloud.firestore {
     }
 
     match /unitPersonnelCensus/{id} {
-      allow get, list, write: if isSignedIn();
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
     }
 
     // --------------------------------------------------------------------------
@@ -348,14 +400,36 @@ service cloud.firestore {
     
     match /users/{userId} {
       allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if (isSignedIn() && request.auth.uid == userId) || isAdmin();
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+      // On create, regular users cannot self-assign administrative roles or verified status
+      allow create: if isSignedIn() && request.auth.uid == userId && (
+        request.auth.token.email == 'admin@eoms.com' ||
+        (!request.resource.data.keys().hasAny(['isAdmin']) &&
+         (!request.resource.data.keys().hasAny(['role']) ||
+          !(request.resource.data.role in ['Admin', 'admin', 'Administrator', 'administrator', 'System Administrator', 'Super Admin'])) &&
+         (!request.resource.data.keys().hasAny(['verified']) || request.resource.data.verified == false))
+      );
+      // On update:
+      // - Admins or the bootstrap admin can update freely.
+      // - Regular users can update their own profile, but CANNOT escalate their role to Admin or alter verification
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (request.auth.uid == userId && (
+          request.auth.token.email == 'admin@eoms.com' ||
+          (
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin']) &&
+            (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified']) || resource.data.get('verified', false) == request.resource.data.get('verified', false)) &&
+            (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
+             (!(request.resource.data.role in ['Admin', 'admin', 'Administrator', 'administrator', 'System Administrator', 'Super Admin']) &&
+              (resource.data.get('role', '') == '' || resource.data.get('verified', false) == false)))
+          )
+        ))
+      );
+      allow delete: if isAdmin();
     }
     
     match /roles_admin/{userId} {
       allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow write: if isAdmin() || (isSignedIn() && request.auth.token.email == 'admin@eoms.com' && request.auth.uid == userId);
     }
 
     match /campuses/{id} { 
@@ -414,7 +488,7 @@ service cloud.firestore {
 
     match /campusSettings/{id} {
       allow get, list: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if isAdmin() || isSupervisor();
     }
 
     match /unitCsmSettings/{unitId} {
@@ -632,6 +706,18 @@ service cloud.firestore {
     match /system/fiamoSettings {
       allow read: if isSignedIn();
       allow write: if isFiamoCoordinator() || isMainCampusFiamoMonitor();
+    }
+
+    // SUC Levelling Assessment Cycles & Submissions
+    match /sucLevellingCycles/{id} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isSupervisor() || isVpOffice();
+    }
+
+    match /sucLevellingSubmissions/{id} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn();
+      allow delete: if isAdmin() || isSupervisor();
     }
 
     // Final catch-all for anything else

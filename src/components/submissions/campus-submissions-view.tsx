@@ -1002,6 +1002,15 @@ export function CampusSubmissionsView({
                         Quality Achievement Index
                       </p>
                     </div>
+                    <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 w-full mt-6">
+                      <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium text-left">
+                        This maturity gauge calculates the unit's documentary verification rate by dividing officially
+                        validated deliverables by total required compliance artifacts. Scores at or above 90% qualify
+                        the office for premier status during annual internal quality audits and executive review
+                        assessments.
+                      </p>
+                    </CardFooter>
                   </Card>
 
                   <div className="md:col-span-2 space-y-6">
@@ -1380,6 +1389,14 @@ export function CampusSubmissionsView({
                     <p className="mt-6 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                       Average Across {campusSummary.totalUnits} Units
                     </p>
+                    <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 w-full mt-6">
+                      <TrendingUp className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium text-left">
+                        This site-level maturity gauge synthesizes composite documentary compliance across all academic
+                        and administrative units located within this campus. It tracks geographic parity and ensures
+                        regional satellite operations maintain equitable quality standards with the university system.
+                      </p>
+                    </CardFooter>
                   </Card>
                 </div>
               </div>

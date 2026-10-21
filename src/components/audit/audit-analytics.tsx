@@ -1133,6 +1133,18 @@ export function AuditAnalytics({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <PieIcon className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Finding Distribution Interpretation:</strong> This chart profiles overall audit outcomes by
+                proportion of full Compliance, Opportunities for Improvement (OFI), and Non-Conformances (NC). A high
+                emerald Compliance share validates systematic adherence to operational guidelines, while the balance
+                between OFIs and NCs guides lead auditors on whether to implement targeted corrective actions or
+                systemic quality coaching.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
@@ -1212,6 +1224,18 @@ export function AuditAnalytics({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Process Maturity Interpretation:</strong> This grouped visualization compares audit outcomes
+                across Management, Operational, and Support process frameworks. Elevated NC or OFI clusters within any
+                specific category indicate process-level vulnerability, directing the Quality Management Office to
+                reinforce standard operating procedures, documentation integrity, and staff onboarding in affected
+                processes.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">
@@ -1272,9 +1296,15 @@ export function AuditAnalytics({
             </ChartContainer>
           </CardContent>
           <CardFooter className="bg-muted/5 border-t py-3 px-6">
-            <p className="text-[9px] text-muted-foreground italic text-center w-full">
-              Tracking workload distribution and session finalization per auditor.
-            </p>
+            <div className="flex items-start gap-3">
+              <TrendingUp className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Auditor Performance Interpretation:</strong> This workload metric evaluates completed internal
+                audits against total assigned schedules per auditor. A high completion ratio demonstrates diligent
+                execution and timely submission of audit reports under ISO 19011, while tracking unfinished sessions
+                prevents evaluation backlogs from delaying mid-year Management Reviews.
+              </p>
+            </div>
           </CardFooter>
         </Card>
 
@@ -1319,6 +1349,18 @@ export function AuditAnalytics({
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Standard Clause Vulnerability:</strong> This ranking isolates ISO 21001:2018 clauses that incur
+                the highest frequency of Non-Conformances and OFIs across audited departments. Identifying recurring
+                gaps in specific clauses (such as Clause 7.5 on Documented Information or Clause 8.5 on Service
+                Delivery) alerts central leadership to launch university-wide training rather than treating findings as
+                isolated unit errors.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </div>
 
@@ -1540,6 +1582,17 @@ export function AuditAnalytics({
               </div>
             )}
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Unit Hotspots Interpretation:</strong> This registry spotlights departments and campuses
+                carrying active Non-Conformances. Prioritizing follow-up visits and technical coaching toward these
+                identified hotspots ensures that corrective actions achieve verified closure ahead of external
+                third-party accreditation and ISO surveillance.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         <Card className="shadow-lg border-primary/10 overflow-hidden flex flex-col">

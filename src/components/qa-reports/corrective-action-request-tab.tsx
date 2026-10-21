@@ -2126,6 +2126,18 @@ export function CorrectiveActionRequestTab({
             </div>
           </div>
         </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-3 px-6">
+          <div className="flex items-start gap-3">
+            <Activity className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              <strong>Annual Quality Performance Interpretation:</strong> This comparative ledger and stacked bar chart
+              evaluate multi-year Non-Conformance (NC) generation alongside resolution outcomes (Open, On-Going, and
+              Closed) across internal (IQA) and external (EQA) audit engagements. A high proportion of closed items
+              relative to newly registered NCs verifies robust operational containment under ISO 10.2, ensuring that
+              findings translate into permanent corrective solutions.
+            </p>
+          </div>
+        </CardFooter>
       </Card>
 
       <Tabs defaultValue="registry" className="space-y-6">

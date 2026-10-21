@@ -18,6 +18,7 @@ import type {
   KpiThreshold,
   ProgramComplianceRecord,
   AccreditationRecord,
+  OperationalPlanItem,
 } from './types';
 
 export type KpiComputationResult = {
@@ -42,6 +43,7 @@ type KpiComputationInput = {
   activityLogs?: ActivityAttendanceLog[];
   evaluations?: ActivityEvaluation[];
   programCompliances?: ProgramComplianceRecord[];
+  operationalPlanItems?: OperationalPlanItem[];
   selectedYear: number;
   entityType: 'institution' | 'campus' | 'unit';
   entityId: string;
@@ -86,6 +88,7 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
     activityLogs,
     evaluations,
     programCompliances,
+    operationalPlanItems,
   } = input;
 
   const yearSubmissions = submissions?.filter((s) => s.year === selectedYear) || [];
@@ -313,6 +316,25 @@ export function computeKpis(input: KpiComputationInput): KpiSnapshot[] {
         const total = opportunities.length || 1;
         const closed = opportunities.filter((r) => r.status === 'Closed').length;
         result = { value: opportunities.length > 0 ? Math.round((closed / total) * 100) : 0 };
+        break;
+      }
+      case 'operational_plan_execution_rate':
+      case 'op_execution_rate': {
+        const opItems = (operationalPlanItems || []).filter((item) => {
+          if (entityType === 'institution') return item.year === selectedYear;
+          return item.unitId === entityId && item.year === selectedYear;
+        });
+        if (opItems.length === 0) {
+          result = { value: 0 };
+          break;
+        }
+        const completed = opItems.filter((item) => {
+          if (item.actualMetricValue !== undefined && item.targetMetricValue) {
+            return item.actualMetricValue / item.targetMetricValue >= 0.75;
+          }
+          return Boolean(item.progressUpdates && item.progressUpdates.trim().length > 0);
+        }).length;
+        result = { value: Math.round((completed / opItems.length) * 100) };
         break;
       }
       default: {

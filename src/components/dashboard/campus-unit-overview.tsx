@@ -29,10 +29,7 @@ export function CampusUnitOverview({
   selectedYear,
 }: CampusUnitOverviewProps) {
   const firestore = useFirestore();
-  const cyclesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'cycles') : null),
-    [firestore]
-  );
+  const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
   const { data: allCycles } = useCollection<Cycle>(cyclesQuery);
 
   const unitSubmissionProgress = useMemo(() => {
@@ -40,35 +37,51 @@ export function CampusUnitOverview({
       return [];
     }
 
-    const campusUnits = allUnits.filter(u => u.campusIds?.includes(userProfile.campusId));
+    const campusUnits = allUnits.filter((u) => u.campusIds?.includes(userProfile.campusId));
 
-    return campusUnits.map(unit => {
-      const unitSubmissionsForYear = allSubmissions.filter(s => s.unitId === unit.id && s.year === selectedYear);
-      
+    return campusUnits.map((unit) => {
+      const unitSubmissionsForYear = allSubmissions.filter((s) => s.unitId === unit.id && s.year === selectedYear);
+
       const isFirstActive = isCycleActive('first', selectedYear, allCycles);
       const isFinalActive = isCycleActive('final', selectedYear, allCycles);
 
-      const firstCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry');
+      const firstCycleRegistry = unitSubmissionsForYear.find(
+        (s) => s.cycleId === 'first' && s.reportType === 'Risk and Opportunity Registry',
+      );
       const isFirstActionPlanNA = firstCycleRegistry?.riskRating === 'low';
-      const requiredFirst = isFirstActive ? (isFirstActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE) : 0;
-      
+      const requiredFirst = isFirstActive
+        ? isFirstActionPlanNA
+          ? TOTAL_REPORTS_PER_CYCLE - 1
+          : TOTAL_REPORTS_PER_CYCLE
+        : 0;
+
       // CRITICAL: Progress is based on APPROVED status
-      const firstCycleApproved = isFirstActive ? new Set(
-        unitSubmissionsForYear
-            .filter(s => s.cycleId === 'first' && s.statusId === 'approved')
-            .map(s => s.reportType)
-      ).size : 0;
-      
-      const finalCycleRegistry = unitSubmissionsForYear.find(s => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry');
+      const firstCycleApproved = isFirstActive
+        ? new Set(
+            unitSubmissionsForYear
+              .filter((s) => s.cycleId === 'first' && s.statusId === 'approved')
+              .map((s) => s.reportType),
+          ).size
+        : 0;
+
+      const finalCycleRegistry = unitSubmissionsForYear.find(
+        (s) => s.cycleId === 'final' && s.reportType === 'Risk and Opportunity Registry',
+      );
       const isFinalActionPlanNA = finalCycleRegistry?.riskRating === 'low';
-      const requiredFinal = isFinalActive ? (isFinalActionPlanNA ? TOTAL_REPORTS_PER_CYCLE - 1 : TOTAL_REPORTS_PER_CYCLE) : 0;
-      
-      const finalCycleApproved = isFinalActive ? new Set(
-        unitSubmissionsForYear
-            .filter(s => s.cycleId === 'final' && s.statusId === 'approved')
-            .map(s => s.reportType)
-      ).size : 0;
-      
+      const requiredFinal = isFinalActive
+        ? isFinalActionPlanNA
+          ? TOTAL_REPORTS_PER_CYCLE - 1
+          : TOTAL_REPORTS_PER_CYCLE
+        : 0;
+
+      const finalCycleApproved = isFinalActive
+        ? new Set(
+            unitSubmissionsForYear
+              .filter((s) => s.cycleId === 'final' && s.statusId === 'approved')
+              .map((s) => s.reportType),
+          ).size
+        : 0;
+
       const totalRequired = requiredFirst + requiredFinal;
       const approvedCount = firstCycleApproved + finalCycleApproved;
       const progress = totalRequired > 0 ? (approvedCount / totalRequired) * 100 : 0;
@@ -81,7 +94,6 @@ export function CampusUnitOverview({
         totalRequired,
       };
     });
-
   }, [allUnits, allSubmissions, allCycles, userProfile?.campusId, selectedYear]);
 
   if (isLoading) {
@@ -114,7 +126,7 @@ export function CampusUnitOverview({
       </CardHeader>
       <CardContent>
         <List>
-          {unitSubmissionProgress.map(unit => (
+          {unitSubmissionProgress.map((unit) => (
             <ListItem key={unit.id} className="flex-col !items-start p-4 hover:bg-muted/20 transition-colors">
               <div className="flex w-full items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -127,8 +139,8 @@ export function CampusUnitOverview({
               </div>
               <div className="w-full mt-3 space-y-1">
                 <div className="flex justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                    <span>Maturity</span>
-                    <span>{Math.round(unit.progress)}%</span>
+                  <span>Maturity</span>
+                  <span>{Math.round(unit.progress)}%</span>
                 </div>
                 <Progress value={unit.progress} className="h-1.5" />
               </div>
@@ -136,13 +148,13 @@ export function CampusUnitOverview({
           ))}
         </List>
       </CardContent>
-      <CardFooter className="bg-muted/5 border-t py-3">
-          <div className="flex items-start gap-2">
-              <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-              <p className="text-[9px] text-muted-foreground italic leading-tight">
-                  Unit documentation performance roll-up.
-              </p>
-          </div>
+      <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+        <Building className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+        <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+          This unit-level verification roster tracks the cumulative percentage of approved operational documents against
+          total required submissions for the academic cycle, highlighting localized procedural maturity and ensuring
+          uniform compliance across campus departments under ISO 21001:2025.
+        </p>
       </CardFooter>
     </Card>
   );

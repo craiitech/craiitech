@@ -2610,6 +2610,14 @@ export function CsmReportDashboard({
                   ))}
                 </div>
               </CardContent>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                <Users className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Sex-disaggregated client satisfaction profiling supports Anti-Red Tape Authority (ARTA) and
+                  PCW-NEDA-DBM Joint Circular mandates, verifying equitable access to frontline university services
+                  across gender groups while identifying potential disparities in service satisfaction and engagement.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* Customer Type Donut */}
@@ -2670,6 +2678,15 @@ export function CsmReportDashboard({
                   ))}
                 </div>
               </CardContent>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                <Building2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Classifying respondent feedback by client category (students, government personnel, business
+                  stakeholders, and general public) contextualizes frontline service delivery dynamics, allowing
+                  administrative units to calibrate transaction speed, communication clarity, and procedural complexity
+                  according to the primary user base.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* Internal vs External Stakeholders */}
@@ -2722,6 +2739,15 @@ export function CsmReportDashboard({
                   ))}
                 </div>
               </CardContent>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                <Users className="h-4 w-4 text-sky-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Contrasting internal university clients (students, faculty, and administrative staff) against external
+                  community and regulatory visitors provides critical perspective on institutional service
+                  responsiveness, ensuring internal academic workflows and public-facing frontline operations
+                  concurrently maintain ISO 21001:2025 quality standards.
+                </p>
+              </CardFooter>
             </Card>
           </div>
 
@@ -2755,6 +2781,15 @@ export function CsmReportDashboard({
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                <Calendar className="h-4 w-4 text-indigo-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Mapping feedback volume across age cohorts gauges digital interface usability, accessibility
+                  accommodations, and physical transaction comfort, ensuring that frontline services cater effectively
+                  to collegiate youth, mid-career professionals, and senior citizen stakeholders in compliance with
+                  national accessibility standards.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* Campus distribution */}
@@ -2785,6 +2820,15 @@ export function CsmReportDashboard({
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                <Building2 className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Tracking CSM participation and satisfaction volume across all eight island campuses monitors
+                  geographic equity and standardized service delivery under SUC Levelling and RA 11032 guidelines,
+                  pinpointing satellite locations that may require frontline resource augmentation or procedural
+                  alignment.
+                </p>
+              </CardFooter>
             </Card>
           </div>
 
@@ -2854,6 +2898,15 @@ export function CsmReportDashboard({
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This 100% stacked distribution visualizes compliance across the three core Citizen's Charter dimensions
+                (CC1 awareness, CC2 visibility, and CC3 helpfulness) in accordance with ARTA Memorandum Circular
+                2022-005, confirming that university service standards, processing requirements, and processing times
+                are visibly displayed and understandable to clients.
+              </p>
+            </CardFooter>
           </Card>
         </TabsContent>
 
@@ -2964,6 +3017,15 @@ export function CsmReportDashboard({
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                <TrendingUp className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Centered on neutral sentiment (X = 0), this diverging Likert distribution isolates positive
+                  satisfaction (Agree, Strongly Agree) on the right from procedural dissatisfaction on the left across
+                  all eight SQD service dimensions, immediately exposing service friction points requiring operational
+                  streamlining.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* Radar Spider Chart */}
@@ -3001,6 +3063,15 @@ export function CsmReportDashboard({
                   </RadarChart>
                 </ResponsiveContainer>
               </CardContent>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  This multi-axial radar illustrates the balance of client satisfaction across the eight statutory
+                  Service Quality Dimensions (Responsiveness, Reliability, Facility, Integrity, Cost, Outcome,
+                  Communication, and Cleanliness) defined by ARTA and ISO 21001:2025, highlighting operational strengths
+                  and areas requiring continuous improvement.
+                </p>
+              </CardFooter>
             </Card>
           </div>
 
@@ -3163,6 +3234,14 @@ export function CsmReportDashboard({
                 </div>
               )}
             </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                This service-level heatmap evaluates satisfaction scores across all frontline university transactions
+                against national quality thresholds, providing immediate visual alerts where satisfaction falls below
+                the 85% benchmark to enable targeted procedural reviews and staffing interventions.
+              </p>
+            </CardFooter>
           </Card>
         </TabsContent>
 
@@ -3267,6 +3346,14 @@ export function CsmReportDashboard({
                   </ComposedChart>
                 </ResponsiveContainer>
               </CardContent>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                <TrendingUp className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  Applying the 80/20 Pareto principle to qualitative client feedback isolates the vital few recurring
+                  systemic complaints that generate the majority of client dissatisfaction, guiding university executive
+                  leadership and process owners to prioritize high-impact corrective actions and resource allocations.
+                </p>
+              </CardFooter>
             </Card>
 
             {/* Categorized Matrix Feed */}
@@ -3323,6 +3410,14 @@ export function CsmReportDashboard({
                   )}
                 </ScrollArea>
               </CardContent>
+              <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                <FileText className="h-4 w-4 text-slate-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                  This authenticated qualitative comment repository captures direct stakeholder observations and
+                  verbatim recommendations across service encounters, preserving contextual client sentiment to
+                  substantiate formal Corrective Action Requests and procedural manual revisions.
+                </p>
+              </CardFooter>
             </Card>
           </div>
         </TabsContent>

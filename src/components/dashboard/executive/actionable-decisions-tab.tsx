@@ -11,7 +11,7 @@ import type {
   Campus,
   Unit,
 } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   RadialBarChart,
@@ -729,6 +729,18 @@ export function ActionableDecisionsTab({
               <p className="text-[8px] font-black text-red-400 uppercase">URGENT →</p>
             </div>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <Zap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Decision Matrix Interpretation:</strong> This matrix applies the Eisenhower governance framework
+                to prioritize university quality flags by Impact and Urgency. Items positioned in the top-right
+                'Immediate Action' quadrant represent acute compliance threats that require immediate executive
+                intervention to prevent audit sanctions, while lower-urgency quadrants represent planned quality
+                enhancements.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
 
         {/* Full Decision Flag Cards */}
@@ -917,6 +929,17 @@ export function ActionableDecisionsTab({
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6">
+            <div className="flex items-start gap-3">
+              <TrendingUp className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                <strong>Quality Velocity Interpretation:</strong> This longitudinal trend plots quarterly trajectory
+                across submission compliance, corrective action resolution, and risk treatment velocity. Coordinated
+                upward progression reflects a mature, proactive quality culture, whereas divergence between lines
+                isolates specific administrative bottlenecks before regional surveillance audits.
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </div>
     </TooltipProvider>

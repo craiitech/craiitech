@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { SoftwareEvaluation } from '@/lib/types';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   Radar,
   RadarChart,
@@ -427,6 +427,14 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
               </span>
             </div>
           </div>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              The Aggregate Maturity Index summarizes overall software quality for the EOMS submission portal across all
+              ISO/IEC 25010 characteristics on a 5-point Likert scale, confirming consistent user satisfaction,
+              interface reliability, and administrative workflow suitability across university operations.
+            </p>
+          </CardFooter>
         </Card>
 
         {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
@@ -478,6 +486,14 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
               }}
             />
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <Activity className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This radar illustrates institutional software equilibrium across the eight ISO/IEC 25010 dimensions,
+              contrasting operational strengths in Functional Suitability and Usability against non-functional
+              dimensions like Maintainability and Portability to pinpoint architectural enhancement targets.
+            </p>
+          </CardFooter>
         </Card>
       </div>
 
@@ -551,6 +567,14 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
               }}
             />
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <BarChart3 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              Ranking weighted mean scores per software quality characteristic alongside dispersion variance (±SD)
+              establishes quantitative baselines for technical debt remediation, guiding IT developers and quality
+              managers to prioritize software enhancements for lower-scoring sub-characteristics.
+            </p>
+          </CardFooter>
         </Card>
 
         <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
@@ -645,6 +669,14 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
               }}
             />
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <PieChartIcon className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This percentage distribution captures the frequency concentration of evaluator responses across Likert
+              rating tiers (5-Excellent to 1-Poor), indicating overall stakeholder sentiment and demonstrating whether
+              software adoption challenges are isolated outliers or systemic usability friction.
+            </p>
+          </CardFooter>
         </Card>
       </div>
 

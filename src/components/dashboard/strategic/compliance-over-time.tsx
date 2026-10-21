@@ -129,9 +129,12 @@ export function ComplianceOverTime({ allSubmissions, allCycles, allUnits }: Comp
       <CardFooter className="bg-muted/5 border-t py-4 px-6">
         <div className="flex items-start gap-3">
           <Info className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-          <p className="text-[10px] text-muted-foreground leading-relaxed font-medium italic">
-            <strong>Strategic Guidance:</strong> This trend analyzes the "adoption rate" of the digital portal. An
-            upward trajectory signifies increasing institutional maturity.
+          <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+            <strong>Strategic Interpretation:</strong> This multi-year compliance trajectory monitors institutional
+            digitalization and governance maturity across all operational cycles. An upward slope reflects accelerated
+            cross-campus adoption and proactive document governance, whereas plateaus or dips highlight transitional
+            friction during policy updates or semester handovers. Sustained velocity above target thresholds ensures
+            institutional readiness for ISO re-certification, SUC levelling evaluations, and external regulatory audits.
           </p>
         </div>
       </CardFooter>

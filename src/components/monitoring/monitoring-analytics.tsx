@@ -267,6 +267,15 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <ShieldCheck className="h-4 w-4 text-indigo-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This radar assesses operational maturity across key on-site monitoring dimensions: physical facilities,
+              safety compliance, records governance, student service accessibility, and administrative responsiveness.
+              Even outward expansion demonstrates balanced compliance across all operational facets during surprise and
+              scheduled on-site verifications.
+            </p>
+          </CardFooter>
         </Card>
 
         <Card className="flex flex-col lg:col-span-2 shadow-lg rounded-2xl border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
@@ -308,6 +317,15 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This frequency Pareto highlights the most prevalent compliance deficiencies discovered during on-site
+              monitoring inspections. Identifying recurring operational gaps enables leadership to prioritize targeted
+              corrective interventions, conduct focused refresher training, and adjust supervisory checklists to prevent
+              systemic degradation.
+            </p>
+          </CardFooter>
         </Card>
       </div>
 
@@ -343,6 +361,14 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
               </ResponsiveContainer>
             </ChartContainer>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <School className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This benchmark evaluates on-site monitoring compliance rates across all satellite and main campuses.
+              Tracking performance parity across geographic locations ensures that satellite campuses uphold identical
+              quality assurance and educational service delivery standards as the main university hub.
+            </p>
+          </CardFooter>
         </Card>
 
         <Card className="border-primary/10 shadow-lg overflow-hidden flex flex-col">
@@ -383,6 +409,14 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
               </div>
             </ScrollArea>
           </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <Trophy className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This leaderboard ranks operational units and academic departments by their verified on-site monitoring
+              scores. Top-performing offices demonstrate rigorous adherence to QMS protocols, active risk mitigation,
+              and exemplary records readiness for external audits.
+            </p>
+          </CardFooter>
         </Card>
       </div>
     </div>

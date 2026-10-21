@@ -181,15 +181,13 @@ export function UnitSddExplorer({ compliances, units, selectedYear }: UnitSddExp
               )}
             </div>
           </div>
-          <CardFooter className="bg-muted/5 border-t py-3 px-8">
-            <div className="flex items-start gap-3">
-              <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
-              <p className="text-[9px] text-muted-foreground italic leading-tight">
-                <strong>Admin Oversight:</strong> This explorer provides an automated roll-up of all students and
-                faculty mapped to academic units. Use this to verify that unit-level GPB planning is consistent with
-                their actual sex-disaggregated population.
-              </p>
-            </div>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <ShieldCheck className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              This unit-level Sex-Disaggregated Data (SDD) registry maps academic unit demographics across student
+              enrollment and faculty profiles, enabling college deans and unit heads to calibrate Gender and Development
+              Plan and Budget (GPB) interventions to localized gender disparities pursuant to PCW guidelines.
+            </p>
           </CardFooter>
         </CollapsibleContent>
       </Collapsible>

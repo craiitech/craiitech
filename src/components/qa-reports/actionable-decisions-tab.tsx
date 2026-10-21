@@ -49,6 +49,8 @@ import {
   XCircle,
   Bell,
   Printer,
+  Clock,
+  AlertTriangle,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -85,6 +87,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { Progress } from '@/components/ui/progress';
 
 interface ActionableDecisionsTabProps {
   campuses: Campus[];
@@ -104,6 +107,128 @@ const ALL_UNITS_ID = 'all-units';
 const ALL_ACADEMIC_ID = 'all-academic-units';
 const ALL_ADMIN_ID = 'all-admin-units';
 const ALL_REDI_ID = 'all-redi-units';
+
+export interface UnitTargetStatus {
+  key: string;
+  campusId: string;
+  campusName: string;
+  unitId: string;
+  unitName: string;
+  entries: ActionEntry[];
+  hasResponded: boolean;
+  isGroup: boolean;
+}
+
+export function computeUnitResponseRoster(
+  output: ManagementReviewOutput,
+  campuses: Campus[],
+  units: Unit[],
+  campusMap: Map<string, string>,
+  unitMap: Map<string, string>,
+) {
+  const assignments = output.assignments || [];
+  const entries = output.actionEntries || [];
+
+  const targetMap = new Map<string, UnitTargetStatus>();
+
+  assignments.forEach((a) => {
+    const key = `${a.campusId}_${a.unitId}`;
+    if (!targetMap.has(key)) {
+      const isGroup = [ALL_UNITS_ID, ALL_ACADEMIC_ID, ALL_ADMIN_ID, ALL_REDI_ID].includes(a.unitId);
+      targetMap.set(key, {
+        key,
+        campusId: a.campusId,
+        campusName: campusMap.get(a.campusId) || a.campusId,
+        unitId: a.unitId,
+        unitName: unitMap.get(a.unitId) || a.unitId,
+        entries: [],
+        hasResponded: false,
+        isGroup,
+      });
+    }
+  });
+
+  entries.forEach((entry) => {
+    const entryCampus = entry.campusId || 'university-wide';
+    const entryUnit = entry.unitId || '';
+    let matched = false;
+
+    if (entryUnit) {
+      for (const [key, target] of targetMap.entries()) {
+        const campusMatches = target.campusId === 'university-wide' || target.campusId === entryCampus;
+        if (campusMatches) {
+          if (target.unitId === entryUnit) {
+            target.entries.push(entry);
+            target.hasResponded = true;
+            matched = true;
+          } else if (target.unitId === ALL_UNITS_ID) {
+            target.entries.push(entry);
+            target.hasResponded = true;
+            matched = true;
+          } else if (
+            target.unitId === ALL_ACADEMIC_ID &&
+            units.find((u) => u.id === entryUnit)?.category === 'Academic'
+          ) {
+            target.entries.push(entry);
+            target.hasResponded = true;
+            matched = true;
+          } else if (
+            target.unitId === ALL_ADMIN_ID &&
+            units.find((u) => u.id === entryUnit)?.category === 'Administrative'
+          ) {
+            target.entries.push(entry);
+            target.hasResponded = true;
+            matched = true;
+          } else if (target.unitId === ALL_REDI_ID && units.find((u) => u.id === entryUnit)?.category === 'Research') {
+            target.entries.push(entry);
+            target.hasResponded = true;
+            matched = true;
+          }
+        }
+      }
+    }
+
+    if (!matched) {
+      const orphanKey = entryUnit ? `${entryCampus}_${entryUnit}` : `entry_${entry.id}`;
+      if (!targetMap.has(orphanKey)) {
+        targetMap.set(orphanKey, {
+          key: orphanKey,
+          campusId: entryCampus,
+          campusName: entry.campusName || campusMap.get(entryCampus) || entryCampus,
+          unitId: entryUnit,
+          unitName: entry.unitName || (entryUnit ? unitMap.get(entryUnit) || entryUnit : 'General Unit Response'),
+          entries: [entry],
+          hasResponded: true,
+          isGroup: false,
+        });
+      } else {
+        const existing = targetMap.get(orphanKey)!;
+        existing.entries.push(entry);
+        existing.hasResponded = true;
+      }
+    }
+  });
+
+  const targets = Array.from(targetMap.values());
+  const respondedTargets = targets.filter((t) => t.hasResponded);
+  const pendingTargets = targets.filter((t) => !t.hasResponded);
+  const totalCount = targets.length;
+  const respondedCount = respondedTargets.length;
+  const pendingCount = pendingTargets.length;
+  const responseRate = totalCount > 0 ? Math.round((respondedCount / totalCount) * 100) : 0;
+  const allResponded = totalCount > 0 && pendingCount === 0;
+
+  return {
+    targets,
+    respondedTargets,
+    pendingTargets,
+    totalCount,
+    respondedCount,
+    pendingCount,
+    responseRate,
+    allResponded,
+  };
+}
 
 type SortKey = 'description' | 'responsibility' | 'followUpDate' | 'status';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
@@ -130,6 +255,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   // UI Functional States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [unitResponseFilter, setUnitResponseFilter] = useState<'all' | 'pending' | 'responded'>('all');
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'followUpDate', direction: 'asc' });
   const [notifyingId, setNotifyingId] = useState<string | null>(null);
 
@@ -381,6 +507,20 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
       });
     }
 
+    // 3. Apply Unit Response Status Filter
+    if (unitResponseFilter !== 'all') {
+      result = result.filter((o) => {
+        const roster = computeUnitResponseRoster(o, campuses, units, campusMap, unitMap);
+        if (unitResponseFilter === 'pending') {
+          return roster.totalCount > 0 && roster.pendingCount > 0;
+        }
+        if (unitResponseFilter === 'responded') {
+          return roster.totalCount > 0 && roster.allResponded;
+        }
+        return true;
+      });
+    }
+
     return result;
   }, [
     rawOutputs,
@@ -393,9 +533,12 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     reviewMap,
     searchTerm,
     statusFilter,
+    unitResponseFilter,
     sortConfig,
     campusMap,
     unitMap,
+    campuses,
+    units,
   ]);
 
   const updateForm = useForm<z.infer<typeof updateSchema>>({
@@ -411,6 +554,9 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   });
 
   const actionEntrySchema = z.object({
+    campusId: z.string().min(1, 'Please select the responsible campus.'),
+    unitId: z.string().min(1, 'Please select the responsible unit.'),
+    actionStatus: z.enum(['In Progress', 'Completed', 'Pending Verification']).default('In Progress'),
     description: z
       .string()
       .min(10, 'Please provide a detailed description of the action taken (minimum 10 characters).'),
@@ -421,6 +567,9 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const actionEntryForm = useForm<z.infer<typeof actionEntrySchema>>({
     resolver: zodResolver(actionEntrySchema),
     defaultValues: {
+      campusId: '',
+      unitId: '',
+      actionStatus: 'In Progress',
       description: '',
       implementationDate: format(new Date(), 'yyyy-MM-dd'),
       googleDriveLink: '',
@@ -473,9 +622,24 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     }
   };
 
-  const handleOpenActionEntry = (output: ManagementReviewOutput) => {
+  const handleOpenActionEntry = (output: ManagementReviewOutput, targetUnit?: { campusId: string; unitId: string }) => {
     setSelectedOutput(output);
+
+    let defaultCampusId = targetUnit?.campusId || userProfile?.campusId || '';
+    let defaultUnitId = targetUnit?.unitId || userProfile?.unitId || '';
+
+    // If user has no specific campus/unit or target isn't passed, fall back to first assignment
+    if (!defaultCampusId && output.assignments && output.assignments.length > 0) {
+      defaultCampusId = output.assignments[0].campusId;
+    }
+    if (!defaultUnitId && output.assignments && output.assignments.length > 0) {
+      defaultUnitId = output.assignments[0].unitId;
+    }
+
     actionEntryForm.reset({
+      campusId: defaultCampusId,
+      unitId: defaultUnitId,
+      actionStatus: 'In Progress',
       description: '',
       implementationDate: format(new Date(), 'yyyy-MM-dd'),
       googleDriveLink: '',
@@ -495,6 +659,9 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     setIsActionSubmitting(true);
     try {
       const docRef = doc(firestore, 'managementReviewOutputs', selectedOutput.id);
+      const campusName = campusMap.get(values.campusId) || values.campusId;
+      const unitName = unitMap.get(values.unitId) || values.unitId;
+
       const newAction: ActionEntry = {
         id: crypto.randomUUID(),
         description: values.description,
@@ -503,22 +670,76 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         submittedBy: `${userProfile.firstName} ${userProfile.lastName}`,
         submittedById: userProfile.id,
         submittedAt: Timestamp.now(),
+        campusId: values.campusId,
+        campusName,
+        unitId: values.unitId,
+        unitName,
+        actionStatus: values.actionStatus || 'In Progress',
         isConfirmed: false,
       };
 
       const existingActions = selectedOutput.actionEntries || [];
+      const updatedActions = [...existingActions, newAction];
+
       await updateDoc(docRef, {
-        actionEntries: [...existingActions, newAction],
+        actionEntries: updatedActions,
         updatedAt: serverTimestamp(),
-        status: 'On-going',
+        status: selectedOutput.status === 'Open' ? 'On-going' : selectedOutput.status,
       });
 
-      toast({ title: 'Action Added', description: 'Action entry has been successfully recorded.' });
+      // Synchronize previewOutput if currently viewed in preview modal
+      if (previewOutput && previewOutput.id === selectedOutput.id) {
+        setPreviewOutput({
+          ...previewOutput,
+          actionEntries: updatedActions,
+          status: previewOutput.status === 'Open' ? 'On-going' : previewOutput.status,
+        });
+      }
+
+      toast({
+        title: 'Action Logged for ' + unitName,
+        description: 'Unit response and evidence have been recorded on this Actionable Decision.',
+      });
       setIsActionEntryDialogOpen(false);
     } catch (error) {
       toast({ title: 'Failed', description: 'Could not add action entry.', variant: 'destructive' });
     } finally {
       setIsActionSubmitting(false);
+    }
+  };
+
+  const handleNotifySpecificUnit = async (output: ManagementReviewOutput, target: UnitTargetStatus) => {
+    if (!firestore) return;
+    setNotifyingId(target.key);
+    try {
+      const senderName = userProfile
+        ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
+        : 'QA Administrator';
+
+      const outputRef = doc(firestore, 'managementReviewOutputs', output.id);
+      await updateDoc(outputRef, {
+        lastNotifiedAt: serverTimestamp(),
+        lastNotifiedBy: senderName,
+      });
+
+      triggerLocalNotification(`[Action Directive Alert] ${output.description?.substring(0, 60)}`, {
+        body: `Compliance notification sent to: ${target.unitName} (${target.campusName}). Please record unit action.`,
+        category: 'system',
+        link: '/qa-reports?tab=decisions',
+      });
+
+      toast({
+        title: `Reminder Sent to ${target.unitName}!`,
+        description: `Notification dispatched for ${target.campusName} - ${target.unitName} to submit their action response.`,
+      });
+    } catch (err: any) {
+      toast({
+        title: 'Reminder Failed',
+        description: err?.message || 'Could not send reminder.',
+        variant: 'destructive',
+      });
+    } finally {
+      setNotifyingId(null);
     }
   };
 
@@ -544,6 +765,13 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         actionEntries: updatedActions,
         updatedAt: serverTimestamp(),
       });
+
+      if (previewOutput && previewOutput.id === selectedOutput.id) {
+        setPreviewOutput({
+          ...previewOutput,
+          actionEntries: updatedActions,
+        });
+      }
 
       toast({ title: 'Action Confirmed', description: 'Action has been confirmed by admin.' });
       setIsConfirmDialogOpen(false);
@@ -648,7 +876,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         <TabsContent value="registry" className="animate-in fade-in duration-500 space-y-4">
           {/* SEARCH & FILTER BAR */}
           <Card className="border-primary/10 shadow-sm bg-muted/10">
-            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
               <div className="md:col-span-2 space-y-1.5">
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                   <Search className="h-2.5 w-2.5" /> Search Decisions
@@ -677,6 +905,25 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     <SelectItem value="On-going">On-going</SelectItem>
                     <SelectItem value="Submit for Closure Verification">Verification Pending</SelectItem>
                     <SelectItem value="Closed">Closed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                  <ListChecks className="h-2.5 w-2.5" /> Unit Response Status
+                </label>
+                <Select value={unitResponseFilter} onValueChange={(val: any) => setUnitResponseFilter(val)}>
+                  <SelectTrigger className="h-10 text-xs bg-white font-bold">
+                    <SelectValue placeholder="All Response Statuses" />
+                  </SelectTrigger>
+                  <SelectContent modal={false}>
+                    <SelectItem value="all">All Response Statuses</SelectItem>
+                    <SelectItem value="pending" className="font-bold text-amber-700">
+                      ⚠️ Pending Unit Actions
+                    </SelectItem>
+                    <SelectItem value="responded" className="font-bold text-emerald-700">
+                      ✓ All Units Responded
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -797,6 +1044,31 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                   </Badge>
                                 </div>
                               ))}
+                              {(() => {
+                                const roster = computeUnitResponseRoster(output, campuses, units, campusMap, unitMap);
+                                if (roster.totalCount === 0) return null;
+                                return (
+                                  <div className="mt-1 flex items-center gap-1">
+                                    {roster.allResponded ? (
+                                      <Badge className="text-[8px] h-4 font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                        <CheckCircle2 className="h-2.5 w-2.5 mr-1 text-emerald-600" />
+                                        All {roster.totalCount} Responded
+                                      </Badge>
+                                    ) : roster.respondedCount > 0 ? (
+                                      <Badge className="text-[8px] h-4 font-black uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                                        <Clock className="h-2.5 w-2.5 mr-1 text-amber-600" />
+                                        {roster.respondedCount}/{roster.totalCount} Responded ({roster.pendingCount}{' '}
+                                        pending)
+                                      </Badge>
+                                    ) : (
+                                      <Badge className="text-[8px] h-4 font-black uppercase bg-rose-50 text-rose-700 border border-rose-200">
+                                        <AlertTriangle className="h-2.5 w-2.5 mr-1 text-rose-500" />
+                                        Awaiting Action (0/{roster.totalCount})
+                                      </Badge>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </TableCell>
                           <TableCell className="text-center">
@@ -1014,32 +1286,6 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
                   <Separator />
 
-                  <div className="space-y-4">
-                    <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">
-                      Accountability Matrix
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {(previewOutput.assignments || []).map((a, i) => (
-                        <div
-                          key={i}
-                          className="flex items-center justify-between p-3 rounded-lg border bg-slate-50/50 dark:bg-slate-800/50"
-                        >
-                          <div className="flex items-center gap-2">
-                            <Building2 className="h-3.5 w-3.5 text-primary/60" />
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-black uppercase text-primary leading-none mb-1">
-                                {campusMap.get(a.campusId)}
-                              </span>
-                              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300 truncate max-w-[180px]">
-                                {unitMap.get(a.unitId)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
                   {previewOutput.actionPlan && (
                     <div className="bg-primary/5 rounded-xl p-6 border border-primary/10">
                       <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary mb-3">
@@ -1054,7 +1300,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                   {previewOutput.followUpRemarks && (
                     <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
                       <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-700 dark:text-slate-300 mb-3">
-                        Implementation Progress
+                        Overall Implementation Progress
                       </h4>
                       <p className="text-sm text-slate-900 dark:text-slate-100 leading-relaxed whitespace-pre-wrap italic">
                         "{previewOutput.followUpRemarks}"
@@ -1070,105 +1316,187 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     </div>
                   )}
 
-                  {previewOutput.actionEntries && previewOutput.actionEntries.length > 0 && (
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-2">
-                        <ListChecks className="h-4 w-4 text-primary" />
-                        <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">
-                          Action Entries
-                        </h4>
-                        <Badge className="text-[9px] h-5 bg-primary/10 text-primary border-none ml-1">
-                          {previewOutput.actionEntries.length} record{previewOutput.actionEntries.length > 1 ? 's' : ''}
-                        </Badge>
-                      </div>
-                      <div className="space-y-3">
-                        {previewOutput.actionEntries.map((entry) => (
-                          <div key={entry.id} className="border rounded-xl p-4 bg-white shadow-sm space-y-3">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1 space-y-2">
-                                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 leading-relaxed">
-                                  {entry.description}
-                                </p>
-                                <div className="flex flex-wrap items-center gap-3 text-[10px] font-bold text-muted-foreground">
-                                  <span className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3" />
-                                    Implemented: {safeFormatDateLocal(entry.implementationDate)}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <User className="h-3 w-3" />
-                                    By: {entry.submittedBy}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <History className="h-3 w-3" />
-                                    Submitted: {safeFormatDateLocal(entry.submittedAt)}
-                                  </span>
-                                  {entry.googleDriveLink && (
-                                    <a
-                                      href={entry.googleDriveLink}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="flex items-center gap-1 text-primary hover:underline font-black"
-                                    >
-                                      <Link2 className="h-3 w-3" />
-                                      Drive File
-                                    </a>
-                                  )}
-                                </div>
+                  {/* --- UNIT IMPLEMENTATION & COMPLIANCE ROSTER --- */}
+                  {(() => {
+                    const roster = computeUnitResponseRoster(previewOutput, campuses, units, campusMap, unitMap);
+
+                    return (
+                      <div className="space-y-4">
+                        <div className="rounded-xl border bg-slate-50/70 dark:bg-slate-800/60 p-5 space-y-4 shadow-sm">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-primary" />
+                                <h4 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-slate-100">
+                                  Unit Implementation &amp; Compliance Roster
+                                </h4>
                               </div>
-                              <div className="shrink-0">
-                                {entry.isConfirmed ? (
-                                  <Badge className="bg-emerald-600 text-white text-[9px] font-black uppercase border-none px-2 py-1">
-                                    <CheckCircle2 className="h-3 w-3 mr-1" /> Confirmed
-                                  </Badge>
-                                ) : isAdmin ? (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleOpenActionConfirmation(previewOutput, entry);
-                                    }}
-                                    className="h-7 text-[9px] font-black uppercase tracking-widest bg-white shadow-sm text-amber-600 border-amber-300 hover:bg-amber-50"
-                                  >
-                                    <Check className="h-3 w-3 mr-1" /> Confirm
-                                  </Button>
-                                ) : (
-                                  <Badge className="bg-amber-100 text-amber-800 text-[9px] font-black uppercase border-none px-2 py-1">
-                                    Pending Confirmation
-                                  </Badge>
-                                )}
-                              </div>
+                              <p className="text-[11px] text-muted-foreground font-medium">
+                                Tracking action plans and evidence submitted by responsible units under ISO 21001:2018.
+                              </p>
                             </div>
-                            {entry.isConfirmed && entry.confirmationRemarks && (
-                              <div className="mt-2 pt-3 border-t border-slate-100 dark:border-slate-700">
-                                <div className="flex items-start gap-2">
-                                  <MessageSquare className="h-3.5 w-3.5 text-emerald-600 mt-0.5 shrink-0" />
-                                  <div>
-                                    <p className="text-[10px] font-black text-emerald-700 uppercase tracking-wider mb-1">
-                                      Admin Feedback
-                                    </p>
-                                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                                      {entry.confirmationRemarks}
-                                    </p>
-                                    <div className="flex items-center gap-3 mt-2 text-[9px] font-bold text-muted-foreground">
-                                      <span className="flex items-center gap-1">
-                                        <ShieldCheck className="h-2.5 w-2.5" />
-                                        Confirmed by: {entry.confirmedBy}
-                                      </span>
-                                      <span className="flex items-center gap-1">
-                                        <Calendar className="h-2.5 w-2.5" />
-                                        {safeFormatDateLocal(entry.confirmationDate)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Button
+                                size="sm"
+                                onClick={() => handleOpenActionEntry(previewOutput)}
+                                className="h-8 text-[10px] font-black uppercase tracking-wider bg-primary text-white shadow-sm gap-1.5"
+                              >
+                                <Plus className="h-3.5 w-3.5" /> Log Unit Action
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Response Metrics & Progress Bar */}
+                          <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-200/60 dark:border-slate-700/60 text-center">
+                            <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border shadow-xs">
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase block">
+                                Assigned Units
+                              </span>
+                              <span className="text-base font-black text-slate-800 dark:text-slate-200">
+                                {roster.totalCount}
+                              </span>
+                            </div>
+                            <div className="p-2.5 rounded-lg bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/50 shadow-xs">
+                              <span className="text-[9px] font-bold text-emerald-700 dark:text-emerald-400 uppercase block">
+                                Actions Provided
+                              </span>
+                              <span className="text-base font-black text-emerald-700 dark:text-emerald-400">
+                                {roster.respondedCount}
+                              </span>
+                            </div>
+                            <div className="p-2.5 rounded-lg bg-amber-50/60 dark:bg-amber-950/30 border border-amber-200/50 shadow-xs">
+                              <span className="text-[9px] font-bold text-amber-700 dark:text-amber-400 uppercase block">
+                                Awaiting Action
+                              </span>
+                              <span className="text-base font-black text-amber-700 dark:text-amber-400">
+                                {roster.pendingCount}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1.5 pt-1">
+                            <div className="flex items-center justify-between text-[10px] font-bold">
+                              <span className="text-muted-foreground uppercase">Unit Action Progress</span>
+                              <span
+                                className={cn(
+                                  'font-black',
+                                  roster.allResponded
+                                    ? 'text-emerald-600'
+                                    : roster.responseRate > 0
+                                      ? 'text-amber-600'
+                                      : 'text-rose-600',
+                                )}
+                              >
+                                {roster.responseRate}% Complete ({roster.respondedCount} of {roster.totalCount} units
+                                responded)
+                              </span>
+                            </div>
+                            <Progress value={roster.responseRate} className="h-2 bg-slate-200 dark:bg-slate-700" />
+                          </div>
+                        </div>
+
+                        {/* Itemized Breakdown: Responded Units vs Pending Units */}
+                        <Tabs defaultValue="all" className="space-y-3">
+                          <TabsList className="bg-muted p-1 border grid grid-cols-3 w-full h-9">
+                            <TabsTrigger value="all" className="text-[10px] font-black uppercase tracking-wider">
+                              All Units ({roster.totalCount})
+                            </TabsTrigger>
+                            <TabsTrigger
+                              value="responded"
+                              className="text-[10px] font-black uppercase tracking-wider text-emerald-700"
+                            >
+                              Responded ({roster.respondedCount})
+                            </TabsTrigger>
+                            <TabsTrigger
+                              value="pending"
+                              className="text-[10px] font-black uppercase tracking-wider text-amber-700"
+                            >
+                              Awaiting Action ({roster.pendingCount})
+                            </TabsTrigger>
+                          </TabsList>
+
+                          <TabsContent value="all" className="space-y-3 m-0">
+                            {roster.targets.map((target) => (
+                              <UnitTargetCard
+                                key={target.key}
+                                target={target}
+                                previewOutput={previewOutput}
+                                isAdmin={isAdmin}
+                                notifyingId={notifyingId}
+                                onLogAction={(t) =>
+                                  handleOpenActionEntry(previewOutput, {
+                                    campusId: t.campusId,
+                                    unitId: t.unitId,
+                                  })
+                                }
+                                onNotifyUnit={(t) => handleNotifySpecificUnit(previewOutput, t)}
+                                onConfirmAction={(entry) => handleOpenActionConfirmation(previewOutput, entry)}
+                                safeFormatDateLocal={safeFormatDateLocal}
+                              />
+                            ))}
+                          </TabsContent>
+
+                          <TabsContent value="responded" className="space-y-3 m-0">
+                            {roster.respondedTargets.map((target) => (
+                              <UnitTargetCard
+                                key={target.key}
+                                target={target}
+                                previewOutput={previewOutput}
+                                isAdmin={isAdmin}
+                                notifyingId={notifyingId}
+                                onLogAction={(t) =>
+                                  handleOpenActionEntry(previewOutput, {
+                                    campusId: t.campusId,
+                                    unitId: t.unitId,
+                                  })
+                                }
+                                onNotifyUnit={(t) => handleNotifySpecificUnit(previewOutput, t)}
+                                onConfirmAction={(entry) => handleOpenActionConfirmation(previewOutput, entry)}
+                                safeFormatDateLocal={safeFormatDateLocal}
+                              />
+                            ))}
+                            {roster.respondedTargets.length === 0 && (
+                              <div className="text-center py-8 border rounded-xl bg-slate-50/50 dark:bg-slate-800/30">
+                                <Clock className="h-8 w-8 mx-auto text-amber-500/50 mb-2" />
+                                <p className="text-xs font-bold text-muted-foreground uppercase">
+                                  No unit responses recorded yet
+                                </p>
                               </div>
                             )}
-                          </div>
-                        ))}
+                          </TabsContent>
+
+                          <TabsContent value="pending" className="space-y-3 m-0">
+                            {roster.pendingTargets.map((target) => (
+                              <UnitTargetCard
+                                key={target.key}
+                                target={target}
+                                previewOutput={previewOutput}
+                                isAdmin={isAdmin}
+                                notifyingId={notifyingId}
+                                onLogAction={(t) =>
+                                  handleOpenActionEntry(previewOutput, {
+                                    campusId: t.campusId,
+                                    unitId: t.unitId,
+                                  })
+                                }
+                                onNotifyUnit={(t) => handleNotifySpecificUnit(previewOutput, t)}
+                                onConfirmAction={(entry) => handleOpenActionConfirmation(previewOutput, entry)}
+                                safeFormatDateLocal={safeFormatDateLocal}
+                              />
+                            ))}
+                            {roster.pendingTargets.length === 0 && (
+                              <div className="text-center py-8 border rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20">
+                                <CheckCircle2 className="h-8 w-8 mx-auto text-emerald-600 mb-2" />
+                                <p className="text-xs font-black text-emerald-700 uppercase">
+                                  All assigned units have provided their actions!
+                                </p>
+                              </div>
+                            )}
+                          </TabsContent>
+                        </Tabs>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   {previewOutput.status === 'Closed' && previewOutput.verificationRemarks && (
                     <div className="bg-emerald-50 rounded-xl p-6 border border-emerald-100">
@@ -1473,7 +1801,133 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
             </div>
 
             <Form {...actionEntryForm}>
-              <form onSubmit={actionEntryForm.handleSubmit(handleAddActionEntry)} className="space-y-5">
+              <form onSubmit={actionEntryForm.handleSubmit(handleAddActionEntry)} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <FormField
+                    control={actionEntryForm.control}
+                    name="campusId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase">Reporting Campus</FormLabel>
+                        <Select
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            actionEntryForm.setValue('unitId', '');
+                          }}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs font-bold">
+                              <SelectValue placeholder="Select Campus" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            <SelectItem value="university-wide" className="font-bold text-primary italic">
+                              University-Wide (Institutional)
+                            </SelectItem>
+                            {campuses.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={actionEntryForm.control}
+                    name="unitId"
+                    render={({ field }) => {
+                      const selectedCampus = actionEntryForm.watch('campusId');
+                      const filteredUnits =
+                        selectedCampus && selectedCampus !== 'university-wide'
+                          ? units.filter((u) => u.campusIds?.includes(selectedCampus))
+                          : units;
+
+                      return (
+                        <FormItem>
+                          <FormLabel className="text-[10px] font-black uppercase">Acting Unit / Office</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs font-bold">
+                                <SelectValue placeholder="Select Unit / Office" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent modal={false}>
+                              {filteredUnits.map((u) => (
+                                <SelectItem key={u.id} value={u.id}>
+                                  {u.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <FormField
+                    control={actionEntryForm.control}
+                    name="actionStatus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase">Action Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs font-bold">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            <SelectItem value="In Progress">In Progress</SelectItem>
+                            <SelectItem value="Completed">Completed</SelectItem>
+                            <SelectItem value="Pending Verification">Pending Verification</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={actionEntryForm.control}
+                    name="implementationDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase">Date of Action</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={actionEntryForm.control}
+                    name="googleDriveLink"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase">Evidence Drive Link</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="https://drive.google.com/..."
+                            className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={actionEntryForm.control}
                   name="description"
@@ -1483,51 +1937,20 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                       <FormControl>
                         <Textarea
                           {...field}
-                          placeholder="Describe the specific action taken by your unit..."
+                          placeholder="Describe the concrete actions, implementation milestones, or measures taken by your unit..."
                           rows={4}
                           className="bg-slate-50 dark:bg-slate-800/50 text-xs"
                         />
                       </FormControl>
+                      <FormDescription className="text-[9px]">
+                        Detail specific accomplishments and solutions implemented to resolve the directive.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={actionEntryForm.control}
-                    name="implementationDate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase">Date of Implementation</FormLabel>
-                        <FormControl>
-                          <Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={actionEntryForm.control}
-                    name="googleDriveLink"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase">Google Drive Link</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            placeholder="https://drive.google.com/..."
-                            className="bg-slate-50 dark:bg-slate-800/50 h-9 text-xs"
-                          />
-                        </FormControl>
-                        <FormDescription className="text-[9px]">Optional evidence file link</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <DialogFooter className="gap-2 pt-4">
+                <DialogFooter className="gap-2 pt-4 border-t">
                   <Button
                     type="button"
                     variant="outline"
@@ -1546,7 +1969,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     ) : (
                       <Plus className="h-4 w-4 mr-1.5" />
                     )}
-                    Record Action
+                    Record Unit Action
                   </Button>
                 </DialogFooter>
               </form>
@@ -1660,6 +2083,166 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         signatories={signatories || undefined}
         selectedYear={selectedYear}
       />
+    </div>
+  );
+}
+
+function UnitTargetCard({
+  target,
+  previewOutput,
+  isAdmin,
+  notifyingId,
+  onLogAction,
+  onNotifyUnit,
+  onConfirmAction,
+  safeFormatDateLocal,
+}: {
+  target: UnitTargetStatus;
+  previewOutput: ManagementReviewOutput;
+  isAdmin: boolean;
+  notifyingId: string | null;
+  onLogAction: (target: UnitTargetStatus) => void;
+  onNotifyUnit: (target: UnitTargetStatus) => void;
+  onConfirmAction: (entry: ActionEntry) => void;
+  safeFormatDateLocal: (date: any) => string;
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-xl border p-4 transition-all duration-200 space-y-3',
+        target.hasResponded
+          ? 'bg-white dark:bg-slate-900 border-emerald-200/80 dark:border-emerald-900/50 shadow-sm'
+          : 'bg-amber-50/30 dark:bg-amber-950/20 border-amber-200/80 dark:border-amber-900/40',
+      )}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge variant="secondary" className="text-[9px] font-black uppercase bg-primary/10 text-primary border-none">
+            {target.campusName}
+          </Badge>
+          <span className="font-bold text-xs text-slate-800 dark:text-slate-200">{target.unitName}</span>
+          {target.isGroup && (
+            <Badge variant="outline" className="text-[8px] font-bold text-muted-foreground">
+              Cluster / Group
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          {target.hasResponded ? (
+            <Badge className="bg-emerald-600 text-white text-[8px] font-black uppercase border-none px-2 py-0.5">
+              <CheckCircle2 className="h-2.5 w-2.5 mr-1" />
+              Action Provided ({target.entries.length})
+            </Badge>
+          ) : (
+            <Badge className="bg-amber-500 text-white text-[8px] font-black uppercase border-none px-2 py-0.5">
+              <Clock className="h-2.5 w-2.5 mr-1" />
+              Awaiting Action
+            </Badge>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-[9px] font-bold uppercase gap-1 hover:bg-primary/5 hover:text-primary"
+            onClick={() => onLogAction(target)}
+            title="Log action for this unit"
+          >
+            <Plus className="h-3 w-3" /> Log Action
+          </Button>
+          {!target.hasResponded && isAdmin && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={notifyingId === target.key}
+              className="h-7 text-[9px] font-bold uppercase gap-1 text-amber-700 border-amber-300 hover:bg-amber-50 dark:border-amber-800"
+              onClick={() => onNotifyUnit(target)}
+              title="Remind unit to log action"
+            >
+              {notifyingId === target.key ? <Loader2 className="h-3 w-3 animate-spin" /> : <Bell className="h-3 w-3" />}
+              Remind Unit
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Render entries if responded */}
+      {target.hasResponded ? (
+        <div className="space-y-2.5 pt-1">
+          {target.entries.map((entry, idx) => (
+            <div key={entry.id || idx} className="rounded-lg border bg-muted/10 p-3 space-y-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {entry.actionStatus && (
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          'text-[8px] font-black uppercase border-none h-4 px-1.5',
+                          entry.actionStatus === 'Completed'
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-blue-100 text-blue-800',
+                        )}
+                      >
+                        {entry.actionStatus}
+                      </Badge>
+                    )}
+                    <span className="text-[10px] text-muted-foreground font-bold">
+                      Implemented: {safeFormatDateLocal(entry.implementationDate)}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-bold">•</span>
+                    <span className="text-[10px] text-muted-foreground font-bold">By {entry.submittedBy}</span>
+                  </div>
+                  <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 leading-relaxed">
+                    {entry.description}
+                  </p>
+                </div>
+                <div className="shrink-0 flex items-center gap-1.5">
+                  {entry.isConfirmed ? (
+                    <Badge className="bg-emerald-600 text-white text-[8px] font-black uppercase border-none px-2 py-0.5">
+                      <CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Confirmed
+                    </Badge>
+                  ) : isAdmin ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onConfirmAction(entry)}
+                      className="h-6 text-[8px] font-black uppercase bg-white text-amber-600 border-amber-300 hover:bg-amber-50"
+                    >
+                      <Check className="h-2.5 w-2.5 mr-1" /> Confirm
+                    </Button>
+                  ) : (
+                    <Badge className="bg-amber-100 text-amber-800 text-[8px] font-black uppercase border-none px-1.5 py-0.5">
+                      Pending Verification
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-[10px] pt-1 border-t border-dashed">
+                <span className="text-muted-foreground">Submitted: {safeFormatDateLocal(entry.submittedAt)}</span>
+                {entry.googleDriveLink && (
+                  <a
+                    href={entry.googleDriveLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline font-black"
+                  >
+                    <Link2 className="h-3 w-3" /> Evidence Document
+                  </a>
+                )}
+              </div>
+              {entry.confirmationRemarks && (
+                <div className="mt-1 pt-1.5 border-t text-[10px] text-emerald-800 dark:text-emerald-300 bg-emerald-50/50 dark:bg-emerald-950/20 p-2 rounded">
+                  <span className="font-black uppercase">QA Feedback:</span> {entry.confirmationRemarks}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="py-2 text-[11px] text-muted-foreground italic flex items-center justify-between">
+          <span>Awaiting action submission and implementation response from this unit.</span>
+          <span className="text-[10px] font-bold text-amber-600 uppercase">Pending Response</span>
+        </div>
+      )}
     </div>
   );
 }
