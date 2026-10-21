@@ -37,6 +37,7 @@ import {
   Layers,
   Target,
   Landmark,
+  Briefcase,
 } from 'lucide-react';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuBadge } from '../ui/sidebar';
 import { cn } from '@/lib/utils';
@@ -354,15 +355,15 @@ export function SidebarNav({
   const allRoutes = [
     {
       href: '/dashboard?scope=university',
-      label: isExecOrAdmin ? 'Institutional Dashboard' : 'University-Wide Overview',
-      active: pathname === '/dashboard' && currentScope !== 'unit',
+      label: isExecOrAdmin ? 'Institutional Dashboard' : 'Institutional (University-Wide)',
+      active: pathname === '/dashboard' && currentScope !== 'unit' && searchParams?.get('view') !== 'workspace',
       icon: <Landmark />,
     },
     {
-      href: '/dashboard?scope=unit',
-      label: isExecOrAdmin ? 'Unit Operations View' : 'My Unit Dashboard',
-      active: pathname === '/dashboard' && currentScope === 'unit',
-      icon: <Building2 />,
+      href: '/dashboard?view=workspace',
+      label: 'My Unit Workspace',
+      active: pathname === '/dashboard' && (currentScope === 'unit' || searchParams?.get('view') === 'workspace'),
+      icon: <Briefcase />,
     },
     {
       href: '/kpi-dashboard',

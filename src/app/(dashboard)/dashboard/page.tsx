@@ -2587,9 +2587,11 @@ export default function HomePage() {
     // Check if the administrator activated the Unified Home Dashboard from Settings
     const isUnifiedHomeActive = (globalSetting as any)?.enableUnifiedHomeDashboard === true;
     const scopeParam = searchParams.get('scope');
+    const viewParam = searchParams.get('view');
+    const isWorkspaceRequested = viewParam === 'workspace' || showPersonalWorkspace;
     const effectiveScope: 'university' | 'unit' = scopeParam === 'unit' ? 'unit' : 'university';
 
-    if (isUnifiedHomeActive && !showPersonalWorkspace) {
+    if (isUnifiedHomeActive && !isWorkspaceRequested) {
       return (
         <UnifiedHomeDashboard
           submissions={submissions || []}
@@ -2614,18 +2616,23 @@ export default function HomePage() {
     }
 
     const personalWorkspaceBanner =
-      isUnifiedHomeActive && showPersonalWorkspace ? (
+      isUnifiedHomeActive && isWorkspaceRequested ? (
         <div className="p-3 mb-6 rounded-xl bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
           <div className="flex items-center gap-2">
             <Badge className="bg-white/20 text-white border-white/30 text-[9px] font-black uppercase">
-              Unit Operations Center
+              My Unit Workspace
             </Badge>
             <span className="text-xs font-bold">
-              You are currently viewing the dedicated operational unit verification & audit execution workspace.
+              You are currently viewing your dedicated operational unit verification & audit execution workspace.
             </span>
           </div>
           <Button
-            onClick={() => setShowPersonalWorkspace(false)}
+            onClick={() => {
+              setShowPersonalWorkspace(false);
+              if (viewParam === 'workspace') {
+                router.push('/dashboard?scope=university', { scroll: false });
+              }
+            }}
             size="sm"
             className="bg-white text-emerald-900 hover:bg-emerald-50 font-black uppercase text-[10px] tracking-wider h-8 shadow-sm"
           >

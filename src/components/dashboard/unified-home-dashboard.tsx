@@ -310,7 +310,7 @@ export function UnifiedHomeDashboard({
                 className="h-8 text-xs font-black uppercase tracking-wider gap-1.5 border-slate-300 hover:bg-slate-100"
               >
                 <Briefcase className="h-3.5 w-3.5 text-primary" />
-                <span>{scope === 'unit' ? 'Full Ops Center' : 'My Unit Workspace'}</span>
+                <span>My Unit Workspace</span>
               </Button>
             )}
 
