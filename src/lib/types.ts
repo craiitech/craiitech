@@ -992,6 +992,7 @@ export type ProgramFacultyMember = {
 export type GraduationOutcome = {
   majorId?: string; // New: Link to specialization
   year: number;
+  yearLevel?: string; // Optional: graduation breakdown by year level
   semester: string;
   count: number;
   maleCount: number;
