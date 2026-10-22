@@ -321,6 +321,84 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
     XLSX.writeFile(workbook, `RSU_CHED_Batch_Data_Template_AY_${selectedYear}.xlsx`);
   };
 
+  const downloadGraduationTemplate = () => {
+    const workbook = XLSX.utils.book_new();
+    const sortedPrograms = [...activePrograms].sort((a, b) => {
+      const campusA = campusMap.get(a.campusId) || '';
+      const campusB = campusMap.get(b.campusId) || '';
+      return campusA.localeCompare(campusB) || a.name.localeCompare(b.name);
+    });
+
+    const graduationRows: (string | number)[][] = [];
+    sortedPrograms.forEach((program) => {
+      const campusName = campusMap.get(program.campusId) || '';
+      getProgramMajors(program).forEach((major) => {
+        SEMESTERS.forEach((semester) => {
+          graduationRows.push([
+            selectedYear,
+            campusName,
+            program.name,
+            program.id,
+            major,
+            'All Levels',
+            semester.label,
+            0,
+            0,
+            0,
+          ]);
+        });
+      });
+    });
+
+    const graduationSheet = XLSX.utils.aoa_to_sheet([GRADUATION_HEADERS, ...graduationRows]);
+    graduationSheet['!cols'] = [
+      { wch: 14 },
+      { wch: 24 },
+      { wch: 38 },
+      { wch: 28 },
+      { wch: 26 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 18 },
+      { wch: 16 },
+    ];
+    styleHeaderRow(graduationSheet, GRADUATION_HEADERS.length);
+
+    const programRows: (string | number)[][] = [['Campus', 'Program', 'Program ID', 'Major / Specialization']];
+    sortedPrograms.forEach((program) => {
+      const campusName = campusMap.get(program.campusId) || '';
+      getProgramMajors(program).forEach((major) => {
+        programRows.push([campusName, program.name, program.id, major]);
+      });
+    });
+    const programSheet = XLSX.utils.aoa_to_sheet(programRows);
+    programSheet['!cols'] = [{ wch: 24 }, { wch: 38 }, { wch: 28 }, { wch: 28 }];
+    styleHeaderRow(programSheet, 4);
+
+    const instructionsSheet = XLSX.utils.aoa_to_sheet([
+      ['CHED Graduation Batch Import Instructions'],
+      [''],
+      ['1. Enter Male Graduates, Female Graduates, and Total Graduates per program, major, and semester.'],
+      ['2. Only fill rows for programs and semesters with graduation data. Rows with 0 values are ignored.'],
+      ['3. "Year Level" is optional; keep "All Levels" when the breakdown is not available.'],
+      ['4. Do not change the Campus, Program, Program ID, Major, and Semester values.'],
+      ['5. Academic Year must be numeric (example: 2025 for AY 2025-2026).'],
+      ['6. Only active programs listed in the "Programs" sheet are accepted.'],
+      ['7. Uploading this file marks graduation data as logged for the matched programs and academic year.'],
+      [
+        '8. Existing graduation records are merged and updated for the matching program, year, major, level, and semester.',
+      ],
+    ]);
+    instructionsSheet['!cols'] = [{ wch: 115 }];
+
+    XLSX.utils.book_append_sheet(workbook, graduationSheet, 'Graduation');
+    XLSX.utils.book_append_sheet(workbook, programSheet, 'Programs');
+    XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
+
+    XLSX.writeFile(workbook, `RSU_CHED_Graduation_Template_AY_${selectedYear}.xlsx`);
+  };
+
   const downloadOverallTotalsTemplate = () => {
     const workbook = XLSX.utils.book_new();
     const sortedPrograms = [...activePrograms].sort((a, b) => {
@@ -806,6 +884,29 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
               withEnrollmentOveralls(record as EnrollmentRecord),
             );
 
+            const graduationTotals = graduationRecords.reduce(
+              (totals, record) => {
+                const male = Number(record.maleCount) || 0;
+                const female = Number(record.femaleCount) || 0;
+                const total = Number(record.count) || male + female;
+                return {
+                  male: totals.male + male,
+                  female: totals.female + female,
+                  total: totals.total + Math.max(total, male + female),
+                };
+              },
+              { male: 0, female: 0, total: 0 },
+            );
+
+            const defaultStats = {
+              enrollment: {
+                firstSemester: emptyYearLevelEnrollment(),
+                secondSemester: emptyYearLevelEnrollment(),
+                midYearTerm: emptyYearLevelEnrollment(),
+              },
+              graduationCount: 0,
+            };
+
             const baseRecord = existing
               ? {}
               : {
@@ -820,18 +921,24 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                     },
                     members: [],
                   },
-                  stats: {
-                    enrollment: {
-                      firstSemester: emptyYearLevelEnrollment(),
-                      secondSemester: emptyYearLevelEnrollment(),
-                      midYearTerm: emptyYearLevelEnrollment(),
-                    },
-                    graduationCount: 0,
-                  },
+                  stats: defaultStats,
                   boardPerformance: [],
                   tracerRecords: [],
                   curriculumRecords: [],
                 };
+
+            // Persist the graduation totals so downstream CHED monitoring
+            // immediately recognises that graduation data has been uploaded.
+            const currentStats = existing?.stats || defaultStats;
+            const nextStats =
+              graduationUpdates.length > 0 || graduationTotals.total > 0
+                ? {
+                    ...currentStats,
+                    graduationCount: graduationTotals.total,
+                    maleGraduates: graduationTotals.male,
+                    femaleGraduates: graduationTotals.female,
+                  }
+                : currentStats;
 
             await setDoc(
               doc(firestore, 'programCompliances', recordId),
@@ -842,6 +949,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                 programId: program.id,
                 campusId: program.campusId,
                 unitId: program.collegeId,
+                stats: nextStats,
                 enrollmentRecords: enrollmentRecordsWithOveralls,
                 graduationRecords,
                 updatedAt: serverTimestamp(),
@@ -887,6 +995,15 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
               <div>
                 <p>Full CHED Batch Template</p>
                 <p className="text-[9px] font-normal text-muted-foreground">Enrollment and graduation rows</p>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={downloadGraduationTemplate} className="gap-2 text-[11px] font-bold">
+              <FileSpreadsheet className="h-4 w-4 text-primary" />
+              <div>
+                <p>Graduation Only Template</p>
+                <p className="text-[9px] font-normal text-muted-foreground">
+                  Graduates per program, major, and semester
+                </p>
               </div>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={downloadOverallTotalsTemplate} className="gap-2 text-[11px] font-bold">
