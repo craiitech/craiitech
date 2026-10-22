@@ -640,6 +640,7 @@ export function SDDHub({
         let female = 0;
         let overallMale = 0;
         let overallFemale = 0;
+        let overallTotal = 0;
 
         const collectTerm = (term: any) => {
           if (!term) return;
@@ -666,14 +667,20 @@ export function SDDHub({
 
         const collectOverall = (term: any, storedOverall: any) => {
           if (storedOverall && (storedOverall.male !== undefined || storedOverall.female !== undefined)) {
-            overallMale += Number(storedOverall.male || 0);
-            overallFemale += Number(storedOverall.female || 0);
+            const storedMale = Number(storedOverall.male || 0);
+            const storedFemale = Number(storedOverall.female || 0);
+            overallMale += storedMale;
+            overallFemale += storedFemale;
+            overallTotal += Number(storedOverall.total ?? storedMale + storedFemale);
             return;
           }
 
           levelDefs.forEach(({ key: levelKey }) => {
-            overallMale += Number(term?.[levelKey]?.male || 0);
-            overallFemale += Number(term?.[levelKey]?.female || 0);
+            const levelMale = Number(term?.[levelKey]?.male || 0);
+            const levelFemale = Number(term?.[levelKey]?.female || 0);
+            overallMale += levelMale;
+            overallFemale += levelFemale;
+            overallTotal += levelMale + levelFemale;
           });
         };
 
@@ -693,8 +700,9 @@ export function SDDHub({
 
         const displayedMale = levelMode === 'overall' ? overallMale : male;
         const displayedFemale = levelMode === 'overall' ? overallFemale : female;
+        const displayedTotal = levelMode === 'overall' ? overallTotal : male + female;
 
-        if (!semesterKey && key === 'midYearTerm' && displayedMale + displayedFemale === 0) return;
+        if (!semesterKey && key === 'midYearTerm' && displayedTotal === 0) return;
 
         const sectors: SDDSectorRow[] = Object.entries(sectorMap)
           .map(([sector, counts]) => ({
@@ -708,7 +716,7 @@ export function SDDHub({
 
         const displayedLevels =
           levelMode === 'overall'
-            ? [{ label: 'Overall Total', male: overallMale, female: overallFemale }]
+            ? [{ label: 'Overall Total', male: overallMale, female: overallFemale, total: overallTotal }]
             : levelMode === 'selected'
               ? levels.filter((_, index) => levelDefs[index].key === selectedLevelKey)
               : levels.filter((level, index) => index < 4 || level.male + level.female > 0);
@@ -720,6 +728,7 @@ export function SDDHub({
           sectors,
           male: displayedMale,
           female: displayedFemale,
+          total: displayedTotal,
         });
       });
     });
@@ -727,9 +736,10 @@ export function SDDHub({
     const grand = {
       male: terms.reduce((sum, term) => sum + term.male, 0),
       female: terms.reduce((sum, term) => sum + term.female, 0),
+      total: terms.reduce((sum, term) => sum + (term.total ?? term.male + term.female), 0),
     };
 
-    return { title, terms: grand.male + grand.female > 0 ? terms : [], grand };
+    return { title, terms: grand.total > 0 ? terms : [], grand };
   };
 
   const buildStudentReportData = (

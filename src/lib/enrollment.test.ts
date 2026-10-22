@@ -42,4 +42,60 @@ describe('withEnrollmentOveralls', () => {
       midYearTerm: { male: 9, female: 10, total: 19 },
     });
   });
+
+  it('preserves admin-entered overall totals when overallOnly is enabled', () => {
+    const record = {
+      id: 'record-2',
+      majorId: 'General',
+      overallOnly: true,
+      firstSemester: term([1, 2], [3, 4]),
+      secondSemester: term([5, 6], [7, 8]),
+      midYearTerm: term([9, 10], [0, 0]),
+      overall: {
+        firstSemester: { male: 100, female: 200, total: 250 },
+        secondSemester: { male: 12, female: 14, total: 26 },
+        midYearTerm: { male: 9, female: 10, total: 19 },
+      },
+    } as EnrollmentRecord;
+
+    expect(withEnrollmentOveralls(record).overall).toEqual({
+      firstSemester: { male: 100, female: 200, total: 250 },
+      secondSemester: { male: 12, female: 14, total: 26 },
+      midYearTerm: { male: 9, female: 10, total: 19 },
+    });
+  });
+
+  it('fills missing manual overall fields from year-level totals', () => {
+    const record = {
+      id: 'record-3',
+      majorId: 'General',
+      overallOnly: true,
+      firstSemester: term([1, 2], [3, 4]),
+      secondSemester: term([5, 6], [7, 8]),
+      midYearTerm: term([9, 10], [0, 0]),
+      overall: {
+        firstSemester: { male: 100, female: 200, total: 250 },
+      },
+    } as EnrollmentRecord;
+
+    const overall = withEnrollmentOveralls(record).overall!;
+    expect(overall.firstSemester).toEqual({ male: 100, female: 200, total: 250 });
+    expect(overall.secondSemester).toEqual({ male: 12, female: 14, total: 26 });
+    expect(overall.midYearTerm).toEqual({ male: 9, female: 10, total: 19 });
+  });
+
+  it('recomputes totals and ignores stored overalls when overallOnly is disabled', () => {
+    const record = {
+      id: 'record-4',
+      majorId: 'General',
+      firstSemester: term([1, 2], [3, 4]),
+      secondSemester: term([5, 6], [7, 8]),
+      midYearTerm: term([9, 10], [0, 0]),
+      overall: {
+        firstSemester: { male: 100, female: 200, total: 250 },
+      },
+    } as EnrollmentRecord;
+
+    expect(withEnrollmentOveralls(record).overall?.firstSemester).toEqual({ male: 4, female: 6, total: 10 });
+  });
 });

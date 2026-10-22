@@ -8,7 +8,29 @@ export function sumEnrollmentTerm(term?: YearLevelEnrollment | null): Enrollment
   return { male, female, total: male + female };
 }
 
+function normalizeManualOverall(overall: EnrollmentOverall | undefined, term?: YearLevelEnrollment | null) {
+  const computed = sumEnrollmentTerm(term);
+  const male = Number(overall?.male ?? computed.male);
+  const female = Number(overall?.female ?? computed.female);
+  return {
+    male,
+    female,
+    total: Number(overall?.total ?? male + female),
+  };
+}
+
 export function withEnrollmentOveralls(record: EnrollmentRecord): EnrollmentRecord {
+  if (record.overallOnly) {
+    return {
+      ...record,
+      overall: {
+        firstSemester: normalizeManualOverall(record.overall?.firstSemester, record.firstSemester),
+        secondSemester: normalizeManualOverall(record.overall?.secondSemester, record.secondSemester),
+        midYearTerm: normalizeManualOverall(record.overall?.midYearTerm, record.midYearTerm),
+      },
+    };
+  }
+
   return {
     ...record,
     overall: {

@@ -6,6 +6,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescripti
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   BookOpen,
@@ -53,6 +54,7 @@ function EnrollmentRecordCard({
   index,
   control,
   canEdit,
+  isAdmin,
   onRemove,
   programSpecializations,
   setValue,
@@ -60,6 +62,7 @@ function EnrollmentRecordCard({
   index: number;
   control: any;
   canEdit: boolean;
+  isAdmin: boolean;
   onRemove: () => void;
   programSpecializations?: { id: string; name: string }[];
   setValue: any;
@@ -70,6 +73,7 @@ function EnrollmentRecordCard({
     control,
     name: `enrollmentRecords.${index}`,
   });
+  const overallOnly = Boolean(recordValues?.overallOnly);
 
   const calculateLevelTotal = (term: string, level: string) => {
     const male = Number(recordValues?.[term]?.[level]?.male) || 0;
@@ -90,6 +94,72 @@ function EnrollmentRecordCard({
         female: totals.female + (Number(recordValues?.[term]?.[level]?.female) || 0),
       }),
       { male: 0, female: 0 },
+    );
+  };
+
+  const getOverallValues = (termKey: string) => {
+    const computed = calculateTermSexTotals(termKey);
+    if (!overallOnly) return { ...computed, total: computed.male + computed.female };
+
+    const stored = recordValues?.overall?.[termKey];
+    const male = Number(stored?.male ?? computed.male);
+    const female = Number(stored?.female ?? computed.female);
+    return { male, female, total: Number(stored?.total ?? male + female) };
+  };
+
+  const handleOverallOnlyChange = (checked: boolean) => {
+    setValue(`enrollmentRecords.${index}.overallOnly`, checked, { shouldDirty: true, shouldTouch: true });
+    if (!checked) return;
+
+    (['firstSemester', 'secondSemester', 'midYearTerm'] as const).forEach((termKey) => {
+      const totals = calculateTermSexTotals(termKey);
+      setValue(`enrollmentRecords.${index}.overall.${termKey}.male`, totals.male, { shouldDirty: true });
+      setValue(`enrollmentRecords.${index}.overall.${termKey}.female`, totals.female, { shouldDirty: true });
+      setValue(`enrollmentRecords.${index}.overall.${termKey}.total`, totals.male + totals.female, {
+        shouldDirty: true,
+      });
+    });
+  };
+
+  const renderOverallField = (
+    termKey: string,
+    fieldKey: 'male' | 'female' | 'total',
+    label: string,
+    fallbackValue: number,
+  ) => {
+    const path = `enrollmentRecords.${index}.overall.${termKey}.${fieldKey}`;
+
+    if (overallOnly && isAdmin && canEdit) {
+      return (
+        <FormField
+          control={control}
+          name={path}
+          render={({ field: inputField }) => (
+            <FormItem className="space-y-1">
+              <FormLabel className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">
+                {label}
+              </FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  value={inputField.value ?? fallbackValue}
+                  onChange={(event) => inputField.onChange(Number(event.target.value))}
+                  className="h-8 text-xs font-black tabular-nums"
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+      );
+    }
+
+    return (
+      <div className="space-y-1">
+        <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+        <div className="flex h-8 items-center justify-center rounded-md border border-primary/20 bg-white text-xs font-black tabular-nums text-primary">
+          {fallbackValue.toLocaleString()}
+        </div>
+      </div>
     );
   };
 
@@ -124,7 +194,7 @@ function EnrollmentRecordCard({
                       type="number"
                       {...inputField}
                       className="h-7 text-[10px]"
-                      disabled={!canEdit}
+                      disabled={!canEdit || overallOnly}
                       onChange={(e) => inputField.onChange(Number(e.target.value))}
                     />
                   </div>
@@ -140,7 +210,7 @@ function EnrollmentRecordCard({
                       type="number"
                       {...inputField}
                       className="h-7 text-[10px]"
-                      disabled={!canEdit}
+                      disabled={!canEdit || overallOnly}
                       onChange={(e) => inputField.onChange(Number(e.target.value))}
                     />
                   </div>
@@ -154,7 +224,7 @@ function EnrollmentRecordCard({
   );
 
   const renderTermInputs = (termKey: string) => {
-    const termSexTotals = calculateTermSexTotals(termKey);
+    const overallValues = getOverallValues(termKey);
 
     return (
       <div className="space-y-4 mt-4">
@@ -235,29 +305,16 @@ function EnrollmentRecordCard({
             );
           })}
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
-          <div className="space-y-1">
-            <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Total Overall Male</p>
-            <div className="flex h-8 items-center justify-center rounded-md border border-primary/20 bg-white text-xs font-black tabular-nums text-primary">
-              {termSexTotals.male.toLocaleString()}
-            </div>
+        <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {renderOverallField(termKey, 'male', 'Total Overall Male', overallValues.male)}
+            {renderOverallField(termKey, 'female', 'Total Overall Female', overallValues.female)}
+            {renderOverallField(termKey, 'total', 'Overall Total', overallValues.total)}
           </div>
-          <div className="space-y-1">
-            <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">
-              Total Overall Female
-            </p>
-            <div className="flex h-8 items-center justify-center rounded-md border border-primary/20 bg-white text-xs font-black tabular-nums text-primary">
-              {termSexTotals.female.toLocaleString()}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Overall Total</p>
-            <div className="flex h-8 items-center justify-center rounded-md border border-primary/20 bg-white text-xs font-black tabular-nums text-primary">
-              {(termSexTotals.male + termSexTotals.female).toLocaleString()}
-            </div>
-          </div>
-          <p className="sm:col-span-3 text-[9px] italic text-muted-foreground">
-            Auto-computed from all year levels. This overall total is used by the SDD report.
+          <p className="text-[9px] italic text-muted-foreground">
+            {overallOnly
+              ? 'Manual overall totals are enabled for administrators. Year-level entries are locked for this record.'
+              : 'Auto-computed from all year levels. Enable Overall Total Only to enter totals manually.'}
           </p>
         </div>
       </div>
@@ -358,6 +415,41 @@ function EnrollmentRecordCard({
         </div>
       </CardHeader>
       <CardContent className="p-0">
+        {(canEdit || isAdmin) && (
+          <div className="flex flex-col gap-2 border-b bg-muted/10 px-4 py-2 sm:flex-row sm:items-center sm:justify-between">
+            {canEdit && isAdmin ? (
+              <FormField
+                control={control}
+                name={`enrollmentRecords.${index}.overallOnly`}
+                render={({ field: inputField }) => (
+                  <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={Boolean(inputField.value)}
+                        onCheckedChange={(checked) => handleOverallOnlyChange(checked === true)}
+                      />
+                    </FormControl>
+                    <FormLabel className="cursor-pointer text-[10px] font-black uppercase tracking-wider">
+                      Overall Total Only
+                    </FormLabel>
+                  </FormItem>
+                )}
+              />
+            ) : (
+              <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+                {overallOnly ? 'Overall totals only' : 'Year-level entry'}
+              </p>
+            )}
+            {overallOnly && (
+              <Badge
+                variant="outline"
+                className="w-fit border-primary/20 bg-primary/5 text-[8px] font-black uppercase text-primary"
+              >
+                Totals-only mode
+              </Badge>
+            )}
+          </div>
+        )}
         <Tabs defaultValue="first" className="w-full">
           <TabsList className="grid grid-cols-3 h-8 bg-muted/30 rounded-none border-b p-0">
             <TabsTrigger value="first" className="text-[9px] font-black uppercase rounded-none border-r">
@@ -652,12 +744,48 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
       thirdYear: getEmptyYearLevel(),
       fourthYear: getEmptyYearLevel(),
     },
+    overallOnly: false,
     overall: {
       firstSemester: { male: 0, female: 0, total: 0 },
       secondSemester: { male: 0, female: 0, total: 0 },
       midYearTerm: { male: 0, female: 0, total: 0 },
     },
   });
+
+  const handleClearYearLevels = () => {
+    if (!canEdit || !isAdmin) return;
+    if (
+      !window.confirm(
+        'Clear all male and female entries for every year level and GAD sector in all enrollment records? This cannot be undone until you save the form.',
+      )
+    ) {
+      return;
+    }
+
+    const records = (watch('enrollmentRecords') || []) as Array<Record<string, any>>;
+
+    enrollFields.forEach((_, recordIndex) => {
+      (['firstSemester', 'secondSemester', 'midYearTerm'] as const).forEach((termKey) => {
+        (['firstYear', 'secondYear', 'thirdYear', 'fourthYear', 'fifthYear'] as const).forEach((level) => {
+          const levelData = records[recordIndex]?.[termKey]?.[level];
+          if (!levelData) return;
+
+          setValue(`enrollmentRecords.${recordIndex}.${termKey}.${level}.male`, 0, { shouldDirty: true });
+          setValue(`enrollmentRecords.${recordIndex}.${termKey}.${level}.female`, 0, { shouldDirty: true });
+
+          if (!levelData.sectors) return;
+          GAD_SECTORS.forEach((sector) => {
+            setValue(`enrollmentRecords.${recordIndex}.${termKey}.${level}.sectors.${sector}.male`, 0, {
+              shouldDirty: true,
+            });
+            setValue(`enrollmentRecords.${recordIndex}.${termKey}.${level}.sectors.${sector}.female`, 0, {
+              shouldDirty: true,
+            });
+          });
+        });
+      });
+    });
+  };
 
   const showRegistry = focusMode === 'all';
   const showEnrollment = focusMode === 'all' || focusMode === 'enrollment';
@@ -774,14 +902,27 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
               </p>
             </div>
             {canEdit && (
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => appendEnroll(getEmptyEnrollRecord())}
-                className="shadow-lg shadow-primary/20 h-8 text-[10px] font-bold"
-              >
-                <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Major Count
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                {isAdmin && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleClearYearLevels}
+                    className="h-8 border-destructive/30 text-[10px] font-bold text-destructive hover:bg-destructive/5"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Clear All Year Levels
+                  </Button>
+                )}
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => appendEnroll(getEmptyEnrollRecord())}
+                  className="shadow-lg shadow-primary/20 h-8 text-[10px] font-bold"
+                >
+                  <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Major Count
+                </Button>
+              </div>
             )}
           </div>
 
@@ -792,6 +933,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                 index={index}
                 control={control}
                 canEdit={canEdit}
+                isAdmin={isAdmin}
                 onRemove={() => removeEnroll(index)}
                 programSpecializations={programSpecializations}
                 setValue={setValue}

@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 export type SDDCountPair = {
   male: number;
   female: number;
+  total?: number;
 };
 
 export type SDDLevelRow = SDDCountPair & {
@@ -28,6 +29,7 @@ export type SDDTermBlock = {
   sectors: SDDSectorRow[];
   male: number;
   female: number;
+  total?: number;
 };
 
 export type SDDStudentSection = {
@@ -144,13 +146,13 @@ function ReportFooter({ signatories, gadSettings }: { signatories?: Signatories;
   );
 }
 
-function TotalRow({ male, female, label = 'TOTAL' }: SDDCountPair & { label?: string }) {
+function TotalRow({ male, female, total, label = 'TOTAL' }: SDDCountPair & { label?: string }) {
   return (
     <tr className="bg-slate-100 font-black">
       <td className="border border-black p-1.5 uppercase">{label}</td>
       <td className="border border-black p-1.5 text-right tabular-nums">{male.toLocaleString()}</td>
       <td className="border border-black p-1.5 text-right tabular-nums">{female.toLocaleString()}</td>
-      <td className="border border-black p-1.5 text-right tabular-nums">{(male + female).toLocaleString()}</td>
+      <td className="border border-black p-1.5 text-right tabular-nums">{(total ?? male + female).toLocaleString()}</td>
     </tr>
   );
 }
@@ -230,11 +232,11 @@ function renderStudentTerm(term: SDDTermBlock, keyPrefix: string) {
               <td className="border border-black p-1.5 text-right tabular-nums">{level.male.toLocaleString()}</td>
               <td className="border border-black p-1.5 text-right tabular-nums">{level.female.toLocaleString()}</td>
               <td className="border border-black p-1.5 text-right tabular-nums">
-                {(level.male + level.female).toLocaleString()}
+                {(level.total ?? level.male + level.female).toLocaleString()}
               </td>
             </tr>
           ))}
-          <TotalRow male={term.male} female={term.female} />
+          <TotalRow male={term.male} female={term.female} total={term.total} />
         </tbody>
       </table>
 
@@ -295,7 +297,12 @@ function StudentSectionBody({ section, sectionKey }: { section: SDDStudentSectio
               </tr>
             </thead>
             <tbody>
-              <TotalRow male={section.grand.male} female={section.grand.female} label="Total Enrollees" />
+              <TotalRow
+                male={section.grand.male}
+                female={section.grand.female}
+                total={section.grand.total}
+                label="Total Enrollees"
+              />
             </tbody>
           </table>
         </div>
@@ -380,7 +387,7 @@ export function SDDStudentReportTemplate({
                       {term.female.toLocaleString()}
                     </td>
                     <td className="border border-black p-1.5 text-right tabular-nums">
-                      {(term.male + term.female).toLocaleString()}
+                      {(term.total ?? term.male + term.female).toLocaleString()}
                     </td>
                   </tr>
                 ))}
@@ -395,7 +402,7 @@ export function SDDStudentReportTemplate({
                     {data.grand.female.toLocaleString()}
                   </td>
                   <td className="border border-black p-1.5 text-right tabular-nums">
-                    {(data.grand.male + data.grand.female).toLocaleString()}
+                    {(data.grand.total ?? data.grand.male + data.grand.female).toLocaleString()}
                   </td>
                 </tr>
               </tbody>

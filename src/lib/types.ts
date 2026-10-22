@@ -1132,6 +1132,7 @@ export type EnrollmentRecord = {
   firstSemester: YearLevelEnrollment;
   secondSemester: YearLevelEnrollment;
   midYearTerm?: YearLevelEnrollment;
+  overallOnly?: boolean;
   overall?: {
     firstSemester: EnrollmentOverall;
     secondSemester: EnrollmentOverall;
