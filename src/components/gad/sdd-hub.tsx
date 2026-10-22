@@ -57,6 +57,7 @@ import {
   Target,
   Smartphone,
   LayoutList,
+  Layers,
   Printer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,7 @@ import {
   getComplianceEnrollmentSummary,
   getEnrollmentRecordsForYear,
   getUniqueComplianceRecords,
+  type EnrollmentTermKey,
   type EnrollmentTotals,
   type EnrollmentTermTotals,
 } from '@/lib/enrollment';
@@ -126,6 +128,164 @@ const STUDENT_LEVEL_OPTIONS = [
 
 type StudentLevelKey = (typeof STUDENT_LEVEL_OPTIONS)[number]['key'];
 type StudentLevelMode = 'byLevel' | 'selected' | 'overall';
+
+const STUDENT_SOURCE_OPTIONS = [
+  { key: 'enrollment', label: 'Enrollment' },
+  { key: 'graduation', label: 'Graduation' },
+  { key: 'tracer', label: 'Traced' },
+  { key: 'board', label: 'Board Passer' },
+] as const;
+
+type StudentReportSource = (typeof STUDENT_SOURCE_OPTIONS)[number]['key'];
+
+const STUDENT_SOURCE_META: Record<
+  StudentReportSource,
+  {
+    label: string;
+    badge: string;
+    baselineTitle: string;
+    baselineTotalLabel: string;
+    baselineFooter: string;
+    tableTitle: string;
+    tableDescription: string;
+    tableEmpty: string;
+    reportTitle: string;
+    reportSubtitle: string;
+    reportEmpty: string;
+    totalLabel: string;
+    printEmpty: string;
+  }
+> = {
+  enrollment: {
+    label: 'Enrollment',
+    badge: '1st Semester Baseline',
+    baselineTitle: 'Student Population Baseline (3D)',
+    baselineTotalLabel: 'Total Enrolled Baseline',
+    baselineFooter:
+      'This baseline establishes the verified first-semester student population disaggregated by sex for the selected academic year. Establishing a validated sex-ratio baseline is essential for proportional GAD expenditure attribution, equity audits, and statutory reporting under PCW Memorandum Circular 2011-01.',
+    tableTitle: 'Student Population by Academic Year',
+    tableDescription: 'Male, female, and total student headcount for each semester per academic year.',
+    tableEmpty: 'No academic-year enrollment data recorded',
+    reportTitle: 'Sex-Disaggregated Data (SDD) Report — Students',
+    reportSubtitle: 'Student enrollment by sex, year level, and vulnerable sector per semester',
+    reportEmpty: 'No student enrollment data is available for the selected academic year.',
+    totalLabel: 'Enrollees',
+    printEmpty: 'There is no student enrollment data to print for the selected period.',
+  },
+  graduation: {
+    label: 'Graduation',
+    badge: 'Annual Graduates',
+    baselineTitle: 'Graduate Population Baseline (3D)',
+    baselineTotalLabel: 'Total Graduates Baseline',
+    baselineFooter:
+      'This baseline consolidates graduation records disaggregated by sex for the selected academic year. Graduate sex-disaggregated data supports equitable completion reporting, outcomes-based planning, and GAD-responsive academic interventions.',
+    tableTitle: 'Graduate Population by Academic Year',
+    tableDescription: 'Male, female, and total graduates for each semester per academic year.',
+    tableEmpty: 'No academic-year graduation data recorded',
+    reportTitle: 'Sex-Disaggregated Data (SDD) Report — Graduates',
+    reportSubtitle: 'Graduates by sex and semester',
+    reportEmpty: 'No graduation data is available for the selected academic year.',
+    totalLabel: 'Graduates',
+    printEmpty: 'There is no graduation data to print for the selected period.',
+  },
+  tracer: {
+    label: 'Traced',
+    badge: 'Annual Traced Graduates',
+    baselineTitle: 'Traced Graduate Baseline (3D)',
+    baselineTotalLabel: 'Total Traced Graduates',
+    baselineFooter:
+      'This baseline consolidates traced graduates disaggregated by sex for the selected academic year. Tracer study participation supports employment outcomes monitoring, curriculum relevance review, and gender-responsive graduate support programs.',
+    tableTitle: 'Traced Graduates by Academic Year',
+    tableDescription: 'Male, female, and total traced graduates for each semester per academic year.',
+    tableEmpty: 'No academic-year tracer data recorded',
+    reportTitle: 'Sex-Disaggregated Data (SDD) Report — Traced Graduates',
+    reportSubtitle: 'Traced graduates by sex and semester',
+    reportEmpty: 'No tracer data is available for the selected academic year.',
+    totalLabel: 'Traced Graduates',
+    printEmpty: 'There is no tracer data to print for the selected period.',
+  },
+  board: {
+    label: 'Board Passer',
+    badge: 'Annual Board Passers',
+    baselineTitle: 'Board Passer Baseline (3D)',
+    baselineTotalLabel: 'Total Board Passers',
+    baselineFooter:
+      'This baseline consolidates board examination passers disaggregated by sex for the selected academic year. Board performance data supports equitable licensure outcomes monitoring and gender-responsive academic preparation.',
+    tableTitle: 'Board Passers by Academic Year',
+    tableDescription: 'Male, female, and total board passers per academic year.',
+    tableEmpty: 'No academic-year board passer data recorded',
+    reportTitle: 'Sex-Disaggregated Data (SDD) Report — Board Passers',
+    reportSubtitle: 'Board passers by sex',
+    reportEmpty: 'No board passer data is available for the selected academic year.',
+    totalLabel: 'Board Passers',
+    printEmpty: 'There is no board passer data to print for the selected period.',
+  },
+};
+
+const emptySourceTermTotals = (): EnrollmentTermTotals => ({
+  firstSemester: emptyEnrollmentTotals(),
+  secondSemester: emptyEnrollmentTotals(),
+  midYearTerm: emptyEnrollmentTotals(),
+});
+
+function normalizeOutcomeTerm(semester: unknown): EnrollmentTermKey {
+  const value = String(semester || '').toLowerCase();
+  if (value.includes('mid') || value.includes('summer')) return 'midYearTerm';
+  if (value.includes('second') || value.includes('2nd')) return 'secondSemester';
+  return 'firstSemester';
+}
+
+function getStudentSourceTermTotals(
+  record: ProgramComplianceRecord,
+  source: StudentReportSource,
+  academicYear: number,
+): EnrollmentTermTotals {
+  if (source === 'enrollment') {
+    return getComplianceEnrollmentSummary(record, { academicYear });
+  }
+
+  const totals = emptySourceTermTotals();
+  const addCounts = (termKey: EnrollmentTermKey, male: number, female: number, total = male + female) => {
+    const term = totals[termKey];
+    term.male += male;
+    term.female += female;
+    term.total += Math.max(total, male + female);
+  };
+
+  if (source === 'graduation') {
+    const graduationRecords = Array.isArray(record.graduationRecords) ? record.graduationRecords : [];
+    if (graduationRecords.length > 0) {
+      graduationRecords.forEach((entry) => {
+        const male = Number(entry.maleCount) || 0;
+        const female = Number(entry.femaleCount) || 0;
+        addCounts(normalizeOutcomeTerm(entry.semester), male, female, Number(entry.count) || 0);
+      });
+    } else {
+      const male = Number(record.stats?.maleGraduates) || 0;
+      const female = Number(record.stats?.femaleGraduates) || 0;
+      addCounts('firstSemester', male, female, Number(record.stats?.graduationCount) || 0);
+    }
+    return totals;
+  }
+
+  if (source === 'tracer') {
+    const tracerRecords = Array.isArray(record.tracerRecords) ? record.tracerRecords : [];
+    tracerRecords.forEach((entry) => {
+      const male = Number(entry.maleTraced) || 0;
+      const female = Number(entry.femaleTraced) || 0;
+      addCounts(normalizeOutcomeTerm(entry.semester), male, female);
+    });
+    return totals;
+  }
+
+  const boardRecords = Array.isArray(record.boardPerformance) ? record.boardPerformance : [];
+  boardRecords.forEach((entry) => {
+    const male = Number(entry.malePassers) || 0;
+    const female = Number(entry.femalePassers) || 0;
+    addCounts('firstSemester', male, female);
+  });
+  return totals;
+}
 
 function AcademicYearSelect({
   value,
@@ -188,6 +348,7 @@ export function SDDHub({
   const [printStudentLevelMode, setPrintStudentLevelMode] = useState<StudentLevelMode>('byLevel');
   const [printStudentLevelKey, setPrintStudentLevelKey] = useState<StudentLevelKey>('firstYear');
   const [dashboardYear, setDashboardYear] = useState(selectedYear);
+  const [reportSource, setReportSource] = useState<StudentReportSource>('enrollment');
 
   useEffect(() => {
     setDashboardYear(selectedYear);
@@ -628,17 +789,13 @@ export function SDDHub({
       const year = Number(record.academicYear);
       if (!Number.isFinite(year) || year <= 2000) return;
 
-      const summary = getComplianceEnrollmentSummary(record, { academicYear: year });
-      const totals = yearTotals.get(year) || {
-        firstSemester: emptyEnrollmentTotals(),
-        secondSemester: emptyEnrollmentTotals(),
-        midYearTerm: emptyEnrollmentTotals(),
-      };
+      const sourceTotals = getStudentSourceTermTotals(record, reportSource, year);
+      const totals = yearTotals.get(year) || emptySourceTermTotals();
 
       yearTotals.set(year, {
-        firstSemester: addEnrollmentTotals(totals.firstSemester, summary.firstSemester),
-        secondSemester: addEnrollmentTotals(totals.secondSemester, summary.secondSemester),
-        midYearTerm: addEnrollmentTotals(totals.midYearTerm, summary.midYearTerm),
+        firstSemester: addEnrollmentTotals(totals.firstSemester, sourceTotals.firstSemester),
+        secondSemester: addEnrollmentTotals(totals.secondSemester, sourceTotals.secondSemester),
+        midYearTerm: addEnrollmentTotals(totals.midYearTerm, sourceTotals.midYearTerm),
       });
     });
 
@@ -652,13 +809,40 @@ export function SDDHub({
           row.year === dashboardYear,
       )
       .sort((a, b) => b.year - a.year);
-  }, [studentRecordSource, dashboardYear, activeProgramIds]);
+  }, [studentRecordSource, dashboardYear, activeProgramIds, reportSource]);
+
+  const studentSourceBaseline = useMemo(() => {
+    const row = studentYearlyData.find((entry) => entry.year === dashboardYear);
+    if (!row) return emptyEnrollmentTotals();
+    if (reportSource === 'enrollment' || reportSource === 'board') return row.firstSemester;
+    return addEnrollmentTotals(addEnrollmentTotals(row.firstSemester, row.secondSemester), row.midYearTerm);
+  }, [studentYearlyData, dashboardYear, reportSource]);
+
+  const studentSourcePieData = useMemo(
+    () =>
+      [
+        { name: 'Male', value: studentSourceBaseline.male, fill: COLORS[0] },
+        { name: 'Female', value: studentSourceBaseline.female, fill: COLORS[1] },
+      ].filter((entry) => entry.value > 0),
+    [studentSourceBaseline],
+  );
 
   const semesterLabels = {
     firstSemester: 'First Semester',
     secondSemester: 'Second Semester',
     midYearTerm: 'Midyear Term',
   } as const;
+
+  const sourceTermColumns: { key: EnrollmentTermKey; label: string }[] =
+    reportSource === 'board'
+      ? [{ key: 'firstSemester', label: 'Academic Year Total' }]
+      : [
+          { key: 'firstSemester', label: '1st Semester' },
+          { key: 'secondSemester', label: '2nd Semester' },
+          { key: 'midYearTerm', label: 'Midyear Term' },
+        ];
+
+  const sourceMeta = STUDENT_SOURCE_META[reportSource];
 
   const formatPeriodLabel = (years: number[], semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm') => {
     const sorted = [...years].sort((a, b) => a - b);
@@ -810,7 +994,62 @@ export function SDDHub({
       total: terms.reduce((sum, term) => sum + (term.total ?? term.male + term.female), 0),
     };
 
-    return { title, terms: grand.total > 0 ? terms : [], grand };
+    return { title, terms: grand.total > 0 ? terms : [], grand, totalLabel: sourceMeta.totalLabel };
+  };
+
+  const buildOutcomeStudentSection = (
+    records: ProgramComplianceRecord[],
+    title: string,
+    years: number[],
+    semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
+  ): SDDStudentSection => {
+    const termKeys: EnrollmentTermKey[] =
+      reportSource === 'board'
+        ? ['firstSemester']
+        : semesterKey
+          ? [semesterKey]
+          : ['firstSemester', 'secondSemester', 'midYearTerm'];
+
+    const terms: SDDTermBlock[] = [];
+
+    years.forEach((year) => {
+      const yearRecords = getUniqueComplianceRecords(records, { academicYear: year, activeProgramIds });
+
+      termKeys.forEach((termKey) => {
+        const totals = yearRecords.reduce<EnrollmentTotals>(
+          (sum, record) => addEnrollmentTotals(sum, getStudentSourceTermTotals(record, reportSource, year)[termKey]),
+          emptyEnrollmentTotals(),
+        );
+
+        if (totals.total === 0) return;
+
+        terms.push({
+          term: reportSource === 'board' ? 'Academic Year Total' : semesterLabels[termKey],
+          academicYear: `${year}-${year + 1}`,
+          levels: [
+            {
+              label: 'Overall Total',
+              male: totals.male,
+              female: totals.female,
+              total: totals.total,
+            },
+          ],
+          sectors: [],
+          male: totals.male,
+          female: totals.female,
+          total: totals.total,
+          hideYearLevel: true,
+        });
+      });
+    });
+
+    const grand = {
+      male: terms.reduce((sum, term) => sum + term.male, 0),
+      female: terms.reduce((sum, term) => sum + term.female, 0),
+      total: terms.reduce((sum, term) => sum + (term.total ?? term.male + term.female), 0),
+    };
+
+    return { title, terms, grand, totalLabel: sourceMeta.totalLabel };
   };
 
   const buildStudentReportData = (
@@ -842,7 +1081,10 @@ export function SDDHub({
     const appendices: SDDStudentSection[] = [];
 
     const addSection = (target: SDDStudentSection[], records: ProgramComplianceRecord[], title: string) => {
-      const section = buildStudentSection(records, title, years, semesterKey, levelMode, selectedLevelKey);
+      const section =
+        reportSource === 'enrollment'
+          ? buildStudentSection(records, title, years, semesterKey, levelMode, selectedLevelKey)
+          : buildOutcomeStudentSection(records, title, years, semesterKey);
       if (section.terms.length > 0) target.push(section);
     };
 
@@ -969,7 +1211,9 @@ export function SDDHub({
         `Student Type: ${printStudentType === 'undergraduate' ? 'Undergraduate Student' : 'Graduate Student'}`,
       );
     }
-    if (levelMode === 'overall') {
+    if (reportSource !== 'enrollment') {
+      scopeParts.push(`Report Source: ${sourceMeta.label}`);
+    } else if (levelMode === 'overall') {
       scopeParts.push('Student Level: Overall Total');
     } else if (levelMode === 'selected') {
       const levelLabel = STUDENT_LEVEL_OPTIONS.find((level) => level.key === selectedLevelKey)?.label;
@@ -983,6 +1227,10 @@ export function SDDHub({
       sections,
       appendices,
       grand,
+      reportTitle: sourceMeta.reportTitle,
+      reportSubtitle: sourceMeta.reportSubtitle,
+      emptyMessage: sourceMeta.reportEmpty,
+      totalLabel: sourceMeta.totalLabel,
     };
   };
 
@@ -1169,13 +1417,13 @@ export function SDDHub({
 
     try {
       if (printReportType === 'students') {
-        const semesterKey = printMode === 'yearSemester' ? printSemester : undefined;
+        const semesterKey = printMode === 'yearSemester' && reportSource !== 'board' ? printSemester : undefined;
         const reportData = buildStudentReportData(years, semesterKey, printStudentLevelMode, printStudentLevelKey);
 
         if (reportData.sections.length === 0 || reportData.grand.male + reportData.grand.female === 0) {
           toast({
             title: 'No Student Data',
-            description: 'There is no student enrollment data to print for the selected period.',
+            description: sourceMeta.printEmpty,
             variant: 'destructive',
           });
           return;
@@ -1264,6 +1512,22 @@ export function SDDHub({
               </CardDescription>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-black uppercase tracking-wider text-primary/70">Report Source</span>
+                <Select value={reportSource} onValueChange={(value) => setReportSource(value as StudentReportSource)}>
+                  <SelectTrigger className="h-8 w-[150px] border-primary/30 bg-white text-[10px] font-black uppercase tracking-wider">
+                    <Layers className="mr-1.5 h-3 w-3 shrink-0 text-primary" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STUDENT_SOURCE_OPTIONS.map((source) => (
+                      <SelectItem key={source.key} value={source.key}>
+                        {source.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <AcademicYearSelect value={dashboardYear} years={yearOptions} onChange={setDashboardYear} />
               <Badge className="bg-primary hover:bg-primary/90 text-white font-black text-xs px-3.5 py-1 uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
                 <CalendarRange className="h-3.5 w-3.5" />
@@ -1273,7 +1537,7 @@ export function SDDHub({
                 variant="outline"
                 className="bg-white border-primary/20 text-primary text-[10px] font-black uppercase px-2.5 py-1"
               >
-                1st Semester Baseline
+                {sourceMeta.badge}
               </Badge>
               <Button
                 variant="outline"
@@ -1314,24 +1578,24 @@ export function SDDHub({
                   className="h-7 w-[125px] border-primary/20 bg-white text-[9px] font-black uppercase tracking-wide"
                 />
                 <span className="text-[8px] font-bold uppercase text-muted-foreground bg-primary/5 px-2 py-0.5 rounded">
-                  1st Sem Baseline
+                  {sourceMeta.badge}
                 </span>
               </div>
               <div className="mx-auto h-10 w-10 rounded-full bg-white flex items-center justify-center mb-2 shadow-sm">
                 <Users className="h-5 w-5 text-primary" />
               </div>
               <CardTitle className="text-[10px] font-black uppercase tracking-widest leading-tight">
-                Student Population Baseline (3D)
+                {sourceMeta.baselineTitle}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8 flex-1 flex flex-col items-center justify-center">
-              {aggregatedData.s1.length > 0 ? (
+              {studentSourcePieData.length > 0 ? (
                 <>
                   <ChartContainer config={{}} className="h-[220px] w-full mb-6">
                     <ResponsiveContainer>
                       <PieChart>
                         <Pie
-                          data={aggregatedData.s1}
+                          data={studentSourcePieData}
                           cx="50%"
                           cy="50%"
                           innerRadius={45}
@@ -1341,7 +1605,7 @@ export function SDDHub({
                           label={RenderPie3DLabel}
                           labelLine={false}
                         >
-                          {aggregatedData.s1.map((e, j) => (
+                          {studentSourcePieData.map((e, j) => (
                             <Cell
                               key={j}
                               fill={j === 0 ? 'url(#sddhub3d-grad-indigo)' : 'url(#sddhub3d-grad-rose)'}
@@ -1365,10 +1629,10 @@ export function SDDHub({
                   </ChartContainer>
                   <div className="text-center">
                     <p className="text-4xl font-black text-slate-900 dark:text-slate-100 tabular-nums leading-none drop-shadow-sm">
-                      {aggregatedData.totals.s1.toLocaleString()}
+                      {studentSourceBaseline.total.toLocaleString()}
                     </p>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                      Total Enrolled Baseline (AY {dashboardYear}&ndash;{dashboardYear + 1})
+                      {sourceMeta.baselineTotalLabel} (AY {dashboardYear}&ndash;{dashboardYear + 1})
                     </p>
                   </div>
                 </>
@@ -1376,7 +1640,7 @@ export function SDDHub({
                 <div className="flex flex-col items-center justify-center text-center opacity-20 py-20 space-y-3">
                   <PieIcon className="h-12 w-12" />
                   <p className="text-[10px] font-black uppercase tracking-widest">
-                    No enrollment data for AY {dashboardYear}-{dashboardYear + 1}
+                    No {sourceMeta.label.toLowerCase()} data for AY {dashboardYear}-{dashboardYear + 1}
                   </p>
                 </div>
               )}
@@ -1384,9 +1648,7 @@ export function SDDHub({
             <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
               <Users className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                This baseline establishes the verified first-semester student population disaggregated by sex for the
-                selected academic year. Establishing a validated sex-ratio baseline is essential for proportional GAD
-                expenditure attribution, equity audits, and statutory reporting under PCW Memorandum Circular 2011-01.
+                {sourceMeta.baselineFooter}
               </p>
             </CardFooter>
           </Card>
@@ -1401,11 +1663,9 @@ export function SDDHub({
                   <CalendarRange className="h-5 w-5 text-primary" />
                   <div>
                     <CardTitle className="text-sm font-black uppercase tracking-tight">
-                      Student Population by Academic Year
+                      {sourceMeta.tableTitle}
                     </CardTitle>
-                    <CardDescription className="text-[10px]">
-                      Male, female, and total student headcount for each semester per academic year.
-                    </CardDescription>
+                    <CardDescription className="text-[10px]">{sourceMeta.tableDescription}</CardDescription>
                   </div>
                 </div>
                 <Badge
@@ -1418,42 +1678,50 @@ export function SDDHub({
             </CardHeader>
             <CardContent className="p-0 flex-1 overflow-x-auto">
               {studentYearlyData.length > 0 ? (
-                <table className="w-full min-w-[1040px] border-collapse text-[11px]">
+                <table
+                  className={cn(
+                    'w-full border-collapse text-[11px]',
+                    sourceTermColumns.length === 1 ? 'min-w-[420px]' : 'min-w-[1040px]',
+                  )}
+                >
                   <thead>
                     <tr className="bg-slate-100 dark:bg-slate-800 text-[9px] font-black uppercase text-slate-600 dark:text-slate-300">
                       <th rowSpan={2} className="px-5 py-3 text-left align-middle">
                         Academic Year
                       </th>
-                      <th colSpan={3} className="border-l border-slate-200 px-4 py-2 text-center dark:border-slate-700">
-                        1st Semester
-                      </th>
-                      <th colSpan={3} className="border-l border-slate-200 px-4 py-2 text-center dark:border-slate-700">
-                        2nd Semester
-                      </th>
-                      <th colSpan={3} className="border-l border-slate-200 px-4 py-2 text-center dark:border-slate-700">
-                        Midyear Term
-                      </th>
+                      {sourceTermColumns.map((column, index) => (
+                        <th
+                          key={column.key}
+                          colSpan={3}
+                          className={cn(
+                            'px-4 py-2 text-center',
+                            index > 0 && 'border-l border-slate-200 dark:border-slate-700',
+                          )}
+                        >
+                          {column.label}
+                        </th>
+                      ))}
                     </tr>
                     <tr className="bg-slate-50 dark:bg-slate-800/70 text-[8px] font-black uppercase text-slate-500 dark:text-slate-400">
-                      <th className="px-3 py-2 text-center text-indigo-600 dark:text-indigo-400">Male</th>
-                      <th className="px-3 py-2 text-center text-rose-600 dark:text-rose-400">Female</th>
-                      <th className="px-3 py-2 text-center">Total</th>
-                      <th className="border-l border-slate-200 px-3 py-2 text-center text-indigo-600 dark:border-slate-700 dark:text-indigo-400">
-                        Male
-                      </th>
-                      <th className="px-3 py-2 text-center text-rose-600 dark:text-rose-400">Female</th>
-                      <th className="px-3 py-2 text-center">Total</th>
-                      <th className="border-l border-slate-200 px-3 py-2 text-center text-indigo-600 dark:border-slate-700 dark:text-indigo-400">
-                        Male
-                      </th>
-                      <th className="px-3 py-2 text-center text-rose-600 dark:text-rose-400">Female</th>
-                      <th className="px-3 py-2 text-center">Total</th>
+                      {sourceTermColumns.map((column, index) => (
+                        <Fragment key={column.key}>
+                          <th
+                            className={cn(
+                              'px-3 py-2 text-center text-indigo-600 dark:text-indigo-400',
+                              index > 0 && 'border-l border-slate-200 dark:border-slate-700',
+                            )}
+                          >
+                            Male
+                          </th>
+                          <th className="px-3 py-2 text-center text-rose-600 dark:text-rose-400">Female</th>
+                          <th className="px-3 py-2 text-center">Total</th>
+                        </Fragment>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {studentYearlyData.map((row) => {
                       const isCurrent = row.year === dashboardYear;
-                      const semesters = [row.firstSemester, row.secondSemester, row.midYearTerm] as const;
 
                       return (
                         <tr
@@ -1475,26 +1743,29 @@ export function SDDHub({
                               )}
                             </div>
                           </td>
-                          {semesters.map((term, index) => (
-                            <Fragment key={`${row.year}-${index}`}>
-                              <td
-                                className={cn(
-                                  'px-3 py-3 text-center font-black tabular-nums text-indigo-600 dark:text-indigo-400',
-                                  index > 0 && 'border-l border-border/50',
-                                )}
-                              >
-                                {term.male.toLocaleString()}
-                              </td>
-                              <td className="px-3 py-3 text-center font-black tabular-nums text-rose-600 dark:text-rose-400">
-                                {term.female.toLocaleString()}
-                              </td>
-                              <td className="px-3 py-3 text-center">
-                                <span className="inline-flex min-w-[56px] justify-center rounded-md bg-primary/5 px-2 py-1 font-black tabular-nums text-primary">
-                                  {term.total.toLocaleString()}
-                                </span>
-                              </td>
-                            </Fragment>
-                          ))}
+                          {sourceTermColumns.map((column, index) => {
+                            const term = row[column.key];
+                            return (
+                              <Fragment key={`${row.year}-${column.key}`}>
+                                <td
+                                  className={cn(
+                                    'px-3 py-3 text-center font-black tabular-nums text-indigo-600 dark:text-indigo-400',
+                                    index > 0 && 'border-l border-border/50',
+                                  )}
+                                >
+                                  {term.male.toLocaleString()}
+                                </td>
+                                <td className="px-3 py-3 text-center font-black tabular-nums text-rose-600 dark:text-rose-400">
+                                  {term.female.toLocaleString()}
+                                </td>
+                                <td className="px-3 py-3 text-center">
+                                  <span className="inline-flex min-w-[56px] justify-center rounded-md bg-primary/5 px-2 py-1 font-black tabular-nums text-primary">
+                                    {term.total.toLocaleString()}
+                                  </span>
+                                </td>
+                              </Fragment>
+                            );
+                          })}
                         </tr>
                       );
                     })}
@@ -1503,298 +1774,310 @@ export function SDDHub({
               ) : (
                 <div className="flex flex-col items-center justify-center gap-2 py-16 opacity-30">
                   <Users className="h-10 w-10" />
-                  <p className="text-[10px] font-black uppercase tracking-widest">
-                    No academic-year enrollment data recorded
-                  </p>
+                  <p className="text-[10px] font-black uppercase tracking-widest">{sourceMeta.tableEmpty}</p>
                 </div>
               )}
             </CardContent>
             <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                Headcounts consolidate the verified 1st Semester, 2nd Semester, and Midyear enrollment records of all
-                programs in scope for each academic year. Male and female totals are derived from program-level
-                enrollment data and support year-on-year sex-disaggregated trend analysis for GAD planning and
-                reporting.
+                Headcounts consolidate the {sourceMeta.label.toLowerCase()} records of all programs in scope for each
+                academic year. Male and female totals support year-on-year sex-disaggregated trend analysis for GAD
+                planning and reporting.
               </p>
             </CardFooter>
           </Card>
         </div>
 
-        {/* STUDENT SECTORAL DISTRIBUTION */}
-        <div className="lg:col-span-3">
-          <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl h-full flex flex-col bg-white dark:bg-slate-900">
-            <CardHeader className="bg-muted/10 border-b py-4">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-primary" />
-                  <CardTitle className="text-sm font-black uppercase tracking-tight">
-                    Student Sectoral Reach Analysis (3D)
-                  </CardTitle>
-                </div>
-                <AcademicYearSelect value={dashboardYear} years={yearOptions} onChange={setDashboardYear} />
-              </div>
-              <CardDescription className="text-[10px]">
-                Consolidated headcount of students belonging to marginalized or prioritized GAD groups for AY{' '}
-                {dashboardYear}&ndash;{dashboardYear + 1}.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-8 flex-1">
-              {aggregatedData.studentSectors.length > 0 ? (
-                <ChartContainer config={{}} className="h-[350px] w-full">
-                  <ResponsiveContainer>
-                    <BarChart data={aggregatedData.studentSectors} layout="vertical" margin={{ left: 20, right: 50 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.15} />
-                      <XAxis type="number" hide />
-                      <YAxis
-                        dataKey="name"
-                        type="category"
-                        tick={{ fontSize: 9, fontWeight: 900 }}
-                        width={120}
-                        axisLine={false}
-                        tickLine={false}
-                      />
-                      <RechartsTooltip content={<ChartTooltipContent />} />
-                      <Legend
-                        verticalAlign="top"
-                        align="right"
-                        wrapperStyle={{
-                          fontSize: '9px',
-                          fontWeight: 'bold',
-                          textTransform: 'uppercase',
-                          paddingBottom: '10px',
-                        }}
-                      />
-                      <Bar
-                        dataKey="male"
-                        stackId="a"
-                        fill="url(#sddhub3d-grad-indigo)"
-                        filter="url(#sddhub3d-soft-depth)"
-                        radius={[0, 0, 0, 0]}
-                      />
-                      <Bar
-                        dataKey="female"
-                        stackId="a"
-                        fill="url(#sddhub3d-grad-rose)"
-                        radius={[0, 6, 6, 0]}
-                        filter="url(#sddhub3d-soft-depth)"
-                      >
-                        <LabelList
-                          dataKey="total"
-                          position="right"
-                          style={{ fontSize: '11px', fontWeight: '900', fill: 'hsl(var(--primary))' }}
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartContainer>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full opacity-20">
-                  <LayoutList className="h-12 w-12" />
-                  <p className="text-[10px] font-black uppercase tracking-widest mt-2">Zero Sectoral Hits Recorded</p>
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
-              <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                This analysis profiles student representation across vulnerable sectors—such as Solo Parents, Persons
-                with Disabilities, Indigenous Peoples, and 4Ps beneficiaries—disaggregated by gender. Measuring sectoral
-                enrollment informs targeted scholarship allocations, barrier-free campus initiatives, and academic
-                retention interventions aligned with the Magna Carta of Women and Philippine Harmonized GAD Guidelines.
-              </p>
-            </CardFooter>
-          </Card>
-        </div>
+        {reportSource === 'enrollment' && (
+          <>
+            {/* STUDENT SECTORAL DISTRIBUTION */}
+            <div className="lg:col-span-3">
+              <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl h-full flex flex-col bg-white dark:bg-slate-900">
+                <CardHeader className="bg-muted/10 border-b py-4">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-5 w-5 text-primary" />
+                      <CardTitle className="text-sm font-black uppercase tracking-tight">
+                        Student Sectoral Reach Analysis (3D)
+                      </CardTitle>
+                    </div>
+                    <AcademicYearSelect value={dashboardYear} years={yearOptions} onChange={setDashboardYear} />
+                  </div>
+                  <CardDescription className="text-[10px]">
+                    Consolidated headcount of students belonging to marginalized or prioritized GAD groups for AY{' '}
+                    {dashboardYear}&ndash;{dashboardYear + 1}.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pt-8 flex-1">
+                  {aggregatedData.studentSectors.length > 0 ? (
+                    <ChartContainer config={{}} className="h-[350px] w-full">
+                      <ResponsiveContainer>
+                        <BarChart
+                          data={aggregatedData.studentSectors}
+                          layout="vertical"
+                          margin={{ left: 20, right: 50 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} opacity={0.15} />
+                          <XAxis type="number" hide />
+                          <YAxis
+                            dataKey="name"
+                            type="category"
+                            tick={{ fontSize: 9, fontWeight: 900 }}
+                            width={120}
+                            axisLine={false}
+                            tickLine={false}
+                          />
+                          <RechartsTooltip content={<ChartTooltipContent />} />
+                          <Legend
+                            verticalAlign="top"
+                            align="right"
+                            wrapperStyle={{
+                              fontSize: '9px',
+                              fontWeight: 'bold',
+                              textTransform: 'uppercase',
+                              paddingBottom: '10px',
+                            }}
+                          />
+                          <Bar
+                            dataKey="male"
+                            stackId="a"
+                            fill="url(#sddhub3d-grad-indigo)"
+                            filter="url(#sddhub3d-soft-depth)"
+                            radius={[0, 0, 0, 0]}
+                          />
+                          <Bar
+                            dataKey="female"
+                            stackId="a"
+                            fill="url(#sddhub3d-grad-rose)"
+                            radius={[0, 6, 6, 0]}
+                            filter="url(#sddhub3d-soft-depth)"
+                          >
+                            <LabelList
+                              dataKey="total"
+                              position="right"
+                              style={{ fontSize: '11px', fontWeight: '900', fill: 'hsl(var(--primary))' }}
+                            />
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full opacity-20">
+                      <LayoutList className="h-12 w-12" />
+                      <p className="text-[10px] font-black uppercase tracking-widest mt-2">
+                        Zero Sectoral Hits Recorded
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+                  <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                    This analysis profiles student representation across vulnerable sectors—such as Solo Parents,
+                    Persons with Disabilities, Indigenous Peoples, and 4Ps beneficiaries—disaggregated by gender.
+                    Measuring sectoral enrollment informs targeted scholarship allocations, barrier-free campus
+                    initiatives, and academic retention interventions aligned with the Magna Carta of Women and
+                    Philippine Harmonized GAD Guidelines.
+                  </p>
+                </CardFooter>
+              </Card>
+            </div>
+          </>
+        )}
       </div>
 
       {/* STUDENT SDD BY YEAR LEVEL */}
-      <Card className="shadow-lg border-primary/10 rounded-2xl overflow-hidden">
-        <CardHeader className="bg-muted/10 border-b py-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <LayoutList className="h-5 w-5 text-primary" />
-              <div>
-                <CardTitle className="text-sm font-black uppercase tracking-tight">Student SDD by Year Level</CardTitle>
-                <CardDescription className="text-[10px]">
-                  Enrollment disaggregated by sex and year level for AY {dashboardYear}&ndash;{dashboardYear + 1}.
-                </CardDescription>
+      {reportSource === 'enrollment' && (
+        <Card className="shadow-lg border-primary/10 rounded-2xl overflow-hidden">
+          <CardHeader className="bg-muted/10 border-b py-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <LayoutList className="h-5 w-5 text-primary" />
+                <div>
+                  <CardTitle className="text-sm font-black uppercase tracking-tight">
+                    Student SDD by Year Level
+                  </CardTitle>
+                  <CardDescription className="text-[10px]">
+                    Enrollment disaggregated by sex and year level for AY {dashboardYear}&ndash;{dashboardYear + 1}.
+                  </CardDescription>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <AcademicYearSelect value={dashboardYear} years={yearOptions} onChange={setDashboardYear} />
+                <Badge
+                  variant="outline"
+                  className="w-fit text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
+                >
+                  <LayoutList className="h-3 w-3" /> Year-Level Breakdown
+                </Badge>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <AcademicYearSelect value={dashboardYear} years={yearOptions} onChange={setDashboardYear} />
-              <Badge
-                variant="outline"
-                className="w-fit text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
-              >
-                <LayoutList className="h-3 w-3" /> Year-Level Breakdown
-              </Badge>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0 overflow-x-auto">
-          <table className="w-full min-w-[900px] border-collapse text-[10px]">
-            <thead>
-              <tr className="bg-slate-100 dark:bg-slate-800 font-black uppercase text-[9px]">
-                <th rowSpan={2} className="border border-slate-200 p-2 text-left">
-                  Year Level
-                </th>
-                <th colSpan={3} className="border border-slate-200 p-2 text-center">
-                  First Semester
-                </th>
-                <th colSpan={3} className="border border-slate-200 p-2 text-center">
-                  Second Semester
-                </th>
-                {studentLevelRowData.hasMidyear && (
-                  <th colSpan={3} className="border border-slate-200 p-2 text-center">
-                    Midyear Term
+          </CardHeader>
+          <CardContent className="p-0 overflow-x-auto">
+            <table className="w-full min-w-[900px] border-collapse text-[10px]">
+              <thead>
+                <tr className="bg-slate-100 dark:bg-slate-800 font-black uppercase text-[9px]">
+                  <th rowSpan={2} className="border border-slate-200 p-2 text-left">
+                    Year Level
                   </th>
-                )}
-                <th colSpan={3} className="border border-slate-200 p-2 text-center">
-                  Overall Total
-                </th>
-              </tr>
-              <tr className="bg-slate-50 dark:bg-slate-800/60 font-black uppercase text-[8px] text-slate-500">
-                <th className="border border-slate-200 p-1.5 text-right">Male</th>
-                <th className="border border-slate-200 p-1.5 text-right">Female</th>
-                <th className="border border-slate-200 p-1.5 text-right">Total</th>
-                <th className="border border-slate-200 p-1.5 text-right">Male</th>
-                <th className="border border-slate-200 p-1.5 text-right">Female</th>
-                <th className="border border-slate-200 p-1.5 text-right">Total</th>
-                {studentLevelRowData.hasMidyear && (
-                  <>
-                    <th className="border border-slate-200 p-1.5 text-right">Male</th>
-                    <th className="border border-slate-200 p-1.5 text-right">Female</th>
-                    <th className="border border-slate-200 p-1.5 text-right">Total</th>
-                  </>
-                )}
-                <th className="border border-slate-200 p-1.5 text-right">Male</th>
-                <th className="border border-slate-200 p-1.5 text-right">Female</th>
-                <th className="border border-slate-200 p-1.5 text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {studentLevelRowData.rows.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={studentLevelRowData.hasMidyear ? 13 : 10}
-                    className="border border-slate-200 p-6 text-center italic text-muted-foreground"
-                  >
-                    No year-level enrollment data for AY {dashboardYear}&ndash;{dashboardYear + 1}.
-                  </td>
+                  <th colSpan={3} className="border border-slate-200 p-2 text-center">
+                    First Semester
+                  </th>
+                  <th colSpan={3} className="border border-slate-200 p-2 text-center">
+                    Second Semester
+                  </th>
+                  {studentLevelRowData.hasMidyear && (
+                    <th colSpan={3} className="border border-slate-200 p-2 text-center">
+                      Midyear Term
+                    </th>
+                  )}
+                  <th colSpan={3} className="border border-slate-200 p-2 text-center">
+                    Overall Total
+                  </th>
                 </tr>
-              ) : (
-                <>
-                  {studentLevelRowData.rows.map((row) => (
-                    <tr key={row.label} className="hover:bg-primary/5 transition-colors">
-                      <td className="border border-slate-200 p-2 font-bold">{row.label}</td>
+                <tr className="bg-slate-50 dark:bg-slate-800/60 font-black uppercase text-[8px] text-slate-500">
+                  <th className="border border-slate-200 p-1.5 text-right">Male</th>
+                  <th className="border border-slate-200 p-1.5 text-right">Female</th>
+                  <th className="border border-slate-200 p-1.5 text-right">Total</th>
+                  <th className="border border-slate-200 p-1.5 text-right">Male</th>
+                  <th className="border border-slate-200 p-1.5 text-right">Female</th>
+                  <th className="border border-slate-200 p-1.5 text-right">Total</th>
+                  {studentLevelRowData.hasMidyear && (
+                    <>
+                      <th className="border border-slate-200 p-1.5 text-right">Male</th>
+                      <th className="border border-slate-200 p-1.5 text-right">Female</th>
+                      <th className="border border-slate-200 p-1.5 text-right">Total</th>
+                    </>
+                  )}
+                  <th className="border border-slate-200 p-1.5 text-right">Male</th>
+                  <th className="border border-slate-200 p-1.5 text-right">Female</th>
+                  <th className="border border-slate-200 p-1.5 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {studentLevelRowData.rows.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan={studentLevelRowData.hasMidyear ? 13 : 10}
+                      className="border border-slate-200 p-6 text-center italic text-muted-foreground"
+                    >
+                      No year-level enrollment data for AY {dashboardYear}&ndash;{dashboardYear + 1}.
+                    </td>
+                  </tr>
+                ) : (
+                  <>
+                    {studentLevelRowData.rows.map((row) => (
+                      <tr key={row.label} className="hover:bg-primary/5 transition-colors">
+                        <td className="border border-slate-200 p-2 font-bold">{row.label}</td>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums">
+                          {row.first.male.toLocaleString()}
+                        </td>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums">
+                          {row.first.female.toLocaleString()}
+                        </td>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums font-bold">
+                          {(row.first.male + row.first.female).toLocaleString()}
+                        </td>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums">
+                          {row.second.male.toLocaleString()}
+                        </td>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums">
+                          {row.second.female.toLocaleString()}
+                        </td>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums font-bold">
+                          {(row.second.male + row.second.female).toLocaleString()}
+                        </td>
+                        {studentLevelRowData.hasMidyear && (
+                          <>
+                            <td className="border border-slate-200 p-2 text-right tabular-nums">
+                              {row.midyear.male.toLocaleString()}
+                            </td>
+                            <td className="border border-slate-200 p-2 text-right tabular-nums">
+                              {row.midyear.female.toLocaleString()}
+                            </td>
+                            <td className="border border-slate-200 p-2 text-right tabular-nums font-bold">
+                              {(row.midyear.male + row.midyear.female).toLocaleString()}
+                            </td>
+                          </>
+                        )}
+                        <td className="border border-slate-200 p-2 text-right tabular-nums">
+                          {row.total.male.toLocaleString()}
+                        </td>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums">
+                          {row.total.female.toLocaleString()}
+                        </td>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums font-black text-primary">
+                          {(row.total.male + row.total.female).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                    <tr className="bg-primary/5 font-black">
+                      <td className="border border-slate-200 p-2 uppercase">Total</td>
                       <td className="border border-slate-200 p-2 text-right tabular-nums">
-                        {row.first.male.toLocaleString()}
+                        {studentLevelRowData.totals.first.male.toLocaleString()}
                       </td>
                       <td className="border border-slate-200 p-2 text-right tabular-nums">
-                        {row.first.female.toLocaleString()}
-                      </td>
-                      <td className="border border-slate-200 p-2 text-right tabular-nums font-bold">
-                        {(row.first.male + row.first.female).toLocaleString()}
+                        {studentLevelRowData.totals.first.female.toLocaleString()}
                       </td>
                       <td className="border border-slate-200 p-2 text-right tabular-nums">
-                        {row.second.male.toLocaleString()}
+                        {(
+                          studentLevelRowData.totals.first.male + studentLevelRowData.totals.first.female
+                        ).toLocaleString()}
                       </td>
                       <td className="border border-slate-200 p-2 text-right tabular-nums">
-                        {row.second.female.toLocaleString()}
+                        {studentLevelRowData.totals.second.male.toLocaleString()}
                       </td>
-                      <td className="border border-slate-200 p-2 text-right tabular-nums font-bold">
-                        {(row.second.male + row.second.female).toLocaleString()}
+                      <td className="border border-slate-200 p-2 text-right tabular-nums">
+                        {studentLevelRowData.totals.second.female.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-200 p-2 text-right tabular-nums">
+                        {(
+                          studentLevelRowData.totals.second.male + studentLevelRowData.totals.second.female
+                        ).toLocaleString()}
                       </td>
                       {studentLevelRowData.hasMidyear && (
                         <>
                           <td className="border border-slate-200 p-2 text-right tabular-nums">
-                            {row.midyear.male.toLocaleString()}
+                            {studentLevelRowData.totals.midyear.male.toLocaleString()}
                           </td>
                           <td className="border border-slate-200 p-2 text-right tabular-nums">
-                            {row.midyear.female.toLocaleString()}
+                            {studentLevelRowData.totals.midyear.female.toLocaleString()}
                           </td>
-                          <td className="border border-slate-200 p-2 text-right tabular-nums font-bold">
-                            {(row.midyear.male + row.midyear.female).toLocaleString()}
+                          <td className="border border-slate-200 p-2 text-right tabular-nums">
+                            {(
+                              studentLevelRowData.totals.midyear.male + studentLevelRowData.totals.midyear.female
+                            ).toLocaleString()}
                           </td>
                         </>
                       )}
                       <td className="border border-slate-200 p-2 text-right tabular-nums">
-                        {row.total.male.toLocaleString()}
+                        {studentLevelRowData.totals.overall.male.toLocaleString()}
                       </td>
                       <td className="border border-slate-200 p-2 text-right tabular-nums">
-                        {row.total.female.toLocaleString()}
+                        {studentLevelRowData.totals.overall.female.toLocaleString()}
                       </td>
-                      <td className="border border-slate-200 p-2 text-right tabular-nums font-black text-primary">
-                        {(row.total.male + row.total.female).toLocaleString()}
+                      <td className="border border-slate-200 p-2 text-right tabular-nums">
+                        {(
+                          studentLevelRowData.totals.overall.male + studentLevelRowData.totals.overall.female
+                        ).toLocaleString()}
                       </td>
                     </tr>
-                  ))}
-                  <tr className="bg-primary/5 font-black">
-                    <td className="border border-slate-200 p-2 uppercase">Total</td>
-                    <td className="border border-slate-200 p-2 text-right tabular-nums">
-                      {studentLevelRowData.totals.first.male.toLocaleString()}
-                    </td>
-                    <td className="border border-slate-200 p-2 text-right tabular-nums">
-                      {studentLevelRowData.totals.first.female.toLocaleString()}
-                    </td>
-                    <td className="border border-slate-200 p-2 text-right tabular-nums">
-                      {(
-                        studentLevelRowData.totals.first.male + studentLevelRowData.totals.first.female
-                      ).toLocaleString()}
-                    </td>
-                    <td className="border border-slate-200 p-2 text-right tabular-nums">
-                      {studentLevelRowData.totals.second.male.toLocaleString()}
-                    </td>
-                    <td className="border border-slate-200 p-2 text-right tabular-nums">
-                      {studentLevelRowData.totals.second.female.toLocaleString()}
-                    </td>
-                    <td className="border border-slate-200 p-2 text-right tabular-nums">
-                      {(
-                        studentLevelRowData.totals.second.male + studentLevelRowData.totals.second.female
-                      ).toLocaleString()}
-                    </td>
-                    {studentLevelRowData.hasMidyear && (
-                      <>
-                        <td className="border border-slate-200 p-2 text-right tabular-nums">
-                          {studentLevelRowData.totals.midyear.male.toLocaleString()}
-                        </td>
-                        <td className="border border-slate-200 p-2 text-right tabular-nums">
-                          {studentLevelRowData.totals.midyear.female.toLocaleString()}
-                        </td>
-                        <td className="border border-slate-200 p-2 text-right tabular-nums">
-                          {(
-                            studentLevelRowData.totals.midyear.male + studentLevelRowData.totals.midyear.female
-                          ).toLocaleString()}
-                        </td>
-                      </>
-                    )}
-                    <td className="border border-slate-200 p-2 text-right tabular-nums">
-                      {studentLevelRowData.totals.overall.male.toLocaleString()}
-                    </td>
-                    <td className="border border-slate-200 p-2 text-right tabular-nums">
-                      {studentLevelRowData.totals.overall.female.toLocaleString()}
-                    </td>
-                    <td className="border border-slate-200 p-2 text-right tabular-nums">
-                      {(
-                        studentLevelRowData.totals.overall.male + studentLevelRowData.totals.overall.female
-                      ).toLocaleString()}
-                    </td>
-                  </tr>
-                </>
-              )}
-            </tbody>
-          </table>
-        </CardContent>
-        <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
-          <LayoutList className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-          <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-            Year-level headcounts are consolidated from the enrollment records of all programs in scope. The table
-            includes first and second semester figures, plus the midyear term when recorded. Use the academic year
-            selector to review a different school year.
-          </p>
-        </CardFooter>
-      </Card>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </CardContent>
+          <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+            <LayoutList className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+              Year-level headcounts are consolidated from the enrollment records of all programs in scope. The table
+              includes first and second semester figures, plus the midyear term when recorded. Use the academic year
+              selector to review a different school year.
+            </p>
+          </CardFooter>
+        </Card>
+      )}
 
       {/* UNIT PERSONNEL CENSUS WORKSPACE */}
       {!isLoadingCensus && userProfile?.unitId && (
@@ -2088,8 +2371,8 @@ export function SDDHub({
           <DialogHeader>
             <DialogTitle className="font-black uppercase tracking-tight">Print SDD Report</DialogTitle>
             <DialogDescription>
-              Configure the report type and reporting period. Student reports include per-semester breakdowns while
-              employee reports use the annual personnel census.
+              Configure the report type and reporting period. Student reports follow the selected Report Source (
+              {sourceMeta.label}) while employee reports use the annual personnel census.
             </DialogDescription>
           </DialogHeader>
 
@@ -2135,7 +2418,7 @@ export function SDDHub({
               </div>
             )}
 
-            {printReportType === 'students' && (
+            {printReportType === 'students' && reportSource === 'enrollment' && (
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Student Level</Label>
                 <div className="grid grid-cols-3 gap-2">
@@ -2185,6 +2468,13 @@ export function SDDHub({
                   </p>
                 )}
               </div>
+            )}
+
+            {printReportType === 'students' && reportSource !== 'enrollment' && (
+              <p className="text-[10px] italic text-muted-foreground">
+                The {sourceMeta.label} source has no year-level breakdown, so the report uses overall sex-disaggregated
+                figures.
+              </p>
             )}
 
             <div className="space-y-2">
@@ -2264,7 +2554,7 @@ export function SDDHub({
               </div>
             )}
 
-            {printMode === 'yearSemester' && printReportType === 'students' && (
+            {printMode === 'yearSemester' && printReportType === 'students' && reportSource !== 'board' && (
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Semester</Label>
                 <div className="grid grid-cols-3 gap-2">
@@ -2287,6 +2577,12 @@ export function SDDHub({
                   ))}
                 </div>
               </div>
+            )}
+
+            {printMode === 'yearSemester' && printReportType === 'students' && reportSource === 'board' && (
+              <p className="text-[10px] italic text-muted-foreground">
+                Board passer data is recorded annually, so the semester selection does not change the figures.
+              </p>
             )}
 
             {printMode === 'yearSemester' && printReportType === 'employees' && (

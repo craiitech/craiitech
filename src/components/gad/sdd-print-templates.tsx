@@ -37,6 +37,7 @@ export type SDDStudentSection = {
   title: string;
   terms: SDDTermBlock[];
   grand: SDDCountPair;
+  totalLabel?: string;
 };
 
 export type StudentSDDReportData = {
@@ -46,6 +47,10 @@ export type StudentSDDReportData = {
   sections: SDDStudentSection[];
   appendices: SDDStudentSection[];
   grand: SDDCountPair;
+  reportTitle?: string;
+  reportSubtitle?: string;
+  emptyMessage?: string;
+  totalLabel?: string;
 };
 
 export type SDDEmployeeGroup = {
@@ -262,6 +267,7 @@ function StudentSectionBody({ section, sectionKey }: { section: SDDStudentSectio
   const markerIndex = section.title.indexOf(programMarker);
   const campusLabel = markerIndex >= 0 ? section.title.slice(0, markerIndex) : '';
   const programName = markerIndex >= 0 ? section.title.slice(markerIndex + programMarker.length) : '';
+  const totalLabel = section.totalLabel || 'Enrollees';
 
   return (
     <>
@@ -300,7 +306,7 @@ function StudentSectionBody({ section, sectionKey }: { section: SDDStudentSectio
           >
             <thead>
               <tr className="bg-slate-200 font-black uppercase">
-                <th className="border border-black p-1.5 text-left">Program Total Enrollees</th>
+                <th className="border border-black p-1.5 text-left">Program Total {totalLabel}</th>
                 <th className="border border-black p-1.5 text-right w-[15%]">Male</th>
                 <th className="border border-black p-1.5 text-right w-[15%]">Female</th>
                 <th className="border border-black p-1.5 text-right w-[15%]">Total</th>
@@ -311,7 +317,7 @@ function StudentSectionBody({ section, sectionKey }: { section: SDDStudentSectio
                 male={section.grand.male}
                 female={section.grand.female}
                 total={section.grand.total}
-                label="Total Enrollees"
+                label={`Total ${totalLabel}`}
               />
             </tbody>
           </table>
@@ -332,10 +338,10 @@ export function SDDStudentReportTemplate({
     <div className="p-4 text-black bg-white max-w-[8.5in] mx-auto font-sans leading-tight text-[9px]">
       <ReportHeader
         office="Gender and Development (GAD)"
-        title="Sex-Disaggregated Data (SDD) Report — Students"
+        title={data.reportTitle || 'Sex-Disaggregated Data (SDD) Report — Students'}
         academicYear={data.academicYear}
         unitName={data.unitName}
-        subtitle="Student enrollment by sex, year level, and vulnerable sector per semester"
+        subtitle={data.reportSubtitle || 'Student enrollment by sex, year level, and vulnerable sector per semester'}
       />
 
       {data.scopeLabel && (
@@ -344,7 +350,7 @@ export function SDDStudentReportTemplate({
 
       {data.sections.length === 0 || primaryTerms.length === 0 ? (
         <p className="text-center italic py-8">
-          No student enrollment data is available for the selected academic year.
+          {data.emptyMessage || 'No student enrollment data is available for the selected academic year.'}
         </p>
       ) : (
         <>
