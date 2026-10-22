@@ -110,7 +110,7 @@ function ReportHeader({
       <h3 className="text-sm font-black uppercase mt-1">{title}</h3>
       <p className="text-[11px] font-black mt-1">Academic Year {academicYear}</p>
       <p className="text-[10px] italic mt-1 uppercase">{unitName}</p>
-      <p className="text-[9px] mt-1">{subtitle}</p>
+      <p className="text-[9px] mt-1 normal-case">{subtitle}</p>
     </div>
   );
 }
@@ -277,6 +277,26 @@ function StudentSectionBody({ section, sectionKey }: { section: SDDStudentSectio
           {yearGroup.terms.map((term) => renderStudentTerm(term, sectionKey))}
         </div>
       ))}
+      {programName && section.grand.male + section.grand.female > 0 && (
+        <div className="mt-4" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+          <table
+            className="w-full border-collapse border border-black text-[9px]"
+            style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+          >
+            <thead>
+              <tr className="bg-slate-200 font-black uppercase">
+                <th className="border border-black p-1.5 text-left">Program Total Enrollees</th>
+                <th className="border border-black p-1.5 text-right w-[15%]">Male</th>
+                <th className="border border-black p-1.5 text-right w-[15%]">Female</th>
+                <th className="border border-black p-1.5 text-right w-[15%]">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <TotalRow male={section.grand.male} female={section.grand.female} label="Total Enrollees" />
+            </tbody>
+          </table>
+        </div>
+      )}
     </>
   );
 }
@@ -340,6 +360,7 @@ export function SDDStudentReportTemplate({
             >
               <thead>
                 <tr className="bg-slate-100 font-black uppercase">
+                  <th className="border border-black p-1.5 text-left w-[20%]">Year</th>
                   <th className="border border-black p-1.5 text-left">Semester</th>
                   <th className="border border-black p-1.5 text-right w-[15%]">Male</th>
                   <th className="border border-black p-1.5 text-right w-[15%]">Female</th>
@@ -349,9 +370,8 @@ export function SDDStudentReportTemplate({
               <tbody>
                 {primaryTerms.map((term) => (
                   <tr key={`summary-${term.academicYear || ''}-${term.term}`}>
-                    <td className="border border-black p-1.5">
-                      {term.academicYear ? `AY ${term.academicYear} — ${term.term}` : term.term}
-                    </td>
+                    <td className="border border-black p-1.5">{term.academicYear ? `AY ${term.academicYear}` : '—'}</td>
+                    <td className="border border-black p-1.5">{term.term}</td>
                     <td className="border border-black p-1.5 text-right tabular-nums">{term.male.toLocaleString()}</td>
                     <td className="border border-black p-1.5 text-right tabular-nums">
                       {term.female.toLocaleString()}
@@ -361,7 +381,20 @@ export function SDDStudentReportTemplate({
                     </td>
                   </tr>
                 ))}
-                <TotalRow male={data.grand.male} female={data.grand.female} label="GRAND TOTAL" />
+                <tr className="bg-slate-100 font-black">
+                  <td className="border border-black p-1.5 uppercase" colSpan={2}>
+                    Grand Total
+                  </td>
+                  <td className="border border-black p-1.5 text-right tabular-nums">
+                    {data.grand.male.toLocaleString()}
+                  </td>
+                  <td className="border border-black p-1.5 text-right tabular-nums">
+                    {data.grand.female.toLocaleString()}
+                  </td>
+                  <td className="border border-black p-1.5 text-right tabular-nums">
+                    {(data.grand.male + data.grand.female).toLocaleString()}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
