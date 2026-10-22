@@ -107,6 +107,8 @@ const GAD_SECTORS: GADSector[] = [
   'Indigenous People',
 ];
 
+const STUDENT_YEAR_LEVEL_OPTIONS = ['First Year', 'Second Year', 'Third Year', 'Fourth Year', 'Fifth Year'];
+
 export function SDDHub({
   compliances,
   campuses,
@@ -131,6 +133,8 @@ export function SDDHub({
   );
   const [printCampusId, setPrintCampusId] = useState('all');
   const [printProgramId, setPrintProgramId] = useState('all');
+  const [printStudentType, setPrintStudentType] = useState<'all' | 'undergraduate' | 'graduate'>('all');
+  const [studentYearLevelFilter, setStudentYearLevelFilter] = useState('all');
 
   useEffect(() => {
     setPrintFromYear(selectedYear);
@@ -182,23 +186,37 @@ export function SDDHub({
 
   const printProgramOptions = useMemo(() => {
     if (!academicPrograms) return [];
+    const levelRank: Record<AcademicProgram['level'], number> = {
+      Undergraduate: 0,
+      Graduate: 1,
+      TVET: 2,
+    };
     return academicPrograms
       .filter(
-        (program) => printCampusId === 'all' || printCampusId === 'institution' || program.campusId === printCampusId,
+        (program) =>
+          (printCampusId === 'all' || printCampusId === 'institution' || program.campusId === printCampusId) &&
+          (printStudentType === 'all' ||
+            (printStudentType === 'undergraduate' ? program.level === 'Undergraduate' : program.level === 'Graduate')),
       )
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [academicPrograms, printCampusId]);
+      .sort((a, b) => levelRank[a.level] - levelRank[b.level] || a.name.localeCompare(b.name));
+  }, [academicPrograms, printCampusId, printStudentType]);
 
   useEffect(() => {
     if (printProgramId === 'all' || printProgramId === 'institution') return;
     const selectedProgram = academicPrograms?.find((program) => program.id === printProgramId);
+    const matchesStudentType =
+      printStudentType === 'all' ||
+      (printStudentType === 'undergraduate'
+        ? selectedProgram?.level === 'Undergraduate'
+        : selectedProgram?.level === 'Graduate');
     if (
       !selectedProgram ||
+      !matchesStudentType ||
       (printCampusId !== 'all' && printCampusId !== 'institution' && selectedProgram.campusId !== printCampusId)
     ) {
       setPrintProgramId('all');
     }
-  }, [printCampusId, academicPrograms, printProgramId]);
+  }, [printCampusId, printStudentType, academicPrograms, printProgramId]);
 
   useEffect(() => {
     if (printReportType === 'employees') setPrintProgramId('all');
@@ -452,7 +470,6 @@ export function SDDHub({
     const first = buildTerm('firstSemester');
     const second = buildTerm('secondSemester');
     const midyear = buildTerm('midYearTerm');
-    const hasMidyear = midyear.male + midyear.female > 0;
 
     const rows = levelDefs
       .map((_, index) => {
@@ -472,20 +489,37 @@ export function SDDHub({
       })
       .filter((row, index) => index < 4 || row.total.male + row.total.female > 0);
 
+    const displayedRows =
+      studentYearLevelFilter === 'all' ? rows : rows.filter((row) => row.label === studentYearLevelFilter);
+
+    const sumTerm = (termKey: 'first' | 'second' | 'midyear') =>
+      displayedRows.reduce(
+        (sum, row) => ({
+          male: sum.male + row[termKey].male,
+          female: sum.female + row[termKey].female,
+        }),
+        { male: 0, female: 0 },
+      );
+
+    const firstTotal = sumTerm('first');
+    const secondTotal = sumTerm('second');
+    const midyearTotal = sumTerm('midyear');
+    const hasMidyear = displayedRows.some((row) => row.midyear.male + row.midyear.female > 0);
+
     return {
-      rows,
+      rows: displayedRows,
       hasMidyear,
       totals: {
-        first,
-        second,
-        midyear,
+        first: firstTotal,
+        second: secondTotal,
+        midyear: midyearTotal,
         overall: {
-          male: first.male + second.male + midyear.male,
-          female: first.female + second.female + midyear.female,
+          male: firstTotal.male + secondTotal.male + midyearTotal.male,
+          female: firstTotal.female + secondTotal.female + midyearTotal.female,
         },
       },
     };
-  }, [studentRecordSource, selectedYear]);
+  }, [studentRecordSource, selectedYear, studentYearLevelFilter]);
 
   const semesterLabels = {
     firstSemester: 'First Semester',
@@ -600,17 +634,24 @@ export function SDDHub({
     years: number[],
     semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
   ): StudentSDDReportData => {
-    const allRecords = studentRecordSource;
+    const programLevelById = new Map((academicPrograms || []).map((program) => [program.id, program.level]));
+    const allRecords = studentRecordSource.filter((record) => {
+      if (printStudentType === 'all') return true;
+      const level = programLevelById.get(record.programId);
+      return printStudentType === 'undergraduate' ? level === 'Undergraduate' : level === 'Graduate';
+    });
     const filterRecords = (campusId?: string, programId?: string) =>
       allRecords.filter(
         (record) => (!campusId || record.campusId === campusId) && (!programId || record.programId === programId),
       );
 
-    const campusList = campuses.filter((campus) =>
-      allRecords.some(
-        (record) => record.campusId === campus.id && (!isSpecificProgram || record.programId === printProgramId),
-      ),
-    );
+    const campusList = campuses
+      .filter((campus) =>
+        allRecords.some(
+          (record) => record.campusId === campus.id && (!isSpecificProgram || record.programId === printProgramId),
+        ),
+      )
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     const sections: SDDStudentSection[] = [];
     const appendices: SDDStudentSection[] = [];
@@ -628,9 +669,16 @@ export function SDDHub({
       fallbackToCampus: boolean = true,
     ) => {
       const campusRecords = filterRecords(campusId, programId);
-      const programs = (academicPrograms || []).filter(
-        (program) => program.campusId === campusId && campusRecords.some((record) => record.programId === program.id),
-      );
+      const programLevelRank: Record<AcademicProgram['level'], number> = {
+        Undergraduate: 0,
+        Graduate: 1,
+        TVET: 2,
+      };
+      const programs = (academicPrograms || [])
+        .filter(
+          (program) => program.campusId === campusId && campusRecords.some((record) => record.programId === program.id),
+        )
+        .sort((a, b) => programLevelRank[a.level] - programLevelRank[b.level] || a.name.localeCompare(b.name));
 
       if (programs.length > 0) {
         programs.forEach((program) => {
@@ -690,6 +738,39 @@ export function SDDHub({
       }
     }
 
+    const programInfoByTitle = new Map(
+      (academicPrograms || []).map((program) => [
+        `Campus: ${campusNameMap.get(program.campusId) || program.campusId} — Program: ${program.name}`,
+        program,
+      ]),
+    );
+    const programLevelRank: Record<AcademicProgram['level'], number> = {
+      Undergraduate: 0,
+      Graduate: 1,
+      TVET: 2,
+    };
+    const sectionProgramName = (title: string) => {
+      const marker = ' — Program: ';
+      const markerIndex = title.indexOf(marker);
+      return markerIndex >= 0 ? title.slice(markerIndex + marker.length) : '';
+    };
+    const sortSectionsByProgramLevel = (list: SDDStudentSection[], nonProgramFirst = false) => {
+      list.sort((a, b) => {
+        const programA = sectionProgramName(a.title);
+        const programB = sectionProgramName(b.title);
+        if (!programA && !programB) return a.title.localeCompare(b.title);
+        if (!programA) return nonProgramFirst ? -1 : 1;
+        if (!programB) return nonProgramFirst ? 1 : -1;
+        const infoA = programInfoByTitle.get(a.title);
+        const infoB = programInfoByTitle.get(b.title);
+        const rankA = infoA ? programLevelRank[infoA.level] : 99;
+        const rankB = infoB ? programLevelRank[infoB.level] : 99;
+        return rankA - rankB || a.title.localeCompare(b.title);
+      });
+    };
+    sortSectionsByProgramLevel(sections);
+    sortSectionsByProgramLevel(appendices, true);
+
     const grand = sections.reduce(
       (acc, section) => ({ male: acc.male + section.grand.male, female: acc.female + section.grand.female }),
       { male: 0, female: 0 },
@@ -698,6 +779,11 @@ export function SDDHub({
     const scopeParts: string[] = [];
     if (isSpecificCampus) scopeParts.push(`Campus: ${selectedCampusName}`);
     if (isSpecificProgram) scopeParts.push(`Program: ${selectedProgramName}`);
+    if (printStudentType !== 'all') {
+      scopeParts.push(
+        `Student Type: ${printStudentType === 'undergraduate' ? 'Undergraduate Student' : 'Graduate Student'}`,
+      );
+    }
 
     return {
       academicYear: formatPeriodLabel(years, semesterKey),
@@ -860,6 +946,7 @@ export function SDDHub({
             thead { display: table-header-group; }
           }
           body { font-family: serif; background: #f9fafb; padding: 20px; color: black; }
+          * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
         </style>
       </head>
       <body>
@@ -1215,12 +1302,27 @@ export function SDDHub({
                 </CardDescription>
               </div>
             </div>
-            <Badge
-              variant="outline"
-              className="w-fit text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
-            >
-              <CalendarRange className="h-3 w-3" /> AY {selectedYear}&ndash;{selectedYear + 1}
-            </Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Select value={studentYearLevelFilter} onValueChange={setStudentYearLevelFilter}>
+                <SelectTrigger className="h-8 w-[160px] bg-white text-[10px] font-black uppercase tracking-wider">
+                  <SelectValue placeholder="All Year Levels" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Year Levels</SelectItem>
+                  {STUDENT_YEAR_LEVEL_OPTIONS.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {level}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Badge
+                variant="outline"
+                className="w-fit text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
+              >
+                <CalendarRange className="h-3 w-3" /> AY {selectedYear}&ndash;{selectedYear + 1}
+              </Badge>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0 overflow-x-auto">
@@ -1271,7 +1373,8 @@ export function SDDHub({
                     colSpan={studentLevelRowData.hasMidyear ? 13 : 10}
                     className="border border-slate-200 p-6 text-center italic text-muted-foreground"
                   >
-                    No year-level enrollment data for AY {selectedYear}&ndash;{selectedYear + 1}.
+                    No {studentYearLevelFilter === 'all' ? 'year-level' : studentYearLevelFilter.toLowerCase()}{' '}
+                    enrollment data for AY {selectedYear}&ndash;{selectedYear + 1}.
                   </td>
                 </tr>
               ) : (
@@ -1381,7 +1484,8 @@ export function SDDHub({
           <LayoutList className="h-4 w-4 text-primary shrink-0 mt-0.5" />
           <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
             Year-level headcounts are consolidated from the enrollment records of all programs in scope. The table
-            includes first and second semester figures, plus the midyear term when recorded.
+            includes first and second semester figures, plus the midyear term when recorded. Use the year level selector
+            to isolate a specific level.
           </p>
         </CardFooter>
       </Card>
@@ -1690,6 +1794,25 @@ export function SDDHub({
                 </Button>
               </div>
             </div>
+
+            {printReportType === 'students' && (
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Student Type</Label>
+                <Select
+                  value={printStudentType}
+                  onValueChange={(value) => setPrintStudentType(value as 'all' | 'undergraduate' | 'graduate')}
+                >
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="All Student Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Student Types</SelectItem>
+                    <SelectItem value="undergraduate">Undergraduate Student</SelectItem>
+                    <SelectItem value="graduate">Graduate Student</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Reporting Period</Label>

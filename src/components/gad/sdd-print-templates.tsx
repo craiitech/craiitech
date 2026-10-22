@@ -243,12 +243,27 @@ function renderStudentTerm(term: SDDTermBlock, keyPrefix: string) {
 
 function StudentSectionBody({ section, sectionKey }: { section: SDDStudentSection; sectionKey: string }) {
   const termsByYear = groupTermsByYear(section.terms);
+  const programMarker = ' — Program: ';
+  const markerIndex = section.title.indexOf(programMarker);
+  const campusLabel = markerIndex >= 0 ? section.title.slice(0, markerIndex) : '';
+  const programName = markerIndex >= 0 ? section.title.slice(markerIndex + programMarker.length) : '';
 
   return (
     <>
-      {section.title && (
-        <h3 className="text-[11px] font-black uppercase border-b-2 border-black pb-1 mb-3">{section.title}</h3>
-      )}
+      {section.title &&
+        (programName ? (
+          <div className="mb-4 border-b-2 border-black pb-1.5">
+            <p className="text-[9px] font-black uppercase tracking-wide text-slate-600">{campusLabel}</p>
+            <p
+              className="mt-1 inline-block border border-indigo-900 bg-indigo-800 px-2.5 py-1 text-[13px] font-black uppercase tracking-wide text-white"
+              style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}
+            >
+              {programName}
+            </p>
+          </div>
+        ) : (
+          <h3 className="mb-3 border-b-2 border-black pb-1 text-[11px] font-black uppercase">{section.title}</h3>
+        ))}
       {termsByYear.map((yearGroup, yearIndex) => (
         <div
           key={`${sectionKey}-year-${yearGroup.academicYear || yearIndex}`}
