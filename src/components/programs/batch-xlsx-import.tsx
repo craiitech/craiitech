@@ -16,9 +16,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { AlertTriangle, Download, FileSpreadsheet, Loader2, Upload } from 'lucide-react';
 
 interface BatchXlsxImportProps {
@@ -88,6 +91,8 @@ type GraduationUpdate = {
   male: number;
   female: number;
 };
+
+type ImportScope = 'both' | 'enrollment' | 'graduation';
 
 type ImportPreview = {
   fileName: string;
@@ -170,6 +175,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
+  const [importScope, setImportScope] = useState<ImportScope>('both');
   const [isParsing, setIsParsing] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
 
@@ -451,6 +457,13 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
         return;
       }
 
+      setImportScope(
+        parsed.enrollmentUpdates.length > 0 && parsed.graduationUpdates.length > 0
+          ? 'both'
+          : parsed.enrollmentUpdates.length > 0
+            ? 'enrollment'
+            : 'graduation',
+      );
       setPreview(parsed);
     } catch (error) {
       console.error('XLSX parse error:', error);
@@ -466,6 +479,19 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
 
   const importPreview = async () => {
     if (!preview || !firestore || !userProfile) return;
+
+    const enrollmentUpdates = importScope === 'graduation' ? [] : preview.enrollmentUpdates;
+    const graduationUpdates = importScope === 'enrollment' ? [] : preview.graduationUpdates;
+
+    if (enrollmentUpdates.length === 0 && graduationUpdates.length === 0) {
+      toast({
+        title: 'Nothing to Import',
+        description: 'The selected data type has no valid rows to import.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setIsImporting(true);
 
     try {
@@ -487,10 +513,10 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
         return groups.get(key)!;
       };
 
-      preview.enrollmentUpdates.forEach((update) => {
+      enrollmentUpdates.forEach((update) => {
         ensureGroup(update.program, update.year).enrollmentUpdates.push(update);
       });
-      preview.graduationUpdates.forEach((update) => {
+      graduationUpdates.forEach((update) => {
         ensureGroup(update.program, update.year).graduationUpdates.push(update);
       });
 
@@ -614,7 +640,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
 
       toast({
         title: 'Import Complete',
-        description: `${preview.enrollmentUpdates.length} enrollment row(s) and ${preview.graduationUpdates.length} graduation row(s) were saved.`,
+        description: `${enrollmentUpdates.length} enrollment row(s) and ${graduationUpdates.length} graduation row(s) were saved.`,
       });
       setPreview(null);
     } catch (error) {
@@ -683,6 +709,72 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                   <p className="text-[9px] font-black uppercase text-muted-foreground">Academic Years</p>
                   <p className="text-lg font-black tabular-nums">{preview.years.join(', ') || '—'}</p>
                 </div>
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3">
+                <p className="text-[9px] font-black uppercase text-muted-foreground">Data to Import</p>
+                <RadioGroup
+                  value={importScope}
+                  onValueChange={(value) => setImportScope(value as ImportScope)}
+                  className="grid grid-cols-3 gap-2"
+                >
+                  <Label
+                    htmlFor="import-scope-both"
+                    className={cn(
+                      'flex cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 p-2 text-center transition-all hover:bg-muted',
+                      importScope === 'both' ? 'border-primary bg-primary/5' : 'border-slate-100 dark:border-slate-700',
+                    )}
+                  >
+                    <RadioGroupItem value="both" id="import-scope-both" className="sr-only" />
+                    <span className="text-[10px] font-black uppercase">Both</span>
+                    <span className="text-[9px] text-muted-foreground tabular-nums">
+                      {preview.enrollmentUpdates.length + preview.graduationUpdates.length} rows
+                    </span>
+                  </Label>
+                  <Label
+                    htmlFor="import-scope-enrollment"
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1 rounded-md border-2 p-2 text-center transition-all hover:bg-muted',
+                      preview.enrollmentUpdates.length > 0 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
+                      importScope === 'enrollment'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-slate-100 dark:border-slate-700',
+                    )}
+                  >
+                    <RadioGroupItem
+                      value="enrollment"
+                      id="import-scope-enrollment"
+                      className="sr-only"
+                      disabled={preview.enrollmentUpdates.length === 0}
+                    />
+                    <span className="text-[10px] font-black uppercase">Enrollment</span>
+                    <span className="text-[9px] text-muted-foreground tabular-nums">
+                      {preview.enrollmentUpdates.length} rows
+                    </span>
+                  </Label>
+                  <Label
+                    htmlFor="import-scope-graduation"
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1 rounded-md border-2 p-2 text-center transition-all hover:bg-muted',
+                      preview.graduationUpdates.length > 0 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
+                      importScope === 'graduation'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-slate-100 dark:border-slate-700',
+                    )}
+                  >
+                    <RadioGroupItem
+                      value="graduation"
+                      id="import-scope-graduation"
+                      className="sr-only"
+                      disabled={preview.graduationUpdates.length === 0}
+                    />
+                    <span className="text-[10px] font-black uppercase">Graduation</span>
+                    <span className="text-[9px] text-muted-foreground tabular-nums">
+                      {preview.graduationUpdates.length} rows
+                    </span>
+                  </Label>
+                </RadioGroup>
+                <p className="text-[10px] text-muted-foreground">Only the selected dataset will be saved.</p>
               </div>
 
               {(preview.skippedEnrollment > 0 || preview.skippedGraduation > 0) && (
