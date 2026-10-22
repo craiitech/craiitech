@@ -137,6 +137,9 @@ function ReportFooter({ signatories, gadSettings }: { signatories?: Signatories;
           <p className="text-[8px] uppercase">University President</p>
         </div>
       </div>
+      <p className="mt-4 border-t border-black pt-2 text-center text-[8px] font-bold uppercase tracking-wide">
+        This is a system-generated report. No signature is required.
+      </p>
     </div>
   );
 }
