@@ -12,6 +12,7 @@ import type {
   Employee,
   Signatories,
   GadSettings,
+  AcademicProgram,
 } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
@@ -74,6 +75,7 @@ import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { UnitSddExplorer } from './unit-sdd-explorer';
 
 interface SDDHubProps {
@@ -125,6 +127,8 @@ export function SDDHub({
   const [printSemester, setPrintSemester] = useState<'firstSemester' | 'secondSemester' | 'midYearTerm'>(
     'firstSemester',
   );
+  const [printCampusId, setPrintCampusId] = useState('all');
+  const [printProgramId, setPrintProgramId] = useState('all');
 
   useEffect(() => {
     setPrintFromYear(selectedYear);
@@ -167,6 +171,37 @@ export function SDDHub({
     if (reportCompliances && reportCompliances.length > 0) return reportCompliances;
     return compliances;
   }, [reportCompliances, compliances]);
+
+  const academicProgramsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'academicPrograms') : null),
+    [firestore],
+  );
+  const { data: academicPrograms } = useCollection<AcademicProgram>(academicProgramsQuery);
+
+  const printProgramOptions = useMemo(() => {
+    if (!academicPrograms) return [];
+    return academicPrograms
+      .filter((program) => printCampusId === 'all' || program.campusId === printCampusId)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [academicPrograms, printCampusId]);
+
+  useEffect(() => {
+    if (printProgramId === 'all') return;
+    const selectedProgram = academicPrograms?.find((program) => program.id === printProgramId);
+    if (!selectedProgram || (printCampusId !== 'all' && selectedProgram.campusId !== printCampusId)) {
+      setPrintProgramId('all');
+    }
+  }, [printCampusId, academicPrograms, printProgramId]);
+
+  useEffect(() => {
+    if (printReportType === 'employees') setPrintProgramId('all');
+  }, [printReportType]);
+
+  const campusNameMap = useMemo(() => new Map(campuses.map((campus) => [campus.id, campus.name])), [campuses]);
+  const programNameMap = useMemo(
+    () => new Map((academicPrograms || []).map((program) => [program.id, program.name])),
+    [academicPrograms],
+  );
 
   // 1. UNIT PERSONNEL CENSUS MODULE
   const censusId = userProfile?.unitId ? `${userProfile.unitId}-${selectedYear}` : 'none';
@@ -463,6 +498,8 @@ export function SDDHub({
   const buildStudentReportData = (
     years: number[],
     semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
+    campusId: string = 'all',
+    programId: string = 'all',
   ): StudentSDDReportData => {
     const termKeys = semesterKey
       ? ([semesterKey] as const)
@@ -478,7 +515,12 @@ export function SDDHub({
     const terms: SDDTermBlock[] = [];
 
     years.forEach((year) => {
-      const yearRecords = studentRecordSource.filter((record) => Number(record.academicYear) === year);
+      const yearRecords = studentRecordSource.filter(
+        (record) =>
+          Number(record.academicYear) === year &&
+          (campusId === 'all' || record.campusId === campusId) &&
+          (programId === 'all' || record.programId === programId),
+      );
 
       termKeys.forEach((key) => {
         const levels = levelDefs.map(({ label }) => ({ label, male: 0, female: 0 }));
@@ -544,20 +586,27 @@ export function SDDHub({
       female: terms.reduce((sum, term) => sum + term.female, 0),
     };
 
+    const scopeParts: string[] = [];
+    if (campusId !== 'all') scopeParts.push(`Campus: ${campusNameMap.get(campusId) || campusId}`);
+    if (programId !== 'all') scopeParts.push(`Program: ${programNameMap.get(programId) || programId}`);
+
     return {
       academicYear: formatPeriodLabel(years, semesterKey),
       unitName: unitName || 'Institutional',
+      scopeLabel: scopeParts.length > 0 ? scopeParts.join(' • ') : undefined,
       terms: grand.male + grand.female > 0 ? terms : [],
       grand,
     };
   };
 
-  const buildEmployeeReportData = (years: number[], note?: string): EmployeeSDDReportData => {
+  const buildEmployeeReportData = (years: number[], note?: string, campusId: string = 'all'): EmployeeSDDReportData => {
     const unitNameMap = new Map(units.map((unit) => [unit.id, unit.name]));
 
     const yearBlocks: SDDEmployeeYearBlock[] = years
       .map((year) => {
-        const records = (reportCensuses || []).filter((record) => Number(record.year) === year);
+        const records = (reportCensuses || []).filter(
+          (record) => Number(record.year) === year && (campusId === 'all' || record.campusId === campusId),
+        );
 
         const buildGroup = (label: string, groupKey: 'teaching' | 'nonTeaching') => {
           const sectorMap: Record<string, { male: number; female: number }> = {};
@@ -623,6 +672,7 @@ export function SDDHub({
     return {
       academicYear: formatPeriodLabel(years),
       unitName: unitName || 'Institutional',
+      scopeLabel: campusId !== 'all' ? `Campus: ${campusNameMap.get(campusId) || campusId}` : undefined,
       years: yearBlocks,
       grand,
       note,
@@ -645,12 +695,15 @@ export function SDDHub({
       <html>
       <head>
         <title>${title}</title>
-        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <script src="https://cdn.tailwindcss.com"></script>
         <style>
           @media print {
             @page { size: letter portrait; margin: 0.4in; }
             body { margin: 0; padding: 0; background: white; }
             .no-print { display: none !important; }
+            table { page-break-inside: avoid; break-inside: avoid; }
+            tr { page-break-inside: avoid; break-inside: avoid; }
+            thead { display: table-header-group; }
           }
           body { font-family: serif; background: #f9fafb; padding: 20px; color: black; }
         </style>
@@ -685,7 +738,7 @@ export function SDDHub({
     try {
       if (printReportType === 'students') {
         const semesterKey = printMode === 'yearSemester' ? printSemester : undefined;
-        const reportData = buildStudentReportData(years, semesterKey);
+        const reportData = buildStudentReportData(years, semesterKey, printCampusId, printProgramId);
 
         if (reportData.terms.length === 0) {
           toast({
@@ -709,7 +762,7 @@ export function SDDHub({
           printMode === 'yearSemester'
             ? 'Note: The personnel census is recorded annually, so the selected semester does not alter employee figures.'
             : undefined;
-        const reportData = buildEmployeeReportData(years, note);
+        const reportData = buildEmployeeReportData(years, note, printCampusId);
 
         if (reportData.grand.male + reportData.grand.female === 0) {
           toast({
@@ -1591,6 +1644,56 @@ export function SDDHub({
                 The personnel census is recorded annually, so the semester selection does not change employee figures.
               </p>
             )}
+
+            <div className="space-y-2 border-t pt-4">
+              <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">
+                Campus / Program Filter
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[9px] font-bold uppercase text-slate-400">Campus</Label>
+                  <Select value={printCampusId} onValueChange={setPrintCampusId}>
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="All Campuses" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Campuses</SelectItem>
+                      {campuses.map((campus) => (
+                        <SelectItem key={campus.id} value={campus.id}>
+                          {campus.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[9px] font-bold uppercase text-slate-400">Program</Label>
+                  <Select
+                    value={printProgramId}
+                    onValueChange={setPrintProgramId}
+                    disabled={printReportType === 'employees'}
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue placeholder="All Programs" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Programs</SelectItem>
+                      {printProgramOptions.map((program) => (
+                        <SelectItem key={program.id} value={program.id}>
+                          {program.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {printReportType === 'employees' && (
+                <p className="text-[10px] italic text-muted-foreground">
+                  Employee census data is not program-specific, so only the campus filter applies.
+                </p>
+              )}
+            </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">

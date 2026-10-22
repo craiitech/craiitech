@@ -34,6 +34,7 @@ export type SDDTermBlock = {
 export type StudentSDDReportData = {
   academicYear: string;
   unitName: string;
+  scopeLabel?: string;
   terms: SDDTermBlock[];
   grand: SDDCountPair;
 };
@@ -64,6 +65,7 @@ export type SDDEmployeeYearBlock = {
 export type EmployeeSDDReportData = {
   academicYear: string;
   unitName: string;
+  scopeLabel?: string;
   years: SDDEmployeeYearBlock[];
   grand: SDDCountPair;
   note?: string;
@@ -143,7 +145,10 @@ function SectorTable({ sectors }: { sectors: SDDSectorRow[] }) {
   }
 
   return (
-    <table className="w-full border-collapse border border-black text-[9px]">
+    <table
+      className="w-full border-collapse border border-black text-[9px]"
+      style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+    >
       <thead>
         <tr className="bg-slate-200 font-black uppercase">
           <th className="border border-black p-1.5 text-left">Vulnerable / Priority Sector</th>
@@ -171,6 +176,17 @@ export function SDDStudentReportTemplate({
   signatories,
   gadSettings,
 }: SDDReportTemplateProps<StudentSDDReportData>) {
+  const termsByYear = data.terms.reduce<{ academicYear?: string; terms: SDDTermBlock[] }[]>((groups, term) => {
+    const key = term.academicYear || '';
+    const lastGroup = groups[groups.length - 1];
+    if (lastGroup && (lastGroup.academicYear || '') === key) {
+      lastGroup.terms.push(term);
+    } else {
+      groups.push({ academicYear: term.academicYear, terms: [term] });
+    }
+    return groups;
+  }, []);
+
   return (
     <div className="p-4 text-black bg-white max-w-[8.5in] mx-auto font-sans leading-tight text-[9px]">
       <ReportHeader
@@ -181,51 +197,84 @@ export function SDDStudentReportTemplate({
         subtitle="Student enrollment by sex, year level, and vulnerable sector per semester"
       />
 
+      {data.scopeLabel && (
+        <p className="text-center text-[9px] font-bold uppercase tracking-wide mb-4">{data.scopeLabel}</p>
+      )}
+
       {data.terms.length === 0 ? (
         <p className="text-center italic py-8">
           No student enrollment data is available for the selected academic year.
         </p>
       ) : (
-        data.terms.map((term) => (
-          <div key={`${term.academicYear || ''}-${term.term}`} className="mb-6 break-inside-avoid">
-            <h4 className="bg-slate-200 border border-black font-black uppercase text-[10px] px-2 py-1">
-              {term.academicYear ? `AY ${term.academicYear} — ${term.term}` : term.term}
-            </h4>
+        termsByYear.map((yearGroup, yearIndex) => (
+          <div
+            key={`year-${yearGroup.academicYear || yearIndex}`}
+            style={{
+              pageBreakBefore: yearIndex > 0 ? 'always' : undefined,
+              breakBefore: yearIndex > 0 ? 'page' : undefined,
+              pageBreakInside: 'avoid',
+              breakInside: 'avoid',
+            }}
+          >
+            {yearGroup.terms.map((term) => (
+              <div
+                key={`${term.academicYear || ''}-${term.term}`}
+                className="mb-6"
+                style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+              >
+                <h4 className="bg-slate-200 border border-black font-black uppercase text-[10px] px-2 py-1">
+                  {term.academicYear ? `AY ${term.academicYear} — ${term.term}` : term.term}
+                </h4>
 
-            <table className="w-full border-collapse border border-black text-[9px] mb-3">
-              <thead>
-                <tr className="bg-slate-100 font-black uppercase">
-                  <th className="border border-black p-1.5 text-left">Year Level</th>
-                  <th className="border border-black p-1.5 text-right w-[15%]">Male</th>
-                  <th className="border border-black p-1.5 text-right w-[15%]">Female</th>
-                  <th className="border border-black p-1.5 text-right w-[15%]">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {term.levels.map((level) => (
-                  <tr key={level.label}>
-                    <td className="border border-black p-1.5">{level.label}</td>
-                    <td className="border border-black p-1.5 text-right tabular-nums">{level.male.toLocaleString()}</td>
-                    <td className="border border-black p-1.5 text-right tabular-nums">
-                      {level.female.toLocaleString()}
-                    </td>
-                    <td className="border border-black p-1.5 text-right tabular-nums">
-                      {(level.male + level.female).toLocaleString()}
-                    </td>
-                  </tr>
-                ))}
-                <TotalRow male={term.male} female={term.female} />
-              </tbody>
-            </table>
+                <table
+                  className="w-full border-collapse border border-black text-[9px] mb-3"
+                  style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+                >
+                  <thead>
+                    <tr className="bg-slate-100 font-black uppercase">
+                      <th className="border border-black p-1.5 text-left">Year Level</th>
+                      <th className="border border-black p-1.5 text-right w-[15%]">Male</th>
+                      <th className="border border-black p-1.5 text-right w-[15%]">Female</th>
+                      <th className="border border-black p-1.5 text-right w-[15%]">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {term.levels.map((level) => (
+                      <tr key={level.label}>
+                        <td className="border border-black p-1.5">{level.label}</td>
+                        <td className="border border-black p-1.5 text-right tabular-nums">
+                          {level.male.toLocaleString()}
+                        </td>
+                        <td className="border border-black p-1.5 text-right tabular-nums">
+                          {level.female.toLocaleString()}
+                        </td>
+                        <td className="border border-black p-1.5 text-right tabular-nums">
+                          {(level.male + level.female).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                    <TotalRow male={term.male} female={term.female} />
+                  </tbody>
+                </table>
 
-            <h5 className="font-black uppercase text-[9px] mb-1">Sectoral Disaggregation</h5>
-            <SectorTable sectors={term.sectors} />
+                <h5 className="font-black uppercase text-[9px] mb-1">Sectoral Disaggregation</h5>
+                <SectorTable sectors={term.sectors} />
+              </div>
+            ))}
           </div>
         ))
       )}
 
       {data.terms.length > 0 && (
-        <div className="mt-6 break-inside-avoid">
+        <div
+          className="mt-6"
+          style={{
+            pageBreakBefore: termsByYear.length > 1 ? 'always' : undefined,
+            breakBefore: termsByYear.length > 1 ? 'page' : undefined,
+            pageBreakInside: 'avoid',
+            breakInside: 'avoid',
+          }}
+        >
           <h4 className="bg-slate-200 border border-black font-black uppercase text-[10px] px-2 py-1">
             Overall Student SDD Summary
           </h4>
@@ -279,14 +328,25 @@ export function SDDEmployeeReportTemplate({
         subtitle="Teaching and non-teaching personnel by sex and vulnerable sector (annual personnel census)"
       />
 
+      {data.scopeLabel && (
+        <p className="text-center text-[9px] font-bold uppercase tracking-wide mb-4">{data.scopeLabel}</p>
+      )}
+
       {data.note && <p className="text-[9px] italic mb-4">{data.note}</p>}
 
       {!hasData ? (
         <p className="text-center italic py-8">No employee census data is available for the selected period.</p>
       ) : (
         <>
-          {data.years.map((yearBlock) => (
-            <div key={yearBlock.academicYear} className="mb-8">
+          {data.years.map((yearBlock, yearIndex) => (
+            <div
+              key={yearBlock.academicYear}
+              className="mb-8"
+              style={{
+                pageBreakBefore: yearIndex > 0 ? 'always' : undefined,
+                breakBefore: yearIndex > 0 ? 'page' : undefined,
+              }}
+            >
               {data.years.length > 1 && (
                 <h3 className="text-[11px] font-black uppercase border-b-2 border-black pb-1 mb-3">
                   Academic Year {yearBlock.academicYear}
@@ -294,12 +354,19 @@ export function SDDEmployeeReportTemplate({
               )}
 
               {yearBlock.groups.map((group) => (
-                <div key={`${yearBlock.academicYear}-${group.label}`} className="mb-6 break-inside-avoid">
+                <div
+                  key={`${yearBlock.academicYear}-${group.label}`}
+                  className="mb-6"
+                  style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+                >
                   <h4 className="bg-slate-200 border border-black font-black uppercase text-[10px] px-2 py-1">
                     {group.label}
                   </h4>
 
-                  <table className="w-full border-collapse border border-black text-[9px] mb-3">
+                  <table
+                    className="w-full border-collapse border border-black text-[9px] mb-3"
+                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+                  >
                     <thead>
                       <tr className="bg-slate-100 font-black uppercase">
                         <th className="border border-black p-1.5 text-left">Personnel Category</th>
@@ -330,11 +397,14 @@ export function SDDEmployeeReportTemplate({
                 </div>
               ))}
 
-              <div className="mt-6 break-inside-avoid">
+              <div className="mt-6" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                 <h4 className="bg-slate-200 border border-black font-black uppercase text-[10px] px-2 py-1">
                   Overall Employee SDD Summary — AY {yearBlock.academicYear}
                 </h4>
-                <table className="w-full border-collapse border border-black text-[9px]">
+                <table
+                  className="w-full border-collapse border border-black text-[9px]"
+                  style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+                >
                   <thead>
                     <tr className="bg-slate-100 font-black uppercase">
                       <th className="border border-black p-1.5 text-left">Personnel Category</th>
@@ -364,11 +434,14 @@ export function SDDEmployeeReportTemplate({
               </div>
 
               {yearBlock.showUnitBreakdown && yearBlock.units.length > 0 && (
-                <div className="mt-6 break-inside-avoid">
+                <div className="mt-6" style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}>
                   <h4 className="bg-slate-200 border border-black font-black uppercase text-[10px] px-2 py-1">
                     Employee SDD by Unit — AY {yearBlock.academicYear}
                   </h4>
-                  <table className="w-full border-collapse border border-black text-[9px]">
+                  <table
+                    className="w-full border-collapse border border-black text-[9px]"
+                    style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+                  >
                     <thead>
                       <tr className="bg-slate-100 font-black uppercase">
                         <th className="border border-black p-1.5 text-left">Unit</th>
@@ -409,11 +482,17 @@ export function SDDEmployeeReportTemplate({
           ))}
 
           {data.years.length > 1 && (
-            <div className="mt-8 break-inside-avoid">
+            <div
+              className="mt-8"
+              style={{ pageBreakBefore: 'always', breakBefore: 'page', pageBreakInside: 'avoid', breakInside: 'avoid' }}
+            >
               <h4 className="bg-slate-200 border border-black font-black uppercase text-[10px] px-2 py-1">
                 Multi-Year Employee SDD Summary
               </h4>
-              <table className="w-full border-collapse border border-black text-[9px]">
+              <table
+                className="w-full border-collapse border border-black text-[9px]"
+                style={{ pageBreakInside: 'avoid', breakInside: 'avoid' }}
+              >
                 <thead>
                   <tr className="bg-slate-100 font-black uppercase">
                     <th className="border border-black p-1.5 text-left">Academic Year</th>
