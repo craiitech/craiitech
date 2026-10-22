@@ -10,17 +10,26 @@ import { Badge } from '@/components/ui/badge';
 import { Users, LayoutGrid, ChevronDown, ChevronUp, Search, Info, ShieldCheck, CalendarRange } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 interface UnitSddExplorerProps {
   compliances: ProgramComplianceRecord[];
   units: Unit[];
   selectedYear: number;
+  availableYears?: number[];
+  onYearChange?: (year: number) => void;
 }
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))'];
 
-export function UnitSddExplorer({ compliances, units, selectedYear }: UnitSddExplorerProps) {
+export function UnitSddExplorer({
+  compliances,
+  units,
+  selectedYear,
+  availableYears,
+  onYearChange,
+}: UnitSddExplorerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -30,7 +39,9 @@ export function UnitSddExplorer({ compliances, units, selectedYear }: UnitSddExp
 
     return academicUnits
       .map((unit) => {
-        const unitCompliances = compliances.filter((c) => c.unitId === unit.id);
+        const unitCompliances = compliances.filter(
+          (c) => c.unitId === unit.id && Number(c.academicYear) === selectedYear,
+        );
 
         let m = 0,
           f = 0,
@@ -76,32 +87,51 @@ export function UnitSddExplorer({ compliances, units, selectedYear }: UnitSddExp
       })
       .filter((u) => u.total > 0 && u.name.toLowerCase().includes(searchTerm.toLowerCase()))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [compliances, units, searchTerm]);
+  }, [compliances, units, searchTerm, selectedYear]);
 
   return (
     <Card className="shadow-lg border-primary/20 overflow-hidden">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CardHeader className="bg-primary/5 py-4 px-6 cursor-pointer hover:bg-primary/10 transition-colors">
-          <CollapsibleTrigger className="flex w-full items-center justify-between">
-            <div className="flex items-center gap-3">
-              <LayoutGrid className="h-5 w-5 text-primary" />
-              <div className="text-left">
-                <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2 flex-wrap">
-                  Institutional Unit-Level SDD Explorer
-                  <Badge
-                    variant="outline"
-                    className="text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
-                  >
-                    <CalendarRange className="h-3 w-3" /> AY {selectedYear}&ndash;{selectedYear + 1}
-                  </Badge>
-                </CardTitle>
-                <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/60">
-                  {isOpen ? 'Click to minimize view' : `Expand to view disaggregation for ${unitData.length} units`}
-                </CardDescription>
+        <CardHeader className="bg-primary/5 py-4 px-6 hover:bg-primary/10 transition-colors">
+          <div className="flex items-center justify-between gap-3">
+            <CollapsibleTrigger className="flex flex-1 items-center justify-between text-left">
+              <div className="flex items-center gap-3">
+                <LayoutGrid className="h-5 w-5 text-primary" />
+                <div className="text-left">
+                  <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2 flex-wrap">
+                    Institutional Unit-Level SDD Explorer
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
+                    >
+                      <CalendarRange className="h-3 w-3" /> AY {selectedYear}&ndash;{selectedYear + 1}
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-primary/60">
+                    {isOpen ? 'Click to minimize view' : `Expand to view disaggregation for ${unitData.length} units`}
+                  </CardDescription>
+                </div>
               </div>
-            </div>
-            {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-          </CollapsibleTrigger>
+              {isOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+            </CollapsibleTrigger>
+            {onYearChange && availableYears && availableYears.length > 0 && (
+              <div className="shrink-0" onClick={(event) => event.stopPropagation()}>
+                <Select value={String(selectedYear)} onValueChange={(next) => onYearChange(Number(next))}>
+                  <SelectTrigger className="h-8 w-[150px] bg-white text-[10px] font-black uppercase tracking-wider border-primary/30">
+                    <CalendarRange className="mr-1.5 h-3 w-3 shrink-0 text-primary" />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableYears.map((year) => (
+                      <SelectItem key={year} value={String(year)}>
+                        AY {year}&ndash;{year + 1}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CollapsibleContent className="animate-in fade-in slide-in-from-top-2 duration-300">
           <div className="p-6 border-t bg-white dark:bg-slate-900">

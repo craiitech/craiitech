@@ -400,6 +400,7 @@ export default function GadCornerPage() {
             units={units || []}
             activities={gadActivities || []}
             selectedYear={selectedYear}
+            availableYears={yearsList}
             unitName={selectedUnitId === 'all' ? 'Institutional' : units?.find((u) => u.id === selectedUnitId)?.name}
             selectedUnitId={selectedUnitId}
           />

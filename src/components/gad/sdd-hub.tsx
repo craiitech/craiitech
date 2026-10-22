@@ -86,6 +86,7 @@ interface SDDHubProps {
   units: Unit[];
   activities: any[];
   selectedYear: number;
+  availableYears?: number[];
   unitName?: string;
   selectedUnitId?: string;
 }
@@ -107,7 +108,37 @@ const GAD_SECTORS: GADSector[] = [
   'Indigenous People',
 ];
 
-const STUDENT_YEAR_LEVEL_OPTIONS = ['First Year', 'Second Year', 'Third Year', 'Fourth Year', 'Fifth Year'];
+function AcademicYearSelect({
+  value,
+  years,
+  onChange,
+  className,
+}: {
+  value: number;
+  years: number[];
+  onChange: (year: number) => void;
+  className?: string;
+}) {
+  return (
+    <Select value={String(value)} onValueChange={(next) => onChange(Number(next))}>
+      <SelectTrigger
+        className={
+          className ?? 'h-8 w-[150px] bg-white text-[10px] font-black uppercase tracking-wider border-primary/30'
+        }
+      >
+        <CalendarRange className="mr-1.5 h-3 w-3 shrink-0 text-primary" />
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {years.map((year) => (
+          <SelectItem key={year} value={String(year)}>
+            AY {year}&ndash;{year + 1}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 
 export function SDDHub({
   compliances,
@@ -115,6 +146,7 @@ export function SDDHub({
   units,
   activities,
   selectedYear,
+  availableYears,
   unitName,
   selectedUnitId,
 }: SDDHubProps) {
@@ -134,13 +166,17 @@ export function SDDHub({
   const [printCampusId, setPrintCampusId] = useState('all');
   const [printProgramId, setPrintProgramId] = useState('all');
   const [printStudentType, setPrintStudentType] = useState<'all' | 'undergraduate' | 'graduate'>('all');
-  const [studentYearLevelFilter, setStudentYearLevelFilter] = useState('all');
+  const [dashboardYear, setDashboardYear] = useState(selectedYear);
 
   useEffect(() => {
-    setPrintFromYear(selectedYear);
-    setPrintToYear(selectedYear);
-    setPrintYear(selectedYear);
+    setDashboardYear(selectedYear);
   }, [selectedYear]);
+
+  useEffect(() => {
+    setPrintFromYear(dashboardYear);
+    setPrintToYear(dashboardYear);
+    setPrintYear(dashboardYear);
+  }, [dashboardYear]);
 
   const isInstitutionalScope = !selectedUnitId || selectedUnitId === 'all';
 
@@ -177,6 +213,27 @@ export function SDDHub({
     if (reportCompliances && reportCompliances.length > 0) return reportCompliances;
     return compliances;
   }, [reportCompliances, compliances]);
+
+  const yearOptions = useMemo(() => {
+    const years = new Set<number>();
+    (availableYears || []).forEach((year) => years.add(year));
+    years.add(selectedYear);
+    years.add(dashboardYear);
+    reportCompliances?.forEach((record) => {
+      const year = Number(record.academicYear);
+      if (Number.isFinite(year) && year > 2000) years.add(year);
+    });
+    reportCensuses?.forEach((record) => {
+      const year = Number(record.year);
+      if (Number.isFinite(year) && year > 2000) years.add(year);
+    });
+    for (let offset = -2; offset <= 4; offset++) {
+      years.add(selectedYear - offset);
+    }
+    return Array.from(years)
+      .filter((year) => year > 2000)
+      .sort((a, b) => b - a);
+  }, [availableYears, selectedYear, dashboardYear, reportCompliances, reportCensuses]);
 
   const academicProgramsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'academicPrograms') : null),
@@ -229,7 +286,7 @@ export function SDDHub({
   );
 
   // 1. UNIT PERSONNEL CENSUS MODULE
-  const censusId = userProfile?.unitId ? `${userProfile.unitId}-${selectedYear}` : 'none';
+  const censusId = userProfile?.unitId ? `${userProfile.unitId}-${dashboardYear}` : 'none';
   const censusRef = useMemoFirebase(
     () => (firestore && userProfile?.unitId ? doc(firestore, 'unitPersonnelCensus', censusId) : null),
     [firestore, censusId],
@@ -359,7 +416,7 @@ export function SDDHub({
           id: censusId,
           unitId: userProfile.unitId,
           campusId: userProfile.campusId,
-          year: selectedYear,
+          year: dashboardYear,
           updatedAt: serverTimestamp(),
           updatedBy: userProfile.id,
         },
@@ -379,7 +436,9 @@ export function SDDHub({
     const studentSectors: Record<string, { male: number; female: number }> = {};
     GAD_SECTORS.forEach((s) => (studentSectors[s] = { male: 0, female: 0 }));
 
-    compliances.forEach((record) => {
+    const yearRecords = studentRecordSource.filter((record) => Number(record.academicYear) === dashboardYear);
+
+    yearRecords.forEach((record) => {
       const enrollmentRecords = record.enrollmentRecords || [];
       const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
 
@@ -426,10 +485,10 @@ export function SDDHub({
       studentSectors: sectoralChartData,
       totals: { s1: s1Male + s1Female },
     };
-  }, [compliances]);
+  }, [studentRecordSource, dashboardYear]);
 
   const studentLevelRowData = useMemo(() => {
-    const records = studentRecordSource.filter((record) => Number(record.academicYear) === selectedYear);
+    const records = studentRecordSource.filter((record) => Number(record.academicYear) === dashboardYear);
     const levelDefs = [
       { key: 'firstYear', label: 'First Year' },
       { key: 'secondYear', label: 'Second Year' },
@@ -489,11 +548,8 @@ export function SDDHub({
       })
       .filter((row, index) => index < 4 || row.total.male + row.total.female > 0);
 
-    const displayedRows =
-      studentYearLevelFilter === 'all' ? rows : rows.filter((row) => row.label === studentYearLevelFilter);
-
     const sumTerm = (termKey: 'first' | 'second' | 'midyear') =>
-      displayedRows.reduce(
+      rows.reduce(
         (sum, row) => ({
           male: sum.male + row[termKey].male,
           female: sum.female + row[termKey].female,
@@ -504,10 +560,10 @@ export function SDDHub({
     const firstTotal = sumTerm('first');
     const secondTotal = sumTerm('second');
     const midyearTotal = sumTerm('midyear');
-    const hasMidyear = displayedRows.some((row) => row.midyear.male + row.midyear.female > 0);
+    const hasMidyear = rows.some((row) => row.midyear.male + row.midyear.female > 0);
 
     return {
-      rows: displayedRows,
+      rows,
       hasMidyear,
       totals: {
         first: firstTotal,
@@ -519,7 +575,7 @@ export function SDDHub({
         },
       },
     };
-  }, [studentRecordSource, selectedYear, studentYearLevelFilter]);
+  }, [studentRecordSource, dashboardYear]);
 
   const semesterLabels = {
     firstSemester: 'First Semester',
@@ -1068,14 +1124,15 @@ export function SDDHub({
                 Sex-Disaggregated Data (SDD) Hub: {unitName}
               </CardTitle>
               <CardDescription className="text-xs">
-                Consolidated analysis of students, personnel, and activity participants for Academic Year {selectedYear}
-                -{selectedYear + 1} (AY {selectedYear} Baseline).
+                Consolidated analysis of students, personnel, and activity participants for Academic Year{' '}
+                {dashboardYear}-{dashboardYear + 1} (AY {dashboardYear} Baseline).
               </CardDescription>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
+              <AcademicYearSelect value={dashboardYear} years={yearOptions} onChange={setDashboardYear} />
               <Badge className="bg-primary hover:bg-primary/90 text-white font-black text-xs px-3.5 py-1 uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
                 <CalendarRange className="h-3.5 w-3.5" />
-                AY {selectedYear} &ndash; {selectedYear + 1}
+                AY {dashboardYear} &ndash; {dashboardYear + 1}
               </Badge>
               <Badge
                 variant="outline"
@@ -1114,10 +1171,13 @@ export function SDDHub({
         <div className="lg:col-span-1 space-y-6">
           <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl overflow-hidden flex flex-col h-full bg-white dark:bg-slate-900">
             <CardHeader className="p-4 bg-primary/5 border-b text-center shrink-0">
-              <div className="flex items-center justify-between border-b pb-2 mb-2">
-                <span className="text-[9px] font-black uppercase text-primary tracking-wider flex items-center gap-1">
-                  <CalendarRange className="h-3 w-3" /> AY {selectedYear}&ndash;{selectedYear + 1}
-                </span>
+              <div className="flex items-center justify-between gap-2 border-b pb-2 mb-2">
+                <AcademicYearSelect
+                  value={dashboardYear}
+                  years={yearOptions}
+                  onChange={setDashboardYear}
+                  className="h-7 w-[125px] border-primary/20 bg-white text-[9px] font-black uppercase tracking-wide"
+                />
                 <span className="text-[8px] font-bold uppercase text-muted-foreground bg-primary/5 px-2 py-0.5 rounded">
                   1st Sem Baseline
                 </span>
@@ -1173,7 +1233,7 @@ export function SDDHub({
                       {aggregatedData.totals.s1.toLocaleString()}
                     </p>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                      Total Enrolled Baseline (AY {selectedYear}&ndash;{selectedYear + 1})
+                      Total Enrolled Baseline (AY {dashboardYear}&ndash;{dashboardYear + 1})
                     </p>
                   </div>
                 </>
@@ -1181,7 +1241,7 @@ export function SDDHub({
                 <div className="flex flex-col items-center justify-center text-center opacity-20 py-20 space-y-3">
                   <PieIcon className="h-12 w-12" />
                   <p className="text-[10px] font-black uppercase tracking-widest">
-                    No enrollment data for AY {selectedYear}-{selectedYear + 1}
+                    No enrollment data for AY {dashboardYear}-{dashboardYear + 1}
                   </p>
                 </div>
               )}
@@ -1190,7 +1250,7 @@ export function SDDHub({
               <Users className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
                 This baseline establishes the verified first-semester student population disaggregated by sex for the
-                active academic year. Establishing a validated sex-ratio baseline is essential for proportional GAD
+                selected academic year. Establishing a validated sex-ratio baseline is essential for proportional GAD
                 expenditure attribution, equity audits, and statutory reporting under PCW Memorandum Circular 2011-01.
               </p>
             </CardFooter>
@@ -1208,16 +1268,11 @@ export function SDDHub({
                     Student Sectoral Reach Analysis (3D)
                   </CardTitle>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="w-fit text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
-                >
-                  <CalendarRange className="h-3 w-3" /> Timeline: AY {selectedYear}&ndash;{selectedYear + 1}
-                </Badge>
+                <AcademicYearSelect value={dashboardYear} years={yearOptions} onChange={setDashboardYear} />
               </div>
               <CardDescription className="text-[10px]">
                 Consolidated headcount of students belonging to marginalized or prioritized GAD groups for AY{' '}
-                {selectedYear}&ndash;{selectedYear + 1}.
+                {dashboardYear}&ndash;{dashboardYear + 1}.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-8 flex-1">
@@ -1298,29 +1353,17 @@ export function SDDHub({
               <div>
                 <CardTitle className="text-sm font-black uppercase tracking-tight">Student SDD by Year Level</CardTitle>
                 <CardDescription className="text-[10px]">
-                  Enrollment disaggregated by sex and year level for AY {selectedYear}&ndash;{selectedYear + 1}.
+                  Enrollment disaggregated by sex and year level for AY {dashboardYear}&ndash;{dashboardYear + 1}.
                 </CardDescription>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Select value={studentYearLevelFilter} onValueChange={setStudentYearLevelFilter}>
-                <SelectTrigger className="h-8 w-[160px] bg-white text-[10px] font-black uppercase tracking-wider">
-                  <SelectValue placeholder="All Year Levels" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Year Levels</SelectItem>
-                  {STUDENT_YEAR_LEVEL_OPTIONS.map((level) => (
-                    <SelectItem key={level} value={level}>
-                      {level}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <AcademicYearSelect value={dashboardYear} years={yearOptions} onChange={setDashboardYear} />
               <Badge
                 variant="outline"
                 className="w-fit text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
               >
-                <CalendarRange className="h-3 w-3" /> AY {selectedYear}&ndash;{selectedYear + 1}
+                <LayoutList className="h-3 w-3" /> Year-Level Breakdown
               </Badge>
             </div>
           </div>
@@ -1373,8 +1416,7 @@ export function SDDHub({
                     colSpan={studentLevelRowData.hasMidyear ? 13 : 10}
                     className="border border-slate-200 p-6 text-center italic text-muted-foreground"
                   >
-                    No {studentYearLevelFilter === 'all' ? 'year-level' : studentYearLevelFilter.toLowerCase()}{' '}
-                    enrollment data for AY {selectedYear}&ndash;{selectedYear + 1}.
+                    No year-level enrollment data for AY {dashboardYear}&ndash;{dashboardYear + 1}.
                   </td>
                 </tr>
               ) : (
@@ -1484,8 +1526,8 @@ export function SDDHub({
           <LayoutList className="h-4 w-4 text-primary shrink-0 mt-0.5" />
           <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
             Year-level headcounts are consolidated from the enrollment records of all programs in scope. The table
-            includes first and second semester figures, plus the midyear term when recorded. Use the year level selector
-            to isolate a specific level.
+            includes first and second semester figures, plus the midyear term when recorded. Use the academic year
+            selector to review a different school year.
           </p>
         </CardFooter>
       </Card>
@@ -1501,16 +1543,22 @@ export function SDDHub({
                   <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2 flex-wrap">
                     Unit Personnel Census Workspace
                     <Badge className="bg-indigo-600 text-white font-black text-[9px] uppercase">
-                      AY {selectedYear}&ndash;{selectedYear + 1}
+                      AY {dashboardYear}&ndash;{dashboardYear + 1}
                     </Badge>
                   </CardTitle>
                 </div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-600/70">
-                  Update total employee headcount for your office for AY {selectedYear}&ndash;{selectedYear + 1} (Fiscal
-                  Year {selectedYear}).
+                  Update total employee headcount for your office for AY {dashboardYear}&ndash;{dashboardYear + 1}{' '}
+                  (Fiscal Year {dashboardYear}).
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
+                <AcademicYearSelect
+                  value={dashboardYear}
+                  years={yearOptions}
+                  onChange={setDashboardYear}
+                  className="h-10 w-[160px] border-indigo-300 bg-white text-[10px] font-black uppercase tracking-wider text-indigo-700"
+                />
                 <Button
                   variant="outline"
                   onClick={handleAutoCalculateCensus}
@@ -1736,16 +1784,25 @@ export function SDDHub({
 
       {/* INDIVIDUAL UNIT SDD EXPLORER */}
       {(isAdmin || userRole?.toLowerCase().includes('director') || userRole?.toLowerCase().includes('odimo')) && (
-        <UnitSddExplorer compliances={compliances} units={units} selectedYear={selectedYear} />
+        <UnitSddExplorer
+          compliances={studentRecordSource}
+          units={units}
+          selectedYear={dashboardYear}
+          availableYears={yearOptions}
+          onYearChange={setDashboardYear}
+        />
       )}
 
       <Card className="border-primary/10 shadow-md">
         <CardHeader className="bg-muted/10 border-b">
-          <div className="flex items-center gap-2">
-            <School className="h-5 w-5 text-primary" />
-            <CardTitle className="text-sm font-black uppercase tracking-tight">
-              Institutional SDD Reporting Guidelines
-            </CardTitle>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <School className="h-5 w-5 text-primary" />
+              <CardTitle className="text-sm font-black uppercase tracking-tight">
+                Institutional SDD Reporting Guidelines
+              </CardTitle>
+            </div>
+            <AcademicYearSelect value={dashboardYear} years={yearOptions} onChange={setDashboardYear} />
           </div>
         </CardHeader>
         <CardContent className="p-6 flex items-start gap-4">
