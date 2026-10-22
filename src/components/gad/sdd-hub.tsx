@@ -69,6 +69,8 @@ import {
   type SDDSectorRow,
   type SDDTermBlock,
   type SDDEmployeeYearBlock,
+  type SDDStudentSection,
+  type SDDEmployeeSection,
 } from './sdd-print-templates';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
@@ -181,14 +183,19 @@ export function SDDHub({
   const printProgramOptions = useMemo(() => {
     if (!academicPrograms) return [];
     return academicPrograms
-      .filter((program) => printCampusId === 'all' || program.campusId === printCampusId)
+      .filter(
+        (program) => printCampusId === 'all' || printCampusId === 'institution' || program.campusId === printCampusId,
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [academicPrograms, printCampusId]);
 
   useEffect(() => {
-    if (printProgramId === 'all') return;
+    if (printProgramId === 'all' || printProgramId === 'institution') return;
     const selectedProgram = academicPrograms?.find((program) => program.id === printProgramId);
-    if (!selectedProgram || (printCampusId !== 'all' && selectedProgram.campusId !== printCampusId)) {
+    if (
+      !selectedProgram ||
+      (printCampusId !== 'all' && printCampusId !== 'institution' && selectedProgram.campusId !== printCampusId)
+    ) {
       setPrintProgramId('all');
     }
   }, [printCampusId, academicPrograms, printProgramId]);
@@ -495,12 +502,17 @@ export function SDDHub({
     return semesterKey ? `${yearLabel} (${semesterLabels[semesterKey]})` : yearLabel;
   };
 
-  const buildStudentReportData = (
+  const isSpecificCampus = printCampusId !== 'all' && printCampusId !== 'institution';
+  const isSpecificProgram = printProgramId !== 'all' && printProgramId !== 'institution';
+  const selectedCampusName = isSpecificCampus ? campusNameMap.get(printCampusId) || printCampusId : undefined;
+  const selectedProgramName = isSpecificProgram ? programNameMap.get(printProgramId) || printProgramId : undefined;
+
+  const buildStudentSection = (
+    records: ProgramComplianceRecord[],
+    title: string,
     years: number[],
     semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
-    campusId: string = 'all',
-    programId: string = 'all',
-  ): StudentSDDReportData => {
+  ): SDDStudentSection => {
     const termKeys = semesterKey
       ? ([semesterKey] as const)
       : (['firstSemester', 'secondSemester', 'midYearTerm'] as const);
@@ -515,12 +527,7 @@ export function SDDHub({
     const terms: SDDTermBlock[] = [];
 
     years.forEach((year) => {
-      const yearRecords = studentRecordSource.filter(
-        (record) =>
-          Number(record.academicYear) === year &&
-          (campusId === 'all' || record.campusId === campusId) &&
-          (programId === 'all' || record.programId === programId),
-      );
+      const yearRecords = records.filter((record) => Number(record.academicYear) === year);
 
       termKeys.forEach((key) => {
         const levels = levelDefs.map(({ label }) => ({ label, male: 0, female: 0 }));
@@ -586,34 +593,135 @@ export function SDDHub({
       female: terms.reduce((sum, term) => sum + term.female, 0),
     };
 
+    return { title, terms: grand.male + grand.female > 0 ? terms : [], grand };
+  };
+
+  const buildStudentReportData = (
+    years: number[],
+    semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
+  ): StudentSDDReportData => {
+    const allRecords = studentRecordSource;
+    const filterRecords = (campusId?: string, programId?: string) =>
+      allRecords.filter(
+        (record) => (!campusId || record.campusId === campusId) && (!programId || record.programId === programId),
+      );
+
+    const campusList = campuses.filter((campus) =>
+      allRecords.some(
+        (record) => record.campusId === campus.id && (!isSpecificProgram || record.programId === printProgramId),
+      ),
+    );
+
+    const sections: SDDStudentSection[] = [];
+    const appendices: SDDStudentSection[] = [];
+
+    const addSection = (target: SDDStudentSection[], records: ProgramComplianceRecord[], title: string) => {
+      const section = buildStudentSection(records, title, years, semesterKey);
+      if (section.terms.length > 0) target.push(section);
+    };
+
+    const addProgramSections = (
+      target: SDDStudentSection[],
+      campusId: string,
+      campusName: string,
+      programId?: string,
+      fallbackToCampus: boolean = true,
+    ) => {
+      const campusRecords = filterRecords(campusId, programId);
+      const programs = (academicPrograms || []).filter(
+        (program) => program.campusId === campusId && campusRecords.some((record) => record.programId === program.id),
+      );
+
+      if (programs.length > 0) {
+        programs.forEach((program) => {
+          addSection(target, filterRecords(campusId, program.id), `Campus: ${campusName} — Program: ${program.name}`);
+        });
+      } else if (fallbackToCampus && campusRecords.length > 0) {
+        addSection(target, campusRecords, `Campus: ${campusName}`);
+      }
+    };
+
+    if (printCampusId === 'all') {
+      campusList.forEach((campus) => {
+        if (printProgramId === 'all') {
+          addProgramSections(sections, campus.id, campus.name);
+        } else if (isSpecificProgram) {
+          addSection(
+            sections,
+            filterRecords(campus.id, printProgramId),
+            `Campus: ${campus.name} — Program: ${selectedProgramName}`,
+          );
+        } else {
+          addSection(sections, filterRecords(campus.id), `Campus: ${campus.name}`);
+        }
+      });
+    } else if (printCampusId === 'institution') {
+      addSection(
+        sections,
+        filterRecords(undefined, isSpecificProgram ? printProgramId : undefined),
+        'Institution Summary',
+      );
+
+      campusList.forEach((campus) => {
+        addSection(
+          appendices,
+          filterRecords(campus.id, isSpecificProgram ? printProgramId : undefined),
+          `Campus: ${campus.name}${isSpecificProgram ? ` — Program: ${selectedProgramName}` : ''}`,
+        );
+      });
+
+      if (!isSpecificProgram) {
+        campusList.forEach((campus) => {
+          addProgramSections(appendices, campus.id, campus.name, undefined, false);
+        });
+      }
+    } else {
+      const campusName = selectedCampusName || printCampusId;
+      if (printProgramId === 'all') {
+        addProgramSections(sections, printCampusId, campusName);
+      } else if (isSpecificProgram) {
+        addSection(
+          sections,
+          filterRecords(printCampusId, printProgramId),
+          `Campus: ${campusName} — Program: ${selectedProgramName}`,
+        );
+      } else {
+        addSection(sections, filterRecords(printCampusId), `Campus: ${campusName}`);
+      }
+    }
+
+    const grand = sections.reduce(
+      (acc, section) => ({ male: acc.male + section.grand.male, female: acc.female + section.grand.female }),
+      { male: 0, female: 0 },
+    );
+
     const scopeParts: string[] = [];
-    if (campusId !== 'all') scopeParts.push(`Campus: ${campusNameMap.get(campusId) || campusId}`);
-    if (programId !== 'all') scopeParts.push(`Program: ${programNameMap.get(programId) || programId}`);
+    if (isSpecificCampus) scopeParts.push(`Campus: ${selectedCampusName}`);
+    if (isSpecificProgram) scopeParts.push(`Program: ${selectedProgramName}`);
 
     return {
       academicYear: formatPeriodLabel(years, semesterKey),
       unitName: unitName || 'Institutional',
       scopeLabel: scopeParts.length > 0 ? scopeParts.join(' • ') : undefined,
-      terms: grand.male + grand.female > 0 ? terms : [],
+      sections,
+      appendices,
       grand,
     };
   };
 
-  const buildEmployeeReportData = (years: number[], note?: string, campusId: string = 'all'): EmployeeSDDReportData => {
+  const buildEmployeeSection = (records: UnitPersonnelCensus[], title: string, years: number[]): SDDEmployeeSection => {
     const unitNameMap = new Map(units.map((unit) => [unit.id, unit.name]));
 
     const yearBlocks: SDDEmployeeYearBlock[] = years
       .map((year) => {
-        const records = (reportCensuses || []).filter(
-          (record) => Number(record.year) === year && (campusId === 'all' || record.campusId === campusId),
-        );
+        const yearRecords = records.filter((record) => Number(record.year) === year);
 
         const buildGroup = (label: string, groupKey: 'teaching' | 'nonTeaching') => {
           const sectorMap: Record<string, { male: number; female: number }> = {};
           let male = 0;
           let female = 0;
 
-          records.forEach((record) => {
+          yearRecords.forEach((record) => {
             const group = record[groupKey];
             if (!group) return;
             male += Number(group.male || 0);
@@ -644,7 +752,7 @@ export function SDDHub({
           { male: 0, female: 0 },
         );
 
-        const unitRows = records
+        const unitRows = yearRecords
           .map((record) => ({
             unitName: unitNameMap.get(record.unitId) || record.unitId,
             teachingMale: Number(record.teaching?.male || 0),
@@ -659,7 +767,7 @@ export function SDDHub({
           groups,
           units: unitRows,
           grand,
-          showUnitBreakdown: isInstitutionalScope && unitRows.length > 1,
+          showUnitBreakdown: unitRows.length > 1,
         };
       })
       .filter((block) => block.grand.male + block.grand.female > 0);
@@ -669,11 +777,57 @@ export function SDDHub({
       { male: 0, female: 0 },
     );
 
+    return { title, years: yearBlocks, grand };
+  };
+
+  const buildEmployeeReportData = (years: number[], note?: string): EmployeeSDDReportData => {
+    const allRecords = reportCensuses || [];
+    const sections: SDDEmployeeSection[] = [];
+    const appendices: SDDEmployeeSection[] = [];
+
+    const addSection = (target: SDDEmployeeSection[], records: UnitPersonnelCensus[], title: string) => {
+      const section = buildEmployeeSection(records, title, years);
+      if (section.years.length > 0) target.push(section);
+    };
+
+    const campusList = campuses.filter((campus) => allRecords.some((record) => record.campusId === campus.id));
+
+    if (printCampusId === 'all') {
+      campusList.forEach((campus) => {
+        addSection(
+          sections,
+          allRecords.filter((record) => record.campusId === campus.id),
+          `Campus: ${campus.name}`,
+        );
+      });
+    } else if (printCampusId === 'institution') {
+      addSection(sections, allRecords, 'Institution Summary');
+      campusList.forEach((campus) => {
+        addSection(
+          appendices,
+          allRecords.filter((record) => record.campusId === campus.id),
+          `Campus: ${campus.name}`,
+        );
+      });
+    } else {
+      addSection(
+        sections,
+        allRecords.filter((record) => record.campusId === printCampusId),
+        `Campus: ${selectedCampusName}`,
+      );
+    }
+
+    const grand = sections.reduce(
+      (acc, section) => ({ male: acc.male + section.grand.male, female: acc.female + section.grand.female }),
+      { male: 0, female: 0 },
+    );
+
     return {
       academicYear: formatPeriodLabel(years),
       unitName: unitName || 'Institutional',
-      scopeLabel: campusId !== 'all' ? `Campus: ${campusNameMap.get(campusId) || campusId}` : undefined,
-      years: yearBlocks,
+      scopeLabel: isSpecificCampus ? `Campus: ${selectedCampusName}` : undefined,
+      sections,
+      appendices,
       grand,
       note,
     };
@@ -738,9 +892,9 @@ export function SDDHub({
     try {
       if (printReportType === 'students') {
         const semesterKey = printMode === 'yearSemester' ? printSemester : undefined;
-        const reportData = buildStudentReportData(years, semesterKey, printCampusId, printProgramId);
+        const reportData = buildStudentReportData(years, semesterKey);
 
-        if (reportData.terms.length === 0) {
+        if (reportData.sections.length === 0 || reportData.grand.male + reportData.grand.female === 0) {
           toast({
             title: 'No Student Data',
             description: 'There is no student enrollment data to print for the selected period.',
@@ -762,7 +916,7 @@ export function SDDHub({
           printMode === 'yearSemester'
             ? 'Note: The personnel census is recorded annually, so the selected semester does not alter employee figures.'
             : undefined;
-        const reportData = buildEmployeeReportData(years, note, printCampusId);
+        const reportData = buildEmployeeReportData(years, note);
 
         if (reportData.grand.male + reportData.grand.female === 0) {
           toast({
@@ -1657,7 +1811,8 @@ export function SDDHub({
                       <SelectValue placeholder="All Campuses" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Campuses</SelectItem>
+                      <SelectItem value="all">All Campus - List Down</SelectItem>
+                      <SelectItem value="institution">Institution Summary</SelectItem>
                       {campuses.map((campus) => (
                         <SelectItem key={campus.id} value={campus.id}>
                           {campus.name}
@@ -1678,7 +1833,8 @@ export function SDDHub({
                       <SelectValue placeholder="All Programs" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Programs</SelectItem>
+                      <SelectItem value="all">All Programs - List</SelectItem>
+                      <SelectItem value="institution">Institutional Summary</SelectItem>
                       {printProgramOptions.map((program) => (
                         <SelectItem key={program.id} value={program.id}>
                           {program.name}
@@ -1690,7 +1846,8 @@ export function SDDHub({
               </div>
               {printReportType === 'employees' && (
                 <p className="text-[10px] italic text-muted-foreground">
-                  Employee census data is not program-specific, so only the campus filter applies.
+                  Employee census data is not program-specific. Campus list, campus summary, and institution summary
+                  apply; per-program breakdowns are available for the Student report only.
                 </p>
               )}
             </div>
