@@ -454,9 +454,9 @@ export function UnifiedHomeDashboard({
       <TabsContent value="overview" className="space-y-6 animate-in fade-in duration-300">
         {/* Archipelagic University Institutional Statements */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border-indigo-200 bg-indigo-50/40 shadow-sm">
+          <Card className="border-indigo-200 bg-indigo-50/40 shadow-sm text-center">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-black uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+              <CardTitle className="text-[11px] font-black uppercase tracking-wider text-indigo-700 flex items-center justify-center gap-1.5">
                 <Target className="h-3.5 w-3.5" />
                 Archipelagic University Vision
               </CardTitle>
@@ -469,16 +469,16 @@ export function UnifiedHomeDashboard({
                   <div className="h-3 w-2/3 rounded bg-indigo-200/60 animate-pulse" />
                 </div>
               ) : (
-                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-5">
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-5">
                   {archipelagicStatements?.vision?.trim() || 'No vision statement has been set yet.'}
                 </p>
               )}
             </CardContent>
           </Card>
 
-          <Card className="border-emerald-200 bg-emerald-50/40 shadow-sm">
+          <Card className="border-emerald-200 bg-emerald-50/40 shadow-sm text-center">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-black uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+              <CardTitle className="text-[11px] font-black uppercase tracking-wider text-emerald-700 flex items-center justify-center gap-1.5">
                 <Compass className="h-3.5 w-3.5" />
                 Archipelagic University Mission
               </CardTitle>
@@ -491,16 +491,16 @@ export function UnifiedHomeDashboard({
                   <div className="h-3 w-2/3 rounded bg-emerald-200/60 animate-pulse" />
                 </div>
               ) : (
-                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-5">
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-5">
                   {archipelagicStatements?.mission?.trim() || 'No mission statement has been set yet.'}
                 </p>
               )}
             </CardContent>
           </Card>
 
-          <Card className="border-amber-200 bg-amber-50/40 shadow-sm">
+          <Card className="border-amber-200 bg-amber-50/40 shadow-sm text-center">
             <CardHeader className="pb-2">
-              <CardTitle className="text-[10px] font-black uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+              <CardTitle className="text-[11px] font-black uppercase tracking-wider text-amber-700 flex items-center justify-center gap-1.5">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Archipelagic University Quality Policy
               </CardTitle>
@@ -513,7 +513,7 @@ export function UnifiedHomeDashboard({
                   <div className="h-3 w-2/3 rounded bg-amber-200/60 animate-pulse" />
                 </div>
               ) : (
-                <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-5">
+                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-5">
                   {archipelagicStatements?.qualityPolicy?.trim() || 'No quality policy statement has been set yet.'}
                 </p>
               )}
