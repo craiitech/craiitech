@@ -60,6 +60,14 @@ import {
   Printer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+  addEnrollmentTotals,
+  emptyEnrollmentTotals,
+  getComplianceEnrollmentSummary,
+  getEnrollmentRecordsForYear,
+  getUniqueComplianceRecords,
+  type EnrollmentTotals,
+} from '@/lib/enrollment';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
   SDDStudentReportTemplate,
@@ -221,10 +229,33 @@ export function SDDHub({
 
   const { data: reportCompliances } = useCollection<ProgramComplianceRecord>(reportCompliancesQuery);
 
+  const academicProgramsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'academicPrograms') : null),
+    [firestore],
+  );
+  const { data: academicPrograms } = useCollection<AcademicProgram>(academicProgramsQuery);
+
+  const activeProgramIds = useMemo(() => {
+    if (!academicPrograms || academicPrograms.length === 0) return undefined;
+    return new Set(
+      academicPrograms
+        .filter((program) => program.isActive === true)
+        .map((program) => String(program.id).toLowerCase().trim()),
+    );
+  }, [academicPrograms]);
+
   const studentRecordSource = useMemo(() => {
-    if (reportCompliances && reportCompliances.length > 0) return reportCompliances;
-    return compliances;
-  }, [reportCompliances, compliances]);
+    const source = reportCompliances && reportCompliances.length > 0 ? reportCompliances : compliances;
+    if (!activeProgramIds) return source;
+
+    return source.filter((record) =>
+      activeProgramIds.has(
+        String(record.programId || '')
+          .toLowerCase()
+          .trim(),
+      ),
+    );
+  }, [reportCompliances, compliances, activeProgramIds]);
 
   const yearOptions = useMemo(() => {
     const years = new Set<number>();
@@ -246,12 +277,6 @@ export function SDDHub({
       .filter((year) => year > 2000)
       .sort((a, b) => b - a);
   }, [availableYears, selectedYear, dashboardYear, reportCompliances, reportCensuses]);
-
-  const academicProgramsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'academicPrograms') : null),
-    [firestore],
-  );
-  const { data: academicPrograms } = useCollection<AcademicProgram>(academicProgramsQuery);
 
   const printProgramOptions = useMemo(() => {
     if (!academicPrograms) return [];
@@ -448,31 +473,40 @@ export function SDDHub({
     const studentSectors: Record<string, { male: number; female: number }> = {};
     GAD_SECTORS.forEach((s) => (studentSectors[s] = { male: 0, female: 0 }));
 
-    const yearRecords = studentRecordSource.filter((record) => Number(record.academicYear) === dashboardYear);
+    const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
+    const yearRecords = getUniqueComplianceRecords(studentRecordSource, {
+      academicYear: dashboardYear,
+      activeProgramIds,
+    });
+
+    const collectSectors = (term: any) => {
+      levels.forEach((level) => {
+        const levelData = term?.[level];
+        if (!levelData?.sectors) return;
+
+        Object.entries(levelData.sectors).forEach(([sector, counts]: [string, any]) => {
+          if (studentSectors[sector]) {
+            studentSectors[sector].male += Number(counts?.male || 0);
+            studentSectors[sector].female += Number(counts?.female || 0);
+          }
+        });
+      });
+    };
 
     yearRecords.forEach((record) => {
-      const enrollmentRecords = record.enrollmentRecords || [];
-      const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
+      const summary = getComplianceEnrollmentSummary(record, { academicYear: dashboardYear });
+      s1Male += summary.firstSemester.male;
+      s1Female += summary.firstSemester.female;
 
-      enrollmentRecords.forEach((rec) => {
-        const term = rec.firstSemester; // Baseline for GAD SDD is 1st Sem
-        if (term) {
-          levels.forEach((level) => {
-            const lData = term[level];
-            s1Male += Number(lData?.male || 0);
-            s1Female += Number(lData?.female || 0);
-
-            if (lData?.sectors) {
-              Object.entries(lData.sectors).forEach(([sec, counts]: any) => {
-                if (studentSectors[sec]) {
-                  studentSectors[sec].male += Number(counts.male || 0);
-                  studentSectors[sec].female += Number(counts.female || 0);
-                }
-              });
-            }
-          });
-        }
-      });
+      const enrollmentRecords = getEnrollmentRecordsForYear(record.enrollmentRecords, dashboardYear);
+      if (enrollmentRecords.length > 0) {
+        enrollmentRecords.forEach((rec) => {
+          if (rec.overallOnly) return; // Overall-only records carry no sector breakdown
+          collectSectors(rec.firstSemester);
+        });
+      } else {
+        collectSectors(record.stats?.enrollment?.firstSemester);
+      }
     });
 
     const createPieData = (m: number, f: number, o: number = 0) =>
@@ -497,10 +531,13 @@ export function SDDHub({
       studentSectors: sectoralChartData,
       totals: { s1: s1Male + s1Female },
     };
-  }, [studentRecordSource, dashboardYear]);
+  }, [studentRecordSource, dashboardYear, activeProgramIds]);
 
   const studentLevelRowData = useMemo(() => {
-    const records = studentRecordSource.filter((record) => Number(record.academicYear) === dashboardYear);
+    const records = getUniqueComplianceRecords(studentRecordSource, {
+      academicYear: dashboardYear,
+      activeProgramIds,
+    });
     const levelDefs = [
       { key: 'firstYear', label: 'First Year' },
       { key: 'secondYear', label: 'Second Year' },
@@ -511,6 +548,7 @@ export function SDDHub({
 
     const buildTerm = (termKey: 'firstSemester' | 'secondSemester' | 'midYearTerm') => {
       const levels = levelDefs.map(({ label }) => ({ label, male: 0, female: 0 }));
+      let totals: EnrollmentTotals = emptyEnrollmentTotals();
 
       const collectTerm = (term: any) => {
         if (!term) return;
@@ -523,19 +561,21 @@ export function SDDHub({
       };
 
       records.forEach((record) => {
-        const enrollmentRecords = record.enrollmentRecords || [];
+        const summary = getComplianceEnrollmentSummary(record, { academicYear: dashboardYear });
+        totals = addEnrollmentTotals(totals, summary[termKey]);
+
+        const enrollmentRecords = getEnrollmentRecordsForYear(record.enrollmentRecords, dashboardYear);
         if (enrollmentRecords.length > 0) {
-          enrollmentRecords.forEach((rec: any) => collectTerm(rec?.[termKey]));
+          enrollmentRecords.forEach((rec) => {
+            if (rec.overallOnly) return;
+            collectTerm(rec?.[termKey]);
+          });
         } else {
           collectTerm((record.stats?.enrollment as any)?.[termKey]);
         }
       });
 
-      return {
-        levels,
-        male: levels.reduce((sum, level) => sum + level.male, 0),
-        female: levels.reduce((sum, level) => sum + level.female, 0),
-      };
+      return { levels, male: totals.male, female: totals.female, total: totals.total };
     };
 
     const first = buildTerm('firstSemester');
@@ -560,19 +600,10 @@ export function SDDHub({
       })
       .filter((row, index) => index < 4 || row.total.male + row.total.female > 0);
 
-    const sumTerm = (termKey: 'first' | 'second' | 'midyear') =>
-      rows.reduce(
-        (sum, row) => ({
-          male: sum.male + row[termKey].male,
-          female: sum.female + row[termKey].female,
-        }),
-        { male: 0, female: 0 },
-      );
-
-    const firstTotal = sumTerm('first');
-    const secondTotal = sumTerm('second');
-    const midyearTotal = sumTerm('midyear');
-    const hasMidyear = rows.some((row) => row.midyear.male + row.midyear.female > 0);
+    const firstTotal = { male: first.male, female: first.female };
+    const secondTotal = { male: second.male, female: second.female };
+    const midyearTotal = { male: midyear.male, female: midyear.female };
+    const hasMidyear = midyear.total > 0 || rows.some((row) => row.midyear.male + row.midyear.female > 0);
 
     return {
       rows,
@@ -587,58 +618,18 @@ export function SDDHub({
         },
       },
     };
-  }, [studentRecordSource, dashboardYear]);
+  }, [studentRecordSource, dashboardYear, activeProgramIds]);
 
   const studentYearlyData = useMemo(() => {
-    const levelKeys = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear', 'fifthYear'] as const;
-    const yearTotals = new Map<number, { male: number; female: number }>();
+    const yearTotals = new Map<number, EnrollmentTotals>();
 
-    const collectTerm = (term: any) => {
-      let male = 0;
-      let female = 0;
-      if (term) {
-        levelKeys.forEach((levelKey) => {
-          male += Number(term[levelKey]?.male) || 0;
-          female += Number(term[levelKey]?.female) || 0;
-        });
-      }
-      return { male, female };
-    };
-
-    studentRecordSource.forEach((record) => {
+    getUniqueComplianceRecords(studentRecordSource, { activeProgramIds }).forEach((record) => {
       const year = Number(record.academicYear);
       if (!Number.isFinite(year) || year <= 2000) return;
 
-      const totals = yearTotals.get(year) || { male: 0, female: 0 };
-      const enrollmentRecords = record.enrollmentRecords || [];
-      let male = 0;
-      let female = 0;
-
-      if (enrollmentRecords.length > 0) {
-        enrollmentRecords.forEach((rec: any) => {
-          const computed = collectTerm(rec?.firstSemester);
-          const overall = rec?.overall?.firstSemester;
-
-          if (rec?.overallOnly && overall) {
-            male += Number(overall.male) || 0;
-            female += Number(overall.female) || 0;
-          } else if (computed.male + computed.female > 0) {
-            male += computed.male;
-            female += computed.female;
-          } else if (overall) {
-            male += Number(overall.male) || 0;
-            female += Number(overall.female) || 0;
-          }
-        });
-      } else {
-        const legacy = collectTerm(record.stats?.enrollment?.firstSemester);
-        male += legacy.male;
-        female += legacy.female;
-      }
-
-      totals.male += male;
-      totals.female += female;
-      yearTotals.set(year, totals);
+      const summary = getComplianceEnrollmentSummary(record, { academicYear: year });
+      const totals = yearTotals.get(year) || emptyEnrollmentTotals();
+      yearTotals.set(year, addEnrollmentTotals(totals, summary.firstSemester));
     });
 
     return Array.from(yearTotals.entries())
@@ -646,11 +637,11 @@ export function SDDHub({
         year,
         male: totals.male,
         female: totals.female,
-        total: totals.male + totals.female,
+        total: totals.total,
       }))
       .filter((row) => row.total > 0 || row.year === dashboardYear)
       .sort((a, b) => b.year - a.year);
-  }, [studentRecordSource, dashboardYear]);
+  }, [studentRecordSource, dashboardYear, activeProgramIds]);
 
   const semesterLabels = {
     firstSemester: 'First Semester',
@@ -694,16 +685,13 @@ export function SDDHub({
     const terms: SDDTermBlock[] = [];
 
     years.forEach((year) => {
-      const yearRecords = records.filter((record) => Number(record.academicYear) === year);
+      const yearRecords = getUniqueComplianceRecords(records, { academicYear: year, activeProgramIds });
 
       termKeys.forEach((key) => {
         const levels = levelDefs.map(({ label }) => ({ label, male: 0, female: 0 }));
         const sectorMap: Record<string, { male: number; female: number }> = {};
         let male = 0;
         let female = 0;
-        let overallMale = 0;
-        let overallFemale = 0;
-        let overallTotal = 0;
 
         const collectTerm = (term: any) => {
           if (!term) return;
@@ -728,42 +716,26 @@ export function SDDHub({
           });
         };
 
-        const collectOverall = (term: any, storedOverall: any) => {
-          if (storedOverall && (storedOverall.male !== undefined || storedOverall.female !== undefined)) {
-            const storedMale = Number(storedOverall.male || 0);
-            const storedFemale = Number(storedOverall.female || 0);
-            overallMale += storedMale;
-            overallFemale += storedFemale;
-            overallTotal += storedMale + storedFemale;
-            return;
-          }
-
-          levelDefs.forEach(({ key: levelKey }) => {
-            const levelMale = Number(term?.[levelKey]?.male || 0);
-            const levelFemale = Number(term?.[levelKey]?.female || 0);
-            overallMale += levelMale;
-            overallFemale += levelFemale;
-            overallTotal += levelMale + levelFemale;
-          });
-        };
+        const canonicalTotals = yearRecords.reduce<EnrollmentTotals>((totals, record) => {
+          const summary = getComplianceEnrollmentSummary(record, { academicYear: year });
+          return addEnrollmentTotals(totals, summary[key]);
+        }, emptyEnrollmentTotals());
 
         yearRecords.forEach((record) => {
-          const enrollmentRecords = record.enrollmentRecords || [];
+          const enrollmentRecords = getEnrollmentRecordsForYear(record.enrollmentRecords, year);
           if (enrollmentRecords.length > 0) {
-            enrollmentRecords.forEach((rec: any) => {
+            enrollmentRecords.forEach((rec) => {
+              if (rec.overallOnly) return;
               collectTerm(rec?.[key]);
-              if (levelMode === 'overall') collectOverall(rec?.[key], rec?.overall?.[key]);
             });
           } else {
-            const term = (record.stats?.enrollment as any)?.[key];
-            collectTerm(term);
-            if (levelMode === 'overall') collectOverall(term, (record.stats?.enrollment as any)?.overall?.[key]);
+            collectTerm((record.stats?.enrollment as any)?.[key]);
           }
         });
 
-        const displayedMale = levelMode === 'overall' ? overallMale : male;
-        const displayedFemale = levelMode === 'overall' ? overallFemale : female;
-        const displayedTotal = levelMode === 'overall' ? overallTotal : male + female;
+        const displayedMale = levelMode === 'selected' ? male : canonicalTotals.male;
+        const displayedFemale = levelMode === 'selected' ? female : canonicalTotals.female;
+        const displayedTotal = levelMode === 'selected' ? male + female : canonicalTotals.total;
 
         if (!semesterKey && key === 'midYearTerm' && displayedTotal === 0) return;
 
@@ -777,12 +749,36 @@ export function SDDHub({
           .filter((sector) => sector.total > 0)
           .sort((a, b) => b.total - a.total);
 
+        const levelMale = levels.reduce((sum, level) => sum + level.male, 0);
+        const levelFemale = levels.reduce((sum, level) => sum + level.female, 0);
+        const unallocatedMale = Math.max(canonicalTotals.male - levelMale, 0);
+        const unallocatedFemale = Math.max(canonicalTotals.female - levelFemale, 0);
+
         const displayedLevels =
           levelMode === 'overall'
-            ? [{ label: 'Overall Total', male: overallMale, female: overallFemale, total: overallTotal }]
+            ? [
+                {
+                  label: 'Overall Total',
+                  male: canonicalTotals.male,
+                  female: canonicalTotals.female,
+                  total: canonicalTotals.total,
+                },
+              ]
             : levelMode === 'selected'
               ? levels.filter((_, index) => levelDefs[index].key === selectedLevelKey)
-              : levels.filter((level, index) => index < 4 || level.male + level.female > 0);
+              : [
+                  ...levels.filter((level, index) => index < 4 || level.male + level.female > 0),
+                  ...(unallocatedMale + unallocatedFemale > 0
+                    ? [
+                        {
+                          label: 'Overall / Unspecified',
+                          male: unallocatedMale,
+                          female: unallocatedFemale,
+                          total: unallocatedMale + unallocatedFemale,
+                        },
+                      ]
+                    : []),
+                ];
 
         terms.push({
           term: semesterLabels[key],
@@ -1423,7 +1419,8 @@ export function SDDHub({
                   </thead>
                   <tbody>
                     {studentYearlyData.map((row) => {
-                      const malePct = row.total > 0 ? Math.round((row.male / row.total) * 100) : 0;
+                      const knownSexTotal = row.male + row.female;
+                      const malePct = knownSexTotal > 0 ? Math.round((row.male / knownSexTotal) * 100) : 0;
                       const isCurrent = row.year === dashboardYear;
 
                       return (
@@ -1458,7 +1455,7 @@ export function SDDHub({
                             </span>
                           </td>
                           <td className="px-5 py-3">
-                            {row.total > 0 ? (
+                            {knownSexTotal > 0 ? (
                               <div className="flex items-center gap-2">
                                 <div className="flex h-2 w-full max-w-[140px] overflow-hidden rounded-full bg-rose-200/70 dark:bg-rose-950">
                                   <div className="h-full bg-indigo-500" style={{ width: `${malePct}%` }} />
@@ -1467,6 +1464,8 @@ export function SDDHub({
                                   {malePct}% M &middot; {100 - malePct}% F
                                 </span>
                               </div>
+                            ) : row.total > 0 ? (
+                              <span className="text-[10px] font-bold text-muted-foreground">Sex split unavailable</span>
                             ) : (
                               <span className="text-[10px] font-bold text-muted-foreground">No data</span>
                             )}

@@ -1,4 +1,5 @@
-import type { AcademicProgram, ProgramComplianceRecord, YearLevelEnrollment } from './types';
+import type { AcademicProgram, ProgramComplianceRecord } from './types';
+import { getComplianceEnrollmentSummary } from './enrollment';
 
 export type ProgramChedWarningType =
   'enrollment' | 'graduation' | 'board' | 'ched_copc' | 'ched_cmo' | 'ched_bor' | 'faculty';
@@ -41,19 +42,6 @@ export interface ProgramChedWarningSummary {
 }
 
 /**
- * Helper to compute the total headcount in a single semester's year-level breakdown.
- */
-function sumSemesterEnrollment(sem?: YearLevelEnrollment | null): number {
-  if (!sem) return 0;
-  const y1 = sem.firstYear?.total ?? 0;
-  const y2 = sem.secondYear?.total ?? 0;
-  const y3 = sem.thirdYear?.total ?? 0;
-  const y4 = sem.fourthYear?.total ?? 0;
-  const y5 = sem.fifthYear?.total ?? 0;
-  return y1 + y2 + y3 + y4 + y5;
-}
-
-/**
  * Analyzes a single academic program and its compliance record to identify any missing required CHED monitoring data:
  * 1. Enrollment per semester (1st Sem & 2nd Sem)
  * 2. Graduation counts
@@ -67,34 +55,11 @@ export function getProgramChedWarnings(
 ): ProgramChedWarningSummary {
   const warnings: ProgramChedWarningItem[] = [];
 
-  // 1. Calculate Enrollment per Semester
-  const statsEnrollment = compliance?.stats?.enrollment;
-  let firstSemCount = sumSemesterEnrollment(statsEnrollment?.firstSemester);
-  let secondSemCount = sumSemesterEnrollment(statsEnrollment?.secondSemester);
-  let midYearCount = sumSemesterEnrollment(statsEnrollment?.midYearTerm);
-
-  // Fallback to disaggregated enrollmentRecords if present
-  if (Array.isArray(compliance?.enrollmentRecords) && compliance.enrollmentRecords.length > 0) {
-    const yearRecords = targetYear
-      ? compliance.enrollmentRecords.filter(
-          (r) => !r.academicYear || String(r.academicYear).includes(String(targetYear)),
-        )
-      : compliance.enrollmentRecords;
-
-    if (yearRecords.length > 0) {
-      let recSem1 = 0;
-      let recSem2 = 0;
-      let recMid = 0;
-      yearRecords.forEach((r) => {
-        recSem1 += sumSemesterEnrollment(r.firstSemester);
-        recSem2 += sumSemesterEnrollment(r.secondSemester);
-        recMid += sumSemesterEnrollment(r.midYearTerm);
-      });
-      if (firstSemCount === 0 && recSem1 > 0) firstSemCount = recSem1;
-      if (secondSemCount === 0 && recSem2 > 0) secondSemCount = recSem2;
-      if (midYearCount === 0 && recMid > 0) midYearCount = recMid;
-    }
-  }
+  // 1. Calculate Enrollment per Semester using the shared canonical aggregator
+  const enrollmentSummary = getComplianceEnrollmentSummary(compliance, { academicYear: targetYear });
+  const firstSemCount = enrollmentSummary.firstSemester.total;
+  const secondSemCount = enrollmentSummary.secondSemester.total;
+  const midYearCount = enrollmentSummary.midYearTerm.total;
 
   const totalYearEnrollment = firstSemCount + secondSemCount + midYearCount;
 
@@ -307,19 +272,20 @@ export function getUnitProgramsChedWarnings(
   const complianceMap = new Map<string, ProgramComplianceRecord>();
 
   compliances.forEach((c) => {
-    const existing = complianceMap.get(c.programId);
-    if (!existing) {
-      complianceMap.set(c.programId, c);
-    } else if (targetYear) {
-      if (c.academicYear === targetYear) {
+    if (targetYear) {
+      if (Number(c.academicYear) === Number(targetYear)) {
         complianceMap.set(c.programId, c);
       }
-    } else if (c.academicYear > existing.academicYear) {
+      return;
+    }
+
+    const existing = complianceMap.get(c.programId);
+    if (!existing || c.academicYear > existing.academicYear) {
       complianceMap.set(c.programId, c);
     }
   });
 
-  const activePrograms = programs.filter((p) => p.isActive !== false);
+  const activePrograms = programs.filter((p) => p.isActive === true);
 
   const summaries = activePrograms.map((p) => {
     const comp = complianceMap.get(p.id);

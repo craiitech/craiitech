@@ -16,6 +16,11 @@ import { BatchEntryDialog } from './batch-entry-dialog';
 import { BatchXlsxImport } from './batch-xlsx-import';
 import { Bar, BarChart, CartesianGrid, Legend, Tooltip as RechartsTooltip, XAxis, YAxis } from 'recharts';
 import { ChartContainer, ChartTooltipContent, type ChartConfig } from '@/components/ui/chart';
+import {
+  addEnrollmentTotals as addTotals,
+  emptyEnrollmentTotals as emptyTotals,
+  getComplianceEnrollmentSummary,
+} from '@/lib/enrollment';
 
 interface BatchDataHubProps {
   programs: AcademicProgram[];
@@ -28,58 +33,6 @@ interface BatchDataHubProps {
 }
 
 type DataMode = 'enrollment' | 'graduation' | 'board' | 'tracer';
-
-type TermTotals = {
-  male: number;
-  female: number;
-  total: number;
-};
-
-const ENROLLMENT_LEVELS = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear', 'fifthYear'] as const;
-
-const emptyTotals = (): TermTotals => ({ male: 0, female: 0, total: 0 });
-
-const addTotals = (a: TermTotals, b: TermTotals): TermTotals => ({
-  male: a.male + b.male,
-  female: a.female + b.female,
-  total: a.total + b.total,
-});
-
-/**
- * Sums a semester's year-level breakdown. Handles both the disaggregated
- * (per-level male/female) and legacy (per-level total) storage formats.
- */
-function sumYearLevels(term: any): TermTotals {
-  if (!term) return emptyTotals();
-
-  return ENROLLMENT_LEVELS.reduce<TermTotals>((totals, level) => {
-    const levelData = term[level];
-    if (!levelData) return totals;
-
-    const male = Number(levelData.male) || 0;
-    const female = Number(levelData.female) || 0;
-    const reportedTotal = Number(levelData.total) || 0;
-
-    return {
-      male: totals.male + male,
-      female: totals.female + female,
-      total: totals.total + Math.max(male + female, reportedTotal),
-    };
-  }, emptyTotals());
-}
-
-function totalsFromOverall(overall: any, fallback: TermTotals): TermTotals {
-  if (!overall) return fallback;
-
-  const male = Number(overall.male ?? fallback.male) || 0;
-  const female = Number(overall.female ?? fallback.female) || 0;
-
-  return {
-    male,
-    female,
-    total: Math.max(Number(overall.total) || 0, male + female),
-  };
-}
 
 const enrollmentChartConfig = {
   firstSemester: { label: '1st Semester', color: 'hsl(var(--chart-1))' },
@@ -113,46 +66,12 @@ export function BatchDataHub({
             .trim() === pId,
       );
 
-      // Prefer the record registered for the selected Academic Year, falling back
-      // to the most recent available record so historical logs remain visible.
-      const record =
-        programRecords.find((c) => c.academicYear === selectedYear) ||
-        programRecords.sort((a, b) => (b.academicYear || 0) - (a.academicYear || 0))[0];
-
-      const allEnrollmentRecords = record?.enrollmentRecords || [];
-      const yearEnrollmentRecords = allEnrollmentRecords.filter(
-        (r) => !r.academicYear || String(r.academicYear).includes(String(selectedYear)),
-      );
-      const enrollmentRecords = yearEnrollmentRecords.length > 0 ? yearEnrollmentRecords : allEnrollmentRecords;
-
-      const aggregateSemester = (termKey: 'firstSemester' | 'secondSemester'): TermTotals => {
-        return enrollmentRecords.reduce<TermTotals>((acc, rec: any) => {
-          const computed = sumYearLevels(rec?.[termKey]);
-          const overall = rec?.overall?.[termKey];
-
-          // "Overall only" records keep their headcount in `overall`, while
-          // disaggregated records keep it in the year-level fields.
-          const termTotals =
-            rec?.overallOnly && overall
-              ? totalsFromOverall(overall, computed)
-              : computed.total > 0
-                ? computed
-                : totalsFromOverall(overall, computed);
-
-          return addTotals(acc, termTotals);
-        }, emptyTotals());
-      };
-
-      let sem1 = aggregateSemester('firstSemester');
-      let sem2 = aggregateSemester('secondSemester');
-
-      // Fallback to the legacy aggregate `stats.enrollment` if no records exist yet
-      if (sem1.total === 0) {
-        sem1 = sumYearLevels(record?.stats?.enrollment?.firstSemester);
-      }
-      if (sem2.total === 0) {
-        sem2 = sumYearLevels(record?.stats?.enrollment?.secondSemester);
-      }
+      // Use only the record registered for the selected Academic Year so the
+      // Batch Hub, CHED Monitoring, and SDD Hub all read the same source.
+      const record = programRecords.find((c) => Number(c.academicYear) === Number(selectedYear));
+      const enrollmentSummary = getComplianceEnrollmentSummary(record, { academicYear: selectedYear });
+      const sem1 = enrollmentSummary.firstSemester;
+      const sem2 = enrollmentSummary.secondSemester;
 
       // Outcomes summary
       const graduationRecords = record?.graduationRecords || [];

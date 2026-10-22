@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { sumEnrollmentTerm, withEnrollmentOveralls } from './enrollment';
-import type { EnrollmentRecord, YearLevelEnrollment } from './types';
+import {
+  aggregateComplianceEnrollment,
+  getComplianceEnrollmentSummary,
+  sumEnrollmentTerm,
+  withEnrollmentOveralls,
+} from './enrollment';
+import type { EnrollmentRecord, ProgramComplianceRecord, YearLevelEnrollment } from './types';
 
 const level = (male: number, female: number) => ({
   male,
@@ -97,5 +102,121 @@ describe('withEnrollmentOveralls', () => {
     } as EnrollmentRecord;
 
     expect(withEnrollmentOveralls(record).overall?.firstSemester).toEqual({ male: 4, female: 6, total: 10 });
+  });
+});
+
+const enrollmentRecord = (overrides: Partial<EnrollmentRecord>): EnrollmentRecord => ({
+  id: 'enrollment-1',
+  majorId: 'General',
+  firstSemester: term([1, 1], [0, 0]),
+  secondSemester: term([0, 0], [0, 0]),
+  ...overrides,
+});
+
+const complianceRecord = (overrides: Record<string, unknown>): ProgramComplianceRecord =>
+  ({
+    id: 'compliance-1',
+    programId: 'program-1',
+    campusId: 'campus-1',
+    academicYear: 2025,
+    ched: { copcStatus: 'No COPC' },
+    faculty: { dean: {}, programChair: {}, members: [] },
+    stats: {
+      enrollment: {
+        firstSemester: term([0, 0], [0, 0]),
+        secondSemester: term([0, 0], [0, 0]),
+      },
+      graduationCount: 0,
+    },
+    updatedAt: null,
+    updatedBy: 'test',
+    ...overrides,
+  }) as unknown as ProgramComplianceRecord;
+
+describe('getComplianceEnrollmentSummary', () => {
+  it('prefers enrollment records over legacy stats', () => {
+    const record = complianceRecord({
+      stats: {
+        enrollment: {
+          firstSemester: term([9, 9], [9, 9]),
+          secondSemester: term([0, 0], [0, 0]),
+        },
+        graduationCount: 0,
+      },
+      enrollmentRecords: [enrollmentRecord({ firstSemester: term([2, 3], [0, 0]) })],
+    });
+
+    expect(getComplianceEnrollmentSummary(record).firstSemester).toEqual({ male: 2, female: 3, total: 5 });
+  });
+
+  it('filters enrollment records by the selected academic year', () => {
+    const record = complianceRecord({
+      enrollmentRecords: [
+        enrollmentRecord({ id: 'old', academicYear: 2024, firstSemester: term([100, 0], [0, 0]) }),
+        enrollmentRecord({ id: 'current', academicYear: 2025, firstSemester: term([2, 3], [0, 0]) }),
+      ],
+    });
+
+    expect(getComplianceEnrollmentSummary(record, { academicYear: 2025 }).firstSemester).toEqual({
+      male: 2,
+      female: 3,
+      total: 5,
+    });
+  });
+
+  it('uses overall totals for overall-only records', () => {
+    const record = complianceRecord({
+      enrollmentRecords: [
+        enrollmentRecord({
+          overallOnly: true,
+          firstSemester: term([0, 0], [0, 0]),
+          overall: {
+            firstSemester: { male: 10, female: 5, total: 15 },
+            secondSemester: { male: 0, female: 0, total: 0 },
+          },
+        }),
+      ],
+    });
+
+    expect(getComplianceEnrollmentSummary(record).firstSemester).toEqual({ male: 10, female: 5, total: 15 });
+  });
+
+  it('supports legacy per-level total-only rows', () => {
+    const record = complianceRecord({
+      stats: {
+        enrollment: {
+          firstSemester: { firstYear: { total: 12 } },
+          secondSemester: {},
+        },
+        graduationCount: 0,
+      },
+    });
+
+    expect(getComplianceEnrollmentSummary(record).firstSemester).toEqual({ male: 0, female: 0, total: 12 });
+  });
+});
+
+describe('aggregateComplianceEnrollment', () => {
+  it('aggregates unique active programs for the selected year', () => {
+    const records = [
+      complianceRecord({
+        id: 'compliance-1',
+        programId: 'program-1',
+        enrollmentRecords: [enrollmentRecord({ firstSemester: term([2, 2], [0, 0]) })],
+      }),
+      complianceRecord({
+        id: 'compliance-2',
+        programId: 'program-2',
+        enrollmentRecords: [enrollmentRecord({ firstSemester: term([3, 4], [0, 0]) })],
+      }),
+    ];
+
+    const totals = aggregateComplianceEnrollment(records, {
+      academicYear: 2025,
+      activeProgramIds: new Set(['program-1']),
+    });
+
+    expect(totals.firstSemester).toEqual({ male: 2, female: 2, total: 4 });
+    expect(totals.secondSemester).toEqual({ male: 0, female: 0, total: 0 });
   });
 });
