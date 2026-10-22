@@ -3,7 +3,16 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
-import type { ProgramComplianceRecord, Campus, Unit, UnitPersonnelCensus, GADSector, Employee } from '@/lib/types';
+import type {
+  ProgramComplianceRecord,
+  Campus,
+  Unit,
+  UnitPersonnelCensus,
+  GADSector,
+  Employee,
+  Signatories,
+  GadSettings,
+} from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import {
   PieChart,
@@ -23,6 +32,14 @@ import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 import { Badge } from '@/components/ui/badge';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
   Users,
   GraduationCap,
   UserCircle,
@@ -39,8 +56,19 @@ import {
   Target,
   Smartphone,
   LayoutList,
+  Printer,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { renderToStaticMarkup } from 'react-dom/server';
+import {
+  SDDStudentReportTemplate,
+  SDDEmployeeReportTemplate,
+  type StudentSDDReportData,
+  type EmployeeSDDReportData,
+  type SDDSectorRow,
+  type SDDTermBlock,
+  type SDDEmployeeYearBlock,
+} from './sdd-print-templates';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -55,6 +83,7 @@ interface SDDHubProps {
   activities: any[];
   selectedYear: number;
   unitName?: string;
+  selectedUnitId?: string;
 }
 
 const COLORS = [
@@ -74,11 +103,70 @@ const GAD_SECTORS: GADSector[] = [
   'Indigenous People',
 ];
 
-export function SDDHub({ compliances, campuses, units, activities, selectedYear, unitName }: SDDHubProps) {
+export function SDDHub({
+  compliances,
+  campuses,
+  units,
+  activities,
+  selectedYear,
+  unitName,
+  selectedUnitId,
+}: SDDHubProps) {
   const { userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isSavingCensus, setIsSaving] = useState(false);
+  const [isPrintDialogOpen, setIsPrintDialogOpen] = useState(false);
+  const [printReportType, setPrintReportType] = useState<'students' | 'employees'>('students');
+  const [printMode, setPrintMode] = useState<'range' | 'year' | 'yearSemester'>('year');
+  const [printFromYear, setPrintFromYear] = useState(selectedYear);
+  const [printToYear, setPrintToYear] = useState(selectedYear);
+  const [printYear, setPrintYear] = useState(selectedYear);
+  const [printSemester, setPrintSemester] = useState<'firstSemester' | 'secondSemester' | 'midYearTerm'>(
+    'firstSemester',
+  );
+
+  useEffect(() => {
+    setPrintFromYear(selectedYear);
+    setPrintToYear(selectedYear);
+    setPrintYear(selectedYear);
+  }, [selectedYear]);
+
+  const isInstitutionalScope = !selectedUnitId || selectedUnitId === 'all';
+
+  const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
+  const { data: signatories } = useDoc<Signatories>(signatoryRef);
+
+  const gadSettingsRef = useMemoFirebase(
+    () => (firestore ? doc(firestore, 'system', 'gadSettings') : null),
+    [firestore],
+  );
+  const { data: gadSettings } = useDoc<GadSettings>(gadSettingsRef);
+
+  const reportCensusQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    const baseRef = collection(firestore, 'unitPersonnelCensus');
+    if (isInstitutionalScope) return baseRef;
+    if (selectedUnitId) return query(baseRef, where('unitId', '==', selectedUnitId));
+    return null;
+  }, [firestore, isInstitutionalScope, selectedUnitId]);
+
+  const { data: reportCensuses } = useCollection<UnitPersonnelCensus>(reportCensusQuery);
+
+  const reportCompliancesQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    const baseRef = collection(firestore, 'programCompliances');
+    if (isInstitutionalScope) return baseRef;
+    if (selectedUnitId) return query(baseRef, where('unitId', '==', selectedUnitId));
+    return null;
+  }, [firestore, isInstitutionalScope, selectedUnitId]);
+
+  const { data: reportCompliances } = useCollection<ProgramComplianceRecord>(reportCompliancesQuery);
+
+  const studentRecordSource = useMemo(() => {
+    if (reportCompliances && reportCompliances.length > 0) return reportCompliances;
+    return compliances;
+  }, [reportCompliances, compliances]);
 
   // 1. UNIT PERSONNEL CENSUS MODULE
   const censusId = userProfile?.unitId ? `${userProfile.unitId}-${selectedYear}` : 'none';
@@ -280,6 +368,380 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
     };
   }, [compliances]);
 
+  const studentLevelRowData = useMemo(() => {
+    const records = studentRecordSource.filter((record) => Number(record.academicYear) === selectedYear);
+    const levelDefs = [
+      { key: 'firstYear', label: 'First Year' },
+      { key: 'secondYear', label: 'Second Year' },
+      { key: 'thirdYear', label: 'Third Year' },
+      { key: 'fourthYear', label: 'Fourth Year' },
+      { key: 'fifthYear', label: 'Fifth Year' },
+    ] as const;
+
+    const buildTerm = (termKey: 'firstSemester' | 'secondSemester' | 'midYearTerm') => {
+      const levels = levelDefs.map(({ label }) => ({ label, male: 0, female: 0 }));
+
+      const collectTerm = (term: any) => {
+        if (!term) return;
+        levelDefs.forEach(({ key: levelKey }, index) => {
+          const levelData = term[levelKey];
+          if (!levelData) return;
+          levels[index].male += Number(levelData.male || 0);
+          levels[index].female += Number(levelData.female || 0);
+        });
+      };
+
+      records.forEach((record) => {
+        const enrollmentRecords = record.enrollmentRecords || [];
+        if (enrollmentRecords.length > 0) {
+          enrollmentRecords.forEach((rec: any) => collectTerm(rec?.[termKey]));
+        } else {
+          collectTerm((record.stats?.enrollment as any)?.[termKey]);
+        }
+      });
+
+      return {
+        levels,
+        male: levels.reduce((sum, level) => sum + level.male, 0),
+        female: levels.reduce((sum, level) => sum + level.female, 0),
+      };
+    };
+
+    const first = buildTerm('firstSemester');
+    const second = buildTerm('secondSemester');
+    const midyear = buildTerm('midYearTerm');
+    const hasMidyear = midyear.male + midyear.female > 0;
+
+    const rows = levelDefs
+      .map((_, index) => {
+        const s1 = first.levels[index];
+        const s2 = second.levels[index];
+        const mid = midyear.levels[index];
+        return {
+          label: levelDefs[index].label,
+          first: s1,
+          second: s2,
+          midyear: mid,
+          total: {
+            male: s1.male + s2.male + mid.male,
+            female: s1.female + s2.female + mid.female,
+          },
+        };
+      })
+      .filter((row, index) => index < 4 || row.total.male + row.total.female > 0);
+
+    return {
+      rows,
+      hasMidyear,
+      totals: {
+        first,
+        second,
+        midyear,
+        overall: {
+          male: first.male + second.male + midyear.male,
+          female: first.female + second.female + midyear.female,
+        },
+      },
+    };
+  }, [studentRecordSource, selectedYear]);
+
+  const semesterLabels = {
+    firstSemester: 'First Semester',
+    secondSemester: 'Second Semester',
+    midYearTerm: 'Midyear Term',
+  } as const;
+
+  const formatPeriodLabel = (years: number[], semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm') => {
+    const sorted = [...years].sort((a, b) => a - b);
+    const yearLabel =
+      sorted.length <= 1
+        ? `${sorted[0]}-${sorted[0] + 1}`
+        : `${sorted[0]}-${sorted[0] + 1} to ${sorted[sorted.length - 1]}-${sorted[sorted.length - 1] + 1}`;
+    return semesterKey ? `${yearLabel} (${semesterLabels[semesterKey]})` : yearLabel;
+  };
+
+  const buildStudentReportData = (
+    years: number[],
+    semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
+  ): StudentSDDReportData => {
+    const termKeys = semesterKey
+      ? ([semesterKey] as const)
+      : (['firstSemester', 'secondSemester', 'midYearTerm'] as const);
+    const levelDefs = [
+      { key: 'firstYear', label: 'First Year' },
+      { key: 'secondYear', label: 'Second Year' },
+      { key: 'thirdYear', label: 'Third Year' },
+      { key: 'fourthYear', label: 'Fourth Year' },
+      { key: 'fifthYear', label: 'Fifth Year' },
+    ] as const;
+
+    const terms: SDDTermBlock[] = [];
+
+    years.forEach((year) => {
+      const yearRecords = studentRecordSource.filter((record) => Number(record.academicYear) === year);
+
+      termKeys.forEach((key) => {
+        const levels = levelDefs.map(({ label }) => ({ label, male: 0, female: 0 }));
+        const sectorMap: Record<string, { male: number; female: number }> = {};
+        let male = 0;
+        let female = 0;
+
+        const collectTerm = (term: any) => {
+          if (!term) return;
+          levelDefs.forEach(({ key: levelKey }, index) => {
+            const levelData = term[levelKey];
+            if (!levelData) return;
+
+            const levelMale = Number(levelData.male || 0);
+            const levelFemale = Number(levelData.female || 0);
+            levels[index].male += levelMale;
+            levels[index].female += levelFemale;
+            male += levelMale;
+            female += levelFemale;
+
+            Object.entries(levelData.sectors || {}).forEach(([sector, counts]: [string, any]) => {
+              if (!sectorMap[sector]) sectorMap[sector] = { male: 0, female: 0 };
+              sectorMap[sector].male += Number(counts?.male || 0);
+              sectorMap[sector].female += Number(counts?.female || 0);
+            });
+          });
+        };
+
+        yearRecords.forEach((record) => {
+          const enrollmentRecords = record.enrollmentRecords || [];
+          if (enrollmentRecords.length > 0) {
+            enrollmentRecords.forEach((rec: any) => collectTerm(rec?.[key]));
+          } else {
+            collectTerm((record.stats?.enrollment as any)?.[key]);
+          }
+        });
+
+        if (!semesterKey && key === 'midYearTerm' && male + female === 0) return;
+
+        const sectors: SDDSectorRow[] = Object.entries(sectorMap)
+          .map(([sector, counts]) => ({
+            sector,
+            male: counts.male,
+            female: counts.female,
+            total: counts.male + counts.female,
+          }))
+          .filter((sector) => sector.total > 0)
+          .sort((a, b) => b.total - a.total);
+
+        terms.push({
+          term: semesterLabels[key],
+          academicYear: `${year}-${year + 1}`,
+          levels: levels.filter((level, index) => index < 4 || level.male + level.female > 0),
+          sectors,
+          male,
+          female,
+        });
+      });
+    });
+
+    const grand = {
+      male: terms.reduce((sum, term) => sum + term.male, 0),
+      female: terms.reduce((sum, term) => sum + term.female, 0),
+    };
+
+    return {
+      academicYear: formatPeriodLabel(years, semesterKey),
+      unitName: unitName || 'Institutional',
+      terms: grand.male + grand.female > 0 ? terms : [],
+      grand,
+    };
+  };
+
+  const buildEmployeeReportData = (years: number[], note?: string): EmployeeSDDReportData => {
+    const unitNameMap = new Map(units.map((unit) => [unit.id, unit.name]));
+
+    const yearBlocks: SDDEmployeeYearBlock[] = years
+      .map((year) => {
+        const records = (reportCensuses || []).filter((record) => Number(record.year) === year);
+
+        const buildGroup = (label: string, groupKey: 'teaching' | 'nonTeaching') => {
+          const sectorMap: Record<string, { male: number; female: number }> = {};
+          let male = 0;
+          let female = 0;
+
+          records.forEach((record) => {
+            const group = record[groupKey];
+            if (!group) return;
+            male += Number(group.male || 0);
+            female += Number(group.female || 0);
+            Object.entries(group.sectors || {}).forEach(([sector, counts]: [string, any]) => {
+              if (!sectorMap[sector]) sectorMap[sector] = { male: 0, female: 0 };
+              sectorMap[sector].male += Number(counts?.male || 0);
+              sectorMap[sector].female += Number(counts?.female || 0);
+            });
+          });
+
+          const sectors: SDDSectorRow[] = Object.entries(sectorMap)
+            .map(([sector, counts]) => ({
+              sector,
+              male: counts.male,
+              female: counts.female,
+              total: counts.male + counts.female,
+            }))
+            .filter((sector) => sector.total > 0)
+            .sort((a, b) => b.total - a.total);
+
+          return { label, male, female, sectors };
+        };
+
+        const groups = [buildGroup('Teaching Faculty', 'teaching'), buildGroup('Non-Teaching Staff', 'nonTeaching')];
+        const grand = groups.reduce(
+          (acc, group) => ({ male: acc.male + group.male, female: acc.female + group.female }),
+          { male: 0, female: 0 },
+        );
+
+        const unitRows = records
+          .map((record) => ({
+            unitName: unitNameMap.get(record.unitId) || record.unitId,
+            teachingMale: Number(record.teaching?.male || 0),
+            teachingFemale: Number(record.teaching?.female || 0),
+            nonTeachingMale: Number(record.nonTeaching?.male || 0),
+            nonTeachingFemale: Number(record.nonTeaching?.female || 0),
+          }))
+          .sort((a, b) => a.unitName.localeCompare(b.unitName));
+
+        return {
+          academicYear: `${year}-${year + 1}`,
+          groups,
+          units: unitRows,
+          grand,
+          showUnitBreakdown: isInstitutionalScope && unitRows.length > 1,
+        };
+      })
+      .filter((block) => block.grand.male + block.grand.female > 0);
+
+    const grand = yearBlocks.reduce(
+      (acc, block) => ({ male: acc.male + block.grand.male, female: acc.female + block.grand.female }),
+      { male: 0, female: 0 },
+    );
+
+    return {
+      academicYear: formatPeriodLabel(years),
+      unitName: unitName || 'Institutional',
+      years: yearBlocks,
+      grand,
+      note,
+    };
+  };
+
+  const openSddPrintWindow = (title: string, reportHtml: string) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: 'Popup Blocked',
+        description: 'Please allow popups for this site to print the SDD report.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(`
+      <html>
+      <head>
+        <title>${title}</title>
+        <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+        <style>
+          @media print {
+            @page { size: letter portrait; margin: 0.4in; }
+            body { margin: 0; padding: 0; background: white; }
+            .no-print { display: none !important; }
+          }
+          body { font-family: serif; background: #f9fafb; padding: 20px; color: black; }
+        </style>
+      </head>
+      <body>
+        <div class="no-print mb-8 flex justify-center">
+          <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-black uppercase text-xs tracking-widest transition-all">Click to Print SDD Report</button>
+        </div>
+        <div id="print-content">${reportHtml}</div>
+      </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
+  const resolvePrintYears = () => {
+    if (printMode === 'range') {
+      const from = Math.min(printFromYear, printToYear);
+      const to = Math.max(printFromYear, printToYear);
+      const years: number[] = [];
+      for (let year = from; year <= to && years.length < 20; year++) {
+        years.push(year);
+      }
+      return years;
+    }
+    return [printYear];
+  };
+
+  const handlePrintSddReport = () => {
+    const years = resolvePrintYears();
+
+    try {
+      if (printReportType === 'students') {
+        const semesterKey = printMode === 'yearSemester' ? printSemester : undefined;
+        const reportData = buildStudentReportData(years, semesterKey);
+
+        if (reportData.terms.length === 0) {
+          toast({
+            title: 'No Student Data',
+            description: 'There is no student enrollment data to print for the selected period.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const reportHtml = renderToStaticMarkup(
+          <SDDStudentReportTemplate
+            data={reportData}
+            signatories={signatories || undefined}
+            gadSettings={gadSettings || undefined}
+          />,
+        );
+        openSddPrintWindow(`GAD SDD Report - Students - ${reportData.academicYear}`, reportHtml);
+      } else {
+        const note =
+          printMode === 'yearSemester'
+            ? 'Note: The personnel census is recorded annually, so the selected semester does not alter employee figures.'
+            : undefined;
+        const reportData = buildEmployeeReportData(years, note);
+
+        if (reportData.grand.male + reportData.grand.female === 0) {
+          toast({
+            title: 'No Employee Data',
+            description: 'There is no personnel census data to print for the selected period.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const reportHtml = renderToStaticMarkup(
+          <SDDEmployeeReportTemplate
+            data={reportData}
+            signatories={signatories || undefined}
+            gadSettings={gadSettings || undefined}
+          />,
+        );
+        openSddPrintWindow(`GAD SDD Report - Employees - ${reportData.academicYear}`, reportHtml);
+      }
+
+      setIsPrintDialogOpen(false);
+    } catch (error) {
+      console.error('SDD print error:', error);
+      toast({ title: 'Print Failed', description: 'Could not generate the SDD report.', variant: 'destructive' });
+    }
+  };
+
+  const openPrintDialog = (reportType: 'students' | 'employees') => {
+    setPrintReportType(reportType);
+    setIsPrintDialogOpen(true);
+  };
+
   const renderLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
     const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
@@ -327,6 +789,24 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
               >
                 1st Semester Baseline
               </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openPrintDialog('students')}
+                className="h-8 gap-1.5 border-primary/30 bg-white text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/5"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Print Student SDD
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => openPrintDialog('employees')}
+                className="h-8 gap-1.5 border-primary/30 bg-white text-[10px] font-black uppercase tracking-wider text-primary hover:bg-primary/5"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Print Employee SDD
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -514,6 +994,190 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
           </Card>
         </div>
       </div>
+
+      {/* STUDENT SDD BY YEAR LEVEL */}
+      <Card className="shadow-lg border-primary/10 rounded-2xl overflow-hidden">
+        <CardHeader className="bg-muted/10 border-b py-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <LayoutList className="h-5 w-5 text-primary" />
+              <div>
+                <CardTitle className="text-sm font-black uppercase tracking-tight">Student SDD by Year Level</CardTitle>
+                <CardDescription className="text-[10px]">
+                  Enrollment disaggregated by sex and year level for AY {selectedYear}&ndash;{selectedYear + 1}.
+                </CardDescription>
+              </div>
+            </div>
+            <Badge
+              variant="outline"
+              className="w-fit text-[9px] font-black uppercase border-primary/30 text-primary bg-white flex items-center gap-1"
+            >
+              <CalendarRange className="h-3 w-3" /> AY {selectedYear}&ndash;{selectedYear + 1}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0 overflow-x-auto">
+          <table className="w-full min-w-[900px] border-collapse text-[10px]">
+            <thead>
+              <tr className="bg-slate-100 dark:bg-slate-800 font-black uppercase text-[9px]">
+                <th rowSpan={2} className="border border-slate-200 p-2 text-left">
+                  Year Level
+                </th>
+                <th colSpan={3} className="border border-slate-200 p-2 text-center">
+                  First Semester
+                </th>
+                <th colSpan={3} className="border border-slate-200 p-2 text-center">
+                  Second Semester
+                </th>
+                {studentLevelRowData.hasMidyear && (
+                  <th colSpan={3} className="border border-slate-200 p-2 text-center">
+                    Midyear Term
+                  </th>
+                )}
+                <th colSpan={3} className="border border-slate-200 p-2 text-center">
+                  Overall Total
+                </th>
+              </tr>
+              <tr className="bg-slate-50 dark:bg-slate-800/60 font-black uppercase text-[8px] text-slate-500">
+                <th className="border border-slate-200 p-1.5 text-right">Male</th>
+                <th className="border border-slate-200 p-1.5 text-right">Female</th>
+                <th className="border border-slate-200 p-1.5 text-right">Total</th>
+                <th className="border border-slate-200 p-1.5 text-right">Male</th>
+                <th className="border border-slate-200 p-1.5 text-right">Female</th>
+                <th className="border border-slate-200 p-1.5 text-right">Total</th>
+                {studentLevelRowData.hasMidyear && (
+                  <>
+                    <th className="border border-slate-200 p-1.5 text-right">Male</th>
+                    <th className="border border-slate-200 p-1.5 text-right">Female</th>
+                    <th className="border border-slate-200 p-1.5 text-right">Total</th>
+                  </>
+                )}
+                <th className="border border-slate-200 p-1.5 text-right">Male</th>
+                <th className="border border-slate-200 p-1.5 text-right">Female</th>
+                <th className="border border-slate-200 p-1.5 text-right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {studentLevelRowData.rows.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={studentLevelRowData.hasMidyear ? 13 : 10}
+                    className="border border-slate-200 p-6 text-center italic text-muted-foreground"
+                  >
+                    No year-level enrollment data for AY {selectedYear}&ndash;{selectedYear + 1}.
+                  </td>
+                </tr>
+              ) : (
+                <>
+                  {studentLevelRowData.rows.map((row) => (
+                    <tr key={row.label} className="hover:bg-primary/5 transition-colors">
+                      <td className="border border-slate-200 p-2 font-bold">{row.label}</td>
+                      <td className="border border-slate-200 p-2 text-right tabular-nums">
+                        {row.first.male.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-200 p-2 text-right tabular-nums">
+                        {row.first.female.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-200 p-2 text-right tabular-nums font-bold">
+                        {(row.first.male + row.first.female).toLocaleString()}
+                      </td>
+                      <td className="border border-slate-200 p-2 text-right tabular-nums">
+                        {row.second.male.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-200 p-2 text-right tabular-nums">
+                        {row.second.female.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-200 p-2 text-right tabular-nums font-bold">
+                        {(row.second.male + row.second.female).toLocaleString()}
+                      </td>
+                      {studentLevelRowData.hasMidyear && (
+                        <>
+                          <td className="border border-slate-200 p-2 text-right tabular-nums">
+                            {row.midyear.male.toLocaleString()}
+                          </td>
+                          <td className="border border-slate-200 p-2 text-right tabular-nums">
+                            {row.midyear.female.toLocaleString()}
+                          </td>
+                          <td className="border border-slate-200 p-2 text-right tabular-nums font-bold">
+                            {(row.midyear.male + row.midyear.female).toLocaleString()}
+                          </td>
+                        </>
+                      )}
+                      <td className="border border-slate-200 p-2 text-right tabular-nums">
+                        {row.total.male.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-200 p-2 text-right tabular-nums">
+                        {row.total.female.toLocaleString()}
+                      </td>
+                      <td className="border border-slate-200 p-2 text-right tabular-nums font-black text-primary">
+                        {(row.total.male + row.total.female).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr className="bg-primary/5 font-black">
+                    <td className="border border-slate-200 p-2 uppercase">Total</td>
+                    <td className="border border-slate-200 p-2 text-right tabular-nums">
+                      {studentLevelRowData.totals.first.male.toLocaleString()}
+                    </td>
+                    <td className="border border-slate-200 p-2 text-right tabular-nums">
+                      {studentLevelRowData.totals.first.female.toLocaleString()}
+                    </td>
+                    <td className="border border-slate-200 p-2 text-right tabular-nums">
+                      {(
+                        studentLevelRowData.totals.first.male + studentLevelRowData.totals.first.female
+                      ).toLocaleString()}
+                    </td>
+                    <td className="border border-slate-200 p-2 text-right tabular-nums">
+                      {studentLevelRowData.totals.second.male.toLocaleString()}
+                    </td>
+                    <td className="border border-slate-200 p-2 text-right tabular-nums">
+                      {studentLevelRowData.totals.second.female.toLocaleString()}
+                    </td>
+                    <td className="border border-slate-200 p-2 text-right tabular-nums">
+                      {(
+                        studentLevelRowData.totals.second.male + studentLevelRowData.totals.second.female
+                      ).toLocaleString()}
+                    </td>
+                    {studentLevelRowData.hasMidyear && (
+                      <>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums">
+                          {studentLevelRowData.totals.midyear.male.toLocaleString()}
+                        </td>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums">
+                          {studentLevelRowData.totals.midyear.female.toLocaleString()}
+                        </td>
+                        <td className="border border-slate-200 p-2 text-right tabular-nums">
+                          {(
+                            studentLevelRowData.totals.midyear.male + studentLevelRowData.totals.midyear.female
+                          ).toLocaleString()}
+                        </td>
+                      </>
+                    )}
+                    <td className="border border-slate-200 p-2 text-right tabular-nums">
+                      {studentLevelRowData.totals.overall.male.toLocaleString()}
+                    </td>
+                    <td className="border border-slate-200 p-2 text-right tabular-nums">
+                      {studentLevelRowData.totals.overall.female.toLocaleString()}
+                    </td>
+                    <td className="border border-slate-200 p-2 text-right tabular-nums">
+                      {(
+                        studentLevelRowData.totals.overall.male + studentLevelRowData.totals.overall.female
+                      ).toLocaleString()}
+                    </td>
+                  </tr>
+                </>
+              )}
+            </tbody>
+          </table>
+        </CardContent>
+        <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+          <LayoutList className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+          <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+            Year-level headcounts are consolidated from the enrollment records of all programs in scope. The table
+            includes first and second semester figures, plus the midyear term when recorded.
+          </p>
+        </CardFooter>
+      </Card>
 
       {/* UNIT PERSONNEL CENSUS WORKSPACE */}
       {!isLoadingCensus && userProfile?.unitId && (
@@ -786,6 +1450,168 @@ export function SDDHub({ compliances, campuses, units, activities, selectedYear,
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-black uppercase tracking-tight">Print SDD Report</DialogTitle>
+            <DialogDescription>
+              Configure the report type and reporting period. Student reports include per-semester breakdowns while
+              employee reports use the annual personnel census.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Report Type</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant={printReportType === 'students' ? 'default' : 'outline'}
+                  onClick={() => setPrintReportType('students')}
+                  className="h-9 text-[10px] font-black uppercase tracking-wider"
+                >
+                  <GraduationCap className="mr-1.5 h-3.5 w-3.5" /> Students
+                </Button>
+                <Button
+                  type="button"
+                  variant={printReportType === 'employees' ? 'default' : 'outline'}
+                  onClick={() => setPrintReportType('employees')}
+                  className="h-9 text-[10px] font-black uppercase tracking-wider"
+                >
+                  <Briefcase className="mr-1.5 h-3.5 w-3.5" /> Employees
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Reporting Period</Label>
+              <div className="grid gap-2">
+                <Button
+                  type="button"
+                  variant={printMode === 'range' ? 'default' : 'outline'}
+                  onClick={() => setPrintMode('range')}
+                  className="h-auto justify-start px-3 py-2 text-left"
+                >
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider">From Year and To Year</p>
+                    <p className="text-[9px] font-medium opacity-70">Print a multi-year SDD report</p>
+                  </div>
+                </Button>
+                <Button
+                  type="button"
+                  variant={printMode === 'year' ? 'default' : 'outline'}
+                  onClick={() => setPrintMode('year')}
+                  className="h-auto justify-start px-3 py-2 text-left"
+                >
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider">Year Only</p>
+                    <p className="text-[9px] font-medium opacity-70">
+                      Print both first and second semester for one school year
+                    </p>
+                  </div>
+                </Button>
+                <Button
+                  type="button"
+                  variant={printMode === 'yearSemester' ? 'default' : 'outline'}
+                  onClick={() => setPrintMode('yearSemester')}
+                  className="h-auto justify-start px-3 py-2 text-left"
+                >
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-wider">Year &amp; Semester</p>
+                    <p className="text-[9px] font-medium opacity-70">Print one school year and one semester</p>
+                  </div>
+                </Button>
+              </div>
+            </div>
+
+            {printMode === 'range' ? (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">From Year</Label>
+                  <Input
+                    type="number"
+                    value={printFromYear}
+                    onChange={(event) => setPrintFromYear(Number(event.target.value))}
+                    min={2000}
+                    max={2100}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">To Year</Label>
+                  <Input
+                    type="number"
+                    value={printToYear}
+                    onChange={(event) => setPrintToYear(Number(event.target.value))}
+                    min={2000}
+                    max={2100}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Year</Label>
+                <Input
+                  type="number"
+                  value={printYear}
+                  onChange={(event) => setPrintYear(Number(event.target.value))}
+                  min={2000}
+                  max={2100}
+                />
+              </div>
+            )}
+
+            {printMode === 'yearSemester' && printReportType === 'students' && (
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Semester</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(
+                    [
+                      { key: 'firstSemester', label: 'First' },
+                      { key: 'secondSemester', label: 'Second' },
+                      { key: 'midYearTerm', label: 'Midyear' },
+                    ] as const
+                  ).map((semester) => (
+                    <Button
+                      key={semester.key}
+                      type="button"
+                      variant={printSemester === semester.key ? 'default' : 'outline'}
+                      onClick={() => setPrintSemester(semester.key)}
+                      className="h-8 text-[10px] font-black uppercase tracking-wider"
+                    >
+                      {semester.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {printMode === 'yearSemester' && printReportType === 'employees' && (
+              <p className="text-[10px] italic text-muted-foreground">
+                The personnel census is recorded annually, so the semester selection does not change employee figures.
+              </p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsPrintDialogOpen(false)}
+              className="text-[10px] font-black uppercase tracking-wider"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handlePrintSddReport}
+              className="gap-1.5 text-[10px] font-black uppercase tracking-wider"
+            >
+              <Printer className="h-3.5 w-3.5" /> Generate Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

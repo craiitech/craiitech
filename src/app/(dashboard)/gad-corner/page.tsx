@@ -401,6 +401,7 @@ export default function GadCornerPage() {
             activities={gadActivities || []}
             selectedYear={selectedYear}
             unitName={selectedUnitId === 'all' ? 'Institutional' : units?.find((u) => u.id === selectedUnitId)?.name}
+            selectedUnitId={selectedUnitId}
           />
         </TabsContent>
 
