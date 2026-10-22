@@ -35,6 +35,7 @@ import { doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
 import { withEnrollmentOveralls } from '@/lib/enrollment';
+import { completeAcademicYearInput } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CurriculumModule } from './modules/curriculum-module';
 import { OutcomesModule } from './modules/outcomes-module';
@@ -80,7 +81,13 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
   useEffect(() => {
     if (isOpen) {
       if (record) {
-        methods.reset(record);
+        methods.reset({
+          ...record,
+          graduationRecords: (record.graduationRecords || []).map((graduation) => ({
+            ...graduation,
+            year: completeAcademicYearInput(graduation.year),
+          })),
+        });
       } else {
         // Default scaffolding if no record exists for the year
         methods.reset({

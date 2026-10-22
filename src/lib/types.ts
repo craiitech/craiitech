@@ -1031,7 +1031,7 @@ export type ProgramFacultyMember = {
 
 export type GraduationOutcome = {
   majorId?: string; // New: Link to specialization
-  year: number;
+  year: number | string; // Accepts legacy numeric year or "YYYY-YYYY" academic-year label
   yearLevel?: string; // Optional: graduation breakdown by year level
   semester: string;
   count: number;
@@ -1043,6 +1043,7 @@ export type TracerOutcome = {
   majorId?: string; // New: Link to specialization
   year: number;
   semester: string;
+  tracingDate?: string; // Date the tracer study was administered
   totalGraduates: number;
   tracedCount: number;
   employmentRate: number;
@@ -1050,6 +1051,8 @@ export type TracerOutcome = {
   femaleTraced: number;
   maleEmployed: number;
   femaleEmployed: number;
+  maleRelatedJobs?: number; // Employed in a job related to the program
+  femaleRelatedJobs?: number;
 };
 
 export type RQATVisit = {
@@ -1071,6 +1074,8 @@ export type BoardExamPerformance = {
   retakersPassRate: number;
   overallPassRate: number;
   nationalPassingRate: number;
+  malePassers?: number; // Optional sex breakdown for batch-hub reporting
+  femalePassers?: number;
 };
 
 export type AccreditationArea = {

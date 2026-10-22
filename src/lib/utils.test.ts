@@ -8,6 +8,8 @@ import {
   getDirectDriveLink,
   getUnitEstablishedYear,
   isUnitExemptFromPriorYear,
+  formatAcademicYearInput,
+  completeAcademicYearInput,
 } from './utils';
 
 describe('cn', () => {
@@ -225,5 +227,18 @@ describe('isUnitExemptFromPriorYear', () => {
   it('returns false if unit was established before targetYear (did exist in prior year)', () => {
     expect(isUnitExemptFromPriorYear({ establishedYear: 2025 }, 2026)).toBe(false);
     expect(isUnitExemptFromPriorYear({ establishedYear: 2024 }, 2026)).toBe(false);
+  });
+});
+
+describe('academic year input helpers', () => {
+  it('formats digits into a YYYY-YYYY label', () => {
+    expect(formatAcademicYearInput('20242025')).toBe('2024-2025');
+    expect(formatAcademicYearInput('2024-2025')).toBe('2024-2025');
+    expect(formatAcademicYearInput('2024')).toBe('2024');
+  });
+
+  it('completes a four-digit start year', () => {
+    expect(completeAcademicYearInput('2024')).toBe('2024-2025');
+    expect(completeAcademicYearInput('2024-2025')).toBe('2024-2025');
   });
 });

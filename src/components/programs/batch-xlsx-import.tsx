@@ -149,6 +149,11 @@ const toNumber = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const toAcademicYearStart = (value: unknown) => {
+  const match = String(value ?? '').match(/\d{4}/);
+  return match ? Number(match[0]) : toNumber(value);
+};
+
 const normalizeSemester = (value: unknown) => {
   const key = normalizeKey(value);
   if (key.includes('1st') || key.includes('first') || key === '1') return '1st Semester';
@@ -858,7 +863,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
               const index = graduationRecords.findIndex(
                 (record) =>
                   String(record.majorId || 'General') === update.majorId &&
-                  Number(record.year) === update.year &&
+                  toAcademicYearStart(record.year) === update.year &&
                   record.semester === update.semester &&
                   (record.yearLevel || 'All Levels') === update.yearLevel,
               );

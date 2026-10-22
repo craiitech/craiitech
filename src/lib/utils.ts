@@ -6,6 +6,28 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Formats user input as an academic-year label ("YYYY-YYYY").
+ * Non-digits are stripped and the hyphen is inserted automatically.
+ */
+export const formatAcademicYearInput = (value: unknown) => {
+  const digits = String(value ?? '')
+    .replace(/\D/g, '')
+    .slice(0, 8);
+  return digits.length > 4 ? `${digits.slice(0, 4)}-${digits.slice(4)}` : digits;
+};
+
+/**
+ * Completes a four-digit start year into a full academic-year label.
+ */
+export const completeAcademicYearInput = (value: unknown) => {
+  const formatted = formatAcademicYearInput(value);
+  if (/^\d{4}$/.test(formatted)) {
+    return `${formatted}-${Number(formatted) + 1}`;
+  }
+  return formatted;
+};
+
 const REPORT_TYPE_CODES: Record<string, string> = {
   'Operational Plan': 'OPE',
   'Quality Objectives Monitoring': 'QOM',

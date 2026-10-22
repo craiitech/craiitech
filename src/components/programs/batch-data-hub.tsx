@@ -39,6 +39,129 @@ const enrollmentChartConfig = {
   secondSemester: { label: '2nd Semester', color: 'hsl(var(--chart-2))' },
 } satisfies ChartConfig;
 
+const outcomeChartConfig = {
+  male: { label: 'Male', color: 'hsl(var(--chart-1))' },
+  female: { label: 'Female', color: 'hsl(var(--chart-2))' },
+} satisfies ChartConfig;
+
+type OutcomeCard = {
+  label: string;
+  value: string | number;
+  hint?: string;
+  valueClassName?: string;
+};
+
+type OutcomeChartPoint = {
+  name: string;
+  fullName: string;
+  male: number;
+  female: number;
+};
+
+function OutcomeOverview({
+  title,
+  description,
+  logged,
+  totalPrograms,
+  coverage,
+  cards,
+  chartData,
+  emptyMessage,
+  selectedYear,
+}: {
+  title: string;
+  description: string;
+  logged: number;
+  totalPrograms: number;
+  coverage: number;
+  cards: OutcomeCard[];
+  chartData: OutcomeChartPoint[];
+  emptyMessage: string;
+  selectedYear: number;
+}) {
+  return (
+    <div className="p-5 border-b bg-gradient-to-br from-indigo-50/60 via-background to-emerald-50/40 dark:from-indigo-950/20 dark:via-background dark:to-emerald-950/20 space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-4 w-4 text-indigo-700 dark:text-indigo-300" />
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-indigo-800 dark:text-indigo-200">
+              {title}
+            </p>
+            <p className="text-[9px] font-bold text-muted-foreground">{description}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Badge
+            variant="outline"
+            className="text-[9px] font-black uppercase border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
+          >
+            <UserCheck className="h-3 w-3 mr-1" />
+            {logged}/{totalPrograms} Programs Logged
+          </Badge>
+          <Badge
+            variant="outline"
+            className="text-[9px] font-black uppercase border-indigo-300 bg-indigo-50 text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300"
+          >
+            {coverage}% Coverage
+          </Badge>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {cards.map((card) => (
+          <div key={card.label} className="rounded-xl border bg-background p-3.5 shadow-sm">
+            <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">{card.label}</p>
+            <p className={cn('text-2xl font-black tabular-nums mt-1', card.valueClassName)}>
+              {typeof card.value === 'number' ? card.value.toLocaleString() : card.value}
+            </p>
+            {card.hint && <p className="text-[9px] font-bold text-muted-foreground mt-1">{card.hint}</p>}
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl border bg-background p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+            Male / Female Count by Program
+          </p>
+          <span className="text-[9px] font-bold text-muted-foreground">Top 12 programs by headcount</span>
+        </div>
+        {chartData.length > 0 ? (
+          <ChartContainer config={outcomeChartConfig} className="h-[260px] w-full aspect-auto">
+            <BarChart data={chartData} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis
+                dataKey="name"
+                tickLine={false}
+                axisLine={false}
+                tick={{ fontSize: 9 }}
+                interval={0}
+                angle={-25}
+                textAnchor="end"
+                height={50}
+              />
+              <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 9 }} width={36} />
+              <RechartsTooltip content={<ChartTooltipContent />} />
+              <Legend wrapperStyle={{ fontSize: 10 }} />
+              <Bar dataKey="male" name="Male" fill="var(--color-male)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="female" name="Female" fill="var(--color-female)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ChartContainer>
+        ) : (
+          <div className="h-[160px] flex flex-col items-center justify-center gap-1 text-center">
+            <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
+            <p className="text-xs font-bold text-foreground">{emptyMessage}</p>
+            <p className="text-[10px] text-muted-foreground">
+              Use the entry wizard to populate AY {selectedYear} data.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function BatchDataHub({
   programs,
   compliances,
@@ -73,18 +196,48 @@ export function BatchDataHub({
       const sem1 = enrollmentSummary.firstSemester;
       const sem2 = enrollmentSummary.secondSemester;
 
-      // Outcomes summary
+      // Graduation outcomes
       const graduationRecords = record?.graduationRecords || [];
-      const grads =
-        graduationRecords.reduce((acc, r) => acc + (Number(r.maleCount) || 0) + (Number(r.femaleCount) || 0), 0) ||
-        Number(record?.stats?.graduationCount) ||
-        0;
-      const tracerCount = record?.tracerRecords?.length || 0;
-      const boardExamCount = record?.boardPerformance?.length || 0;
-      const latestBoard =
-        record?.boardPerformance && record.boardPerformance.length > 0
-          ? record.boardPerformance[record.boardPerformance.length - 1].overallPassRate
-          : 0;
+      const graduationTotals = graduationRecords.reduce(
+        (acc, r) => {
+          const male = Number(r.maleCount) || 0;
+          const female = Number(r.femaleCount) || 0;
+          return {
+            male: acc.male + male,
+            female: acc.female + female,
+            total: acc.total + (male + female || Number(r.count) || 0),
+          };
+        },
+        { male: 0, female: 0, total: 0 },
+      );
+
+      let gradMale = graduationTotals.male;
+      let gradFemale = graduationTotals.female;
+      let grads = graduationTotals.total;
+      if (grads === 0) {
+        gradMale = Number(record?.stats?.maleGraduates) || 0;
+        gradFemale = Number(record?.stats?.femaleGraduates) || 0;
+        grads = Number(record?.stats?.graduationCount) || gradMale + gradFemale;
+      }
+
+      // Board examination outcomes
+      const boardRecords = record?.boardPerformance || [];
+      const boardMale = boardRecords.reduce((acc, exam) => acc + (Number(exam.malePassers) || 0), 0);
+      const boardFemale = boardRecords.reduce((acc, exam) => acc + (Number(exam.femalePassers) || 0), 0);
+      const boardExamCount = boardRecords.length;
+      const latestBoard = boardExamCount > 0 ? boardRecords[boardExamCount - 1].overallPassRate : 0;
+
+      // Tracer study outcomes
+      const tracerRecords = record?.tracerRecords || [];
+      const tracerMale = tracerRecords.reduce((acc, tracer) => acc + (Number(tracer.maleTraced) || 0), 0);
+      const tracerFemale = tracerRecords.reduce((acc, tracer) => acc + (Number(tracer.femaleTraced) || 0), 0);
+      const tracerEmployed = tracerRecords.reduce(
+        (acc, tracer) => acc + (Number(tracer.maleEmployed) || 0) + (Number(tracer.femaleEmployed) || 0),
+        0,
+      );
+      const tracerCount = tracerRecords.length;
+      const tracerTotal = tracerMale + tracerFemale;
+      const tracerEmploymentRate = tracerTotal > 0 ? Math.round((tracerEmployed / tracerTotal) * 100) : 0;
 
       return {
         id: p.id,
@@ -94,8 +247,17 @@ export function BatchDataHub({
         sem1,
         sem2,
         grads,
-        tracerCount,
+        gradMale,
+        gradFemale,
+        boardMale,
+        boardFemale,
         latestBoard,
+        tracerMale,
+        tracerFemale,
+        tracerEmployed,
+        tracerEmploymentRate,
+        tracerTotal,
+        tracerCount,
         hasRecord: !!record,
         hasEnrollmentData: sem1.total > 0 || sem2.total > 0,
         hasGraduationData: grads > 0,
@@ -141,6 +303,169 @@ export function BatchDataHub({
         secondSemester: stat.sem2.total,
       }));
   }, [stats]);
+
+  const outcomeOverview = useMemo(() => {
+    if (dataMode === 'enrollment') return null;
+
+    const rows = stats.map((stat) => {
+      if (dataMode === 'graduation') {
+        return {
+          name: stat.abbreviation || stat.name,
+          fullName: stat.name,
+          male: stat.gradMale,
+          female: stat.gradFemale,
+          total: stat.grads,
+          secondary: 0,
+          hasData: stat.hasGraduationData,
+        };
+      }
+
+      if (dataMode === 'board') {
+        return {
+          name: stat.abbreviation || stat.name,
+          fullName: stat.name,
+          male: stat.boardMale,
+          female: stat.boardFemale,
+          total: stat.boardMale + stat.boardFemale,
+          secondary: 0,
+          hasData: stat.hasBoardData,
+        };
+      }
+
+      return {
+        name: stat.abbreviation || stat.name,
+        fullName: stat.name,
+        male: stat.tracerMale,
+        female: stat.tracerFemale,
+        total: stat.tracerMale + stat.tracerFemale,
+        secondary: stat.tracerEmployed,
+        hasData: stat.hasTracerData,
+      };
+    });
+
+    const logged = rows.filter((row) => row.hasData).length;
+    const coverage = stats.length > 0 ? Math.round((logged / stats.length) * 100) : 0;
+    const totals = rows.reduce(
+      (acc, row) => ({
+        male: acc.male + row.male,
+        female: acc.female + row.female,
+        total: acc.total + row.total,
+        secondary: acc.secondary + row.secondary,
+      }),
+      { male: 0, female: 0, total: 0, secondary: 0 },
+    );
+    const chartData = rows
+      .filter((row) => row.male + row.female > 0)
+      .sort((a, b) => b.male + b.female - (a.male + a.female))
+      .slice(0, 12)
+      .map(({ name, fullName, male, female }) => ({ name, fullName, male, female }));
+
+    const loggedCard: OutcomeCard = {
+      label: 'Programs Logged',
+      value: `${logged}/${stats.length}`,
+      hint: `${coverage}% Coverage`,
+      valueClassName: 'text-sky-700 dark:text-sky-400',
+    };
+
+    if (dataMode === 'graduation') {
+      return {
+        title: `Graduation Output Overview — AY ${selectedYear}`,
+        description: 'Graduates by sex across logged programs',
+        emptyMessage:
+          logged > 0
+            ? 'Graduation data is logged, but no male/female graduate counts have been entered yet.'
+            : 'No graduation output logged yet',
+        logged,
+        totalPrograms: stats.length,
+        coverage,
+        chartData,
+        cards: [
+          {
+            label: 'Male Graduates',
+            value: totals.male,
+            valueClassName: 'text-indigo-600 dark:text-indigo-400',
+          },
+          {
+            label: 'Female Graduates',
+            value: totals.female,
+            valueClassName: 'text-rose-600 dark:text-rose-400',
+          },
+          {
+            label: 'Total Graduates',
+            value: totals.total,
+            hint: 'Across logged programs',
+            valueClassName: 'text-emerald-700 dark:text-emerald-400',
+          },
+          loggedCard,
+        ],
+      };
+    }
+
+    if (dataMode === 'board') {
+      return {
+        title: `Board Examination Overview — AY ${selectedYear}`,
+        description: 'Passers by sex across logged board exams',
+        emptyMessage:
+          logged > 0
+            ? 'Board data is logged, but no male/female passer counts have been entered yet.'
+            : 'No board examination data logged yet',
+        logged,
+        totalPrograms: stats.length,
+        coverage,
+        chartData,
+        cards: [
+          {
+            label: 'Male Passers',
+            value: totals.male,
+            valueClassName: 'text-indigo-600 dark:text-indigo-400',
+          },
+          {
+            label: 'Female Passers',
+            value: totals.female,
+            valueClassName: 'text-rose-600 dark:text-rose-400',
+          },
+          {
+            label: 'Total Passers',
+            value: totals.total,
+            hint: 'Male + Female',
+            valueClassName: 'text-emerald-700 dark:text-emerald-400',
+          },
+          loggedCard,
+        ],
+      };
+    }
+
+    const employmentRate = totals.total > 0 ? Math.round((totals.secondary / totals.total) * 100) : 0;
+
+    return {
+      title: `Tracer Study Overview — AY ${selectedYear}`,
+      description: 'Traced graduates by sex with employment outcomes',
+      emptyMessage: 'No tracer study data logged yet',
+      logged,
+      totalPrograms: stats.length,
+      coverage,
+      chartData,
+      cards: [
+        {
+          label: 'Male Traced',
+          value: totals.male,
+          valueClassName: 'text-indigo-600 dark:text-indigo-400',
+        },
+        {
+          label: 'Female Traced',
+          value: totals.female,
+          valueClassName: 'text-rose-600 dark:text-rose-400',
+        },
+        {
+          label: 'Total Employed',
+          value: totals.secondary,
+          hint: `${employmentRate}% employment rate`,
+          valueClassName: 'text-emerald-700 dark:text-emerald-400',
+        },
+        loggedCard,
+      ],
+    };
+  }, [dataMode, stats, selectedYear]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -215,11 +540,14 @@ export function BatchDataHub({
               {activePrograms.length} ACTIVE PROGRAMS
             </Badge>
           </div>
-          {dataMode === 'enrollment' && (
-            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              Semestral headcount registry with male and female breakdown per academic offering
-            </CardDescription>
-          )}
+          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            {dataMode === 'enrollment' &&
+              'Semestral headcount registry with male and female breakdown per academic offering'}
+            {dataMode === 'graduation' && 'Graduation registry with male and female breakdown per academic offering'}
+            {dataMode === 'board' && 'Board examination performance with male and female passer counts'}
+            {dataMode === 'tracer' &&
+              'Tracer study participation with male and female breakdown and employment outcomes'}
+          </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           {dataMode === 'enrollment' && (
@@ -357,8 +685,22 @@ export function BatchDataHub({
             </div>
           )}
 
+          {dataMode !== 'enrollment' && outcomeOverview && (
+            <OutcomeOverview
+              title={outcomeOverview.title}
+              description={outcomeOverview.description}
+              logged={outcomeOverview.logged}
+              totalPrograms={outcomeOverview.totalPrograms}
+              coverage={outcomeOverview.coverage}
+              cards={outcomeOverview.cards}
+              chartData={outcomeOverview.chartData}
+              emptyMessage={outcomeOverview.emptyMessage}
+              selectedYear={selectedYear}
+            />
+          )}
+
           <div className="overflow-x-auto">
-            <Table className={cn(dataMode === 'enrollment' && 'min-w-[1080px]')}>
+            <Table className="min-w-[1080px]">
               <TableHeader className="bg-muted/50">
                 <TableRow>
                   <TableHead className="pl-8 py-4 text-[10px] font-black uppercase">Academic Offering</TableHead>
@@ -384,15 +726,39 @@ export function BatchDataHub({
                   )}
 
                   {dataMode === 'graduation' && (
-                    <TableHead className="text-center text-[10px] font-black uppercase">Total Grads</TableHead>
+                    <>
+                      <TableHead className="text-center text-[10px] font-black uppercase border-l border-border/60">
+                        Male
+                      </TableHead>
+                      <TableHead className="text-center text-[10px] font-black uppercase">Female</TableHead>
+                      <TableHead className="text-center text-[10px] font-black uppercase text-primary">
+                        Total Grads
+                      </TableHead>
+                    </>
                   )}
 
                   {dataMode === 'board' && (
-                    <TableHead className="text-center text-[10px] font-black uppercase">Latest Pass Rate</TableHead>
+                    <>
+                      <TableHead className="text-center text-[10px] font-black uppercase border-l border-border/60">
+                        Male Passers
+                      </TableHead>
+                      <TableHead className="text-center text-[10px] font-black uppercase">Female Passers</TableHead>
+                      <TableHead className="text-center text-[10px] font-black uppercase text-primary">
+                        Latest Pass Rate
+                      </TableHead>
+                    </>
                   )}
 
                   {dataMode === 'tracer' && (
-                    <TableHead className="text-center text-[10px] font-black uppercase">Employment Data</TableHead>
+                    <>
+                      <TableHead className="text-center text-[10px] font-black uppercase border-l border-border/60">
+                        Male Traced
+                      </TableHead>
+                      <TableHead className="text-center text-[10px] font-black uppercase">Female Traced</TableHead>
+                      <TableHead className="text-center text-[10px] font-black uppercase text-primary">
+                        Employment Data
+                      </TableHead>
+                    </>
                   )}
 
                   <TableHead className="text-center text-[10px] font-black uppercase border-l border-border/60">
@@ -471,40 +837,61 @@ export function BatchDataHub({
                       )}
 
                       {dataMode === 'graduation' && (
-                        <TableCell className="text-center">
-                          <Badge
-                            variant="secondary"
-                            className={cn(
-                              'font-black tabular-nums',
-                              stat.hasGraduationData
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                : 'bg-rose-50 text-rose-600 border-rose-200',
-                            )}
-                          >
-                            {stat.hasGraduationData ? `${stat.grads.toLocaleString()} GRADS` : 'NO DATA'}
-                          </Badge>
-                        </TableCell>
+                        <>
+                          <TableCell className="text-center font-black tabular-nums text-indigo-600 dark:text-indigo-400 border-l border-border/40">
+                            {stat.gradMale + stat.gradFemale > 0 ? stat.gradMale.toLocaleString() : '--'}
+                          </TableCell>
+                          <TableCell className="text-center font-black tabular-nums text-rose-600 dark:text-rose-400">
+                            {stat.gradMale + stat.gradFemale > 0 ? stat.gradFemale.toLocaleString() : '--'}
+                          </TableCell>
+                          <TableCell className="text-center font-black tabular-nums text-slate-900 dark:text-slate-100 bg-primary/5">
+                            {stat.hasGraduationData ? stat.grads.toLocaleString() : '--'}
+                          </TableCell>
+                        </>
                       )}
 
                       {dataMode === 'board' && (
-                        <TableCell className="text-center">
-                          <span
-                            className={cn(
-                              'font-black tabular-nums',
-                              stat.latestBoard >= 70 ? 'text-emerald-600' : 'text-slate-700 dark:text-slate-300',
-                            )}
-                          >
-                            {stat.latestBoard ? `${stat.latestBoard}%` : '--'}
-                          </span>
-                        </TableCell>
+                        <>
+                          <TableCell className="text-center font-black tabular-nums text-indigo-600 dark:text-indigo-400 border-l border-border/40">
+                            {stat.boardMale + stat.boardFemale > 0 ? stat.boardMale.toLocaleString() : '--'}
+                          </TableCell>
+                          <TableCell className="text-center font-black tabular-nums text-rose-600 dark:text-rose-400">
+                            {stat.boardMale + stat.boardFemale > 0 ? stat.boardFemale.toLocaleString() : '--'}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span
+                              className={cn(
+                                'font-black tabular-nums',
+                                stat.latestBoard >= 70 ? 'text-emerald-600' : 'text-slate-700 dark:text-slate-300',
+                              )}
+                            >
+                              {stat.latestBoard ? `${stat.latestBoard}%` : '--'}
+                            </span>
+                          </TableCell>
+                        </>
                       )}
 
                       {dataMode === 'tracer' && (
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="text-[9px] font-black">
-                            {stat.tracerCount} RECORDS
-                          </Badge>
-                        </TableCell>
+                        <>
+                          <TableCell className="text-center font-black tabular-nums text-indigo-600 dark:text-indigo-400 border-l border-border/40">
+                            {stat.tracerTotal > 0 ? stat.tracerMale.toLocaleString() : '--'}
+                          </TableCell>
+                          <TableCell className="text-center font-black tabular-nums text-rose-600 dark:text-rose-400">
+                            {stat.tracerTotal > 0 ? stat.tracerFemale.toLocaleString() : '--'}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex flex-col items-center gap-1">
+                              <Badge variant="outline" className="text-[9px] font-black">
+                                {stat.tracerCount} RECORDS
+                              </Badge>
+                              {stat.tracerTotal > 0 && (
+                                <span className="text-[8px] font-bold text-muted-foreground">
+                                  {stat.tracerEmployed.toLocaleString()} employed · {stat.tracerEmploymentRate}%
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                        </>
                       )}
 
                       <TableCell className="text-center border-l border-border/40">
