@@ -15,7 +15,7 @@ function normalizeManualOverall(overall: EnrollmentOverall | undefined, term?: Y
   return {
     male,
     female,
-    total: Number(overall?.total ?? male + female),
+    total: male + female,
   };
 }
 

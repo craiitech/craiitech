@@ -104,7 +104,7 @@ function EnrollmentRecordCard({
     const stored = recordValues?.overall?.[termKey];
     const male = Number(stored?.male ?? computed.male);
     const female = Number(stored?.female ?? computed.female);
-    return { male, female, total: Number(stored?.total ?? male + female) };
+    return { male, female, total: male + female };
   };
 
   const handleOverallOnlyChange = (checked: boolean) => {
@@ -129,7 +129,7 @@ function EnrollmentRecordCard({
   ) => {
     const path = `enrollmentRecords.${index}.overall.${termKey}.${fieldKey}`;
 
-    if (overallOnly && isAdmin && canEdit) {
+    if (overallOnly && isAdmin && canEdit && fieldKey !== 'total') {
       return (
         <FormField
           control={control}
@@ -313,8 +313,8 @@ function EnrollmentRecordCard({
           </div>
           <p className="text-[9px] italic text-muted-foreground">
             {overallOnly
-              ? 'Manual overall totals are enabled for administrators. Year-level entries are locked for this record.'
-              : 'Auto-computed from all year levels. Enable Overall Total Only to enter totals manually.'}
+              ? 'Manual male and female totals are enabled for administrators. Overall Total is auto-computed from their sum.'
+              : 'Auto-computed from all year levels. Enable Overall Total Only to enter male and female totals manually.'}
           </p>
         </div>
       </div>

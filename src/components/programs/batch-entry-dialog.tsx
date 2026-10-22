@@ -119,7 +119,7 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
     }
   }, [record, isOpen, program, currentAY, methods]);
 
-  const onSave = async (values: any) => {
+  const onSave = async (values: any, closeAfterSave = true) => {
     if (!firestore || !userProfile || !program) return;
     setIsSaving(true);
 
@@ -145,10 +145,12 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
       );
 
       toast({
-        title: 'Record Updated',
-        description: `Successfully logged ${mode} data for AY ${currentAY}–${currentAY + 1}.`,
+        title: closeAfterSave ? 'Record Updated' : 'Progress Saved',
+        description: closeAfterSave
+          ? `Successfully logged ${mode} data for AY ${currentAY}–${currentAY + 1}.`
+          : `Saved ${mode} data for AY ${currentAY}–${currentAY + 1}. You can continue editing.`,
       });
-      onOpenChange(false);
+      if (closeAfterSave) onOpenChange(false);
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to save changes.', variant: 'destructive' });
     } finally {
@@ -199,7 +201,11 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
             </div>
           ) : (
             <FormProvider {...methods}>
-              <form id="batch-form" onSubmit={methods.handleSubmit(onSave)} className="h-full flex flex-col">
+              <form
+                id="batch-form"
+                onSubmit={methods.handleSubmit((values) => onSave(values, true))}
+                className="h-full flex flex-col"
+              >
                 <ScrollArea className="flex-1">
                   <div className="p-8 pb-20">
                     {mode === 'enrollment' && (
@@ -245,6 +251,22 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
                 className="font-bold text-[10px] uppercase"
               >
                 Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                disabled={isSaving}
+                onClick={() => {
+                  void methods.handleSubmit((values) => onSave(values, false))();
+                }}
+                className="min-w-[170px] border-primary/30 font-black uppercase text-[10px] tracking-widest h-10"
+              >
+                {isSaving ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="mr-2 h-4 w-4" />
+                )}
+                Save and Continue
               </Button>
               <Button
                 type="submit"

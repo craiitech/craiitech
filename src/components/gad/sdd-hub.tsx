@@ -671,7 +671,7 @@ export function SDDHub({
             const storedFemale = Number(storedOverall.female || 0);
             overallMale += storedMale;
             overallFemale += storedFemale;
-            overallTotal += Number(storedOverall.total ?? storedMale + storedFemale);
+            overallTotal += storedMale + storedFemale;
             return;
           }
 
