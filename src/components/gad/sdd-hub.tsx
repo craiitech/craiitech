@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { Fragment, useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import type {
@@ -67,6 +67,7 @@ import {
   getEnrollmentRecordsForYear,
   getUniqueComplianceRecords,
   type EnrollmentTotals,
+  type EnrollmentTermTotals,
 } from '@/lib/enrollment';
 import { renderToStaticMarkup } from 'react-dom/server';
 import {
@@ -621,25 +622,35 @@ export function SDDHub({
   }, [studentRecordSource, dashboardYear, activeProgramIds]);
 
   const studentYearlyData = useMemo(() => {
-    const yearTotals = new Map<number, EnrollmentTotals>();
+    const yearTotals = new Map<number, EnrollmentTermTotals>();
 
     getUniqueComplianceRecords(studentRecordSource, { activeProgramIds }).forEach((record) => {
       const year = Number(record.academicYear);
       if (!Number.isFinite(year) || year <= 2000) return;
 
       const summary = getComplianceEnrollmentSummary(record, { academicYear: year });
-      const totals = yearTotals.get(year) || emptyEnrollmentTotals();
-      yearTotals.set(year, addEnrollmentTotals(totals, summary.firstSemester));
+      const totals = yearTotals.get(year) || {
+        firstSemester: emptyEnrollmentTotals(),
+        secondSemester: emptyEnrollmentTotals(),
+        midYearTerm: emptyEnrollmentTotals(),
+      };
+
+      yearTotals.set(year, {
+        firstSemester: addEnrollmentTotals(totals.firstSemester, summary.firstSemester),
+        secondSemester: addEnrollmentTotals(totals.secondSemester, summary.secondSemester),
+        midYearTerm: addEnrollmentTotals(totals.midYearTerm, summary.midYearTerm),
+      });
     });
 
     return Array.from(yearTotals.entries())
-      .map(([year, totals]) => ({
-        year,
-        male: totals.male,
-        female: totals.female,
-        total: totals.total,
-      }))
-      .filter((row) => row.total > 0 || row.year === dashboardYear)
+      .map(([year, totals]) => ({ year, ...totals }))
+      .filter(
+        (row) =>
+          row.firstSemester.total > 0 ||
+          row.secondSemester.total > 0 ||
+          row.midYearTerm.total > 0 ||
+          row.year === dashboardYear,
+      )
       .sort((a, b) => b.year - a.year);
   }, [studentRecordSource, dashboardYear, activeProgramIds]);
 
@@ -1393,7 +1404,7 @@ export function SDDHub({
                       Student Population by Academic Year
                     </CardTitle>
                     <CardDescription className="text-[10px]">
-                      Total male, female, and overall student headcount per academic year (1st Semester baseline).
+                      Male, female, and total student headcount for each semester per academic year.
                     </CardDescription>
                   </div>
                 </div>
@@ -1407,21 +1418,42 @@ export function SDDHub({
             </CardHeader>
             <CardContent className="p-0 flex-1 overflow-x-auto">
               {studentYearlyData.length > 0 ? (
-                <table className="w-full min-w-[580px] border-collapse text-[11px]">
+                <table className="w-full min-w-[1040px] border-collapse text-[11px]">
                   <thead>
                     <tr className="bg-slate-100 dark:bg-slate-800 text-[9px] font-black uppercase text-slate-600 dark:text-slate-300">
-                      <th className="px-5 py-3 text-left">Academic Year</th>
-                      <th className="px-4 py-3 text-center text-indigo-600 dark:text-indigo-400">Male</th>
-                      <th className="px-4 py-3 text-center text-rose-600 dark:text-rose-400">Female</th>
-                      <th className="px-4 py-3 text-center">Total Students</th>
-                      <th className="px-5 py-3 text-left">Sex Distribution</th>
+                      <th rowSpan={2} className="px-5 py-3 text-left align-middle">
+                        Academic Year
+                      </th>
+                      <th colSpan={3} className="border-l border-slate-200 px-4 py-2 text-center dark:border-slate-700">
+                        1st Semester
+                      </th>
+                      <th colSpan={3} className="border-l border-slate-200 px-4 py-2 text-center dark:border-slate-700">
+                        2nd Semester
+                      </th>
+                      <th colSpan={3} className="border-l border-slate-200 px-4 py-2 text-center dark:border-slate-700">
+                        Midyear Term
+                      </th>
+                    </tr>
+                    <tr className="bg-slate-50 dark:bg-slate-800/70 text-[8px] font-black uppercase text-slate-500 dark:text-slate-400">
+                      <th className="px-3 py-2 text-center text-indigo-600 dark:text-indigo-400">Male</th>
+                      <th className="px-3 py-2 text-center text-rose-600 dark:text-rose-400">Female</th>
+                      <th className="px-3 py-2 text-center">Total</th>
+                      <th className="border-l border-slate-200 px-3 py-2 text-center text-indigo-600 dark:border-slate-700 dark:text-indigo-400">
+                        Male
+                      </th>
+                      <th className="px-3 py-2 text-center text-rose-600 dark:text-rose-400">Female</th>
+                      <th className="px-3 py-2 text-center">Total</th>
+                      <th className="border-l border-slate-200 px-3 py-2 text-center text-indigo-600 dark:border-slate-700 dark:text-indigo-400">
+                        Male
+                      </th>
+                      <th className="px-3 py-2 text-center text-rose-600 dark:text-rose-400">Female</th>
+                      <th className="px-3 py-2 text-center">Total</th>
                     </tr>
                   </thead>
                   <tbody>
                     {studentYearlyData.map((row) => {
-                      const knownSexTotal = row.male + row.female;
-                      const malePct = knownSexTotal > 0 ? Math.round((row.male / knownSexTotal) * 100) : 0;
                       const isCurrent = row.year === dashboardYear;
+                      const semesters = [row.firstSemester, row.secondSemester, row.midYearTerm] as const;
 
                       return (
                         <tr
@@ -1443,33 +1475,26 @@ export function SDDHub({
                               )}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-center font-black tabular-nums text-indigo-600 dark:text-indigo-400">
-                            {row.male.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3 text-center font-black tabular-nums text-rose-600 dark:text-rose-400">
-                            {row.female.toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            <span className="inline-flex min-w-[70px] justify-center rounded-md bg-primary/5 px-2 py-1 font-black tabular-nums text-primary">
-                              {row.total.toLocaleString()}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3">
-                            {knownSexTotal > 0 ? (
-                              <div className="flex items-center gap-2">
-                                <div className="flex h-2 w-full max-w-[140px] overflow-hidden rounded-full bg-rose-200/70 dark:bg-rose-950">
-                                  <div className="h-full bg-indigo-500" style={{ width: `${malePct}%` }} />
-                                </div>
-                                <span className="whitespace-nowrap text-[9px] font-bold text-muted-foreground tabular-nums">
-                                  {malePct}% M &middot; {100 - malePct}% F
+                          {semesters.map((term, index) => (
+                            <Fragment key={`${row.year}-${index}`}>
+                              <td
+                                className={cn(
+                                  'px-3 py-3 text-center font-black tabular-nums text-indigo-600 dark:text-indigo-400',
+                                  index > 0 && 'border-l border-border/50',
+                                )}
+                              >
+                                {term.male.toLocaleString()}
+                              </td>
+                              <td className="px-3 py-3 text-center font-black tabular-nums text-rose-600 dark:text-rose-400">
+                                {term.female.toLocaleString()}
+                              </td>
+                              <td className="px-3 py-3 text-center">
+                                <span className="inline-flex min-w-[56px] justify-center rounded-md bg-primary/5 px-2 py-1 font-black tabular-nums text-primary">
+                                  {term.total.toLocaleString()}
                                 </span>
-                              </div>
-                            ) : row.total > 0 ? (
-                              <span className="text-[10px] font-bold text-muted-foreground">Sex split unavailable</span>
-                            ) : (
-                              <span className="text-[10px] font-bold text-muted-foreground">No data</span>
-                            )}
-                          </td>
+                              </td>
+                            </Fragment>
+                          ))}
                         </tr>
                       );
                     })}
@@ -1487,9 +1512,10 @@ export function SDDHub({
             <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                Headcounts consolidate the verified 1st Semester enrollment records of all programs in scope for each
-                academic year. Male and female totals are derived from program-level enrollment data and support
-                year-on-year sex-disaggregated trend analysis for GAD planning and reporting.
+                Headcounts consolidate the verified 1st Semester, 2nd Semester, and Midyear enrollment records of all
+                programs in scope for each academic year. Male and female totals are derived from program-level
+                enrollment data and support year-on-year sex-disaggregated trend analysis for GAD planning and
+                reporting.
               </p>
             </CardFooter>
           </Card>
