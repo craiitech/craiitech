@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * @fileOverview XLSX template generation and batch import for CHED enrollment and graduation data.
+ * @fileOverview XLSX template generation and batch import for CHED enrollment, graduation, and overall totals.
  */
 
 import { useMemo, useRef, useState } from 'react';
@@ -19,11 +19,17 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useUser, useFirestore } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, Download, FileSpreadsheet, Loader2, Upload } from 'lucide-react';
+import { AlertTriangle, ChevronDown, Download, FileSpreadsheet, Loader2, Upload } from 'lucide-react';
 
 interface BatchXlsxImportProps {
   programs: AcademicProgram[];
@@ -73,6 +79,18 @@ const GRADUATION_HEADERS = [
   'Total Graduates',
 ];
 
+const OVERALL_HEADERS = [
+  'Academic Year',
+  'Campus',
+  'Program',
+  'Program ID',
+  'Major / Specialization',
+  'Semester',
+  'Total Overall Male',
+  'Total Overall Female',
+  'Overall Total',
+];
+
 type EnrollmentUpdate = {
   program: AcademicProgram;
   year: number;
@@ -93,16 +111,27 @@ type GraduationUpdate = {
   female: number;
 };
 
-type ImportScope = 'both' | 'enrollment' | 'graduation';
+type OverallUpdate = {
+  program: AcademicProgram;
+  year: number;
+  majorId: string;
+  termKey: 'firstSemester' | 'secondSemester' | 'midYearTerm';
+  male: number;
+  female: number;
+};
+
+type ImportScope = 'both' | 'enrollment' | 'graduation' | 'overall';
 
 type ImportPreview = {
   fileName: string;
   enrollmentUpdates: EnrollmentUpdate[];
   graduationUpdates: GraduationUpdate[];
+  overallUpdates: OverallUpdate[];
   programIds: string[];
   years: number[];
   skippedEnrollment: number;
   skippedGraduation: number;
+  skippedOverall: number;
   errors: string[];
 };
 
@@ -142,6 +171,14 @@ const normalizeYearLevel = (value: unknown) => {
 };
 
 const emptyStats = () => ({ male: 0, female: 0, total: 0, specialNeeds: 0, sectors: {} });
+
+const emptyOverallStats = () => ({ male: 0, female: 0, total: 0 });
+
+const emptyOverall = () => ({
+  firstSemester: emptyOverallStats(),
+  secondSemester: emptyOverallStats(),
+  midYearTerm: emptyOverallStats(),
+});
 
 const emptyYearLevelEnrollment = () => ({
   firstYear: emptyStats(),
@@ -284,12 +321,92 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
     XLSX.writeFile(workbook, `RSU_CHED_Batch_Data_Template_AY_${selectedYear}.xlsx`);
   };
 
+  const downloadOverallTotalsTemplate = () => {
+    const workbook = XLSX.utils.book_new();
+    const sortedPrograms = [...activePrograms].sort((a, b) => {
+      const campusA = campusMap.get(a.campusId) || '';
+      const campusB = campusMap.get(b.campusId) || '';
+      return campusA.localeCompare(campusB) || a.name.localeCompare(b.name);
+    });
+
+    const overallRows: (string | number)[][] = [];
+    sortedPrograms.forEach((program) => {
+      const campusName = campusMap.get(program.campusId) || '';
+      getProgramMajors(program).forEach((major) => {
+        SEMESTERS.forEach((semester) => {
+          overallRows.push([selectedYear, campusName, program.name, program.id, major, semester.label, 0, 0, 0]);
+        });
+      });
+    });
+
+    const overallSheet = XLSX.utils.aoa_to_sheet([OVERALL_HEADERS, ...overallRows]);
+    overallSheet['!cols'] = [
+      { wch: 14 },
+      { wch: 24 },
+      { wch: 38 },
+      { wch: 28 },
+      { wch: 26 },
+      { wch: 18 },
+      { wch: 20 },
+      { wch: 22 },
+      { wch: 16 },
+    ];
+    styleHeaderRow(overallSheet, OVERALL_HEADERS.length);
+
+    overallRows.forEach((_, index) => {
+      const totalCell = overallSheet[XLSX.utils.encode_cell({ r: index + 1, c: 8 })];
+      if (!totalCell) return;
+      totalCell.t = 'n';
+      totalCell.f = `G${index + 2}+H${index + 2}`;
+      totalCell.v = 0;
+      totalCell.s = {
+        fill: { fgColor: { rgb: 'F1F5F9' } },
+        font: { bold: true },
+        alignment: { horizontal: 'right' },
+      };
+    });
+
+    const programRows: (string | number)[][] = [['Campus', 'Program', 'Program ID', 'Major / Specialization']];
+    sortedPrograms.forEach((program) => {
+      const campusName = campusMap.get(program.campusId) || '';
+      getProgramMajors(program).forEach((major) => {
+        programRows.push([campusName, program.name, program.id, major]);
+      });
+    });
+    const programSheet = XLSX.utils.aoa_to_sheet(programRows);
+    programSheet['!cols'] = [{ wch: 24 }, { wch: 38 }, { wch: 28 }, { wch: 28 }];
+    styleHeaderRow(programSheet, 4);
+
+    const instructionsSheet = XLSX.utils.aoa_to_sheet([
+      ['CHED Overall Totals Batch Import Instructions'],
+      [''],
+      ['1. Enter Total Overall Male and Total Overall Female per program, major, and semester.'],
+      ['2. Overall Total is calculated automatically from Total Overall Male + Total Overall Female.'],
+      ['3. Imported rows reset all year-level male, female, and total values to 0 for the matching semester.'],
+      ['4. Rows with both Total Overall Male and Total Overall Female at 0 are ignored.'],
+      ['5. Imported totals replace existing overall totals for the matching program, year, major, and semester.'],
+      ['6. Do not change the Campus, Program, Program ID, Major / Specialization, and Semester values.'],
+      ['7. Academic Year must be numeric (example: 2025 for AY 2025-2026).'],
+      ['8. Only active programs listed in the "Programs" sheet are accepted.'],
+      ['9. This import intentionally overwrites the enrollment breakdown for matched records with totals-only data.'],
+    ]);
+    instructionsSheet['!cols'] = [{ wch: 120 }];
+
+    XLSX.utils.book_append_sheet(workbook, overallSheet, 'Overall Totals');
+    XLSX.utils.book_append_sheet(workbook, programSheet, 'Programs');
+    XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
+
+    XLSX.writeFile(workbook, `RSU_CHED_Overall_Totals_Template_AY_${selectedYear}.xlsx`);
+  };
+
   const parseWorkbook = (workbook: XLSX.WorkBook, fileName: string): ImportPreview => {
     const enrollmentUpdates: EnrollmentUpdate[] = [];
     const graduationUpdates: GraduationUpdate[] = [];
+    const overallUpdates: OverallUpdate[] = [];
     const errors: string[] = [];
     let skippedEnrollment = 0;
     let skippedGraduation = 0;
+    let skippedOverall = 0;
 
     const programsById = new Map(activePrograms.map((program) => [String(program.id), program]));
     const programsByName = new Map<string, AcademicProgram>();
@@ -333,7 +450,11 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
       return 'General';
     };
 
-    const readRows = (sheetName: string) => {
+    const readRows = (...sheetNames: string[]) => {
+      const sheetName = workbook.SheetNames.find((name) =>
+        sheetNames.some((candidate) => normalizeKey(candidate) === normalizeKey(name)),
+      );
+      if (!sheetName) return [];
       const sheet = workbook.Sheets[sheetName];
       if (!sheet) return [];
       const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
@@ -419,21 +540,57 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
       });
     });
 
+    readRows('Overall Totals', 'OverallTotals', 'Overall').forEach((row, index) => {
+      const rowNumber = index + 2;
+      const program = resolveProgram(row);
+      const year = Math.trunc(toNumber(row.academicyear)) || selectedYear;
+
+      if (!program) {
+        skippedOverall++;
+        if (errors.length < 10) errors.push(`Overall Totals row ${rowNumber}: program not found.`);
+        return;
+      }
+
+      const semester = normalizeSemester(row.semester);
+      const semesterDef = SEMESTERS.find((item) => item.label === semester);
+      const male = toNumber(row.totaloverallmale ?? row.male);
+      const female = toNumber(row.totaloverallfemale ?? row.female);
+
+      if (!semesterDef) {
+        skippedOverall++;
+        if (errors.length < 10) errors.push(`Overall Totals row ${rowNumber}: invalid semester.`);
+        return;
+      }
+
+      if (male + female === 0) return;
+
+      overallUpdates.push({
+        program,
+        year,
+        majorId: resolveMajor(program, row.majorspecialization),
+        termKey: semesterDef.key,
+        male,
+        female,
+      });
+    });
+
     const programIds = Array.from(
-      new Set([...enrollmentUpdates, ...graduationUpdates].map((update) => update.program.id)),
+      new Set([...enrollmentUpdates, ...graduationUpdates, ...overallUpdates].map((update) => update.program.id)),
     );
-    const years = Array.from(new Set([...enrollmentUpdates, ...graduationUpdates].map((update) => update.year))).sort(
-      (a, b) => a - b,
-    );
+    const years = Array.from(
+      new Set([...enrollmentUpdates, ...graduationUpdates, ...overallUpdates].map((update) => update.year)),
+    ).sort((a, b) => a - b);
 
     return {
       fileName,
       enrollmentUpdates,
       graduationUpdates,
+      overallUpdates,
       programIds,
       years,
       skippedEnrollment,
       skippedGraduation,
+      skippedOverall,
       errors,
     };
   };
@@ -449,21 +606,33 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
       const workbook = XLSX.read(buffer, { type: 'array' });
       const parsed = parseWorkbook(workbook, file.name);
 
-      if (parsed.enrollmentUpdates.length === 0 && parsed.graduationUpdates.length === 0) {
+      if (
+        parsed.enrollmentUpdates.length === 0 &&
+        parsed.graduationUpdates.length === 0 &&
+        parsed.overallUpdates.length === 0
+      ) {
         toast({
           title: 'Nothing to Import',
-          description: 'No valid enrollment or graduation rows with values were found in the file.',
+          description: 'No valid enrollment, graduation, or overall total rows with values were found in the file.',
           variant: 'destructive',
         });
         return;
       }
 
+      const dataTypes = [
+        parsed.enrollmentUpdates.length > 0,
+        parsed.graduationUpdates.length > 0,
+        parsed.overallUpdates.length > 0,
+      ].filter(Boolean).length;
+
       setImportScope(
-        parsed.enrollmentUpdates.length > 0 && parsed.graduationUpdates.length > 0
+        dataTypes > 1
           ? 'both'
           : parsed.enrollmentUpdates.length > 0
             ? 'enrollment'
-            : 'graduation',
+            : parsed.graduationUpdates.length > 0
+              ? 'graduation'
+              : 'overall',
       );
       setPreview(parsed);
     } catch (error) {
@@ -481,10 +650,11 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
   const importPreview = async () => {
     if (!preview || !firestore || !userProfile) return;
 
-    const enrollmentUpdates = importScope === 'graduation' ? [] : preview.enrollmentUpdates;
-    const graduationUpdates = importScope === 'enrollment' ? [] : preview.graduationUpdates;
+    const enrollmentUpdates = importScope === 'both' || importScope === 'enrollment' ? preview.enrollmentUpdates : [];
+    const graduationUpdates = importScope === 'both' || importScope === 'graduation' ? preview.graduationUpdates : [];
+    const overallUpdates = importScope === 'both' || importScope === 'overall' ? preview.overallUpdates : [];
 
-    if (enrollmentUpdates.length === 0 && graduationUpdates.length === 0) {
+    if (enrollmentUpdates.length === 0 && graduationUpdates.length === 0 && overallUpdates.length === 0) {
       toast({
         title: 'Nothing to Import',
         description: 'The selected data type has no valid rows to import.',
@@ -503,13 +673,14 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
           year: number;
           enrollmentUpdates: EnrollmentUpdate[];
           graduationUpdates: GraduationUpdate[];
+          overallUpdates: OverallUpdate[];
         }
       >();
 
       const ensureGroup = (program: AcademicProgram, year: number) => {
         const key = `${program.id}-${year}`;
         if (!groups.has(key)) {
-          groups.set(key, { program, year, enrollmentUpdates: [], graduationUpdates: [] });
+          groups.set(key, { program, year, enrollmentUpdates: [], graduationUpdates: [], overallUpdates: [] });
         }
         return groups.get(key)!;
       };
@@ -520,132 +691,171 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
       graduationUpdates.forEach((update) => {
         ensureGroup(update.program, update.year).graduationUpdates.push(update);
       });
+      overallUpdates.forEach((update) => {
+        ensureGroup(update.program, update.year).overallUpdates.push(update);
+      });
 
       await Promise.all(
-        Array.from(groups.values()).map(async ({ program, year, enrollmentUpdates, graduationUpdates }) => {
-          const recordId = `${program.id}-${year}`;
-          const existing = compliances.find(
-            (record) => record.programId === program.id && Number(record.academicYear) === year,
-          );
-
-          const enrollmentRecords = (existing?.enrollmentRecords || []).map((record) => ({
-            ...record,
-            firstSemester: { ...emptyYearLevelEnrollment(), ...record.firstSemester },
-            secondSemester: { ...emptyYearLevelEnrollment(), ...record.secondSemester },
-            midYearTerm: { ...emptyYearLevelEnrollment(), ...(record.midYearTerm || {}) },
-          }));
-          const recordByMajor = new Map(
-            enrollmentRecords.map((record) => [String(record.majorId || 'General'), record]),
-          );
-
-          enrollmentUpdates.forEach((update) => {
-            let record = recordByMajor.get(update.majorId);
-            if (!record) {
-              record = {
-                id: `${program.id}-${year}-${update.majorId}`,
-                academicYear: year,
-                majorId: update.majorId,
-                firstSemester: emptyYearLevelEnrollment(),
-                secondSemester: emptyYearLevelEnrollment(),
-                midYearTerm: emptyYearLevelEnrollment(),
-              };
-              recordByMajor.set(update.majorId, record);
-              enrollmentRecords.push(record);
-            }
-
-            const term = record[update.termKey] || emptyYearLevelEnrollment();
-            const current = term[update.levelKey] || emptyStats();
-            term[update.levelKey] = {
-              ...current,
-              male: update.male,
-              female: update.female,
-              total: update.male + update.female,
-              specialNeeds: current.specialNeeds || 0,
-              sectors: current.sectors || {},
-            };
-            record[update.termKey] = term;
-          });
-
-          const graduationRecords = [...(existing?.graduationRecords || [])];
-          graduationUpdates.forEach((update) => {
-            const index = graduationRecords.findIndex(
-              (record) =>
-                String(record.majorId || 'General') === update.majorId &&
-                Number(record.year) === update.year &&
-                record.semester === update.semester &&
-                (record.yearLevel || 'All Levels') === update.yearLevel,
+        Array.from(groups.values()).map(
+          async ({ program, year, enrollmentUpdates, graduationUpdates, overallUpdates }) => {
+            const recordId = `${program.id}-${year}`;
+            const existing = compliances.find(
+              (record) => record.programId === program.id && Number(record.academicYear) === year,
             );
 
-            const nextRecord = {
-              majorId: update.majorId,
-              year: update.year,
-              yearLevel: update.yearLevel,
-              semester: update.semester,
-              maleCount: update.male,
-              femaleCount: update.female,
-              count: update.male + update.female,
-            };
+            const enrollmentRecords = (existing?.enrollmentRecords || []).map((record) => ({
+              ...record,
+              firstSemester: { ...emptyYearLevelEnrollment(), ...record.firstSemester },
+              secondSemester: { ...emptyYearLevelEnrollment(), ...record.secondSemester },
+              midYearTerm: { ...emptyYearLevelEnrollment(), ...(record.midYearTerm || {}) },
+            }));
+            const recordByMajor = new Map(
+              enrollmentRecords.map((record) => [String(record.majorId || 'General'), record]),
+            );
 
-            if (index >= 0) {
-              graduationRecords[index] = { ...graduationRecords[index], ...nextRecord };
-            } else {
-              graduationRecords.push(nextRecord);
-            }
-          });
+            enrollmentUpdates.forEach((update) => {
+              let record = recordByMajor.get(update.majorId);
+              if (!record) {
+                record = {
+                  id: `${program.id}-${year}-${update.majorId}`,
+                  academicYear: year,
+                  majorId: update.majorId,
+                  firstSemester: emptyYearLevelEnrollment(),
+                  secondSemester: emptyYearLevelEnrollment(),
+                  midYearTerm: emptyYearLevelEnrollment(),
+                };
+                recordByMajor.set(update.majorId, record);
+                enrollmentRecords.push(record);
+              }
 
-          const enrollmentRecordsWithOveralls = enrollmentRecords.map((record) =>
-            withEnrollmentOveralls(record as EnrollmentRecord),
-          );
+              const term = record[update.termKey] || emptyYearLevelEnrollment();
+              const current = term[update.levelKey] || emptyStats();
+              term[update.levelKey] = {
+                ...current,
+                male: update.male,
+                female: update.female,
+                total: update.male + update.female,
+                specialNeeds: current.specialNeeds || 0,
+                sectors: current.sectors || {},
+              };
+              record[update.termKey] = term;
+            });
 
-          const baseRecord = existing
-            ? {}
-            : {
-                ched: { copcStatus: 'No COPC' as const },
-                faculty: {
-                  dean: { name: '', highestEducation: '', isAlignedWithCMO: 'N/A' as const, sex: 'Male' as const },
-                  programChair: {
-                    name: '',
-                    highestEducation: '',
-                    isAlignedWithCMO: 'N/A' as const,
-                    sex: 'Male' as const,
-                  },
-                  members: [],
-                },
-                stats: {
-                  enrollment: {
-                    firstSemester: emptyYearLevelEnrollment(),
-                    secondSemester: emptyYearLevelEnrollment(),
-                    midYearTerm: emptyYearLevelEnrollment(),
-                  },
-                  graduationCount: 0,
-                },
-                boardPerformance: [],
-                tracerRecords: [],
-                curriculumRecords: [],
+            overallUpdates.forEach((update) => {
+              let record = recordByMajor.get(update.majorId);
+              if (!record) {
+                record = {
+                  id: `${program.id}-${year}-${update.majorId}`,
+                  academicYear: year,
+                  majorId: update.majorId,
+                  firstSemester: emptyYearLevelEnrollment(),
+                  secondSemester: emptyYearLevelEnrollment(),
+                  midYearTerm: emptyYearLevelEnrollment(),
+                  overallOnly: true,
+                  overall: emptyOverall(),
+                };
+                recordByMajor.set(update.majorId, record);
+                enrollmentRecords.push(record);
+              }
+
+              record.overallOnly = true;
+              record[update.termKey] = emptyYearLevelEnrollment();
+
+              const existingOverall = record.overall || emptyOverall();
+              const nextOverall = {
+                firstSemester: existingOverall.firstSemester || emptyOverallStats(),
+                secondSemester: existingOverall.secondSemester || emptyOverallStats(),
+                midYearTerm: existingOverall.midYearTerm || emptyOverallStats(),
+              };
+              nextOverall[update.termKey] = {
+                male: update.male,
+                female: update.female,
+                total: update.male + update.female,
+              };
+              record.overall = nextOverall;
+            });
+
+            const graduationRecords = [...(existing?.graduationRecords || [])];
+            graduationUpdates.forEach((update) => {
+              const index = graduationRecords.findIndex(
+                (record) =>
+                  String(record.majorId || 'General') === update.majorId &&
+                  Number(record.year) === update.year &&
+                  record.semester === update.semester &&
+                  (record.yearLevel || 'All Levels') === update.yearLevel,
+              );
+
+              const nextRecord = {
+                majorId: update.majorId,
+                year: update.year,
+                yearLevel: update.yearLevel,
+                semester: update.semester,
+                maleCount: update.male,
+                femaleCount: update.female,
+                count: update.male + update.female,
               };
 
-          await setDoc(
-            doc(firestore, 'programCompliances', recordId),
-            {
-              ...baseRecord,
-              id: recordId,
-              academicYear: year,
-              programId: program.id,
-              campusId: program.campusId,
-              unitId: program.collegeId,
-              enrollmentRecords: enrollmentRecordsWithOveralls,
-              graduationRecords,
-              updatedAt: serverTimestamp(),
-              updatedBy: userProfile.id,
-            },
-            { merge: true },
-          );
-        }),
+              if (index >= 0) {
+                graduationRecords[index] = { ...graduationRecords[index], ...nextRecord };
+              } else {
+                graduationRecords.push(nextRecord);
+              }
+            });
+
+            const enrollmentRecordsWithOveralls = enrollmentRecords.map((record) =>
+              withEnrollmentOveralls(record as EnrollmentRecord),
+            );
+
+            const baseRecord = existing
+              ? {}
+              : {
+                  ched: { copcStatus: 'No COPC' as const },
+                  faculty: {
+                    dean: { name: '', highestEducation: '', isAlignedWithCMO: 'N/A' as const, sex: 'Male' as const },
+                    programChair: {
+                      name: '',
+                      highestEducation: '',
+                      isAlignedWithCMO: 'N/A' as const,
+                      sex: 'Male' as const,
+                    },
+                    members: [],
+                  },
+                  stats: {
+                    enrollment: {
+                      firstSemester: emptyYearLevelEnrollment(),
+                      secondSemester: emptyYearLevelEnrollment(),
+                      midYearTerm: emptyYearLevelEnrollment(),
+                    },
+                    graduationCount: 0,
+                  },
+                  boardPerformance: [],
+                  tracerRecords: [],
+                  curriculumRecords: [],
+                };
+
+            await setDoc(
+              doc(firestore, 'programCompliances', recordId),
+              {
+                ...baseRecord,
+                id: recordId,
+                academicYear: year,
+                programId: program.id,
+                campusId: program.campusId,
+                unitId: program.collegeId,
+                enrollmentRecords: enrollmentRecordsWithOveralls,
+                graduationRecords,
+                updatedAt: serverTimestamp(),
+                updatedBy: userProfile.id,
+              },
+              { merge: true },
+            );
+          },
+        ),
       );
 
       toast({
         title: 'Import Complete',
-        description: `${enrollmentUpdates.length} enrollment row(s) and ${graduationUpdates.length} graduation row(s) were saved.`,
+        description: `${enrollmentUpdates.length} enrollment row(s), ${graduationUpdates.length} graduation row(s), and ${overallUpdates.length} overall total row(s) were saved.`,
       });
       setPreview(null);
     } catch (error) {
@@ -663,15 +873,33 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
   return (
     <>
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={downloadTemplate}
-          className="h-8 gap-1.5 text-[10px] font-black uppercase tracking-wider"
-        >
-          <Download className="h-3.5 w-3.5" />
-          XLSX Template
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[10px] font-black uppercase tracking-wider">
+              <Download className="h-3.5 w-3.5" />
+              XLSX Template
+              <ChevronDown className="h-3 w-3 opacity-60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-64">
+            <DropdownMenuItem onClick={downloadTemplate} className="gap-2 text-[11px] font-bold">
+              <FileSpreadsheet className="h-4 w-4 text-primary" />
+              <div>
+                <p>Full CHED Batch Template</p>
+                <p className="text-[9px] font-normal text-muted-foreground">Enrollment and graduation rows</p>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={downloadOverallTotalsTemplate} className="gap-2 text-[11px] font-bold">
+              <FileSpreadsheet className="h-4 w-4 text-primary" />
+              <div>
+                <p>Overall Totals Only Template</p>
+                <p className="text-[9px] font-normal text-muted-foreground">
+                  Totals-only entry with year levels zeroed
+                </p>
+              </div>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button
           variant="outline"
           size="sm"
@@ -707,6 +935,10 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                   <p className="text-lg font-black tabular-nums">{preview.graduationUpdates.length}</p>
                 </div>
                 <div className="rounded-lg border p-3">
+                  <p className="text-[9px] font-black uppercase text-muted-foreground">Overall Rows</p>
+                  <p className="text-lg font-black tabular-nums">{preview.overallUpdates.length}</p>
+                </div>
+                <div className="rounded-lg border p-3">
                   <p className="text-[9px] font-black uppercase text-muted-foreground">Programs</p>
                   <p className="text-lg font-black tabular-nums">{preview.programIds.length}</p>
                 </div>
@@ -721,7 +953,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                 <RadioGroup
                   value={importScope}
                   onValueChange={(value) => setImportScope(value as ImportScope)}
-                  className="grid grid-cols-3 gap-2"
+                  className="grid grid-cols-2 gap-2"
                 >
                   <Label
                     htmlFor="import-scope-both"
@@ -731,9 +963,12 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                     )}
                   >
                     <RadioGroupItem value="both" id="import-scope-both" className="sr-only" />
-                    <span className="text-[10px] font-black uppercase">Both</span>
+                    <span className="text-[10px] font-black uppercase">All Data</span>
                     <span className="text-[9px] text-muted-foreground tabular-nums">
-                      {preview.enrollmentUpdates.length + preview.graduationUpdates.length} rows
+                      {preview.enrollmentUpdates.length +
+                        preview.graduationUpdates.length +
+                        preview.overallUpdates.length}{' '}
+                      rows
                     </span>
                   </Label>
                   <Label
@@ -778,17 +1013,48 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                       {preview.graduationUpdates.length} rows
                     </span>
                   </Label>
+                  <Label
+                    htmlFor="import-scope-overall"
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1 rounded-md border-2 p-2 text-center transition-all hover:bg-muted',
+                      preview.overallUpdates.length > 0 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
+                      importScope === 'overall'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-slate-100 dark:border-slate-700',
+                    )}
+                  >
+                    <RadioGroupItem
+                      value="overall"
+                      id="import-scope-overall"
+                      className="sr-only"
+                      disabled={preview.overallUpdates.length === 0}
+                    />
+                    <span className="text-[10px] font-black uppercase">Overall Totals</span>
+                    <span className="text-[9px] text-muted-foreground tabular-nums">
+                      {preview.overallUpdates.length} rows
+                    </span>
+                  </Label>
                 </RadioGroup>
                 <p className="text-[10px] text-muted-foreground">Only the selected dataset will be saved.</p>
+                {preview.overallUpdates.length > 0 && (
+                  <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-amber-800">
+                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <p className="text-[10px] leading-relaxed">
+                      <span className="font-black uppercase">Totals-only import:</span> matching year-level male,
+                      female, and total values will be reset to 0, and stored overall totals will be replaced.
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {(preview.skippedEnrollment > 0 || preview.skippedGraduation > 0) && (
+              {(preview.skippedEnrollment > 0 || preview.skippedGraduation > 0 || preview.skippedOverall > 0) && (
                 <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                   <div className="text-xs">
                     <p className="font-bold uppercase">Skipped rows</p>
                     <p>
-                      Enrollment: {preview.skippedEnrollment} | Graduation: {preview.skippedGraduation}
+                      Enrollment: {preview.skippedEnrollment} | Graduation: {preview.skippedGraduation} | Overall:{' '}
+                      {preview.skippedOverall}
                     </p>
                     {preview.errors.length > 0 && (
                       <ul className="mt-1 list-disc pl-4 text-[10px]">
