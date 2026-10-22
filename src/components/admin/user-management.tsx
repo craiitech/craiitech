@@ -33,6 +33,7 @@ import { useToast } from '@/hooks/use-toast';
 import { EditUserDialog } from './edit-user-dialog';
 import { UserReportDialog } from './user-report-dialog';
 import { UserDistributionSummary } from './user-distribution-summary';
+import { OfficeConnectionRequestsManagement } from './office-connection-requests';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Input } from '../ui/input';
@@ -290,6 +291,8 @@ export function UserManagement() {
             onSelectUnit={(unitName) => setSearchTerm(unitName)}
             onSelectCampus={(campusName) => setSearchTerm(campusName)}
           />
+
+          <OfficeConnectionRequestsManagement />
 
           <Card>
             <CardHeader>

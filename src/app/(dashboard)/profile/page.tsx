@@ -68,6 +68,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { NotificationSettingsManagement } from '@/components/notifications/notification-settings';
+import { OfficeConnectionCard } from '@/components/profile/office-connection-card';
 
 const profileSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required.' }),
@@ -737,6 +738,8 @@ export default function ProfilePage() {
                 </Button>
               </CardFooter>
             </Card>
+
+            <OfficeConnectionCard />
 
             <Card id="accessibility" className="shadow-md border-primary/10 flex flex-col scroll-mt-20">
               <CardHeader className="bg-primary/5 border-b">

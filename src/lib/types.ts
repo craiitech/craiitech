@@ -20,6 +20,42 @@ export type PortfolioItem = {
   dateAcquired: string;
 };
 
+export type UserAssignment = {
+  id: string;
+  unitId: string;
+  unitName: string;
+  campusId: string;
+  campusName: string;
+  role: string;
+  roleId?: string;
+  isPrimary?: boolean;
+  assignedAt?: string;
+  sourceRequestId?: string;
+};
+
+export type OfficeConnectionRequest = {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterEmail: string;
+  unitId: string;
+  unitName: string;
+  campusId: string;
+  campusName: string;
+  role: string;
+  roleId?: string;
+  message: string;
+  ndaAccepted: boolean;
+  ndaAcceptedAt?: any;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt?: any;
+  updatedAt?: any;
+  reviewedBy?: string;
+  reviewedByName?: string;
+  reviewedAt?: any;
+  reviewNote?: string;
+};
+
 export type User = {
   id: string;
   email: string;
@@ -38,6 +74,10 @@ export type User = {
   accessibility?: UserAccessibility;
   lastSeenVersion?: string; // Track the last changelog version seen by the user
   portfolios?: PortfolioItem[];
+  // Multi-designation support
+  assignments?: UserAssignment[];
+  assignedUnitIds?: string[];
+  activeAssignmentId?: string;
   // FIAMO-specific fields
   fiamoRole?: FiamoRole;
   workerTypeId?: string;

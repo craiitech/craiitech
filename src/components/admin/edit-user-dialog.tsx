@@ -219,6 +219,11 @@ export function EditUserDialog({ user, isOpen, onOpenChange, roles, campuses, un
       campusId: values.campusId,
       unitId: assignedUnitId,
       unitName: assignedUnitName,
+      assignedUnitIds: Array.from(
+        new Set(
+          [assignedUnitId, ...(activeUser.assignments || []).map((assignment) => assignment.unitId)].filter(Boolean),
+        ),
+      ),
     };
 
     updateDoc(userRef, updateData)

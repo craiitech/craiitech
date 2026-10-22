@@ -1,7 +1,20 @@
 'use client';
 
 import { NotificationInbox } from '@/components/dashboard/notification-inbox';
-import { LogOut, Bell, User as UserIcon, Settings, Accessibility, Sun, Moon, Tv, ExternalLink } from 'lucide-react';
+import {
+  LogOut,
+  Bell,
+  User as UserIcon,
+  Settings,
+  Accessibility,
+  Sun,
+  Moon,
+  Tv,
+  ExternalLink,
+  Building2,
+  ChevronDown,
+  Check,
+} from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,7 +53,7 @@ export function UserNav({
 }: UserNavProps) {
   const router = useRouter();
   const { logSessionActivity } = useSessionActivity();
-  const { userRole, isSupervisor, isAdmin, isVp } = useUser();
+  const { userRole, isSupervisor, isAdmin, isVp, assignments, activeAssignment, setActiveAssignmentId } = useUser();
   const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
@@ -112,6 +125,43 @@ export function UserNav({
         {/* Notification Center / Inbox (Bell Icon Dropdown) */}
         <NotificationInbox initialNotifications={notificationsList} totalNotificationsCount={totalNotificationsCount} />
       </TooltipProvider>
+
+      {assignments.length > 1 && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 gap-1.5 border-primary/20 bg-primary/5 px-2 sm:px-3">
+              <Building2 className="h-3.5 w-3.5 text-primary" />
+              <span className="max-w-[90px] truncate text-[10px] font-bold sm:max-w-[150px] sm:text-xs">
+                {activeAssignment?.unitName || userProfile.unitName || 'Primary Office'}
+              </span>
+              <ChevronDown className="h-3 w-3 text-muted-foreground" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-72">
+            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+              Active University Designation
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {assignments.map((assignment) => (
+              <DropdownMenuItem
+                key={assignment.id}
+                onClick={() => setActiveAssignmentId(assignment.id)}
+                className="flex cursor-pointer flex-col items-start gap-0.5"
+              >
+                <div className="flex w-full items-center justify-between gap-2">
+                  <span className="text-xs font-bold">{assignment.unitName || 'Unnamed Office'}</span>
+                  {assignment.id === activeAssignment?.id && <Check className="h-3.5 w-3.5 text-primary" />}
+                </div>
+                <span className="text-[10px] text-muted-foreground">
+                  {assignment.role}
+                  {assignment.campusName ? ` • ${assignment.campusName}` : ''}
+                  {assignment.isPrimary ? ' • Primary' : ''}
+                </span>
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

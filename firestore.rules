@@ -26,6 +26,14 @@ service cloud.firestore {
       );
     }
 
+    function hasUnitAccess(targetUnitId) {
+      return isSignedIn() && hasProfile() && (
+        isAdmin() ||
+        (targetUnitId != '' && profile().get('unitId', '') == targetUnitId) ||
+        profile().get('assignedUnitIds', []).hasAny([targetUnitId])
+      );
+    }
+
     function isSupervisor() {
       return isSignedIn() && hasProfile() && (
         profile().get('role', '').matches('(?i).*(director|odimo|admin|dean of instruction|doi).*') ||
@@ -85,7 +93,7 @@ service cloud.firestore {
           fiamoSettingsData().get('odimoIds', []).hasAny([request.auth.uid]) ||
           fiamoSettingsData().get('staffIds', []).hasAny([request.auth.uid]) ||
           (fiamoSettingsData().get('officeUnitId', '') != '' &&
-           profile().get('unitId', '') == fiamoSettingsData().get('officeUnitId', ''))
+           hasUnitAccess(fiamoSettingsData().get('officeUnitId', '')))
         ))
       );
     }
@@ -153,9 +161,9 @@ service cloud.firestore {
 
     match /unitForms/{id} {
       allow get, list: if isSignedIn();
-      allow create: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('unitId', '') == request.resource.data.unitId));
-      allow update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('unitId', '') == resource.data.unitId));
-      allow delete: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('unitId', '') == resource.data.unitId));
+      allow create: if isSignedIn() && (isAdmin() || hasUnitAccess(request.resource.data.unitId));
+      allow update: if isSignedIn() && (isAdmin() || hasUnitAccess(resource.data.unitId));
+      allow delete: if isSignedIn() && (isAdmin() || hasUnitAccess(resource.data.unitId));
       allow write: if isAdmin();
     }
 
@@ -216,7 +224,7 @@ service cloud.firestore {
       // within their own campus.
       allow create: if isSignedIn() && hasProfile() && (
         isAdmin() ||
-        (profile().get('unitId', '') != '' && profile().get('unitId', '') == request.resource.data.unitId) ||
+        hasUnitAccess(request.resource.data.unitId) ||
         (
           profile().get('campusId', '') == request.resource.data.campusId &&
           profile().get('role', '').matches('(?i).*(director|odimo|admin|head|coordinator).*')
@@ -225,7 +233,7 @@ service cloud.firestore {
       // Same restriction for updates
       allow update: if isSignedIn() && hasProfile() && (
         isAdmin() ||
-        (profile().get('unitId', '') != '' && profile().get('unitId', '') == resource.data.unitId) ||
+        hasUnitAccess(resource.data.unitId) ||
         (
           profile().get('campusId', '') == resource.data.campusId &&
           profile().get('role', '').matches('(?i).*(director|odimo|admin|head|coordinator).*')
@@ -315,7 +323,7 @@ service cloud.firestore {
         isAdmin() ||
         (hasProfile() && profile().get('role', '').matches('(?i).*(coordinator|director).*')) ||
         (hasProfile() && exists(/databases/$(database)/documents/system/gadSettings) &&
-         profile().get('unitId', '') == get(/databases/$(database)/documents/system/gadSettings).data.get('leadershipUnitId', ''))
+         hasUnitAccess(get(/databases/$(database)/documents/system/gadSettings).data.get('leadershipUnitId', '')))
       );
       allow delete: if isAdmin();
     }
@@ -403,7 +411,7 @@ service cloud.firestore {
       // On create, regular users cannot self-assign administrative roles or verified status
       allow create: if isSignedIn() && request.auth.uid == userId && (
         request.auth.token.email == 'admin@eoms.com' ||
-        (!request.resource.data.keys().hasAny(['isAdmin']) &&
+        (!request.resource.data.keys().hasAny(['isAdmin', 'assignments', 'assignedUnitIds']) &&
          (!request.resource.data.keys().hasAny(['role']) ||
           !(request.resource.data.role in ['Admin', 'admin', 'Administrator', 'administrator', 'System Administrator', 'Super Admin'])) &&
          (!request.resource.data.keys().hasAny(['verified']) || request.resource.data.verified == false))
@@ -416,7 +424,7 @@ service cloud.firestore {
         (request.auth.uid == userId && (
           request.auth.token.email == 'admin@eoms.com' ||
           (
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin']) &&
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'assignments', 'assignedUnitIds', 'email']) &&
             (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified']) || resource.data.get('verified', false) == request.resource.data.get('verified', false)) &&
             (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
              (!(request.resource.data.role in ['Admin', 'admin', 'Administrator', 'administrator', 'System Administrator', 'Super Admin']) &&
@@ -427,6 +435,25 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
     
+    match /officeConnectionRequests/{requestId} {
+      allow get, list: if isSignedIn() && (
+        isAdmin() ||
+        (hasProfile() && resource.data.requesterId == request.auth.uid)
+      );
+      allow create: if isSignedIn() && hasProfile() &&
+        request.resource.data.keys().hasAll(['requesterId', 'requesterEmail', 'unitId', 'unitName', 'campusId', 'campusName', 'role', 'message', 'ndaAccepted', 'status']) &&
+        request.resource.data.requesterId == request.auth.uid &&
+        request.resource.data.requesterEmail == profile().get('email', '') &&
+        request.resource.data.unitId != '' &&
+        request.resource.data.status == 'pending' &&
+        request.resource.data.ndaAccepted == true &&
+        !(request.resource.data.role in ['Admin', 'admin', 'Administrator', 'administrator', 'System Administrator', 'Super Admin']) &&
+        request.resource.data.message is string &&
+        request.resource.data.message.size() >= 10 &&
+        profile().get('email', '').matches('(?i).*@rsu[.]edu[.]ph$');
+      allow update, delete: if isAdmin();
+    }
+
     match /roles_admin/{userId} {
       allow read: if isSignedIn();
       allow write: if isAdmin() || (isSignedIn() && request.auth.token.email == 'admin@eoms.com' && request.auth.uid == userId);
@@ -439,7 +466,7 @@ service cloud.firestore {
     
     match /units/{id} { 
       allow read: if true; // Required for Registration unit filter
-      allow update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('unitId', '') == id));
+      allow update: if isSignedIn() && (isAdmin() || hasUnitAccess(id));
       allow write: if isAdmin(); 
     }
     
@@ -544,9 +571,9 @@ service cloud.firestore {
     // Form Roster Management
     match /unitForms/{allPaths=**} {
         allow get, list: if isSignedIn();
-        allow create: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('unitId', '') == request.resource.data.unitId));
-        allow update: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('unitId', '') == resource.data.unitId));
-        allow delete: if isSignedIn() && (isAdmin() || (hasProfile() && profile().get('unitId', '') == resource.data.unitId));
+        allow create: if isSignedIn() && (isAdmin() || hasUnitAccess(request.resource.data.unitId));
+        allow update: if isSignedIn() && (isAdmin() || hasUnitAccess(resource.data.unitId));
+        allow delete: if isSignedIn() && (isAdmin() || hasUnitAccess(resource.data.unitId));
         allow write: if isAdmin();
     }
 
