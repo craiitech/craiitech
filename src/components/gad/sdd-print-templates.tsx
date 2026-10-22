@@ -30,6 +30,7 @@ export type SDDTermBlock = {
   male: number;
   female: number;
   total?: number;
+  hideYearLevel?: boolean;
 };
 
 export type SDDStudentSection = {
@@ -146,10 +147,16 @@ function ReportFooter({ signatories, gadSettings }: { signatories?: Signatories;
   );
 }
 
-function TotalRow({ male, female, total, label = 'TOTAL' }: SDDCountPair & { label?: string }) {
+function TotalRow({
+  male,
+  female,
+  total,
+  label = 'TOTAL',
+  hideLabel = false,
+}: SDDCountPair & { label?: string; hideLabel?: boolean }) {
   return (
     <tr className="bg-slate-100 font-black">
-      <td className="border border-black p-1.5 uppercase">{label}</td>
+      {!hideLabel && <td className="border border-black p-1.5 uppercase">{label}</td>}
       <td className="border border-black p-1.5 text-right tabular-nums">{male.toLocaleString()}</td>
       <td className="border border-black p-1.5 text-right tabular-nums">{female.toLocaleString()}</td>
       <td className="border border-black p-1.5 text-right tabular-nums">{(total ?? male + female).toLocaleString()}</td>
@@ -203,6 +210,8 @@ function groupTermsByYear(terms: SDDTermBlock[]) {
 }
 
 function renderStudentTerm(term: SDDTermBlock, keyPrefix: string) {
+  const hideYearLevel = term.hideYearLevel === true;
+
   return (
     <div
       key={`${keyPrefix}-${term.academicYear || ''}-${term.term}`}
@@ -219,24 +228,25 @@ function renderStudentTerm(term: SDDTermBlock, keyPrefix: string) {
       >
         <thead>
           <tr className="bg-slate-100 font-black uppercase">
-            <th className="border border-black p-1.5 text-left">Year Level</th>
+            {!hideYearLevel && <th className="border border-black p-1.5 text-left">Year Level</th>}
             <th className="border border-black p-1.5 text-right w-[15%]">Male</th>
             <th className="border border-black p-1.5 text-right w-[15%]">Female</th>
             <th className="border border-black p-1.5 text-right w-[15%]">Total</th>
           </tr>
         </thead>
         <tbody>
-          {term.levels.map((level) => (
-            <tr key={`${keyPrefix}-${level.label}`}>
-              <td className="border border-black p-1.5">{level.label}</td>
-              <td className="border border-black p-1.5 text-right tabular-nums">{level.male.toLocaleString()}</td>
-              <td className="border border-black p-1.5 text-right tabular-nums">{level.female.toLocaleString()}</td>
-              <td className="border border-black p-1.5 text-right tabular-nums">
-                {(level.total ?? level.male + level.female).toLocaleString()}
-              </td>
-            </tr>
-          ))}
-          <TotalRow male={term.male} female={term.female} total={term.total} />
+          {!hideYearLevel &&
+            term.levels.map((level) => (
+              <tr key={`${keyPrefix}-${level.label}`}>
+                <td className="border border-black p-1.5">{level.label}</td>
+                <td className="border border-black p-1.5 text-right tabular-nums">{level.male.toLocaleString()}</td>
+                <td className="border border-black p-1.5 text-right tabular-nums">{level.female.toLocaleString()}</td>
+                <td className="border border-black p-1.5 text-right tabular-nums">
+                  {(level.total ?? level.male + level.female).toLocaleString()}
+                </td>
+              </tr>
+            ))}
+          <TotalRow male={term.male} female={term.female} total={term.total} hideLabel={hideYearLevel} />
         </tbody>
       </table>
 

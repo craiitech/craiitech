@@ -729,6 +729,7 @@ export function SDDHub({
           male: displayedMale,
           female: displayedFemale,
           total: displayedTotal,
+          hideYearLevel: levelMode === 'overall',
         });
       });
     });
