@@ -589,6 +589,69 @@ export function SDDHub({
     };
   }, [studentRecordSource, dashboardYear]);
 
+  const studentYearlyData = useMemo(() => {
+    const levelKeys = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear', 'fifthYear'] as const;
+    const yearTotals = new Map<number, { male: number; female: number }>();
+
+    const collectTerm = (term: any) => {
+      let male = 0;
+      let female = 0;
+      if (term) {
+        levelKeys.forEach((levelKey) => {
+          male += Number(term[levelKey]?.male) || 0;
+          female += Number(term[levelKey]?.female) || 0;
+        });
+      }
+      return { male, female };
+    };
+
+    studentRecordSource.forEach((record) => {
+      const year = Number(record.academicYear);
+      if (!Number.isFinite(year) || year <= 2000) return;
+
+      const totals = yearTotals.get(year) || { male: 0, female: 0 };
+      const enrollmentRecords = record.enrollmentRecords || [];
+      let male = 0;
+      let female = 0;
+
+      if (enrollmentRecords.length > 0) {
+        enrollmentRecords.forEach((rec: any) => {
+          const computed = collectTerm(rec?.firstSemester);
+          const overall = rec?.overall?.firstSemester;
+
+          if (rec?.overallOnly && overall) {
+            male += Number(overall.male) || 0;
+            female += Number(overall.female) || 0;
+          } else if (computed.male + computed.female > 0) {
+            male += computed.male;
+            female += computed.female;
+          } else if (overall) {
+            male += Number(overall.male) || 0;
+            female += Number(overall.female) || 0;
+          }
+        });
+      } else {
+        const legacy = collectTerm(record.stats?.enrollment?.firstSemester);
+        male += legacy.male;
+        female += legacy.female;
+      }
+
+      totals.male += male;
+      totals.female += female;
+      yearTotals.set(year, totals);
+    });
+
+    return Array.from(yearTotals.entries())
+      .map(([year, totals]) => ({
+        year,
+        male: totals.male,
+        female: totals.female,
+        total: totals.male + totals.female,
+      }))
+      .filter((row) => row.total > 0 || row.year === dashboardYear)
+      .sort((a, b) => b.year - a.year);
+  }, [studentRecordSource, dashboardYear]);
+
   const semesterLabels = {
     firstSemester: 'First Semester',
     secondSemester: 'Second Semester',
@@ -1322,8 +1385,119 @@ export function SDDHub({
           </Card>
         </div>
 
-        {/* STUDENT SECTORAL DISTRIBUTION */}
+        {/* STUDENT POPULATION BY ACADEMIC YEAR */}
         <div className="lg:col-span-2">
+          <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl h-full flex flex-col bg-white dark:bg-slate-900">
+            <CardHeader className="bg-muted/10 border-b py-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <CalendarRange className="h-5 w-5 text-primary" />
+                  <div>
+                    <CardTitle className="text-sm font-black uppercase tracking-tight">
+                      Student Population by Academic Year
+                    </CardTitle>
+                    <CardDescription className="text-[10px]">
+                      Total male, female, and overall student headcount per academic year (1st Semester baseline).
+                    </CardDescription>
+                  </div>
+                </div>
+                <Badge
+                  variant="outline"
+                  className="w-fit text-[9px] font-black uppercase border-primary/30 text-primary bg-white"
+                >
+                  {studentYearlyData.length} AY Tracked
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0 flex-1 overflow-x-auto">
+              {studentYearlyData.length > 0 ? (
+                <table className="w-full min-w-[580px] border-collapse text-[11px]">
+                  <thead>
+                    <tr className="bg-slate-100 dark:bg-slate-800 text-[9px] font-black uppercase text-slate-600 dark:text-slate-300">
+                      <th className="px-5 py-3 text-left">Academic Year</th>
+                      <th className="px-4 py-3 text-center text-indigo-600 dark:text-indigo-400">Male</th>
+                      <th className="px-4 py-3 text-center text-rose-600 dark:text-rose-400">Female</th>
+                      <th className="px-4 py-3 text-center">Total Students</th>
+                      <th className="px-5 py-3 text-left">Sex Distribution</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentYearlyData.map((row) => {
+                      const malePct = row.total > 0 ? Math.round((row.male / row.total) * 100) : 0;
+                      const isCurrent = row.year === dashboardYear;
+
+                      return (
+                        <tr
+                          key={row.year}
+                          className={cn(
+                            'border-b last:border-0 transition-colors',
+                            isCurrent ? 'bg-primary/5' : 'hover:bg-muted/30',
+                          )}
+                        >
+                          <td className="px-5 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-slate-900 dark:text-slate-100 tabular-nums">
+                                AY {row.year}&ndash;{row.year + 1}
+                              </span>
+                              {isCurrent && (
+                                <Badge className="h-4 bg-primary/10 px-1.5 text-[8px] font-black uppercase text-primary hover:bg-primary/10">
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-center font-black tabular-nums text-indigo-600 dark:text-indigo-400">
+                            {row.male.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 text-center font-black tabular-nums text-rose-600 dark:text-rose-400">
+                            {row.female.toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="inline-flex min-w-[70px] justify-center rounded-md bg-primary/5 px-2 py-1 font-black tabular-nums text-primary">
+                              {row.total.toLocaleString()}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3">
+                            {row.total > 0 ? (
+                              <div className="flex items-center gap-2">
+                                <div className="flex h-2 w-full max-w-[140px] overflow-hidden rounded-full bg-rose-200/70 dark:bg-rose-950">
+                                  <div className="h-full bg-indigo-500" style={{ width: `${malePct}%` }} />
+                                </div>
+                                <span className="whitespace-nowrap text-[9px] font-bold text-muted-foreground tabular-nums">
+                                  {malePct}% M &middot; {100 - malePct}% F
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-bold text-muted-foreground">No data</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 py-16 opacity-30">
+                  <Users className="h-10 w-10" />
+                  <p className="text-[10px] font-black uppercase tracking-widest">
+                    No academic-year enrollment data recorded
+                  </p>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5">
+              <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                Headcounts consolidate the verified 1st Semester enrollment records of all programs in scope for each
+                academic year. Male and female totals are derived from program-level enrollment data and support
+                year-on-year sex-disaggregated trend analysis for GAD planning and reporting.
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
+
+        {/* STUDENT SECTORAL DISTRIBUTION */}
+        <div className="lg:col-span-3">
           <Card className="shadow-lg hover:shadow-xl transition-all border-primary/10 rounded-2xl h-full flex flex-col bg-white dark:bg-slate-900">
             <CardHeader className="bg-muted/10 border-b py-4">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
