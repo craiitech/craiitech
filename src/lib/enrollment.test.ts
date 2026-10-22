@@ -1,0 +1,45 @@
+import { describe, expect, it } from 'vitest';
+import { sumEnrollmentTerm, withEnrollmentOveralls } from './enrollment';
+import type { EnrollmentRecord, YearLevelEnrollment } from './types';
+
+const level = (male: number, female: number) => ({
+  male,
+  female,
+  total: male + female,
+  specialNeeds: 0,
+});
+
+const term = (first: [number, number], second: [number, number]): YearLevelEnrollment => ({
+  firstYear: level(...first),
+  secondYear: level(...second),
+  thirdYear: level(0, 0),
+  fourthYear: level(0, 0),
+});
+
+describe('sumEnrollmentTerm', () => {
+  it('sums male and female counts across year levels', () => {
+    expect(sumEnrollmentTerm(term([3, 4], [5, 6]))).toEqual({ male: 8, female: 10, total: 18 });
+  });
+
+  it('returns zeroes for an empty term', () => {
+    expect(sumEnrollmentTerm(undefined)).toEqual({ male: 0, female: 0, total: 0 });
+  });
+});
+
+describe('withEnrollmentOveralls', () => {
+  it('adds computed overall totals for every enrollment term', () => {
+    const record = {
+      id: 'record-1',
+      majorId: 'General',
+      firstSemester: term([1, 2], [3, 4]),
+      secondSemester: term([5, 6], [7, 8]),
+      midYearTerm: term([9, 10], [0, 0]),
+    } as EnrollmentRecord;
+
+    expect(withEnrollmentOveralls(record).overall).toEqual({
+      firstSemester: { male: 4, female: 6, total: 10 },
+      secondSemester: { male: 12, female: 14, total: 26 },
+      midYearTerm: { male: 9, female: 10, total: 19 },
+    });
+  });
+});

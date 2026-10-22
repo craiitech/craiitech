@@ -108,6 +108,16 @@ const GAD_SECTORS: GADSector[] = [
   'Indigenous People',
 ];
 
+const STUDENT_LEVEL_OPTIONS = [
+  { key: 'firstYear', label: 'First Year' },
+  { key: 'secondYear', label: 'Second Year' },
+  { key: 'thirdYear', label: 'Third Year' },
+  { key: 'fourthYear', label: 'Fourth Year' },
+] as const;
+
+type StudentLevelKey = (typeof STUDENT_LEVEL_OPTIONS)[number]['key'];
+type StudentLevelMode = 'byLevel' | 'selected' | 'overall';
+
 function AcademicYearSelect({
   value,
   years,
@@ -166,6 +176,8 @@ export function SDDHub({
   const [printCampusId, setPrintCampusId] = useState('all');
   const [printProgramId, setPrintProgramId] = useState('all');
   const [printStudentType, setPrintStudentType] = useState<'all' | 'undergraduate' | 'graduate'>('all');
+  const [printStudentLevelMode, setPrintStudentLevelMode] = useState<StudentLevelMode>('byLevel');
+  const [printStudentLevelKey, setPrintStudentLevelKey] = useState<StudentLevelKey>('firstYear');
   const [dashboardYear, setDashboardYear] = useState(selectedYear);
 
   useEffect(() => {
@@ -602,6 +614,8 @@ export function SDDHub({
     title: string,
     years: number[],
     semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
+    levelMode: StudentLevelMode = 'byLevel',
+    selectedLevelKey?: StudentLevelKey,
   ): SDDStudentSection => {
     const termKeys = semesterKey
       ? ([semesterKey] as const)
@@ -624,10 +638,14 @@ export function SDDHub({
         const sectorMap: Record<string, { male: number; female: number }> = {};
         let male = 0;
         let female = 0;
+        let overallMale = 0;
+        let overallFemale = 0;
 
         const collectTerm = (term: any) => {
           if (!term) return;
           levelDefs.forEach(({ key: levelKey }, index) => {
+            if (levelMode === 'selected' && levelKey !== selectedLevelKey) return;
+
             const levelData = term[levelKey];
             if (!levelData) return;
 
@@ -646,16 +664,37 @@ export function SDDHub({
           });
         };
 
+        const collectOverall = (term: any, storedOverall: any) => {
+          if (storedOverall && (storedOverall.male !== undefined || storedOverall.female !== undefined)) {
+            overallMale += Number(storedOverall.male || 0);
+            overallFemale += Number(storedOverall.female || 0);
+            return;
+          }
+
+          levelDefs.forEach(({ key: levelKey }) => {
+            overallMale += Number(term?.[levelKey]?.male || 0);
+            overallFemale += Number(term?.[levelKey]?.female || 0);
+          });
+        };
+
         yearRecords.forEach((record) => {
           const enrollmentRecords = record.enrollmentRecords || [];
           if (enrollmentRecords.length > 0) {
-            enrollmentRecords.forEach((rec: any) => collectTerm(rec?.[key]));
+            enrollmentRecords.forEach((rec: any) => {
+              collectTerm(rec?.[key]);
+              if (levelMode === 'overall') collectOverall(rec?.[key], rec?.overall?.[key]);
+            });
           } else {
-            collectTerm((record.stats?.enrollment as any)?.[key]);
+            const term = (record.stats?.enrollment as any)?.[key];
+            collectTerm(term);
+            if (levelMode === 'overall') collectOverall(term, (record.stats?.enrollment as any)?.overall?.[key]);
           }
         });
 
-        if (!semesterKey && key === 'midYearTerm' && male + female === 0) return;
+        const displayedMale = levelMode === 'overall' ? overallMale : male;
+        const displayedFemale = levelMode === 'overall' ? overallFemale : female;
+
+        if (!semesterKey && key === 'midYearTerm' && displayedMale + displayedFemale === 0) return;
 
         const sectors: SDDSectorRow[] = Object.entries(sectorMap)
           .map(([sector, counts]) => ({
@@ -667,13 +706,20 @@ export function SDDHub({
           .filter((sector) => sector.total > 0)
           .sort((a, b) => b.total - a.total);
 
+        const displayedLevels =
+          levelMode === 'overall'
+            ? [{ label: 'Overall Total', male: overallMale, female: overallFemale }]
+            : levelMode === 'selected'
+              ? levels.filter((_, index) => levelDefs[index].key === selectedLevelKey)
+              : levels.filter((level, index) => index < 4 || level.male + level.female > 0);
+
         terms.push({
           term: semesterLabels[key],
           academicYear: `${year}-${year + 1}`,
-          levels: levels.filter((level, index) => index < 4 || level.male + level.female > 0),
+          levels: displayedLevels,
           sectors,
-          male,
-          female,
+          male: displayedMale,
+          female: displayedFemale,
         });
       });
     });
@@ -689,6 +735,8 @@ export function SDDHub({
   const buildStudentReportData = (
     years: number[],
     semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
+    levelMode: StudentLevelMode = 'byLevel',
+    selectedLevelKey?: StudentLevelKey,
   ): StudentSDDReportData => {
     const programLevelById = new Map((academicPrograms || []).map((program) => [program.id, program.level]));
     const allRecords = studentRecordSource.filter((record) => {
@@ -713,7 +761,7 @@ export function SDDHub({
     const appendices: SDDStudentSection[] = [];
 
     const addSection = (target: SDDStudentSection[], records: ProgramComplianceRecord[], title: string) => {
-      const section = buildStudentSection(records, title, years, semesterKey);
+      const section = buildStudentSection(records, title, years, semesterKey, levelMode, selectedLevelKey);
       if (section.terms.length > 0) target.push(section);
     };
 
@@ -839,6 +887,12 @@ export function SDDHub({
       scopeParts.push(
         `Student Type: ${printStudentType === 'undergraduate' ? 'Undergraduate Student' : 'Graduate Student'}`,
       );
+    }
+    if (levelMode === 'overall') {
+      scopeParts.push('Student Level: Overall Total');
+    } else if (levelMode === 'selected') {
+      const levelLabel = STUDENT_LEVEL_OPTIONS.find((level) => level.key === selectedLevelKey)?.label;
+      if (levelLabel) scopeParts.push(`Student Level: ${levelLabel}`);
     }
 
     return {
@@ -1035,7 +1089,7 @@ export function SDDHub({
     try {
       if (printReportType === 'students') {
         const semesterKey = printMode === 'yearSemester' ? printSemester : undefined;
-        const reportData = buildStudentReportData(years, semesterKey);
+        const reportData = buildStudentReportData(years, semesterKey, printStudentLevelMode, printStudentLevelKey);
 
         if (reportData.sections.length === 0 || reportData.grand.male + reportData.grand.female === 0) {
           toast({
@@ -1820,7 +1874,7 @@ export function SDDHub({
       </Card>
 
       <Dialog open={isPrintDialogOpen} onOpenChange={setIsPrintDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="font-black uppercase tracking-tight">Print SDD Report</DialogTitle>
             <DialogDescription>
@@ -1868,6 +1922,58 @@ export function SDDHub({
                     <SelectItem value="graduate">Graduate Student</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+
+            {printReportType === 'students' && (
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Student Level</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    type="button"
+                    variant={printStudentLevelMode === 'byLevel' ? 'default' : 'outline'}
+                    onClick={() => setPrintStudentLevelMode('byLevel')}
+                    className="h-9 text-[10px] font-black uppercase tracking-wider"
+                  >
+                    By Level
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={printStudentLevelMode === 'selected' ? 'default' : 'outline'}
+                    onClick={() => setPrintStudentLevelMode('selected')}
+                    className="h-9 text-[10px] font-black uppercase tracking-wider"
+                  >
+                    Select Level
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={printStudentLevelMode === 'overall' ? 'default' : 'outline'}
+                    onClick={() => setPrintStudentLevelMode('overall')}
+                    className="h-9 text-[10px] font-black uppercase tracking-wider"
+                  >
+                    Overall Total
+                  </Button>
+                </div>
+                {printStudentLevelMode === 'selected' && (
+                  <div className="grid grid-cols-4 gap-2 pt-1">
+                    {STUDENT_LEVEL_OPTIONS.map((level) => (
+                      <Button
+                        key={level.key}
+                        type="button"
+                        variant={printStudentLevelKey === level.key ? 'default' : 'outline'}
+                        onClick={() => setPrintStudentLevelKey(level.key)}
+                        className="h-8 text-[9px] font-black uppercase tracking-wider"
+                      >
+                        {level.label}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+                {printStudentLevelMode === 'overall' && (
+                  <p className="text-[10px] italic text-muted-foreground">
+                    Uses the Total Overall Male, Total Overall Female, and Overall Total saved in Rapid Hub Entry.
+                  </p>
+                )}
               </div>
             )}
 

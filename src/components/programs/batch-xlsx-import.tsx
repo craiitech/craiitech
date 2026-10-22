@@ -6,7 +6,8 @@
 
 import { useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx-js-style';
-import type { AcademicProgram, Campus, ProgramComplianceRecord } from '@/lib/types';
+import type { AcademicProgram, Campus, EnrollmentRecord, ProgramComplianceRecord } from '@/lib/types';
+import { withEnrollmentOveralls } from '@/lib/enrollment';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -592,6 +593,10 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
             }
           });
 
+          const enrollmentRecordsWithOveralls = enrollmentRecords.map((record) =>
+            withEnrollmentOveralls(record as EnrollmentRecord),
+          );
+
           const baseRecord = existing
             ? {}
             : {
@@ -628,7 +633,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
               programId: program.id,
               campusId: program.campusId,
               unitId: program.collegeId,
-              enrollmentRecords,
+              enrollmentRecords: enrollmentRecordsWithOveralls,
               graduationRecords,
               updatedAt: serverTimestamp(),
               updatedBy: userProfile.id,

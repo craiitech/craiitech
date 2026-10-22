@@ -34,6 +34,7 @@ import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import type { AcademicProgram, ProgramComplianceRecord } from '@/lib/types';
+import { withEnrollmentOveralls } from '@/lib/enrollment';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { CurriculumModule } from './modules/curriculum-module';
 import { OutcomesModule } from './modules/outcomes-module';
@@ -123,10 +124,15 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
     setIsSaving(true);
 
     try {
+      const enrollmentRecords = Array.isArray(values.enrollmentRecords)
+        ? values.enrollmentRecords.map((record: any) => withEnrollmentOveralls(record))
+        : values.enrollmentRecords;
+
       await setDoc(
         doc(firestore, 'programCompliances', recordId),
         {
           ...values,
+          enrollmentRecords,
           id: recordId,
           academicYear: currentAY,
           programId: program.id,

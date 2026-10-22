@@ -82,6 +82,17 @@ function EnrollmentRecordCard({
     return levels.reduce((acc, level) => acc + calculateLevelTotal(term, level), 0);
   };
 
+  const calculateTermSexTotals = (term: string) => {
+    const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'];
+    return levels.reduce(
+      (totals, level) => ({
+        male: totals.male + (Number(recordValues?.[term]?.[level]?.male) || 0),
+        female: totals.female + (Number(recordValues?.[term]?.[level]?.female) || 0),
+      }),
+      { male: 0, female: 0 },
+    );
+  };
+
   const renderSectorInputs = (termKey: string, level: string) => (
     <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/10 space-y-4 animate-in zoom-in duration-300">
       <div className="flex items-center justify-between border-b pb-2">
@@ -142,87 +153,116 @@ function EnrollmentRecordCard({
     </div>
   );
 
-  const renderTermInputs = (termKey: string) => (
-    <div className="space-y-4 mt-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].map((level, lIdx) => {
-          const total = calculateLevelTotal(termKey, level);
-          const isExpanded = expandedLevel === `${termKey}-${level}`;
-          return (
-            <div
-              key={level}
-              className={cn(
-                'p-3 rounded-lg border bg-muted/5 space-y-3 transition-all',
-                isExpanded && 'ring-2 ring-primary border-primary',
-              )}
-            >
-              <div className="flex items-center justify-between border-b pb-1">
-                <p className="text-[9px] font-black uppercase text-primary">
-                  {lIdx + 1}
-                  {lIdx === 0 ? 'st' : lIdx === 1 ? 'nd' : lIdx === 2 ? 'rd' : 'th'} Year Level
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setExpandedLevel(isExpanded ? null : `${termKey}-${level}`)}
-                  className="h-5 px-2 text-[8px] font-black uppercase bg-white border shadow-sm gap-1"
-                >
-                  {isExpanded ? <LayoutList className="h-2.5 w-2.5" /> : <PlusCircle className="h-2.5 w-2.5" />}
-                  {isExpanded ? 'Hide Sectors' : 'Sector Breakdown'}
-                </Button>
+  const renderTermInputs = (termKey: string) => {
+    const termSexTotals = calculateTermSexTotals(termKey);
+
+    return (
+      <div className="space-y-4 mt-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].map((level, lIdx) => {
+            const total = calculateLevelTotal(termKey, level);
+            const isExpanded = expandedLevel === `${termKey}-${level}`;
+            return (
+              <div
+                key={level}
+                className={cn(
+                  'p-3 rounded-lg border bg-muted/5 space-y-3 transition-all',
+                  isExpanded && 'ring-2 ring-primary border-primary',
+                )}
+              >
+                <div className="flex items-center justify-between border-b pb-1">
+                  <p className="text-[9px] font-black uppercase text-primary">
+                    {lIdx + 1}
+                    {lIdx === 0 ? 'st' : lIdx === 1 ? 'nd' : lIdx === 2 ? 'rd' : 'th'} Year Level
+                  </p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setExpandedLevel(isExpanded ? null : `${termKey}-${level}`)}
+                    className="h-5 px-2 text-[8px] font-black uppercase bg-white border shadow-sm gap-1"
+                  >
+                    {isExpanded ? <LayoutList className="h-2.5 w-2.5" /> : <PlusCircle className="h-2.5 w-2.5" />}
+                    {isExpanded ? 'Hide Sectors' : 'Sector Breakdown'}
+                  </Button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <FormField
+                    control={control}
+                    name={`enrollmentRecords.${index}.${termKey}.${level}.male`}
+                    render={({ field: inputField }) => (
+                      <FormItem>
+                        <FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Male</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...inputField}
+                            className="h-7 text-[10px]"
+                            disabled={!canEdit}
+                            onChange={(e) => inputField.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={control}
+                    name={`enrollmentRecords.${index}.${termKey}.${level}.female`}
+                    render={({ field: inputField }) => (
+                      <FormItem>
+                        <FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Female</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...inputField}
+                            className="h-7 text-[10px]"
+                            disabled={!canEdit}
+                            onChange={(e) => inputField.onChange(Number(e.target.value))}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormItem>
+                    <FormLabel className="text-[8px] uppercase font-black text-primary">Total</FormLabel>
+                    <div className="h-7 flex items-center justify-center text-[10px] font-black bg-primary/5 rounded border border-primary/20 tabular-nums">
+                      {total}
+                    </div>
+                  </FormItem>
+                </div>
+                {isExpanded && renderSectorInputs(termKey, level)}
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <FormField
-                  control={control}
-                  name={`enrollmentRecords.${index}.${termKey}.${level}.male`}
-                  render={({ field: inputField }) => (
-                    <FormItem>
-                      <FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Male</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...inputField}
-                          className="h-7 text-[10px]"
-                          disabled={!canEdit}
-                          onChange={(e) => inputField.onChange(Number(e.target.value))}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={control}
-                  name={`enrollmentRecords.${index}.${termKey}.${level}.female`}
-                  render={({ field: inputField }) => (
-                    <FormItem>
-                      <FormLabel className="text-[8px] uppercase font-bold text-muted-foreground">Female</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...inputField}
-                          className="h-7 text-[10px]"
-                          disabled={!canEdit}
-                          onChange={(e) => inputField.onChange(Number(e.target.value))}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                <FormItem>
-                  <FormLabel className="text-[8px] uppercase font-black text-primary">Total</FormLabel>
-                  <div className="h-7 flex items-center justify-center text-[10px] font-black bg-primary/5 rounded border border-primary/20 tabular-nums">
-                    {total}
-                  </div>
-                </FormItem>
-              </div>
-              {isExpanded && renderSectorInputs(termKey, level)}
+            );
+          })}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-primary/20 bg-primary/5 p-3">
+          <div className="space-y-1">
+            <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Total Overall Male</p>
+            <div className="flex h-8 items-center justify-center rounded-md border border-primary/20 bg-white text-xs font-black tabular-nums text-primary">
+              {termSexTotals.male.toLocaleString()}
             </div>
-          );
-        })}
+          </div>
+          <div className="space-y-1">
+            <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">
+              Total Overall Female
+            </p>
+            <div className="flex h-8 items-center justify-center rounded-md border border-primary/20 bg-white text-xs font-black tabular-nums text-primary">
+              {termSexTotals.female.toLocaleString()}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Overall Total</p>
+            <div className="flex h-8 items-center justify-center rounded-md border border-primary/20 bg-white text-xs font-black tabular-nums text-primary">
+              {(termSexTotals.male + termSexTotals.female).toLocaleString()}
+            </div>
+          </div>
+          <p className="sm:col-span-3 text-[9px] italic text-muted-foreground">
+            Auto-computed from all year levels. This overall total is used by the SDD report.
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const currentYear = new Date().getFullYear();
   const availableYears = Array.from({ length: 8 }, (_, i) => currentYear + 2 - i);
@@ -611,6 +651,11 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
       secondYear: getEmptyYearLevel(),
       thirdYear: getEmptyYearLevel(),
       fourthYear: getEmptyYearLevel(),
+    },
+    overall: {
+      firstSemester: { male: 0, female: 0, total: 0 },
+      secondSemester: { male: 0, female: 0, total: 0 },
+      midYearTerm: { male: 0, female: 0, total: 0 },
     },
   });
 

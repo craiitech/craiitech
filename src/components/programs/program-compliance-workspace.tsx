@@ -15,6 +15,7 @@ import { ChedComplianceModule } from './modules/ched-compliance-module';
 import { AccreditationModule } from './modules/accreditation-module';
 import { FacultyModule } from './modules/faculty-module';
 import { CurriculumModule } from './modules/curriculum-module';
+import { withEnrollmentOveralls } from '@/lib/enrollment';
 import { OutcomesModule } from './modules/outcomes-module';
 import { ProgramPerformanceView } from './program-performance-view';
 import { Button } from '../ui/button';
@@ -255,8 +256,13 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
         })) || [];
     }
 
+    const enrollmentRecords = Array.isArray(values.enrollmentRecords)
+      ? values.enrollmentRecords.map((record: any) => withEnrollmentOveralls(record))
+      : values.enrollmentRecords;
+
     const sanitizedData = sanitizeForFirestore({
       ...values,
+      enrollmentRecords,
       id: recordId,
       academicYear: selectedAY,
       programId: program.id,

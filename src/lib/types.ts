@@ -1119,6 +1119,12 @@ export type CurriculumRecord = {
   dateNoted?: string;
 };
 
+export type EnrollmentOverall = {
+  male: number;
+  female: number;
+  total: number;
+};
+
 export type EnrollmentRecord = {
   id: string;
   academicYear?: number | string; // e.g. 2024 or "2024-2025"
@@ -1126,6 +1132,11 @@ export type EnrollmentRecord = {
   firstSemester: YearLevelEnrollment;
   secondSemester: YearLevelEnrollment;
   midYearTerm?: YearLevelEnrollment;
+  overall?: {
+    firstSemester: EnrollmentOverall;
+    secondSemester: EnrollmentOverall;
+    midYearTerm?: EnrollmentOverall;
+  };
 };
 
 export type ProgramComplianceRecord = {
