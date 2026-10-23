@@ -74,7 +74,7 @@ export function AcademicUnitChedWarningsCard({
       if (filterMode === 'missing_enrollment') return s.missingEnrollment;
       if (filterMode === 'missing_graduation') return s.missingGraduation;
       if (filterMode === 'missing_board') return s.missingBoard;
-      if (filterMode === 'missing_docs') return s.missingOtherChed;
+      if (filterMode === 'missing_docs') return s.missingDocuments;
       return true;
     });
   }, [stats, filterMode, searchQuery]);
@@ -254,7 +254,7 @@ export function AcademicUnitChedWarningsCard({
               </span>
             </div>
             <div className="text-xs font-bold text-foreground mt-0.5">
-              {stats.missingChedDocCount > 0 ? 'COPC/CMO/BOR Deficits' : 'Documents Verified'}
+              {stats.missingChedDocCount > 0 ? 'COPC/CMO/BOR Evidence Missing' : 'No Evidence Gaps Found'}
             </div>
           </button>
         </div>

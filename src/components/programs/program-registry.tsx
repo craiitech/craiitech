@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 interface ProgramRegistryProps {
   programs: AcademicProgram[];
   compliances: ProgramComplianceRecord[];
+  selectedYear: number;
   campuses: Campus[];
   units: Unit[];
   onEdit: (program: AcademicProgram) => void;
@@ -39,6 +40,7 @@ interface ProgramRegistryProps {
 export function ProgramRegistry({
   programs,
   compliances,
+  selectedYear,
   campuses,
   units,
   onEdit,
@@ -105,7 +107,7 @@ export function ProgramRegistry({
                 (c) =>
                   String(c.programId || '')
                     .toLowerCase()
-                    .trim() === pId,
+                    .trim() === pId && Number(c.academicYear) === Number(selectedYear),
               );
 
               const copcStatus = record?.ched?.copcStatus;

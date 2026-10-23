@@ -560,6 +560,7 @@ export default function AcademicProgramsPage() {
               <ProgramRegistry
                 programs={filteredPrograms.filter((p) => p.isActive)}
                 compliances={rawCompliances || []}
+                selectedYear={selectedYear}
                 campuses={campuses || []}
                 units={units || []}
                 onEdit={handleEditProgram}
@@ -572,6 +573,7 @@ export default function AcademicProgramsPage() {
               <ProgramRegistry
                 programs={filteredPrograms.filter((p) => !p.isActive)}
                 compliances={rawCompliances || []}
+                selectedYear={selectedYear}
                 campuses={campuses || []}
                 units={units || []}
                 onEdit={handleEditProgram}

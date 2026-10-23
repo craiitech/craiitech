@@ -32,6 +32,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getUnitProgramsChedWarnings, getProgramChedWarnings } from '@/lib/ched-compliance-warnings';
 import { AcademicUnitChedWarningsCard } from '@/components/programs/academic-unit-ched-warnings-card';
+import {
+  getChedCopcCategory,
+  getChedPortfolioSnapshot,
+  getChedYearSummaries,
+  normalizeProgramId,
+} from '@/lib/ched-monitoring';
 
 export interface ChedMonitoringViewProps {
   programs: AcademicProgram[];
@@ -40,6 +46,9 @@ export interface ChedMonitoringViewProps {
   units: Unit[];
   selectedYear: number;
 }
+
+const COPC_PRIORITY_THRESHOLD = 80;
+const COPC_URGENT_THRESHOLD = 60;
 
 export function ChedMonitoringView({ programs, compliances, campuses, units, selectedYear }: ChedMonitoringViewProps) {
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
@@ -61,68 +70,20 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
     return getUnitProgramsChedWarnings(activePrograms, compliances, selectedYear);
   }, [activePrograms, compliances, selectedYear]);
 
-  // Yearly COPC Compliance Summary
-  const yearlySummary = useMemo(() => {
-    const yearMap = new Map<
-      number,
-      {
-        total: number;
-        newProgram: number;
-        withCopc: number;
-        inProgress: number;
-        noCopc: number;
-        hasRqat: number;
-        hasCmo: number;
-      }
-    >();
-
-    activePrograms.forEach((p) => {
-      const programCompliances = compliances.filter((c) => c.programId === p.id);
-      programCompliances.forEach((c) => {
-        const yr = c.academicYear;
-        if (!yearMap.has(yr)) {
-          yearMap.set(yr, {
-            total: 0,
-            newProgram: 0,
-            withCopc: 0,
-            inProgress: 0,
-            noCopc: 0,
-            hasRqat: 0,
-            hasCmo: 0,
-          });
-        }
-        const entry = yearMap.get(yr)!;
-        entry.total++;
-        if (p.isNewProgram) entry.newProgram++;
-
-        const copc = c.ched?.copcStatus || 'No COPC';
-        if (copc === 'With COPC') entry.withCopc++;
-        else if (copc === 'In Progress') entry.inProgress++;
-        else entry.noCopc++;
-
-        if (c.ched?.rqatVisits && c.ched.rqatVisits.length > 0) entry.hasRqat++;
-        if (c.ched?.programCmoLink) entry.hasCmo++;
-      });
-    });
-
-    return Array.from(yearMap.entries())
-      .map(([year, data]) => ({
-        year,
-        ...data,
-        copcRate: data.total > 0 ? Math.round((data.withCopc / data.total) * 100) : 0,
-      }))
-      .sort((a, b) => b.year - a.year);
-  }, [activePrograms, compliances]);
+  const yearlySummary = useMemo(
+    () => getChedYearSummaries(activePrograms, compliances, selectedYear),
+    [activePrograms, compliances, selectedYear],
+  );
 
   // Current Year Program Details
   const programDetailData = useMemo(() => {
-    const currentYearCompliances = compliances.filter((c) => c.academicYear === selectedYear);
-    const complianceMap = new Map(currentYearCompliances.map((c) => [c.programId, c]));
+    const currentYearCompliances = compliances.filter((c) => Number(c.academicYear) === Number(selectedYear));
+    const complianceMap = new Map(currentYearCompliances.map((c) => [normalizeProgramId(c.programId), c]));
 
     return activePrograms
       .map((p) => {
-        const c = complianceMap.get(p.id);
-        const copcStatus = c?.ched?.copcStatus || 'No COPC';
+        const c = complianceMap.get(normalizeProgramId(p.id));
+        const copcStatus = getChedCopcCategory(c);
         const campusName = campusMap.get(p.campusId) || 'Unknown';
         const unitName = unitMap.get(p.collegeId) || 'Unknown';
         const copcAwardDate = c?.ched?.copcAwardDate || '—';
@@ -142,7 +103,6 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
           campus: campusName,
           unitId: p.collegeId,
           unit: unitName,
-          hasRecord: !!c,
           copcStatus,
           copcAwardDate,
           copcLink,
@@ -163,7 +123,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
         if (detailWarningFilter === 'enrollment' && !item.warningSummary.missingEnrollment) return false;
         if (detailWarningFilter === 'graduation' && !item.warningSummary.missingGraduation) return false;
         if (detailWarningFilter === 'board' && !item.warningSummary.missingBoard) return false;
-        if (detailWarningFilter === 'docs' && !item.warningSummary.missingOtherChed) return false;
+        if (detailWarningFilter === 'docs' && !item.warningSummary.missingDocuments) return false;
         if (detailSearch) {
           const s = detailSearch.toLowerCase();
           if (!item.name.toLowerCase().includes(s) && !item.abbreviation.toLowerCase().includes(s)) return false;
@@ -193,45 +153,59 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
     detailSortBy,
   ]);
 
-  // Current Year KPIs
-  const currentYearStats = useMemo(() => {
-    const currentYearData = programDetailData;
-    const total = currentYearData.length;
-    const withCopc = currentYearData.filter((p) => p.copcStatus === 'With COPC').length;
-    const inProgress = currentYearData.filter((p) => p.copcStatus === 'In Progress').length;
-    const noCopc = currentYearData.filter((p) => p.copcStatus === 'No COPC').length;
-    const withCmo = currentYearData.filter((p) => !!p.cmoLink).length;
-    const withRqat = currentYearData.filter((p) => p.rqatVisitsCount > 0).length;
-    const rate = total > 0 ? Math.round((withCopc / total) * 100) : 0;
-
-    return { total, withCopc, inProgress, noCopc, withCmo, withRqat, rate };
-  }, [programDetailData]);
+  const currentYearStats = useMemo(
+    () => getChedPortfolioSnapshot(activePrograms, compliances, selectedYear),
+    [activePrograms, compliances, selectedYear],
+  );
+  const documentWarningCount = warningStats.summaries.filter((summary) => summary.missingDocuments).length;
+  const cmoOrBorGapCount = warningStats.summaries.filter((summary) =>
+    summary.warnings.some((warning) => warning.code === 'NO_CMO_LINK' || warning.code === 'NO_BOR_APPROVAL'),
+  ).length;
+  const previousYearRate = yearlySummary.find((row) => row.year === selectedYear - 1)?.copcRate;
+  const actionItems = [
+    currentYearStats.noRecord > 0 &&
+      `Create AY ${selectedYear} monitoring records for ${currentYearStats.noRecord} program(s) with no year record.`,
+    currentYearStats.unknown > 0 &&
+      `Confirm and record COPC status for ${currentYearStats.unknown} program(s) with an unknown status.`,
+    currentYearStats.noCopc > 0 &&
+      `Coordinate follow-up plans for ${currentYearStats.noCopc} program(s) explicitly marked No COPC.`,
+    currentYearStats.inProgress > 0 &&
+      `Track application milestones for ${currentYearStats.inProgress} program(s) marked In Progress.`,
+    currentYearStats.missingCopcEvidence > 0 &&
+      `Attach or verify COPC evidence links for ${currentYearStats.missingCopcEvidence} program(s) marked With COPC.`,
+    cmoOrBorGapCount > 0 && `Review CMO or BOR evidence for ${cmoOrBorGapCount} program(s).`,
+  ].filter((item): item is string => Boolean(item));
+  const decisionSummary =
+    currentYearStats.total === 0
+      ? `No active programs are available to assess for AY ${selectedYear}.`
+      : currentYearStats.rate < COPC_URGENT_THRESHOLD
+        ? `${currentYearStats.rate}% of the current active portfolio is marked With COPC for AY ${selectedYear}, below the ${COPC_URGENT_THRESHOLD}% urgent-intervention benchmark.`
+        : currentYearStats.rate < COPC_PRIORITY_THRESHOLD
+          ? `${currentYearStats.rate}% of the current active portfolio is marked With COPC for AY ${selectedYear}, below the ${COPC_PRIORITY_THRESHOLD}% priority benchmark.`
+          : `${currentYearStats.rate}% of the current active portfolio is marked With COPC for AY ${selectedYear}, meeting the ${COPC_PRIORITY_THRESHOLD}% benchmark. Maintain follow-up and verify supporting evidence.`;
+  const institutionalLearning =
+    previousYearRate === undefined
+      ? `AY ${selectedYear} provides the current baseline. Compare future results while monitoring the separately reported missing-record and unknown-status counts.`
+      : `The recorded COPC rate changed ${currentYearStats.rate - previousYearRate > 0 ? 'up' : currentYearStats.rate - previousYearRate < 0 ? 'down' : 'by'} ${Math.abs(currentYearStats.rate - previousYearRate)} percentage point(s) from AY ${selectedYear - 1}. Use the separate missing-record and unknown-status counts when interpreting this trend.`;
 
   // COPC Breakdown by Degree Level (Undergraduate vs Graduate) — uses all active programs against current year compliances
   const copcLevelBreakdown = useMemo(() => {
-    const currentYearCompliances = compliances.filter((c) => c.academicYear === selectedYear);
-    const complianceMap = new Map(currentYearCompliances.map((c) => [c.programId, c]));
+    const currentYearCompliances = compliances.filter((c) => Number(c.academicYear) === Number(selectedYear));
+    const complianceMap = new Map(currentYearCompliances.map((c) => [normalizeProgramId(c.programId), c]));
 
     const levels = ['Undergraduate', 'Graduate', 'TVET'] as const;
     return levels
       .map((level) => {
         const levelPrograms = activePrograms.filter((p) => p.level === level);
         const total = levelPrograms.length;
-        const withCopc = levelPrograms.filter((p) => {
-          const c = complianceMap.get(p.id);
-          return c?.ched?.copcStatus === 'With COPC';
-        }).length;
-        const inProgress = levelPrograms.filter((p) => {
-          const c = complianceMap.get(p.id);
-          return c?.ched?.copcStatus === 'In Progress';
-        }).length;
-        const noCopc = levelPrograms.filter((p) => {
-          const c = complianceMap.get(p.id);
-          const status = c?.ched?.copcStatus || 'No COPC';
-          return status === 'No COPC';
-        }).length;
+        const categories = levelPrograms.map((p) => getChedCopcCategory(complianceMap.get(normalizeProgramId(p.id))));
+        const withCopc = categories.filter((category) => category === 'With COPC').length;
+        const inProgress = categories.filter((category) => category === 'In Progress').length;
+        const noCopc = categories.filter((category) => category === 'No COPC').length;
+        const noRecord = categories.filter((category) => category === 'No Record').length;
+        const unknown = categories.filter((category) => category === 'Status Unknown').length;
         const rate = total > 0 ? Math.round((withCopc / total) * 100) : 0;
-        return { level, total, withCopc, inProgress, noCopc, rate };
+        return { level, total, withCopc, inProgress, noCopc, noRecord, unknown, rate };
       })
       .filter((entry) => entry.total > 0);
   }, [activePrograms, compliances, selectedYear]);
@@ -250,10 +224,20 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
             <Clock className="h-3 w-3 mr-1" /> In Progress
           </Badge>
         );
-      default:
+      case 'No COPC':
         return (
           <Badge className="bg-rose-100 text-rose-800 border-rose-200 text-[9px] font-black shadow-none hover:bg-rose-200">
             <XCircle className="h-3 w-3 mr-1" /> No COPC
+          </Badge>
+        );
+      case 'No Record':
+        return (
+          <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[9px] font-black">No AY Record</Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-violet-100 text-violet-800 border-violet-200 text-[9px] font-black">
+            Status Unknown
           </Badge>
         );
     }
@@ -269,8 +253,10 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #059669; font-weight: 700;">${row.withCopc}</span></td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #d97706; font-weight: 700;">${row.inProgress}</span></td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #dc2626; font-weight: 700;">${row.noCopc}</span></td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #64748b; font-weight: 700;">${row.noRecord}</span></td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #7c3aed; font-weight: 700;">${row.unknown}</span></td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 800; color: #059669;">${row.copcRate}%</td>
-            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${row.newProgram > 0 ? `<span style="background:#f3e8ff; color:#6b21a8; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700;">${row.newProgram} New</span>` : '—'}</td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 600;">${row.hasRqat}</td>
           </tr>
         `,
       )
@@ -298,24 +284,26 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
             <button onclick="window.print()" style="background:#1B6535; color:white; border:none; padding:12px 32px; border-radius:8px; font-weight:900; font-size:12px; text-transform:uppercase; letter-spacing:0.05em; cursor:pointer;">Print CHED Trend Report</button>
           </div>
           <h1>CHED Program Compliance (COPC) — Yearly Trend</h1>
-          <p class="subtitle">Romblon State University • Commission on Higher Education Regulatory Monitoring</p>
+          <p class="subtitle">COPC rate = With COPC / current active portfolio; missing and unknown statuses are shown separately • Romblon State University</p>
           <table>
             <thead>
               <tr>
                 <th style="text-align:left;">Academic Year</th>
-                <th>Active Programs</th>
+                <th>Current Portfolio</th>
                 <th>With COPC</th>
                 <th>In Progress</th>
                 <th>No COPC</th>
+                <th>No AY Record</th>
+                <th>Status Unknown</th>
                 <th>COPC Rate</th>
-                <th>New Programs</th>
+                <th>Programs with RQAT</th>
               </tr>
             </thead>
             <tbody>
               ${rowsHtml}
             </tbody>
           </table>
-          <div class="footer">Generated from RSU EOMS Decision Support System</div>
+          <div class="footer">COPC rate = With COPC / current active portfolio; missing and unknown statuses are shown separately • Generated from RSU EOMS Decision Support System</div>
         </body>
       </html>
     `;
@@ -345,7 +333,11 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                   ? '<span style="color:#059669;">WITH COPC</span>'
                   : p.copcStatus === 'In Progress'
                     ? '<span style="color:#d97706;">IN PROGRESS</span>'
-                    : '<span style="color:#dc2626;">NO COPC</span>'
+                    : p.copcStatus === 'No COPC'
+                      ? '<span style="color:#dc2626;">NO COPC</span>'
+                      : p.copcStatus === 'No Record'
+                        ? '<span style="color:#64748b;">NO AY RECORD</span>'
+                        : '<span style="color:#7c3aed;">STATUS UNKNOWN</span>'
               }
             </td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700; font-size: 12px;">${p.copcAwardDate}</td>
@@ -388,7 +380,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                 <th>COPC Status</th>
                 <th>Award / Issuance Date</th>
                 <th>CMO Link</th>
-                <th>RQAT Visits</th>
+                <th>Programs with RQAT</th>
               </tr>
             </thead>
             <tbody>
@@ -411,7 +403,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
   return (
     <div className="space-y-6">
       {/* Top Highlight KPI Cards for CHED */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3.5">
         <Card className="border-primary/10 shadow-sm bg-gradient-to-br from-white to-slate-50">
           <CardContent className="p-3.5 flex items-center justify-between">
             <div>
@@ -430,12 +422,12 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
         <Card className="border-emerald-200 shadow-sm bg-gradient-to-br from-emerald-50/50 to-white">
           <CardContent className="p-3.5 flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">With Valid COPC</p>
+              <p className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">Marked With COPC</p>
               <div className="flex items-baseline gap-2 mt-1">
                 <h3 className="text-2xl font-black text-emerald-700">{currentYearStats.withCopc}</h3>
                 <span className="text-xs font-black text-emerald-600">({currentYearStats.rate}%)</span>
               </div>
-              <p className="text-[9px] font-semibold text-emerald-600 mt-0.5">Compliant to Standard</p>
+              <p className="text-[9px] font-semibold text-emerald-600 mt-0.5">Share of active portfolio</p>
             </div>
             <div className="p-2.5 bg-emerald-100 text-emerald-700 rounded-xl">
               <CheckCircle2 className="h-5 w-5" />
@@ -459,11 +451,37 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
         <Card className="border-rose-200 shadow-sm bg-gradient-to-br from-rose-50/50 to-white">
           <CardContent className="p-3.5 flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase text-rose-800 tracking-wider">Without COPC</p>
+              <p className="text-[10px] font-black uppercase text-rose-800 tracking-wider">Explicitly No COPC</p>
               <h3 className="text-2xl font-black text-rose-700 mt-1">{currentYearStats.noCopc}</h3>
-              <p className="text-[9px] font-semibold text-rose-600 mt-0.5">Requires Action</p>
+              <p className="text-[9px] font-semibold text-rose-600 mt-0.5">Status recorded</p>
             </div>
             <div className="p-2.5 bg-rose-100 text-rose-700 rounded-xl">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-slate-50 to-white">
+          <CardContent className="p-3.5 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase text-slate-700 tracking-wider">No AY Record</p>
+              <h3 className="text-2xl font-black text-slate-700 mt-1">{currentYearStats.noRecord}</h3>
+              <p className="text-[9px] font-semibold text-slate-500 mt-0.5">Monitoring data missing</p>
+            </div>
+            <div className="p-2.5 bg-slate-100 text-slate-700 rounded-xl">
+              <FileText className="h-5 w-5" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-violet-200 shadow-sm bg-gradient-to-br from-violet-50/50 to-white">
+          <CardContent className="p-3.5 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase text-violet-800 tracking-wider">Status Unknown</p>
+              <h3 className="text-2xl font-black text-violet-700 mt-1">{currentYearStats.unknown}</h3>
+              <p className="text-[9px] font-semibold text-violet-600 mt-0.5">Record needs completion</p>
+            </div>
+            <div className="p-2.5 bg-violet-100 text-violet-700 rounded-xl">
               <AlertTriangle className="h-5 w-5" />
             </div>
           </CardContent>
@@ -590,7 +608,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                   <div className="flex items-center gap-2 mb-1">
                     <BarChart3 className="h-4 w-4 text-emerald-700" />
                     <span className="text-[10px] font-black uppercase tracking-wider text-emerald-800">
-                      Total Programs with COPC by Degree Level — AY {selectedYear}
+                      Current Active Portfolio COPC Status by Degree Level — AY {selectedYear}
                     </span>
                   </div>
 
@@ -599,18 +617,34 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                       const copcPct = entry.rate;
                       const inProgressPct = entry.total > 0 ? Math.round((entry.inProgress / entry.total) * 100) : 0;
                       const noCopcPct = entry.total > 0 ? Math.round((entry.noCopc / entry.total) * 100) : 0;
+                      const noRecordPct = entry.total > 0 ? Math.round((entry.noRecord / entry.total) * 100) : 0;
+                      const unknownPct = entry.total > 0 ? Math.round((entry.unknown / entry.total) * 100) : 0;
 
                       // SVG ring/donut chart parameters
                       const radius = 44;
                       const circumference = 2 * Math.PI * radius;
-                      const copcDash = (copcPct / 100) * circumference;
-                      const ipStart = copcDash;
-                      const ipDash = (inProgressPct / 100) * circumference;
+                      const segments = [
+                        { count: entry.withCopc, color: '#059669' },
+                        { count: entry.inProgress, color: '#d97706' },
+                        { count: entry.noCopc, color: '#f87171' },
+                        { count: entry.noRecord, color: '#94a3b8' },
+                        { count: entry.unknown, color: '#8b5cf6' },
+                      ];
+                      let consumedLength = 0;
+                      const ringSegments = segments.map((segment) => {
+                        const length = (segment.count / entry.total) * circumference;
+                        const segmentData = {
+                          ...segment,
+                          length,
+                          offset: circumference * 0.25 - consumedLength,
+                        };
+                        consumedLength += length;
+                        return segmentData;
+                      });
 
                       const isUndergrad = entry.level === 'Undergraduate';
                       const isGrad = entry.level === 'Graduate';
                       const ringColor = isUndergrad ? '#059669' : isGrad ? '#0ea5e9' : '#a855f7';
-                      const ringColorIP = isUndergrad ? '#d97706' : isGrad ? '#f59e0b' : '#f97316';
                       const bgGrad = isUndergrad
                         ? 'from-emerald-50 to-white border-emerald-200'
                         : isGrad
@@ -632,35 +666,21 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                             <svg width="100" height="100" viewBox="0 0 100 100">
                               {/* Background track */}
                               <circle cx="50" cy="50" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="10" />
-                              {/* COPC arc */}
-                              {copcPct > 0 && (
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r={radius}
-                                  fill="none"
-                                  stroke={ringColor}
-                                  strokeWidth="10"
-                                  strokeDasharray={`${copcDash} ${circumference - copcDash}`}
-                                  strokeDashoffset={circumference * 0.25}
-                                  strokeLinecap="round"
-                                />
-                              )}
-                              {/* In Progress arc */}
-                              {inProgressPct > 0 && (
-                                <circle
-                                  cx="50"
-                                  cy="50"
-                                  r={radius}
-                                  fill="none"
-                                  stroke={ringColorIP}
-                                  strokeWidth="10"
-                                  strokeDasharray={`${ipDash} ${circumference - ipDash}`}
-                                  strokeDashoffset={circumference * 0.25 - ipStart}
-                                  strokeLinecap="round"
-                                  opacity="0.7"
-                                />
-                              )}
+                              {ringSegments
+                                .filter((segment) => segment.count > 0)
+                                .map((segment, index) => (
+                                  <circle
+                                    key={`${entry.level}-${index}`}
+                                    cx="50"
+                                    cy="50"
+                                    r={radius}
+                                    fill="none"
+                                    stroke={segment.color}
+                                    strokeWidth="10"
+                                    strokeDasharray={`${segment.length} ${circumference - segment.length}`}
+                                    strokeDashoffset={segment.offset}
+                                  />
+                                ))}
                               {/* Center text */}
                               <text x="50" y="45" textAnchor="middle" fontSize="16" fontWeight="900" fill={ringColor}>
                                 {copcPct}%
@@ -680,7 +700,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                               </span>
                             </div>
                             <p className="text-[9px] text-slate-500 font-semibold -mt-1">
-                              {entry.total} total programs in AY {selectedYear}
+                              {entry.total} current active programs; counts reflect AY {selectedYear} records
                             </p>
 
                             {/* Bar breakdown */}
@@ -721,6 +741,30 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                                   {entry.noCopc} ({noCopcPct}%)
                                 </span>
                               </div>
+                              <div className="flex items-center gap-2">
+                                <span className="w-24 text-[9px] font-black text-slate-600">No AY Record</span>
+                                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-slate-400 rounded-full transition-all duration-500"
+                                    style={{ width: `${noRecordPct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[9px] font-black text-slate-600 w-14 text-right">
+                                  {entry.noRecord} ({noRecordPct}%)
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="w-24 text-[9px] font-black text-violet-700">Status Unknown</span>
+                                <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-violet-500 rounded-full transition-all duration-500"
+                                    style={{ width: `${unknownPct}%` }}
+                                  />
+                                </div>
+                                <span className="text-[9px] font-black text-violet-700 w-14 text-right">
+                                  {entry.unknown} ({unknownPct}%)
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -753,6 +797,11 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                 </div>
               )}
 
+              <p className="px-5 pt-3 text-[10px] text-slate-500">
+                COPC rate is programs marked With COPC divided by the current active portfolio. Programs without a
+                selected-year record or with an unknown status remain visible in the denominator and are listed
+                separately.
+              </p>
               <ScrollArea className="max-h-[520px]">
                 <Table>
                   <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
@@ -761,7 +810,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                         Academic Year
                       </TableHead>
                       <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
-                        Monitored Programs
+                        Current Portfolio
                       </TableHead>
                       <TableHead className="text-[9px] font-black uppercase text-emerald-700 tracking-wider text-center">
                         With COPC
@@ -772,8 +821,14 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                       <TableHead className="text-[9px] font-black uppercase text-rose-700 tracking-wider text-center">
                         No COPC
                       </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-slate-600 tracking-wider text-center">
+                        No AY Record
+                      </TableHead>
+                      <TableHead className="text-[9px] font-black uppercase text-violet-700 tracking-wider text-center">
+                        Status Unknown
+                      </TableHead>
                       <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
-                        Compliance Rate
+                        COPC Rate
                       </TableHead>
                       <TableHead className="text-right pr-6 text-[9px] font-black uppercase text-slate-500 tracking-wider">
                         Remarks
@@ -803,13 +858,19 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                             <span className="font-black text-rose-600 text-sm">{row.noCopc}</span>
                           </TableCell>
                           <TableCell className="text-center">
+                            <span className="font-black text-slate-600 text-sm">{row.noRecord}</span>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <span className="font-black text-violet-700 text-sm">{row.unknown}</span>
+                          </TableCell>
+                          <TableCell className="text-center">
                             <div className="flex flex-col items-center gap-0.5">
                               <span
                                 className={cn(
                                   'text-sm font-black tabular-nums',
-                                  row.copcRate >= 80
+                                  row.copcRate >= COPC_PRIORITY_THRESHOLD
                                     ? 'text-emerald-600'
-                                    : row.copcRate >= 50
+                                    : row.copcRate >= COPC_URGENT_THRESHOLD
                                       ? 'text-amber-600'
                                       : 'text-rose-600',
                                 )}
@@ -835,11 +896,6 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                           </TableCell>
                           <TableCell className="text-right pr-6">
                             <div className="flex items-center justify-end gap-1.5 flex-wrap">
-                              {row.newProgram > 0 && (
-                                <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-[8px] font-black px-2 py-0.5">
-                                  {row.newProgram} New Offering
-                                </Badge>
-                              )}
                               {row.hasRqat > 0 && (
                                 <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-[8px] font-black px-2 py-0.5">
                                   {row.hasRqat} RQAT Visited
@@ -856,33 +912,33 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
               {/* Decision | Action | Outcome | Learning section */}
               <div className="p-5 mt-5 bg-gradient-to-b from-slate-50 to-white border border-slate-200 rounded-xl space-y-4">
                 <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-500">Decision</h3>
-                <p className="text-sm text-slate-700 line-clamp-3">
-                  Based on the COPC compliance analysis, institutional leadership should prioritize addressing programs
-                  below the 80% compliance threshold while maintaining standards for programs already in compliance.
-                </p>
+                <p className="text-sm text-slate-700">{decisionSummary}</p>
 
                 <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-500 mt-4">Action Items</h3>
-                <p className="text-sm text-slate-700 line-clamp-3">
-                  Submit COPC applications for non-compliant programs within 30 days, increase RQAT visit frequency for
-                  at-risk programs, and assign COPC coordinators to monitor progress toward compliance.
-                </p>
+                {actionItems.length > 0 ? (
+                  <ul className="list-disc pl-5 space-y-1 text-sm text-slate-700">
+                    {actionItems.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-slate-700">
+                    No COPC, record, or required-evidence gaps were identified in the current AY snapshot.
+                  </p>
+                )}
 
                 <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-500 mt-4">
                   Expected Outcome
                 </h3>
-                <p className="text-sm text-slate-700 line-clamp-3">
-                  Improved COPC compliance rate across undergraduate and graduate programs, with more programs achieving
-                  and maintaining valid Certificate of Program Compliance.
+                <p className="text-sm text-slate-700">
+                  Use the recorded COPC rate and the separate missing-record, unknown-status, and evidence counts to
+                  monitor follow-up. This dashboard does not determine certificate expiry or regulatory validity.
                 </p>
 
                 <h3 className="text-[11px] font-black uppercase tracking-wider text-slate-500 mt-4">
                   Institutional Learning
                 </h3>
-                <p className="text-sm text-slate-700 line-clamp-3">
-                  Evaluate the effectiveness of current COPC support mechanisms, identify barriers to compliance, and
-                  develop targeted interventions for programs below the 60% compliance rate. Review best practices from
-                  high-performing programs for sharing across colleges.
-                </p>
+                <p className="text-sm text-slate-700">{institutionalLearning}</p>
               </div>
             </TabsContent>
 
@@ -949,6 +1005,12 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                       <SelectItem value="No COPC" className="text-[10px] font-bold text-rose-600">
                         No COPC
                       </SelectItem>
+                      <SelectItem value="No Record" className="text-[10px] font-bold text-slate-600">
+                        No AY Record
+                      </SelectItem>
+                      <SelectItem value="Status Unknown" className="text-[10px] font-bold text-violet-700">
+                        Status Unknown
+                      </SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -978,7 +1040,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                         📋 Missing Board Exams ({warningStats.missingBoardCount})
                       </SelectItem>
                       <SelectItem value="docs" className="text-[10px] font-bold text-blue-600">
-                        📄 Incomplete Docs ({warningStats.missingChedDocCount})
+                        📄 Missing Evidence ({documentWarningCount})
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -1105,15 +1167,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                               {item.level}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            {item.hasRecord ? (
-                              copcBadge(item.copcStatus)
-                            ) : (
-                              <Badge className="bg-slate-100 text-slate-500 border-slate-200 text-[8px] font-black">
-                                No Data
-                              </Badge>
-                            )}
-                          </TableCell>
+                          <TableCell>{copcBadge(item.copcStatus)}</TableCell>
                           <TableCell>
                             {item.warningSummary.hasWarnings ? (
                               <div className="flex flex-wrap items-center gap-1 max-w-[240px]">
@@ -1132,9 +1186,9 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                                     No Board Data
                                   </Badge>
                                 )}
-                                {item.warningSummary.missingOtherChed && (
+                                {item.warningSummary.missingDocuments && (
                                   <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-[8px] font-black py-0 px-1 hover:bg-blue-100">
-                                    Docs Incomplete
+                                    Evidence Missing
                                   </Badge>
                                 )}
                               </div>

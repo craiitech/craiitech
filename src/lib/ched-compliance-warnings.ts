@@ -1,5 +1,6 @@
 import type { AcademicProgram, ProgramComplianceRecord } from './types';
 import { getComplianceEnrollmentSummary } from './enrollment';
+import { getLatestBoardExam, hasCopcEvidence, normalizeProgramId } from './ched-monitoring';
 
 export type ProgramChedWarningType =
   'enrollment' | 'graduation' | 'board' | 'ched_copc' | 'ched_cmo' | 'ched_bor' | 'faculty';
@@ -24,6 +25,7 @@ export interface ProgramChedWarningSummary {
   missingGraduation: boolean;
   missingBoard: boolean;
   missingOtherChed: boolean;
+  missingDocuments: boolean;
   enrollmentSummary: {
     firstSemCount: number;
     secondSemCount: number;
@@ -147,28 +149,41 @@ export function getProgramChedWarnings(
       });
       missingBoard = true;
     } else {
-      const latest = exams[exams.length - 1];
-      latestPassRate = latest.firstTakersPassRate ?? null;
-      nationalPassRate = latest.nationalPassingRate ?? null;
-
-      if (latestPassRate === null && nationalPassRate === null) {
+      const latest = getLatestBoardExam(exams);
+      if (!latest) {
         warnings.push({
           type: 'board',
           severity: 'warning',
-          code: 'INCOMPLETE_BOARD_RATES',
-          title: 'Incomplete Board Exam Pass Rates',
-          description: 'PRC Board exam entry is missing first-timer passing rates or national rating.',
+          code: 'INVALID_BOARD_EXAM_DATE',
+          title: 'Board Exam Date Cannot Be Ordered',
+          description: 'Board examination entries exist, but none has a usable exam date.',
         });
         missingBoard = true;
+      } else {
+        latestPassRate = latest.firstTakersPassRate ?? null;
+        nationalPassRate = latest.nationalPassingRate ?? null;
+
+        if (latestPassRate === null || nationalPassRate === null) {
+          warnings.push({
+            type: 'board',
+            severity: 'warning',
+            code: 'INCOMPLETE_BOARD_RATES',
+            title: 'Incomplete Board Exam Pass Rates',
+            description: 'PRC Board exam entry is missing first-timer passing rates or national rating.',
+          });
+          missingBoard = true;
+        }
       }
     }
   }
 
   // 4. Other Required CHED Program Monitoring Information
   let missingOtherChed = false;
-  const copcStatus = compliance?.ched?.copcStatus || 'No COPC';
+  let missingDocuments = false;
+  const copcStatus = compliance?.ched?.copcStatus;
+  const hasKnownCopcStatus = copcStatus === 'With COPC' || copcStatus === 'In Progress' || copcStatus === 'No COPC';
 
-  if (copcStatus === 'No COPC') {
+  if (compliance && copcStatus === 'No COPC') {
     warnings.push({
       type: 'ched_copc',
       severity: 'critical',
@@ -177,7 +192,16 @@ export function getProgramChedWarnings(
       description: 'Program is operating without a valid CHED Certificate of Program Compliance (COPC).',
     });
     missingOtherChed = true;
-  } else if ((copcStatus === 'With COPC' || copcStatus === 'In Progress') && !compliance?.ched?.copcLink) {
+  } else if (compliance && !hasKnownCopcStatus) {
+    warnings.push({
+      type: 'ched_copc',
+      severity: 'warning',
+      code: 'UNKNOWN_COPC_STATUS',
+      title: 'COPC Status Not Recorded',
+      description: 'A CHED monitoring record exists, but its COPC status is missing.',
+    });
+    missingOtherChed = true;
+  } else if ((copcStatus === 'With COPC' || copcStatus === 'In Progress') && !hasCopcEvidence(compliance)) {
     warnings.push({
       type: 'ched_copc',
       severity: 'warning',
@@ -186,9 +210,10 @@ export function getProgramChedWarnings(
       description: 'No Certificate of Program Compliance or CHED application document link attached.',
     });
     missingOtherChed = true;
+    missingDocuments = true;
   }
 
-  const hasCmoLink = Boolean(compliance?.ched?.programCmoLink);
+  const hasCmoLink = Boolean(compliance?.ched?.programCmoLink?.trim());
   const hasCurriculumNoted =
     Array.isArray(compliance?.curriculumRecords) &&
     compliance.curriculumRecords.some((c) => c.isNotedByChed || c.notationProofLink);
@@ -202,11 +227,13 @@ export function getProgramChedWarnings(
       description: 'No CHED Memorandum Order (CMO) compliance proof or curriculum notation logged.',
     });
     missingOtherChed = true;
+    missingDocuments = true;
   }
 
   const hasBor =
-    Boolean(compliance?.ched?.boardApprovalLink) ||
-    (Array.isArray(compliance?.ched?.majorBoardApprovals) && compliance.ched.majorBoardApprovals.length > 0);
+    Boolean(compliance?.ched?.boardApprovalLink?.trim()) ||
+    (Array.isArray(compliance?.ched?.majorBoardApprovals) &&
+      compliance.ched.majorBoardApprovals.some((approval) => Boolean(approval.link?.trim())));
 
   if (!hasBor) {
     warnings.push({
@@ -233,6 +260,8 @@ export function getProgramChedWarnings(
     missingOtherChed = true;
   }
 
+  if (!hasBor) missingDocuments = true;
+
   return {
     program,
     compliance,
@@ -243,6 +272,7 @@ export function getProgramChedWarnings(
     missingGraduation,
     missingBoard,
     missingOtherChed,
+    missingDocuments,
     enrollmentSummary: {
       firstSemCount,
       secondSemCount,
@@ -274,21 +304,21 @@ export function getUnitProgramsChedWarnings(
   compliances.forEach((c) => {
     if (targetYear) {
       if (Number(c.academicYear) === Number(targetYear)) {
-        complianceMap.set(c.programId, c);
+        complianceMap.set(normalizeProgramId(c.programId), c);
       }
       return;
     }
 
     const existing = complianceMap.get(c.programId);
     if (!existing || c.academicYear > existing.academicYear) {
-      complianceMap.set(c.programId, c);
+      complianceMap.set(normalizeProgramId(c.programId), c);
     }
   });
 
   const activePrograms = programs.filter((p) => p.isActive === true);
 
   const summaries = activePrograms.map((p) => {
-    const comp = complianceMap.get(p.id);
+    const comp = complianceMap.get(normalizeProgramId(p.id));
     return getProgramChedWarnings(p, comp, targetYear);
   });
 
@@ -298,7 +328,7 @@ export function getUnitProgramsChedWarnings(
   const missingEnrollmentCount = summaries.filter((s) => s.missingEnrollment).length;
   const missingGraduationCount = summaries.filter((s) => s.missingGraduation).length;
   const missingBoardCount = summaries.filter((s) => s.missingBoard).length;
-  const missingChedDocCount = summaries.filter((s) => s.missingOtherChed).length;
+  const missingChedDocCount = summaries.filter((s) => s.missingDocuments).length;
 
   return {
     totalPrograms: activePrograms.length,
