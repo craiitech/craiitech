@@ -306,6 +306,23 @@ export type CampusSetting = {
   enableUnifiedHomeDashboard?: boolean;
   homeDashboardDefaultTab?: string;
   allowUserWorkspaceSwitch?: boolean;
+  homeDashboardReviewers?: Record<string, string>;
+  homeDashboardVerifiers?: Record<string, string>;
+};
+
+export type HomeDashboardReview = {
+  id: string;
+  unitId: string;
+  academicYear: number;
+  confirmationFingerprint: string;
+  confirmedById: string;
+  confirmedByName: string;
+  confirmedAt: any;
+  verifiedFingerprint: string | null;
+  verifiedById: string | null;
+  verifiedByName: string | null;
+  verifiedAt: any;
+  status: 'confirmed' | 'verified';
 };
 
 export type HomeDashboardSettings = {

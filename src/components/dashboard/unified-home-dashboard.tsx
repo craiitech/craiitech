@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,7 @@ import { ExecutiveRiskIntelligence } from '@/components/dashboard/executive/exec
 import { IslandCampusEquityTab } from '@/components/dashboard/strategic/island-campus-equity-tab';
 import { ExecutiveOverview } from '@/components/dashboard/executive-overview';
 import { KpiDashboardTab } from '@/components/dashboard/kpi-dashboard-tab';
+import { DashboardDataReviewRibbon } from '@/components/dashboard/dashboard-data-review-ribbon';
 import { getUnitProgramsChedWarnings } from '@/lib/ched-compliance-warnings';
 import { calculateBaselineKraScores, evaluateSucClassification } from '@/lib/suc-levelling-engine';
 import { cn } from '@/lib/utils';
@@ -71,6 +72,7 @@ export interface UnifiedHomeDashboardProps {
   isAdmin?: boolean;
   initialScope?: 'university' | 'unit';
   userProfile?: AppUser | null;
+  reviewableUnitIds?: string[];
 }
 
 export function UnifiedHomeDashboard({
@@ -91,6 +93,7 @@ export function UnifiedHomeDashboard({
   isAdmin,
   initialScope = 'university',
   userProfile,
+  reviewableUnitIds = [],
 }: UnifiedHomeDashboardProps) {
   const [activeTab, setActiveTab] = useState(defaultTab || 'overview');
   const [scope, setScope] = useState<'university' | 'unit'>(initialScope);
@@ -106,6 +109,21 @@ export function UnifiedHomeDashboard({
   const currentUnit = useMemo(() => {
     return units.find((u) => u.id === selectedUnitId);
   }, [units, selectedUnitId]);
+  const canSelectAnyUnit =
+    isAdmin ||
+    userRole?.toLowerCase()?.includes('director') ||
+    userRole?.toLowerCase()?.includes('supervisor') ||
+    userRole?.toLowerCase()?.includes('vice president') ||
+    userRole?.toLowerCase()?.includes('president');
+  const availableUnitOptions = canSelectAnyUnit
+    ? units
+    : units.filter((unit) => unit.id === userProfile?.unitId || reviewableUnitIds.includes(unit.id));
+
+  useEffect(() => {
+    if (!canSelectAnyUnit && availableUnitOptions.length === 1 && selectedUnitId !== availableUnitOptions[0].id) {
+      setSelectedUnitId(availableUnitOptions[0].id);
+    }
+  }, [availableUnitOptions, canSelectAnyUnit, selectedUnitId]);
 
   // Filter metrics and datasets when in unit scope
   const scopedSubmissions = useMemo(() => {
@@ -276,15 +294,13 @@ export function UnifiedHomeDashboard({
             {/* If in unit scope, allow selection if Admin/Supervisor or show unit name badge */}
             {scope === 'unit' && (
               <>
-                {isAdmin ||
-                userRole?.toLowerCase()?.includes('director') ||
-                userRole?.toLowerCase()?.includes('supervisor') ? (
+                {canSelectAnyUnit || availableUnitOptions.length > 1 ? (
                   <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
                     <SelectTrigger className="h-8 text-xs font-bold w-[200px] bg-white dark:bg-slate-900 border-slate-300">
                       <SelectValue placeholder="Select Unit..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {units.map((u) => (
+                      {availableUnitOptions.map((u) => (
                         <SelectItem key={u.id} value={u.id} className="text-xs">
                           {u.name}
                         </SelectItem>
@@ -338,6 +354,19 @@ export function UnifiedHomeDashboard({
             </Button>
           </div>
         </div>
+
+        <DashboardDataReviewRibbon
+          scope={scope}
+          selectedUnitId={selectedUnitId}
+          selectedYear={selectedYear}
+          units={units}
+          submissions={submissions}
+          risks={risks}
+          cars={cars}
+          compliances={allCompliances}
+          programs={academicPrograms}
+          schedules={schedules}
+        />
 
         {/* 9 Framework Tabs Navigation List */}
         <ScrollArea className="w-full">

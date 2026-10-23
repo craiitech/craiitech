@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useFirestore, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
+import { useFirestore, useUser, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { collection, doc, setDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -27,7 +27,7 @@ import {
   Check,
   Eye,
 } from 'lucide-react';
-import type { CampusSetting } from '@/lib/types';
+import type { CampusSetting, Unit, User } from '@/lib/types';
 import Link from 'next/link';
 
 export function HomeDashboardSettingsManagement() {
@@ -39,18 +39,26 @@ export function HomeDashboardSettingsManagement() {
   const [isEnabled, setIsEnabled] = useState(false);
   const [allowWorkspaceSwitch, setAllowWorkspaceSwitch] = useState(true);
   const [defaultTab, setDefaultTab] = useState('overview');
+  const [reviewers, setReviewers] = useState<Record<string, string>>({});
+  const [verifiers, setVerifiers] = useState<Record<string, string>>({});
 
   const globalSettingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'campusSettings', 'global') : null),
     [firestore],
   );
   const { data: globalSetting, isLoading } = useDoc<CampusSetting>(globalSettingsRef);
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
+  const usersQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'users') : null), [firestore]);
+  const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
+  const { data: users, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
 
   useEffect(() => {
     if (globalSetting) {
       setIsEnabled(!!globalSetting.enableUnifiedHomeDashboard);
       setAllowWorkspaceSwitch(globalSetting.allowUserWorkspaceSwitch !== false);
       setDefaultTab(globalSetting.homeDashboardDefaultTab || 'overview');
+      setReviewers(globalSetting.homeDashboardReviewers || {});
+      setVerifiers(globalSetting.homeDashboardVerifiers || {});
     }
   }, [globalSetting]);
 
@@ -64,6 +72,8 @@ export function HomeDashboardSettingsManagement() {
           enableUnifiedHomeDashboard: isEnabled,
           allowUserWorkspaceSwitch: allowWorkspaceSwitch,
           homeDashboardDefaultTab: defaultTab,
+          homeDashboardReviewers: reviewers,
+          homeDashboardVerifiers: verifiers,
           homeDashboardUpdatedAt: serverTimestamp(),
           homeDashboardUpdatedBy: userProfile?.id || 'admin',
           homeDashboardUpdatedByName: userProfile?.firstName
@@ -311,6 +321,103 @@ export function HomeDashboardSettingsManagement() {
                 Select which framework tab opens by default when users enter the system dashboard.
               </p>
             </div>
+          </div>
+
+          <div className="space-y-3 rounded-xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                Unit Dashboard Review Assignments
+              </h4>
+              <p className="mt-1 text-[11px] leading-relaxed text-slate-500">
+                Assign a confirmer and a verifier for each unit. Assigned accounts can act from the unit dashboard; VPs
+                and administrators retain verification oversight.
+              </p>
+            </div>
+            {isLoadingUnits || isLoadingUsers ? (
+              <div className="flex items-center gap-2 py-3 text-xs text-slate-500">
+                <Loader2 className="h-4 w-4 animate-spin" /> Loading units and accounts...
+              </div>
+            ) : units?.length ? (
+              <div className="grid gap-2">
+                {units.map((unit) => {
+                  const candidates =
+                    users?.filter(
+                      (user) =>
+                        user.unitId === unit.id ||
+                        user.assignedUnitIds?.includes(unit.id) ||
+                        user.assignments?.some((assignment) => assignment.unitId === unit.id) ||
+                        user.id === reviewers[unit.id] ||
+                        user.id === verifiers[unit.id],
+                    ) || [];
+                  return (
+                    <div
+                      key={unit.id}
+                      className="grid gap-3 rounded-lg border bg-white p-3 dark:bg-slate-900 md:grid-cols-[minmax(140px,1fr)_minmax(220px,1fr)_minmax(220px,1fr)] md:items-center"
+                    >
+                      <Label className="text-xs font-bold">{unit.name}</Label>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase text-slate-500">Confirm updates</Label>
+                        <Select
+                          value={reviewers[unit.id] || 'unassigned'}
+                          onValueChange={(userId) =>
+                            setReviewers((previous) => {
+                              const next = { ...previous };
+                              if (userId === 'unassigned') delete next[unit.id];
+                              else next[unit.id] = userId;
+                              return next;
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="Select confirming account" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unassigned" className="text-xs">
+                              No confirmer assigned
+                            </SelectItem>
+                            {candidates.map((candidate) => (
+                              <SelectItem key={candidate.id} value={candidate.id} className="text-xs">
+                                {candidate.firstName} {candidate.lastName} ({candidate.email})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase text-slate-500">Verify confirmation</Label>
+                        <Select
+                          value={verifiers[unit.id] || 'unassigned'}
+                          onValueChange={(userId) =>
+                            setVerifiers((previous) => {
+                              const next = { ...previous };
+                              if (userId === 'unassigned') delete next[unit.id];
+                              else next[unit.id] = userId;
+                              return next;
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-9 text-xs">
+                            <SelectValue placeholder="Select verifying account" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="unassigned" className="text-xs">
+                              No verifier assigned
+                            </SelectItem>
+                            {candidates.map((candidate) => (
+                              <SelectItem key={candidate.id} value={candidate.id} className="text-xs">
+                                {candidate.firstName} {candidate.lastName} ({candidate.email})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="py-3 text-xs text-slate-500">No units are available to assign.</p>
+            )}
           </div>
 
           {/* Unified Dashboard Pillars Preview */}

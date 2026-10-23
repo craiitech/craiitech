@@ -2611,6 +2611,14 @@ export default function HomePage() {
           isAdmin={isAdmin}
           initialScope={effectiveScope}
           userProfile={userProfile}
+          reviewableUnitIds={Object.keys({
+            ...((globalSetting as any)?.homeDashboardReviewers || {}),
+            ...((globalSetting as any)?.homeDashboardVerifiers || {}),
+          }).filter(
+            (unitId) =>
+              (globalSetting as any)?.homeDashboardReviewers?.[unitId] === userProfile?.id ||
+              (globalSetting as any)?.homeDashboardVerifiers?.[unitId] === userProfile?.id,
+          )}
         />
       );
     }

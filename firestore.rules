@@ -51,6 +51,18 @@ service cloud.firestore {
       );
     }
 
+    function isHomeDashboardReviewer(unitId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/campusSettings/global) &&
+        get(/databases/$(database)/documents/campusSettings/global).data.get('homeDashboardReviewers', {}).get(unitId, '') == request.auth.uid;
+    }
+
+    function isHomeDashboardVerifier(unitId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/campusSettings/global) &&
+        get(/databases/$(database)/documents/campusSettings/global).data.get('homeDashboardVerifiers', {}).get(unitId, '') == request.auth.uid;
+    }
+
     // --------------------------------------------------------------------------
     // FIAMO Helper Functions
     // --------------------------------------------------------------------------
@@ -516,6 +528,48 @@ service cloud.firestore {
     match /campusSettings/{id} {
       allow get, list: if isSignedIn();
       allow write: if isAdmin() || isSupervisor();
+    }
+
+    match /homeDashboardReviews/{reviewId} {
+      allow get, list: if isSignedIn();
+      allow create: if isHomeDashboardReviewer(request.resource.data.unitId) &&
+        request.resource.data.status == 'confirmed' &&
+        request.resource.data.confirmedById == request.auth.uid &&
+        request.resource.data.confirmedAt == request.time &&
+        request.resource.data.verifiedFingerprint == null &&
+        request.resource.data.verifiedById == null &&
+        request.resource.data.verifiedByName == null &&
+        request.resource.data.verifiedAt == null;
+      allow update: if (
+          isHomeDashboardReviewer(resource.data.unitId) &&
+          request.resource.data.unitId == resource.data.unitId &&
+          request.resource.data.academicYear == resource.data.academicYear &&
+          request.resource.data.status == 'confirmed' &&
+          request.resource.data.confirmedById == request.auth.uid &&
+          request.resource.data.confirmedAt == request.time &&
+          request.resource.data.verifiedFingerprint == null &&
+          request.resource.data.verifiedById == null &&
+          request.resource.data.verifiedByName == null &&
+          request.resource.data.verifiedAt == null &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'confirmationFingerprint', 'confirmedById', 'confirmedByName', 'confirmedAt',
+            'verifiedFingerprint', 'verifiedById', 'verifiedByName', 'verifiedAt', 'status'
+          ])
+        ) || (
+          (isAdmin() || isVpOffice() || isHomeDashboardVerifier(resource.data.unitId)) &&
+          resource.data.status == 'confirmed' &&
+          request.resource.data.unitId == resource.data.unitId &&
+          request.resource.data.academicYear == resource.data.academicYear &&
+          request.resource.data.confirmationFingerprint == resource.data.confirmationFingerprint &&
+          request.resource.data.status == 'verified' &&
+          request.resource.data.verifiedFingerprint == resource.data.confirmationFingerprint &&
+          request.resource.data.verifiedById == request.auth.uid &&
+          request.resource.data.verifiedAt == request.time &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'verifiedFingerprint', 'verifiedById', 'verifiedByName', 'verifiedAt', 'status'
+          ])
+        );
+      allow delete: if false;
     }
 
     match /unitCsmSettings/{unitId} {
