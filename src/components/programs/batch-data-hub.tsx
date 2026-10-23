@@ -244,6 +244,7 @@ export function BatchDataHub({
         id: p.id,
         name: p.name,
         abbreviation: p.abbreviation,
+        isBoardProgram: p.isBoardProgram,
         campus: campusMap.get(p.campusId) || '...',
         sem1,
         sem2,
@@ -267,6 +268,8 @@ export function BatchDataHub({
       };
     });
   }, [activePrograms, compliances, campusMap, selectedYear]);
+
+  const visibleStats = dataMode === 'board' ? stats.filter((stat) => stat.isBoardProgram) : stats;
 
   const enrollmentSummary = useMemo(() => {
     const totals = stats.reduce(
@@ -308,7 +311,7 @@ export function BatchDataHub({
   const outcomeOverview = useMemo(() => {
     if (dataMode === 'enrollment') return null;
 
-    const rows = stats.map((stat) => {
+    const rows = visibleStats.map((stat) => {
       if (dataMode === 'graduation') {
         return {
           name: stat.abbreviation || stat.name,
@@ -345,7 +348,7 @@ export function BatchDataHub({
     });
 
     const logged = rows.filter((row) => row.hasData).length;
-    const coverage = stats.length > 0 ? Math.round((logged / stats.length) * 100) : 0;
+    const coverage = visibleStats.length > 0 ? Math.round((logged / visibleStats.length) * 100) : 0;
     const totals = rows.reduce(
       (acc, row) => ({
         male: acc.male + row.male,
@@ -363,7 +366,7 @@ export function BatchDataHub({
 
     const loggedCard: OutcomeCard = {
       label: 'Programs Logged',
-      value: `${logged}/${stats.length}`,
+      value: `${logged}/${visibleStats.length}`,
       hint: `${coverage}% Coverage`,
       valueClassName: 'text-sky-700 dark:text-sky-400',
     };
@@ -377,7 +380,7 @@ export function BatchDataHub({
             ? 'Graduation data is logged, but no male/female graduate counts have been entered yet.'
             : 'No graduation output logged yet',
         logged,
-        totalPrograms: stats.length,
+        totalPrograms: visibleStats.length,
         coverage,
         chartData,
         cards: [
@@ -411,7 +414,7 @@ export function BatchDataHub({
             ? 'Board data is logged, but no male/female passer counts have been entered yet.'
             : 'No board examination data logged yet',
         logged,
-        totalPrograms: stats.length,
+        totalPrograms: visibleStats.length,
         coverage,
         chartData,
         cards: [
@@ -443,7 +446,7 @@ export function BatchDataHub({
       description: 'Traced graduates by sex with employment outcomes',
       emptyMessage: 'No tracer study data logged yet',
       logged,
-      totalPrograms: stats.length,
+      totalPrograms: visibleStats.length,
       coverage,
       chartData,
       cards: [
@@ -466,7 +469,7 @@ export function BatchDataHub({
         loggedCard,
       ],
     };
-  }, [dataMode, stats, selectedYear]);
+  }, [dataMode, visibleStats, selectedYear]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -538,7 +541,9 @@ export function BatchDataHub({
               variant="secondary"
               className="h-5 text-[9px] font-black uppercase bg-primary/5 text-primary border-none"
             >
-              {activePrograms.length} ACTIVE PROGRAMS
+              {dataMode === 'board'
+                ? `${visibleStats.length} BOARD PROGRAMS`
+                : `${activePrograms.length} ACTIVE PROGRAMS`}
             </Badge>
           </div>
           <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -769,7 +774,7 @@ export function BatchDataHub({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {stats.map((stat) => {
+                {visibleStats.map((stat) => {
                   const modeStatus =
                     dataMode === 'enrollment'
                       ? {
@@ -934,6 +939,13 @@ export function BatchDataHub({
                     </TableRow>
                   );
                 })}
+                {dataMode === 'board' && visibleStats.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
+                      No active programs are marked as board programs.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </div>
