@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { AcademicProgram, BoardExamPerformance, ProgramComplianceRecord } from './types';
 import {
   getChedCopcCategory,
+  getChedDataAcademicYear,
   getChedPortfolioSnapshot,
   getChedYearSummaries,
   getLatestBoardExam,
@@ -46,6 +47,12 @@ describe('toArray', () => {
     expect(toArray(values)).toBe(values);
     expect(toArray<number>({ unexpected: 'object' })).toEqual([]);
     expect(toArray<number>('not an array')).toEqual([]);
+  });
+});
+
+describe('CHED data academic year', () => {
+  it('maps the compliance year to the preceding academic-year start', () => {
+    expect(getChedDataAcademicYear(2024)).toBe(2023);
   });
 });
 

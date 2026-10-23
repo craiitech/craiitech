@@ -21,7 +21,7 @@ import {
   emptyEnrollmentTotals as emptyTotals,
   getComplianceEnrollmentSummary,
 } from '@/lib/enrollment';
-import { toArray } from '@/lib/ched-monitoring';
+import { getChedDataAcademicYear, toArray } from '@/lib/ched-monitoring';
 
 interface BatchDataHubProps {
   programs: AcademicProgram[];
@@ -154,7 +154,7 @@ function OutcomeOverview({
             <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
             <p className="text-xs font-bold text-foreground">{emptyMessage}</p>
             <p className="text-[10px] text-muted-foreground">
-              Use the entry wizard to populate AY {selectedYear} data.
+              Use the entry wizard to populate AY {selectedYear}–{selectedYear + 1} data.
             </p>
           </div>
         )}
@@ -176,6 +176,7 @@ export function BatchDataHub({
   const [activeProgramId, setActiveProgramId] = useState<string | null>(null);
 
   const campusMap = useMemo(() => new Map(campuses.map((c) => [c.id, c.name])), [campuses]);
+  const dataAcademicYear = getChedDataAcademicYear(selectedYear);
 
   // STRICTOR FILTERING: Only show programs that are currently active in the University
   const activePrograms = useMemo(() => programs.filter((p) => p.isActive === true), [programs]);
@@ -192,8 +193,8 @@ export function BatchDataHub({
 
       // Use only the record registered for the selected Academic Year so the
       // Batch Hub, CHED Monitoring, and SDD Hub all read the same source.
-      const record = programRecords.find((c) => Number(c.academicYear) === Number(selectedYear));
-      const enrollmentSummary = getComplianceEnrollmentSummary(record, { academicYear: selectedYear });
+      const record = programRecords.find((c) => Number(c.academicYear) === Number(dataAcademicYear));
+      const enrollmentSummary = getComplianceEnrollmentSummary(record, { academicYear: dataAcademicYear });
       const sem1 = enrollmentSummary.firstSemester;
       const sem2 = enrollmentSummary.secondSemester;
 
@@ -267,7 +268,7 @@ export function BatchDataHub({
         hasTracerData: tracerCount > 0,
       };
     });
-  }, [activePrograms, compliances, campusMap, selectedYear]);
+  }, [activePrograms, compliances, campusMap, dataAcademicYear]);
 
   const visibleStats = dataMode === 'board' ? stats.filter((stat) => stat.isBoardProgram) : stats;
 
@@ -373,7 +374,7 @@ export function BatchDataHub({
 
     if (dataMode === 'graduation') {
       return {
-        title: `Graduation Output Overview — AY ${selectedYear}`,
+        title: `Graduation Output Overview — AY ${dataAcademicYear}–${dataAcademicYear + 1}`,
         description: 'Graduates by sex across logged programs',
         emptyMessage:
           logged > 0
@@ -407,7 +408,7 @@ export function BatchDataHub({
 
     if (dataMode === 'board') {
       return {
-        title: `Board Examination Overview — AY ${selectedYear}`,
+        title: `Board Examination Overview — AY ${dataAcademicYear}–${dataAcademicYear + 1}`,
         description: 'Passers by sex across logged board exams',
         emptyMessage:
           logged > 0
@@ -442,7 +443,7 @@ export function BatchDataHub({
     const employmentRate = totals.total > 0 ? Math.round((totals.secondary / totals.total) * 100) : 0;
 
     return {
-      title: `Tracer Study Overview — AY ${selectedYear}`,
+      title: `Tracer Study Overview — AY ${dataAcademicYear}–${dataAcademicYear + 1}`,
       description: 'Traced graduates by sex with employment outcomes',
       emptyMessage: 'No tracer study data logged yet',
       logged,
@@ -469,7 +470,7 @@ export function BatchDataHub({
         loggedCard,
       ],
     };
-  }, [dataMode, visibleStats, selectedYear]);
+  }, [dataMode, visibleStats, dataAcademicYear]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -513,13 +514,13 @@ export function BatchDataHub({
             programs={programs}
             compliances={compliances}
             campuses={campuses}
-            selectedYear={selectedYear}
+            selectedYear={dataAcademicYear}
             canEdit={canEdit}
           />
           <div className="flex items-center gap-2 px-4 py-1.5 bg-indigo-50 border border-indigo-100 rounded-full">
             <Info className="h-3.5 w-3.5 text-indigo-600" />
             <span className="text-[10px] font-black text-indigo-700 uppercase tracking-tighter">
-              Context: AY {selectedYear} Registry
+              Compliance Year {selectedYear} · Data AY {dataAcademicYear}–{dataAcademicYear + 1}
             </span>
           </div>
         </div>
@@ -562,7 +563,7 @@ export function BatchDataHub({
                 <div className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-indigo-700 dark:text-indigo-300" />
                   <span className="text-[10px] font-black uppercase tracking-wider text-indigo-800 dark:text-indigo-200">
-                    Enrollment Headcount Overview — AY {selectedYear}
+                    Enrollment Headcount Overview — AY {dataAcademicYear}–{dataAcademicYear + 1}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -683,7 +684,7 @@ export function BatchDataHub({
                     <BarChart3 className="h-8 w-8 text-muted-foreground/40" />
                     <p className="text-xs font-bold text-foreground">No enrollment headcount logged yet</p>
                     <p className="text-[10px] text-muted-foreground">
-                      Use the entry wizard or XLSX import to populate AY {selectedYear} data.
+                      Use the entry wizard or XLSX import to populate AY {dataAcademicYear}–{dataAcademicYear + 1} data.
                     </p>
                   </div>
                 )}
@@ -701,7 +702,7 @@ export function BatchDataHub({
               cards={outcomeOverview.cards}
               chartData={outcomeOverview.chartData}
               emptyMessage={outcomeOverview.emptyMessage}
-              selectedYear={selectedYear}
+              selectedYear={dataAcademicYear}
             />
           )}
 
@@ -956,7 +957,7 @@ export function BatchDataHub({
             <p className="text-[9px] text-muted-foreground italic leading-tight">
               <strong>Administrative Accelerator:</strong> This view is designed for rapid institutional data
               collection. Use the sub-tabs to switch between modules and the "Update" button to access a focused entry
-              wizard for the Academic Year {selectedYear}.
+              wizard for the Academic Year {dataAcademicYear}–{dataAcademicYear + 1}.
             </p>
           </div>
         </CardFooter>
@@ -967,7 +968,7 @@ export function BatchDataHub({
         onOpenChange={(open) => !open && setActiveProgramId(null)}
         program={programs.find((p) => p.id === activeProgramId) || null}
         mode={dataMode}
-        selectedYear={selectedYear}
+        selectedYear={dataAcademicYear}
       />
     </div>
   );

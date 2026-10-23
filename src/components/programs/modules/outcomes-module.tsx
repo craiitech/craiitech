@@ -550,7 +550,7 @@ export function OutcomesModule({
                 onClick={() =>
                   appendTracer({
                     majorId: 'General',
-                    year: new Date().getFullYear(),
+                    year: academicYear,
                     semester: '1st Semester',
                     tracingDate: '',
                     totalGraduates: 0,
