@@ -52,6 +52,7 @@ const SEMESTERS = [
   { label: '2nd Semester', key: 'secondSemester' },
   { label: 'Summer / Midyear', key: 'midYearTerm' },
 ] as const;
+const GRADUATION_SEMESTERS = [...SEMESTERS, { label: 'All', key: 'unspecified' }] as const;
 
 const ENROLLMENT_HEADERS = [
   'Academic Year',
@@ -156,6 +157,7 @@ const toAcademicYearStart = (value: unknown) => {
 
 const normalizeSemester = (value: unknown) => {
   const key = normalizeKey(value);
+  if (key === 'all' || key.includes('unspecified')) return 'All';
   if (key.includes('1st') || key.includes('first') || key === '1') return '1st Semester';
   if (key.includes('2nd') || key.includes('second') || key === '2') return '2nd Semester';
   if (key.includes('summer') || key.includes('mid')) return 'Summer / Midyear';
@@ -256,7 +258,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
           });
         });
 
-        SEMESTERS.forEach((semester) => {
+        GRADUATION_SEMESTERS.forEach((semester) => {
           graduationRows.push([
             selectedYear,
             campusName,
@@ -338,7 +340,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
     sortedPrograms.forEach((program) => {
       const campusName = campusMap.get(program.campusId) || '';
       getProgramMajors(program).forEach((major) => {
-        SEMESTERS.forEach((semester) => {
+        GRADUATION_SEMESTERS.forEach((semester) => {
           graduationRows.push([
             selectedYear,
             campusName,
@@ -384,7 +386,9 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
     const instructionsSheet = XLSX.utils.aoa_to_sheet([
       ['CHED Graduation Batch Import Instructions'],
       [''],
-      ['1. Enter Male Graduates, Female Graduates, and Total Graduates per program, major, and semester.'],
+      [
+        '1. Enter Male Graduates, Female Graduates, and Total Graduates per program and major. Use "All" when the source does not identify a semester.',
+      ],
       ['2. Only fill rows for programs and semesters with graduation data. Rows with 0 values are ignored.'],
       ['3. "Year Level" is optional; keep "All Levels" when the breakdown is not available.'],
       ['4. Do not change the Campus, Program, Program ID, Major, and Semester values.'],
@@ -600,7 +604,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
       }
 
       const semester = normalizeSemester(row.semester);
-      const semesterDef = SEMESTERS.find((item) => item.label === semester);
+      const semesterDef = GRADUATION_SEMESTERS.find((item) => item.label === semester);
       const male = toNumber(row.malegraduates ?? row.male);
       const female = toNumber(row.femalegraduates ?? row.female);
 

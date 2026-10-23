@@ -32,6 +32,7 @@ interface OutcomesModuleProps {
 }
 
 const semesterOptions = [
+  { value: 'All', label: 'All' },
   { value: '1st Semester', label: '1st Semester' },
   { value: '2nd Semester', label: '2nd Semester' },
   { value: 'Summer / Midyear', label: 'Summer / Midyear' },
@@ -359,7 +360,10 @@ export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = '
                 <GraduationCap className="h-4 w-4 text-primary" />
                 Major-Disaggregated Graduation Registry
               </CardTitle>
-              <CardDescription className="text-[10px]">Track degree completion per specialization.</CardDescription>
+              <CardDescription className="text-[10px]">
+                Track degree completion per specialization. Choose All when the source record does not identify a
+                semester.
+              </CardDescription>
             </div>
             {canEdit && (
               <Button

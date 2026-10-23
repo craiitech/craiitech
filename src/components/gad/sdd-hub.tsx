@@ -222,14 +222,19 @@ const STUDENT_SOURCE_META: Record<
   },
 };
 
-const emptySourceTermTotals = (): EnrollmentTermTotals => ({
+type StudentSourceTermKey = EnrollmentTermKey | 'unspecified';
+type StudentSourceTermTotals = EnrollmentTermTotals & { unspecified: EnrollmentTotals };
+
+const emptySourceTermTotals = (): StudentSourceTermTotals => ({
   firstSemester: emptyEnrollmentTotals(),
   secondSemester: emptyEnrollmentTotals(),
   midYearTerm: emptyEnrollmentTotals(),
+  unspecified: emptyEnrollmentTotals(),
 });
 
-function normalizeOutcomeTerm(semester: unknown): EnrollmentTermKey {
+function normalizeOutcomeTerm(semester: unknown): StudentSourceTermKey {
   const value = String(semester || '').toLowerCase();
+  if (value === 'all') return 'unspecified';
   if (value.includes('mid') || value.includes('summer')) return 'midYearTerm';
   if (value.includes('second') || value.includes('2nd')) return 'secondSemester';
   return 'firstSemester';
@@ -239,13 +244,13 @@ function getStudentSourceTermTotals(
   record: ProgramComplianceRecord,
   source: StudentReportSource,
   academicYear: number,
-): EnrollmentTermTotals {
+): StudentSourceTermTotals {
   if (source === 'enrollment') {
-    return getComplianceEnrollmentSummary(record, { academicYear });
+    return { ...getComplianceEnrollmentSummary(record, { academicYear }), unspecified: emptyEnrollmentTotals() };
   }
 
   const totals = emptySourceTermTotals();
-  const addCounts = (termKey: EnrollmentTermKey, male: number, female: number, total = male + female) => {
+  const addCounts = (termKey: StudentSourceTermKey, male: number, female: number, total = male + female) => {
     const term = totals[termKey];
     term.male += male;
     term.female += female;
@@ -263,7 +268,7 @@ function getStudentSourceTermTotals(
     } else {
       const male = Number(record.stats?.maleGraduates) || 0;
       const female = Number(record.stats?.femaleGraduates) || 0;
-      addCounts('firstSemester', male, female, Number(record.stats?.graduationCount) || 0);
+      addCounts('unspecified', male, female, Number(record.stats?.graduationCount) || 0);
     }
     return totals;
   }
@@ -339,9 +344,7 @@ export function SDDHub({
   const [printFromYear, setPrintFromYear] = useState(selectedYear);
   const [printToYear, setPrintToYear] = useState(selectedYear);
   const [printYear, setPrintYear] = useState(selectedYear);
-  const [printSemester, setPrintSemester] = useState<'firstSemester' | 'secondSemester' | 'midYearTerm'>(
-    'firstSemester',
-  );
+  const [printSemester, setPrintSemester] = useState<StudentSourceTermKey>('firstSemester');
   const [printCampusId, setPrintCampusId] = useState('all');
   const [printProgramId, setPrintProgramId] = useState('all');
   const [printStudentType, setPrintStudentType] = useState<'all' | 'undergraduate' | 'graduate'>('all');
@@ -783,7 +786,7 @@ export function SDDHub({
   }, [studentRecordSource, dashboardYear, activeProgramIds]);
 
   const studentYearlyData = useMemo(() => {
-    const yearTotals = new Map<number, EnrollmentTermTotals>();
+    const yearTotals = new Map<number, StudentSourceTermTotals>();
 
     getUniqueComplianceRecords(studentRecordSource, { activeProgramIds }).forEach((record) => {
       const year = Number(record.academicYear);
@@ -796,6 +799,7 @@ export function SDDHub({
         firstSemester: addEnrollmentTotals(totals.firstSemester, sourceTotals.firstSemester),
         secondSemester: addEnrollmentTotals(totals.secondSemester, sourceTotals.secondSemester),
         midYearTerm: addEnrollmentTotals(totals.midYearTerm, sourceTotals.midYearTerm),
+        unspecified: addEnrollmentTotals(totals.unspecified, sourceTotals.unspecified),
       });
     });
 
@@ -806,6 +810,7 @@ export function SDDHub({
           row.firstSemester.total > 0 ||
           row.secondSemester.total > 0 ||
           row.midYearTerm.total > 0 ||
+          row.unspecified.total > 0 ||
           row.year === dashboardYear,
       )
       .sort((a, b) => b.year - a.year);
@@ -815,7 +820,10 @@ export function SDDHub({
     const row = studentYearlyData.find((entry) => entry.year === dashboardYear);
     if (!row) return emptyEnrollmentTotals();
     if (reportSource === 'enrollment' || reportSource === 'board') return row.firstSemester;
-    return addEnrollmentTotals(addEnrollmentTotals(row.firstSemester, row.secondSemester), row.midYearTerm);
+    return addEnrollmentTotals(
+      addEnrollmentTotals(addEnrollmentTotals(row.firstSemester, row.secondSemester), row.midYearTerm),
+      row.unspecified,
+    );
   }, [studentYearlyData, dashboardYear, reportSource]);
 
   const studentSourcePieData = useMemo(
@@ -831,20 +839,22 @@ export function SDDHub({
     firstSemester: 'First Semester',
     secondSemester: 'Second Semester',
     midYearTerm: 'Midyear Term',
+    unspecified: 'All / Unspecified Semester',
   } as const;
 
-  const sourceTermColumns: { key: EnrollmentTermKey; label: string }[] =
+  const sourceTermColumns: { key: StudentSourceTermKey; label: string }[] =
     reportSource === 'board'
       ? [{ key: 'firstSemester', label: 'Academic Year Total' }]
       : [
           { key: 'firstSemester', label: '1st Semester' },
           { key: 'secondSemester', label: '2nd Semester' },
           { key: 'midYearTerm', label: 'Midyear Term' },
+          ...(reportSource === 'graduation' ? [{ key: 'unspecified' as const, label: 'All / Unspecified' }] : []),
         ];
 
   const sourceMeta = STUDENT_SOURCE_META[reportSource];
 
-  const formatPeriodLabel = (years: number[], semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm') => {
+  const formatPeriodLabel = (years: number[], semesterKey?: StudentSourceTermKey) => {
     const sorted = [...years].sort((a, b) => a - b);
     const yearLabel =
       sorted.length <= 1
@@ -862,13 +872,14 @@ export function SDDHub({
     records: ProgramComplianceRecord[],
     title: string,
     years: number[],
-    semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
+    semesterKey?: StudentSourceTermKey,
     levelMode: StudentLevelMode = 'byLevel',
     selectedLevelKey?: StudentLevelKey,
   ): SDDStudentSection => {
-    const termKeys = semesterKey
-      ? ([semesterKey] as const)
-      : (['firstSemester', 'secondSemester', 'midYearTerm'] as const);
+    const termKeys =
+      semesterKey && semesterKey !== 'unspecified'
+        ? ([semesterKey] as const)
+        : (['firstSemester', 'secondSemester', 'midYearTerm'] as const);
     const levelDefs = [
       { key: 'firstYear', label: 'First Year' },
       { key: 'secondYear', label: 'Second Year' },
@@ -1001,14 +1012,14 @@ export function SDDHub({
     records: ProgramComplianceRecord[],
     title: string,
     years: number[],
-    semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
+    semesterKey?: StudentSourceTermKey,
   ): SDDStudentSection => {
-    const termKeys: EnrollmentTermKey[] =
+    const termKeys: StudentSourceTermKey[] =
       reportSource === 'board'
         ? ['firstSemester']
         : semesterKey
           ? [semesterKey]
-          : ['firstSemester', 'secondSemester', 'midYearTerm'];
+          : ['firstSemester', 'secondSemester', 'midYearTerm', 'unspecified'];
 
     const terms: SDDTermBlock[] = [];
 
@@ -1054,7 +1065,7 @@ export function SDDHub({
 
   const buildStudentReportData = (
     years: number[],
-    semesterKey?: 'firstSemester' | 'secondSemester' | 'midYearTerm',
+    semesterKey?: StudentSourceTermKey,
     levelMode: StudentLevelMode = 'byLevel',
     selectedLevelKey?: StudentLevelKey,
   ): StudentSDDReportData => {
@@ -1417,7 +1428,12 @@ export function SDDHub({
 
     try {
       if (printReportType === 'students') {
-        const semesterKey = printMode === 'yearSemester' && reportSource !== 'board' ? printSemester : undefined;
+        const semesterKey =
+          printMode === 'yearSemester' && reportSource !== 'board'
+            ? reportSource === 'graduation' || printSemester !== 'unspecified'
+              ? printSemester
+              : 'firstSemester'
+            : undefined;
         const reportData = buildStudentReportData(years, semesterKey, printStudentLevelMode, printStudentLevelKey);
 
         if (reportData.sections.length === 0 || reportData.grand.male + reportData.grand.female === 0) {
@@ -2557,12 +2573,13 @@ export function SDDHub({
             {printMode === 'yearSemester' && printReportType === 'students' && reportSource !== 'board' && (
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-wider text-slate-500">Semester</Label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className={cn('grid gap-2', reportSource === 'graduation' ? 'grid-cols-4' : 'grid-cols-3')}>
                   {(
                     [
                       { key: 'firstSemester', label: 'First' },
                       { key: 'secondSemester', label: 'Second' },
                       { key: 'midYearTerm', label: 'Midyear' },
+                      ...(reportSource === 'graduation' ? [{ key: 'unspecified' as const, label: 'All' }] : []),
                     ] as const
                   ).map((semester) => (
                     <Button
