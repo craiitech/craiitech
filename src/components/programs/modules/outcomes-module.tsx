@@ -28,6 +28,7 @@ interface OutcomesModuleProps {
   canEdit: boolean;
   isBoardProgram?: boolean;
   program?: AcademicProgram;
+  academicYear?: number;
   focusMode?: 'graduation' | 'board' | 'tracer' | 'all';
 }
 
@@ -38,7 +39,13 @@ const semesterOptions = [
   { value: 'Summer / Midyear', label: 'Summer / Midyear' },
 ];
 
-export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = 'all' }: OutcomesModuleProps) {
+export function OutcomesModule({
+  canEdit,
+  isBoardProgram,
+  program,
+  academicYear = new Date().getFullYear(),
+  focusMode = 'all',
+}: OutcomesModuleProps) {
   const { control, watch, setValue } = useFormContext();
 
   const {
@@ -372,7 +379,7 @@ export function OutcomesModule({ canEdit, isBoardProgram, program, focusMode = '
                 onClick={() =>
                   appendGrad({
                     majorId: 'General',
-                    year: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+                    year: `${academicYear}-${academicYear + 1}`,
                     semester: '1st Semester',
                     maleCount: 0,
                     femaleCount: 0,

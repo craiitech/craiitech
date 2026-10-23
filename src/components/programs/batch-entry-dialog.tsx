@@ -230,6 +230,7 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
                           canEdit={true}
                           isBoardProgram={program?.isBoardProgram}
                           program={program || undefined}
+                          academicYear={currentAY}
                           focusMode={mode}
                         />
                       </div>
