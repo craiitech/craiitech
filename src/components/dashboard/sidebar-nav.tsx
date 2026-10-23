@@ -67,6 +67,7 @@ interface SidebarNavProps extends React.HTMLAttributes<HTMLElement> {
   riskNotificationsCount?: number;
   qaReportsNotificationCount?: number;
   accreditationNotificationsCount?: number;
+  pendingUserApprovalsCount?: number;
 }
 
 export function SidebarNav({
@@ -78,6 +79,7 @@ export function SidebarNav({
   riskNotificationsCount = 0,
   qaReportsNotificationCount = 0,
   accreditationNotificationsCount = 0,
+  pendingUserApprovalsCount = 0,
   ...props
 }: SidebarNavProps) {
   const pathname = usePathname();
@@ -539,6 +541,7 @@ export function SidebarNav({
       active: pathname.startsWith('/settings'),
       roles: ['Admin', 'Campus Director'],
       icon: <Settings />,
+      showBadge: true,
     },
     {
       href: '/audit-log',
@@ -645,47 +648,54 @@ export function SidebarNav({
                     <span>{route.label}</span>
                     {route.showBadge &&
                       !isDisabled &&
-                      (route.href === '/communications'
-                        ? commNotificationCount > 0 && (
+                      (route.href === '/settings'
+                        ? isAdmin &&
+                          pendingUserApprovalsCount > 0 && (
                             <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                              {commNotificationCount}
+                              {pendingUserApprovalsCount}
                             </SidebarMenuBadge>
                           )
-                        : route.href === '/unit-forms'
-                          ? formRequestNotificationsCount > 0 && (
+                        : route.href === '/communications'
+                          ? commNotificationCount > 0 && (
                               <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                {formRequestNotificationsCount}
+                                {commNotificationCount}
                               </SidebarMenuBadge>
                             )
-                          : route.href === '/manuals'
-                            ? manualsNotificationCount > 0 && (
+                          : route.href === '/unit-forms'
+                            ? formRequestNotificationsCount > 0 && (
                                 <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                  {manualsNotificationCount}
+                                  {formRequestNotificationsCount}
                                 </SidebarMenuBadge>
                               )
-                            : route.href === '/risk-register'
-                              ? riskNotificationsCount > 0 && (
+                            : route.href === '/manuals'
+                              ? manualsNotificationCount > 0 && (
                                   <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                    {riskNotificationsCount}
+                                    {manualsNotificationCount}
                                   </SidebarMenuBadge>
                                 )
-                              : route.href === '/qa-reports'
-                                ? qaReportsNotificationCount > 0 && (
+                              : route.href === '/risk-register'
+                                ? riskNotificationsCount > 0 && (
                                     <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                      {qaReportsNotificationCount}
+                                      {riskNotificationsCount}
                                     </SidebarMenuBadge>
                                   )
-                                : route.href === '/academic-programs'
-                                  ? accreditationNotificationsCount > 0 && (
+                                : route.href === '/qa-reports'
+                                  ? qaReportsNotificationCount > 0 && (
                                       <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                        {accreditationNotificationsCount}
+                                        {qaReportsNotificationCount}
                                       </SidebarMenuBadge>
                                     )
-                                  : notificationCount > 0 && (
-                                      <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                        {notificationCount}
-                                      </SidebarMenuBadge>
-                                    ))}
+                                  : route.href === '/academic-programs'
+                                    ? accreditationNotificationsCount > 0 && (
+                                        <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                          {accreditationNotificationsCount}
+                                        </SidebarMenuBadge>
+                                      )
+                                    : notificationCount > 0 && (
+                                        <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                          {notificationCount}
+                                        </SidebarMenuBadge>
+                                      ))}
                   </Link>
                 </SidebarMenuButton>
               )}

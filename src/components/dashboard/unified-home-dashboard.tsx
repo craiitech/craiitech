@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,21 +16,11 @@ import {
   Layers,
   AlertTriangle,
   Building2,
-  TrendingUp,
-  Sparkles,
   Printer,
-  ChevronRight,
   ExternalLink,
-  Users,
-  CheckCircle2,
-  Clock,
   Briefcase,
   Settings,
-  Flame,
   ArrowRight,
-  Filter,
-  FileCheck,
-  Zap,
   Target,
   Landmark,
 } from 'lucide-react';
@@ -77,7 +67,7 @@ export interface UnifiedHomeDashboardProps {
   defaultTab?: string;
   allowWorkspaceSwitch?: boolean;
   onSwitchToWorkspace?: () => void;
-  userRole?: any;
+  userRole?: string | null;
   isAdmin?: boolean;
   initialScope?: 'university' | 'unit';
   userProfile?: AppUser | null;

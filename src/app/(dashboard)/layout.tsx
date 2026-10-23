@@ -19,6 +19,7 @@ import type {
   Cycle,
   UnitFormRequest,
   ProcedureRevisionRequest,
+  User as AppUser,
 } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -436,6 +437,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
   const { data: cycles } = useCollection<Cycle>(cyclesQuery);
 
+  const pendingUserApprovalsQuery = useMemoFirebase(
+    () => (firestore && isAdmin ? query(collection(firestore, 'users'), where('verified', '==', false)) : null),
+    [firestore, isAdmin],
+  );
+  const { data: pendingUserApprovals } = useCollection<AppUser>(pendingUserApprovalsQuery);
+  const pendingUserApprovalsCount = isAdmin ? (pendingUserApprovals?.length ?? 0) : 0;
+
   const availableYears = useMemo(() => {
     if (!cycles) return [new Date().getFullYear()];
     const cycleYears = [...new Set(cycles.map((c) => Number(c.year)))].filter((y) => !isNaN(y));
@@ -590,7 +598,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       decisionNotificationsCount +
       commNotificationsCount +
       formRequestNotificationsCount +
-      revisionRequestsNotificationsCount
+      revisionRequestsNotificationsCount +
+      pendingUserApprovalsCount
     );
   }, [
     subNotificationsCount,
@@ -601,11 +610,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     commNotificationsCount,
     formRequestNotificationsCount,
     revisionRequestsNotificationsCount,
+    pendingUserApprovalsCount,
   ]);
 
   const notificationsList = useMemo(() => {
     const list: any[] = [];
     const MAX_ITEMS = 30;
+
+    if (isAdmin && pendingUserApprovals) {
+      pendingUserApprovals.forEach((pendingUser) => {
+        list.push({
+          id: `user-approval-${pendingUser.id}`,
+          module: 'users',
+          label: `Registration — ${`${pendingUser.firstName || ''} ${pendingUser.lastName || ''}`.trim() || pendingUser.email}`,
+          description: 'New user registration awaiting approval',
+          link: '/settings?tab=users',
+        });
+      });
+    }
 
     // 1. Submissions — individual items
     if (subNotifications && userProfile) {
@@ -825,6 +847,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     commsNotifications,
     formRequestNotifications,
     revisionRequestsNotifications,
+    pendingUserApprovals,
     userProfile,
     userRole,
     isAdmin,
@@ -1068,6 +1091,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     formRequestNotificationsCount={formRequestNotificationsCount}
                     manualsNotificationCount={revisionRequestsNotificationsCount}
                     qaReportsNotificationCount={qaReportsNotificationCount}
+                    pendingUserApprovalsCount={pendingUserApprovalsCount}
                   />
                 </SidebarContent>
               </Sidebar>

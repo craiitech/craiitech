@@ -3,7 +3,6 @@
 import { NotificationInbox } from '@/components/dashboard/notification-inbox';
 import {
   LogOut,
-  Bell,
   User as UserIcon,
   Settings,
   Accessibility,
@@ -24,7 +23,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -41,19 +39,19 @@ interface UserNavProps {
   userProfile: AppUser | null;
   notificationCount: number;
   totalNotificationsCount?: number;
-  notificationsList?: any[];
+  notificationsList?: {
+    id?: string;
+    module?: string;
+    label?: string;
+    description?: string;
+    link?: string;
+  }[];
 }
 
-export function UserNav({
-  user,
-  userProfile,
-  notificationCount,
-  totalNotificationsCount = 0,
-  notificationsList = [],
-}: UserNavProps) {
+export function UserNav({ user, userProfile, totalNotificationsCount = 0, notificationsList = [] }: UserNavProps) {
   const router = useRouter();
   const { logSessionActivity } = useSessionActivity();
-  const { userRole, isSupervisor, isAdmin, isVp, assignments, activeAssignment, setActiveAssignmentId } = useUser();
+  const { userRole, isAdmin, isVp, assignments, activeAssignment, setActiveAssignmentId } = useUser();
   const { theme, toggleTheme } = useTheme();
 
   const handleLogout = () => {
@@ -64,14 +62,6 @@ export function UserNav({
       });
     }
     router.push('/logout');
-  };
-
-  const handleNotificationClick = () => {
-    if (isSupervisor) {
-      router.push('/approvals');
-    } else {
-      router.push('/submissions');
-    }
   };
 
   const canViewSettings = userRole === 'Admin' || userRole === 'Campus Director';
