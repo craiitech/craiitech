@@ -447,7 +447,7 @@ export function UnifiedHomeDashboard({
           <div className="mb-4 text-center">
             <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Our Institutional Identity</p>
             <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900 dark:text-slate-100 sm:text-2xl">
-              Guided by purpose. United by quality.
+              Bridging Islands, Building Futures.
             </h2>
           </div>
           <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-3">
