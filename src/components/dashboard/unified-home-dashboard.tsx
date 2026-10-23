@@ -50,6 +50,7 @@ import { ExecutiveOverview } from '@/components/dashboard/executive-overview';
 import { KpiDashboardTab } from '@/components/dashboard/kpi-dashboard-tab';
 import { DashboardDataReviewRibbon } from '@/components/dashboard/dashboard-data-review-ribbon';
 import { getUnitProgramsChedWarnings } from '@/lib/ched-compliance-warnings';
+import { calculateAaccupCoverage } from '@/lib/aaccup-coverage';
 import { calculateBaselineKraScores, evaluateSucClassification } from '@/lib/suc-levelling-engine';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -165,20 +166,14 @@ export function UnifiedHomeDashboard({
     });
 
     let copcCount = 0;
-    let accreditedCount = 0;
 
     activeProgs.forEach((p) => {
       const comp = complianceMap.get(p.id);
       if (comp?.ched?.copcStatus === 'With COPC') copcCount++;
-
-      const accRecords = comp?.accreditationRecords || [];
-      const current = accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
-      const lvl = (current?.level || '').toLowerCase();
-      if (lvl && !lvl.includes('non') && !lvl.includes('awaiting')) accreditedCount++;
     });
 
     const copcRate = totalPrograms > 0 ? Math.round((copcCount / totalPrograms) * 100) : 0;
-    const accreditedRate = totalPrograms > 0 ? Math.round((accreditedCount / totalPrograms) * 100) : 0;
+    const aaccupCoverage = calculateAaccupCoverage(activeProgs, complianceMap);
 
     // Warnings & Enrollment from CHED Engine
     const warningSummary = getUnitProgramsChedWarnings(activeProgs, allCompliances, selectedYear);
@@ -213,8 +208,9 @@ export function UnifiedHomeDashboard({
       totalPrograms,
       copcCount,
       copcRate,
-      accreditedCount,
-      accreditedRate,
+      accreditedCount: aaccupCoverage.accreditedCount,
+      accreditedRate: aaccupCoverage.rate,
+      accreditableProgramCount: aaccupCoverage.eligibleCount,
       totalRecordedStudents,
       warningCount: warningSummary.warningProgramsCount,
       totalCars,
@@ -576,7 +572,9 @@ export function UnifiedHomeDashboard({
               AACCUP Accredited
             </span>
             <span className="text-xl font-black text-rose-700">{executivePulse.accreditedRate}%</span>
-            <span className="text-[9px] text-slate-500 block">{executivePulse.accreditedCount} Programs</span>
+            <span className="text-[9px] text-slate-500 block">
+              {executivePulse.accreditedCount}/{executivePulse.accreditableProgramCount} eligible programs
+            </span>
           </Card>
 
           <Card className="p-3 border-amber-200 bg-amber-50/40 shadow-sm">

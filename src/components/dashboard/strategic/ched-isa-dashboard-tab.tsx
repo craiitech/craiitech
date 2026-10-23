@@ -47,6 +47,7 @@ import type {
   Risk,
 } from '@/lib/types';
 import { Chart3DDefs } from '@/components/ui/chart-3d-defs';
+import { calculateAaccupCoverage } from '@/lib/aaccup-coverage';
 
 interface ChedIsaDashboardTabProps {
   academicPrograms: AcademicProgram[];
@@ -73,19 +74,23 @@ export function ChedIsaDashboardTab({
   const isaDimensions = useMemo(() => {
     const activeProgs = academicPrograms.filter((p) => p.isActive !== false);
     const total = activeProgs.length || 1;
-
-    let copcCount = 0;
-    let accreditedCount = 0;
-    allCompliances.forEach((c) => {
-      if (c.ched?.copcStatus === 'With COPC') copcCount++;
-      const acc = c.accreditationRecords || [];
-      const current = acc.find((r) => r.lifecycleStatus === 'Current') || acc[acc.length - 1];
-      const lvl = (current?.level || '').toLowerCase();
-      if (lvl && !lvl.includes('non') && !lvl.includes('awaiting')) accreditedCount++;
+    const complianceByProgram = new Map<string, ProgramComplianceRecord>();
+    allCompliances.forEach((record) => {
+      const existing = complianceByProgram.get(record.programId);
+      if (!existing || record.academicYear === selectedYear) {
+        complianceByProgram.set(record.programId, record);
+      }
     });
 
+    let copcCount = 0;
+    allCompliances.forEach((c) => {
+      if (c.ched?.copcStatus === 'With COPC') copcCount++;
+    });
+
+    const aaccupCoverage = calculateAaccupCoverage(activeProgs, complianceByProgram);
     const copcRate = copcCount / total;
-    const accRate = accreditedCount / total;
+    const accRate =
+      aaccupCoverage.eligibleCount > 0 ? aaccupCoverage.accreditedCount / aaccupCoverage.eligibleCount : 0;
     const copcScore = Math.min(5, Math.max(1, Math.round(copcRate * 5 * 10) / 10));
     const accScore = Math.min(5, Math.max(1, Math.round(accRate * 5 * 10) / 10));
     const teachingScore = Math.round(((4.2 + copcScore + accScore + 3.6 + 4.0) / 5) * 10) / 10;
@@ -164,7 +169,7 @@ export function ChedIsaDashboardTab({
             status: copcScore >= 3.5 ? 'Met' : 'Ongoing',
           },
           {
-            label: `AACCUP Accreditation Coverage (${accreditedCount}/${total})`,
+            label: `AACCUP Accreditation Coverage (${aaccupCoverage.accreditedCount}/${aaccupCoverage.eligibleCount})`,
             score: accScore,
             status: accScore >= 3.5 ? 'Met' : 'Ongoing',
           },
@@ -236,7 +241,7 @@ export function ChedIsaDashboardTab({
         ],
       },
     ];
-  }, [academicPrograms, allCompliances, submissions, cars, risks]);
+  }, [academicPrograms, allCompliances, submissions, cars, risks, selectedYear]);
 
   // Overall Composite ISA Score
   const overallIsaScore = useMemo(() => {

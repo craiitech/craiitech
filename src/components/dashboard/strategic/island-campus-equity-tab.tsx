@@ -34,6 +34,7 @@ import {
 import type { AcademicProgram, ProgramComplianceRecord, Submission, Campus, Unit } from '@/lib/types';
 import { Chart3DDefs } from '@/components/ui/chart-3d-defs';
 import { getProgramChedWarnings } from '@/lib/ched-compliance-warnings';
+import { isAaccupAccredited } from '@/lib/aaccup-coverage';
 
 interface IslandCampusEquityTabProps {
   campuses: Campus[];
@@ -76,16 +77,14 @@ export function IslandCampusEquityTab({
 
         let copcCount = 0;
         let accreditedCount = 0;
+        const accreditablePrograms = campusProgs.filter((program) => !program.isNewProgram);
         let totalEnrolled = 0;
 
         campusProgs.forEach((p) => {
           const comp = complianceMap.get(p.id);
           if (comp?.ched?.copcStatus === 'With COPC') copcCount++;
 
-          const accRecords = comp?.accreditationRecords || [];
-          const current = accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
-          const lvl = (current?.level || '').toLowerCase();
-          if (lvl && !lvl.includes('non') && !lvl.includes('awaiting')) accreditedCount++;
+          if (isAaccupAccredited(p, comp)) accreditedCount++;
 
           const warning = getProgramChedWarnings(p, comp, selectedYear);
           const sem = warning.enrollmentSummary.firstSemCount || warning.enrollmentSummary.secondSemCount || 0;
@@ -98,13 +97,15 @@ export function IslandCampusEquityTab({
           campusSubmissions.length > 0 ? Math.round((approvedSubmissions / campusSubmissions.length) * 100) : 0;
 
         const copcRate = progCount > 0 ? Math.round((copcCount / progCount) * 100) : 0;
-        const accRate = progCount > 0 ? Math.round((accreditedCount / progCount) * 100) : 0;
+        const accRate =
+          accreditablePrograms.length > 0 ? Math.round((accreditedCount / accreditablePrograms.length) * 100) : 0;
 
         return {
           id: campus.id,
           name: campus.name,
           code: (campus as any).code || campus.name.slice(0, 4).toUpperCase(),
           progCount,
+          accreditableCount: accreditablePrograms.length,
           copcCount,
           copcRate,
           accreditedCount,
@@ -235,7 +236,7 @@ export function IslandCampusEquityTab({
                 <div className="flex justify-between text-[11px]">
                   <span className="text-slate-500">AACCUP Accredited:</span>
                   <strong className="text-blue-700 font-mono">
-                    {c.accreditedCount}/{c.progCount} ({c.accRate}%)
+                    {c.accreditedCount}/{c.accreditableCount} eligible ({c.accRate}%)
                   </strong>
                 </div>
                 <Progress value={c.accRate} className="h-1.5 bg-blue-50" />

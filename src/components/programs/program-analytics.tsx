@@ -40,6 +40,7 @@ import {
 } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
+import { isAaccupAccredited } from '@/lib/aaccup-coverage';
 import {
   Award,
   TrendingUp,
@@ -242,11 +243,7 @@ export function ProgramAnalytics({
       const certificateLink = officialCurrentMilestone?.certificateLink;
 
       const rawLevel = (currentMilestone?.level || 'Non Accredited').trim();
-      const isAccredited =
-        currentMilestone &&
-        rawLevel !== 'Non Accredited' &&
-        !rawLevel.includes('PSV') &&
-        rawLevel !== 'AWAITING RESULT';
+      const isAccredited = isAaccupAccredited(p, record);
       const hasCopc = record?.ched?.copcStatus === 'With COPC';
 
       // Flatten recommendations for the registry (across all recorded years)
@@ -278,18 +275,18 @@ export function ProgramAnalytics({
       if (p.isActive) {
         activeCount++;
         if (p.isNewProgram) activeNewCount++;
-        if (isAccredited) activeAccredited++;
+        if (isAccredited && !p.isNewProgram) activeAccredited++;
         if (hasCopc) activeCopc++;
 
         if (p.level === 'Undergraduate') {
           activeUgCount++;
           if (p.isNewProgram) activeUgNewCount++;
-          if (isAccredited) activeUgAccredited++;
+          if (isAccredited && !p.isNewProgram) activeUgAccredited++;
           if (hasCopc) activeUgCopc++;
         } else if (p.level === 'Graduate') {
           activeGradCount++;
           if (p.isNewProgram) activeGradNewCount++;
-          if (isAccredited) activeGradAccredited++;
+          if (isAccredited && !p.isNewProgram) activeGradAccredited++;
           if (hasCopc) activeGradCopc++;
         }
 

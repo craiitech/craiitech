@@ -59,6 +59,7 @@ import {
   evaluateSucClassification,
   DEFAULT_SUC_INDICATORS,
 } from '@/lib/suc-levelling-engine';
+import { isAaccupAccredited } from '@/lib/aaccup-coverage';
 import { Chart3DDefs } from '@/components/ui/chart-3d-defs';
 import { useFirestore, useCollection, useMemoFirebase, useUser } from '@/firebase';
 import { collection } from '@/firebase/firestore-wrapper';
@@ -138,6 +139,7 @@ export function SucLevellingDashboardTab({
     let boardProgramsCount = 0;
     let boardPassedAboveNational = 0;
     let copcCount = 0;
+    let accreditableActiveCount = 0;
 
     activePrograms.forEach((p) => {
       const comp = complianceMap.get(p.id);
@@ -148,15 +150,9 @@ export function SucLevellingDashboardTab({
       const accRecords = comp?.accreditationRecords || [];
       const current = accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
       const lvl = (current?.level || '').toLowerCase();
-      if (
-        lvl.includes('level i') ||
-        lvl.includes('level ii') ||
-        lvl.includes('level iii') ||
-        lvl.includes('level iv')
-      ) {
-        accreditedCount++;
-      }
-      if (lvl.includes('level iii') || lvl.includes('level iv')) {
+      if (!p.isNewProgram) accreditableActiveCount++;
+      if (isAaccupAccredited(p, comp)) accreditedCount++;
+      if (!p.isNewProgram && (lvl.includes('level iii') || lvl.includes('level iv'))) {
         highAccreditedCount++;
       }
 
@@ -171,8 +167,10 @@ export function SucLevellingDashboardTab({
     });
 
     const totalActive = activePrograms.length || 1;
-    const accreditedRate = Math.round((accreditedCount / totalActive) * 100);
-    const highAccreditedRate = Math.round((highAccreditedCount / totalActive) * 100);
+    const accreditedRate =
+      accreditableActiveCount > 0 ? Math.round((accreditedCount / accreditableActiveCount) * 100) : 0;
+    const highAccreditedRate =
+      accreditableActiveCount > 0 ? Math.round((highAccreditedCount / accreditableActiveCount) * 100) : 0;
     const copcRate = Math.round((copcCount / totalActive) * 100);
     const boardRate = boardProgramsCount > 0 ? Math.round((boardPassedAboveNational / boardProgramsCount) * 100) : 0;
 
@@ -188,6 +186,7 @@ export function SucLevellingDashboardTab({
 
     return {
       totalActive,
+      accreditableActiveCount,
       accreditedCount,
       highAccreditedCount,
       accreditedRate,
@@ -418,13 +417,13 @@ export function SucLevellingDashboardTab({
               <div className="flex justify-between">
                 <span>Accredited Programs:</span>
                 <strong className="text-slate-800 dark:text-slate-200">
-                  {stats.accreditedCount} ({stats.accreditedRate}%)
+                  {stats.accreditedCount}/{stats.accreditableActiveCount} ({stats.accreditedRate}%)
                 </strong>
               </div>
               <div className="flex justify-between">
                 <span>High Level (III & IV):</span>
                 <strong className="text-slate-800 dark:text-slate-200">
-                  {stats.highAccreditedCount} ({stats.highAccreditedRate}%)
+                  {stats.highAccreditedCount}/{stats.accreditableActiveCount} ({stats.highAccreditedRate}%)
                 </strong>
               </div>
               <div className="flex justify-between">
