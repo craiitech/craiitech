@@ -195,6 +195,7 @@ export function ProgramAnalytics({
     let activeCopc = 0;
     let currentYearAccreditationCount = 0;
     let programsWithRecordThisYear = 0;
+    let accreditableProgramsCount = 0;
 
     const statusTotals = { COMPLIANT: 0, OVERDUE: 0, 'AWAITING RESULT': 0, 'NEW PROGRAM': 0 };
     const levelCounts = { L1: 0, L2: 0, L3: 0, L4: 0, Candidate: 0, NewOffering: 0, NonAccredited: 0 };
@@ -274,6 +275,7 @@ export function ProgramAnalytics({
 
       if (p.isActive) {
         activeCount++;
+        if (!p.isNewProgram) accreditableProgramsCount++;
         if (p.isNewProgram) activeNewCount++;
         if (isAccredited && !p.isNewProgram) activeAccredited++;
         if (hasCopc) activeCopc++;
@@ -291,16 +293,16 @@ export function ProgramAnalytics({
         }
 
         if (p.isNewProgram) levelCounts.NewOffering++;
-        else if (rawLevel.includes('Level IV')) levelCounts.L4++;
-        else if (rawLevel.includes('Level III')) levelCounts.L3++;
-        else if (rawLevel.includes('Level II')) levelCounts.L2++;
-        else if (rawLevel.includes('Level I')) levelCounts.L1++;
         else if (rawLevel.toLowerCase().includes('candidate') || rawLevel.includes('PSV')) levelCounts.Candidate++;
+        else if (isAccredited && rawLevel.includes('Level IV')) levelCounts.L4++;
+        else if (isAccredited && rawLevel.includes('Level III')) levelCounts.L3++;
+        else if (isAccredited && rawLevel.includes('Level II')) levelCounts.L2++;
+        else if (isAccredited && rawLevel.includes('Level I')) levelCounts.L1++;
         else levelCounts.NonAccredited++;
 
         // Radar Logic
         if (hasCopc) globalPillarSums.authority += 100;
-        if (isAccredited || p.isNewProgram) globalPillarSums.accreditation += 100;
+        if (isAccredited) globalPillarSums.accreditation += 100;
         if (record?.graduationRecords?.length) globalPillarSums.outcomes += 100;
         if (record?.curriculumRecords?.some((c) => c.isNotedByChed)) globalPillarSums.curriculum += 100;
 
@@ -394,6 +396,7 @@ export function ProgramAnalytics({
         status,
         isActive: p.isActive,
         isNewProgram: p.isNewProgram,
+        isAccredited,
         sortYear,
         accreditationRecords: programRecords.flatMap((pr) => pr.accreditationRecords || []),
       });
@@ -401,7 +404,11 @@ export function ProgramAnalytics({
 
     const radarData = [
       { pillar: 'Authority', score: Math.round(globalPillarSums.authority / (activeCount || 1)) },
-      { pillar: 'Accreditation', score: Math.round(globalPillarSums.accreditation / (activeCount || 1)) },
+      {
+        pillar: 'Accreditation',
+        score:
+          accreditableProgramsCount > 0 ? Math.round(globalPillarSums.accreditation / accreditableProgramsCount) : 0,
+      },
       { pillar: 'Faculty', score: Math.round(globalPillarSums.faculty / (activeCount || 1)) },
       { pillar: 'Curriculum', score: Math.round(globalPillarSums.curriculum / (activeCount || 1)) },
       { pillar: 'Outcomes', score: Math.round(globalPillarSums.outcomes / (activeCount || 1)) },
@@ -703,16 +710,16 @@ export function ProgramAnalytics({
 
       if (r.isNewProgram) {
         groups['New Offering'].push({ ...r, abbreviation: abbr });
-      } else if (r.currentLevel.includes('Level IV')) {
-        groups['Level IV'].push({ ...r, abbreviation: abbr });
-      } else if (r.currentLevel.includes('Level III')) {
-        groups['Level III'].push({ ...r, abbreviation: abbr });
-      } else if (r.currentLevel.includes('Level II')) {
-        groups['Level II'].push({ ...r, abbreviation: abbr });
-      } else if (r.currentLevel.includes('Level I')) {
-        groups['Level I'].push({ ...r, abbreviation: abbr });
       } else if (r.currentLevel.toLowerCase().includes('candidate') || r.currentLevel.includes('PSV')) {
         groups['Candidate'].push({ ...r, abbreviation: abbr });
+      } else if (r.isAccredited && r.currentLevel.includes('Level IV')) {
+        groups['Level IV'].push({ ...r, abbreviation: abbr });
+      } else if (r.isAccredited && r.currentLevel.includes('Level III')) {
+        groups['Level III'].push({ ...r, abbreviation: abbr });
+      } else if (r.isAccredited && r.currentLevel.includes('Level II')) {
+        groups['Level II'].push({ ...r, abbreviation: abbr });
+      } else if (r.isAccredited && r.currentLevel.includes('Level I')) {
+        groups['Level I'].push({ ...r, abbreviation: abbr });
       } else {
         groups['Non-Accredited'].push({ ...r, abbreviation: abbr });
       }

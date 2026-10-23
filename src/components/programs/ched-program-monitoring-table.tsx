@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { isAaccupAccredited } from '@/lib/aaccup-coverage';
 
 interface ChedProgramMonitoringTableProps {
   programs: AcademicProgram[];
@@ -115,15 +116,18 @@ export function ChedProgramMonitoringTable({
         const current = accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
         const level = current?.level || 'Non Accredited';
 
-        if (current && level !== 'Non Accredited' && !level.includes('PSV') && level !== 'AWAITING RESULT') {
-          entry.accredited++;
-          if (level.includes('Level IV')) entry.levelIV++;
-          else if (level.includes('Level III')) entry.levelIII++;
-          else if (level.includes('Level II')) entry.levelII++;
-          else if (level.includes('Level I')) entry.levelI++;
-          else if (level.toLowerCase().includes('candidate') || level.includes('PSV')) entry.candidate++;
-        } else if (!p.isNewProgram) {
-          entry.nonAccredited++;
+        if (!p.isNewProgram) {
+          if (level.toLowerCase().includes('candidate') || level.includes('PSV')) {
+            entry.candidate++;
+          } else if (isAaccupAccredited(p, c)) {
+            entry.accredited++;
+            if (level.includes('Level IV')) entry.levelIV++;
+            else if (level.includes('Level III')) entry.levelIII++;
+            else if (level.includes('Level II')) entry.levelII++;
+            else if (level.includes('Level I')) entry.levelI++;
+          } else {
+            entry.nonAccredited++;
+          }
         }
       });
     });
@@ -168,8 +172,16 @@ export function ChedProgramMonitoringTable({
         const unitName = unitMap.get(p.collegeId) || 'Unknown';
         const copcAwardDate = c?.ched?.copcAwardDate || '—';
 
-        const isAccredited =
-          current && level !== 'Non Accredited' && !level.includes('PSV') && level !== 'AWAITING RESULT';
+        const isAccredited = isAaccupAccredited(p, c);
+        const accreditationLevel = p.isNewProgram
+          ? 'New Offering'
+          : level.toLowerCase().includes('candidate') || level.includes('PSV')
+            ? 'Candidate'
+            : isAccredited
+              ? level
+              : level.toLowerCase().includes('awaiting result')
+                ? 'AWAITING RESULT'
+                : 'Non Accredited';
 
         return {
           id: p.id,
@@ -183,7 +195,7 @@ export function ChedProgramMonitoringTable({
           hasRecord: !!c,
           copcStatus,
           copcAwardDate,
-          accreditationLevel: isAccredited ? level : p.isNewProgram ? 'New Offering' : level,
+          accreditationLevel,
           isAccredited,
           lifecycle,
           validityDate: validity,

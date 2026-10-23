@@ -40,6 +40,7 @@ import { cn, isCycleActive, isProgramInUnit, UNIT_CODES } from '@/lib/utils';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
 import { AiExecutiveBriefing } from '@/components/ai/ai-executive-briefing';
 import { CardAnalyticsStrip } from '@/components/ui/card-analytics-strip';
+import { isAaccupAccredited } from '@/lib/aaccup-coverage';
 
 interface ExecutiveOverviewProps {
   submissions: Submission[] | null;
@@ -248,23 +249,25 @@ export function ExecutiveOverview({
   );
 
   // 4. ACCREDITATION PERFORMANCE RATE (level achievement + mandatory gap closure combined)
-  const recommendationsList = useMemo(
-    () =>
-      scopedCompliances.reduce((acc: any[], c) => {
-        c.accreditationRecords?.forEach((ar) => {
-          ar.recommendations?.forEach((rec) => {
-            if (rec.type !== 'Mandatory') return;
-            acc.push({
-              ...rec,
-              programName: units?.find((u) => u.id === c.programId)?.name || 'Academic Program',
-              campusId: c.campusId,
-            });
+  const recommendationsList = useMemo(() => {
+    const eligibleProgramIds = new Set(
+      scopedPrograms.filter((program) => program.isActive && !program.isNewProgram).map((program) => program.id),
+    );
+    return scopedCompliances.reduce((acc: any[], c) => {
+      if (!eligibleProgramIds.has(c.programId)) return acc;
+      c.accreditationRecords?.forEach((ar) => {
+        ar.recommendations?.forEach((rec) => {
+          if (rec.type !== 'Mandatory') return;
+          acc.push({
+            ...rec,
+            programName: units?.find((u) => u.id === c.programId)?.name || 'Academic Program',
+            campusId: c.campusId,
           });
         });
-        return acc;
-      }, []) || [],
-    [scopedCompliances, units],
-  );
+      });
+      return acc;
+    }, []);
+  }, [scopedCompliances, scopedPrograms, units]);
   const closedRecs = useMemo(() => recommendationsList.filter((r) => r.status === 'Closed'), [recommendationsList]);
   const accreditationResolutionRate = useMemo(
     () =>
@@ -285,25 +288,28 @@ export function ExecutiveOverview({
   };
   const accreditationLevelRate = useMemo(() => {
     const scored = scopedPrograms
-      .filter((p) => p.isActive)
+      .filter((p) => p.isActive && !p.isNewProgram)
       .map((p) => {
-        const compliance = scopedCompliances.find((c) => c.programId === p.id);
+        const compliance =
+          scopedCompliances.find((c) => c.programId === p.id && c.academicYear === selectedYear) ||
+          scopedCompliances.find((c) => c.programId === p.id);
         const records = compliance?.accreditationRecords || [];
         const current = records.find((r) => r.lifecycleStatus === 'Current') || records[records.length - 1];
         const level = current?.level?.trim() || 'Non Accredited';
+        if (level.toLowerCase().includes('candidate') || level.includes('PSV')) return 20;
+        if (!isAaccupAccredited(p, compliance)) return 0;
         for (const [key, score] of Object.entries(levelScoreMap)) {
           if (level.includes(key) || level === key) return score;
         }
-        if (level.toLowerCase().includes('candidate') || level.includes('PSV')) return 20;
         return 0;
       });
     return scored.length > 0 ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) : 0;
-  }, [scopedPrograms, scopedCompliances]);
+  }, [scopedPrograms, scopedCompliances, selectedYear]);
 
   // Combined Accreditation Rate (50% level achievement + 50% gap closure)
   const accreditationRate = useMemo(() => {
     const hasRecommends = recommendationsList.length > 0;
-    const hasPrograms = scopedPrograms.filter((p) => p.isActive).length > 0;
+    const hasPrograms = scopedPrograms.some((p) => p.isActive && !p.isNewProgram);
     if (!hasRecommends && !hasPrograms) return 0;
     if (!hasRecommends) return accreditationLevelRate;
     if (!hasPrograms) return accreditationResolutionRate;
@@ -320,19 +326,25 @@ export function ExecutiveOverview({
       levelOrder.forEach((l) => (counts[l] = 0));
       programs
         .filter((p) => p.isActive)
+        .filter((p) => !p.isNewProgram)
         .forEach((p) => {
-          const compliance = scopedCompliances.find((c) => c.programId === p.id);
+          const compliance =
+            scopedCompliances.find((c) => c.programId === p.id && c.academicYear === selectedYear) ||
+            scopedCompliances.find((c) => c.programId === p.id);
           const records = compliance?.accreditationRecords || [];
           const current = records.find((r) => r.lifecycleStatus === 'Current') || records[records.length - 1];
           const level = current?.level?.trim() || 'Non Accredited';
           let matched = 'Non Accredited';
-          for (const key of levelOrder) {
-            if (level.includes(key) || level === key) {
-              matched = key;
-              break;
+          if (level.toLowerCase().includes('candidate') || level.includes('PSV')) {
+            matched = 'Candidate';
+          } else if (isAaccupAccredited(p, compliance)) {
+            for (const key of levelOrder) {
+              if (level.includes(key) || level === key) {
+                matched = key;
+                break;
+              }
             }
           }
-          if (level.toLowerCase().includes('candidate') || level.includes('PSV')) matched = 'Candidate';
           counts[matched] = (counts[matched] || 0) + 1;
         });
       return levelOrder.map((l) => ({ level: l, count: counts[l] || 0 })).filter((x) => x.count > 0);
@@ -341,7 +353,7 @@ export function ExecutiveOverview({
       undergrad: countByLevel(scopedPrograms.filter((p) => p.level === 'Undergraduate' || p.level === 'TVET')),
       graduate: countByLevel(scopedPrograms.filter((p) => p.level === 'Graduate')),
     };
-  }, [scopedPrograms, scopedCompliances]);
+  }, [scopedPrograms, scopedCompliances, selectedYear]);
 
   // 5. CHED COPC RATE
   const copcCompliant = useMemo(
@@ -810,7 +822,7 @@ export function ExecutiveOverview({
 
     // 4b. Non-Accredited Programs
     const nonAccredited = scopedPrograms.filter((ap) => {
-      if (!ap.isActive) return false;
+      if (!ap.isActive || ap.isNewProgram) return false;
       const comp = scopedCompliances.find((c) => c.programId === ap.id);
       const records = comp?.accreditationRecords || [];
       const current = records.find((r) => r.lifecycleStatus === 'Current') || records[records.length - 1];

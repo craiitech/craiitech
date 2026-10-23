@@ -47,6 +47,7 @@ import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Chart3DDefs } from '@/components/ui/chart-3d-defs';
+import { isAaccupAccredited } from '@/lib/aaccup-coverage';
 
 interface ActionableDecisionsTabProps {
   risks: Risk[];
@@ -141,9 +142,14 @@ export function ActionableDecisionsTab({
     [academicPrograms, allCompliances],
   );
 
+  const eligibleAccreditationPrograms = useMemo(
+    () => academicPrograms.filter((program) => program.isActive && !program.isNewProgram),
+    [academicPrograms],
+  );
   const mandatoryOpenRecs = useMemo(() => {
     const recs: any[] = [];
     allCompliances.forEach((c) => {
+      if (!eligibleAccreditationPrograms.some((program) => program.id === c.programId)) return;
       c.accreditationRecords?.forEach((m) => {
         m.recommendations?.forEach((r) => {
           if (r.type === 'Mandatory' && r.status !== 'Closed') recs.push(r);
@@ -151,7 +157,7 @@ export function ActionableDecisionsTab({
       });
     });
     return recs;
-  }, [allCompliances]);
+  }, [allCompliances, eligibleAccreditationPrograms]);
 
   const carsAwaitingVerification = useMemo(() => cars.filter((c) => c.status === 'For Final Verification'), [cars]);
 
@@ -165,10 +171,15 @@ export function ActionableDecisionsTab({
 
   const topLevelAccredPrograms = useMemo(
     () =>
-      allCompliances.filter((c) =>
-        c.accreditationRecords?.some((r) => r.level?.toLowerCase().includes('iv') || r.level === '4'),
-      ).length,
-    [allCompliances],
+      eligibleAccreditationPrograms.filter((program) => {
+        const compliance = allCompliances.find(
+          (record) => record.programId === program.id && record.academicYear === selectedYear,
+        );
+        const records = compliance?.accreditationRecords || [];
+        const current = records.find((record) => record.lifecycleStatus === 'Current') || records[records.length - 1];
+        return isAaccupAccredited(program, compliance) && /\blevel\s+iv\b/i.test(current?.level || '');
+      }).length,
+    [eligibleAccreditationPrograms, allCompliances, selectedYear],
   );
 
   const iqa_completion =
@@ -439,7 +450,7 @@ export function ActionableDecisionsTab({
             : 'No programs have achieved Level IV accreditation yet.',
         icon: <Award className="h-5 w-5" />,
         quadrant: 'not-urgent-low',
-        breakdownLabel: `${topLevelAccredPrograms} programs at Level IV out of ${allCompliances.length} assessed programs`,
+        breakdownLabel: `${topLevelAccredPrograms} programs at Level IV out of ${eligibleAccreditationPrograms.length} accreditable programs`,
         recommendation:
           topLevelAccredPrograms > 0
             ? 'Leverage these high-performing programs to mentor other departments.'
@@ -463,6 +474,7 @@ export function ActionableDecisionsTab({
       closedCarsThisYear,
       cars,
       topLevelAccredPrograms,
+      eligibleAccreditationPrograms,
       allCompliances,
     ],
   );

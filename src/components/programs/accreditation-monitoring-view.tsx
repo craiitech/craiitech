@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { toArray } from '@/lib/ched-monitoring';
+import { isAaccupAccredited } from '@/lib/aaccup-coverage';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Award,
@@ -518,18 +519,28 @@ export function AccreditationMonitoringView({
         const lifecycle = current?.lifecycleStatus || 'N/A';
         const validity = current?.statusValidityDate || 'N/A';
         const surveyDate = current?.dateOfSurvey || '—';
-        const openRecs = accRecords.reduce((count, r) => {
-          return (
-            count +
-            (toArray(r.recommendations).filter((rec) => rec.type === 'Mandatory' && rec.status !== 'Closed').length ||
-              0)
-          );
-        }, 0);
+        const openRecs = p.isNewProgram
+          ? 0
+          : accRecords.reduce((count, r) => {
+              return (
+                count +
+                (toArray(r.recommendations).filter((rec) => rec.type === 'Mandatory' && rec.status !== 'Closed')
+                  .length || 0)
+              );
+            }, 0);
         const campusName = campusMap.get(p.campusId) || 'Unknown';
         const unitName = unitMap.get(p.collegeId) || 'Unknown';
 
-        const isAccredited =
-          current && level !== 'Non Accredited' && !level.includes('PSV') && level !== 'AWAITING RESULT';
+        const isAccredited = isAaccupAccredited(p, c);
+        const accreditationLevel = p.isNewProgram
+          ? 'New Offering'
+          : level.toLowerCase().includes('candidate') || level.includes('PSV')
+            ? 'Candidate'
+            : isAccredited
+              ? level
+              : level.toLowerCase().includes('awaiting result')
+                ? 'AWAITING RESULT'
+                : 'Non Accredited';
 
         // Check if validity date is expiring or expired
         let validityStatus: 'valid' | 'expiring' | 'expired' | 'unknown' = 'unknown';
@@ -558,7 +569,7 @@ export function AccreditationMonitoringView({
           unitId: p.collegeId,
           unit: unitName,
           hasRecord: !!c,
-          accreditationLevel: isAccredited ? level : p.isNewProgram ? 'New Offering' : level,
+          accreditationLevel,
           isAccredited,
           lifecycle,
           surveyDate,

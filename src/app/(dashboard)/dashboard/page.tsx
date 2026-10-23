@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { cn, isCycleActive, isProgramInUnit, UNIT_CODES } from '@/lib/utils';
 import { Overview } from '@/components/dashboard/overview';
 import { RecentActivity } from '@/components/dashboard/recent-activity';
+import { isAaccupAccredited } from '@/lib/aaccup-coverage';
 import {
   FileText,
   CheckCircle,
@@ -291,7 +292,10 @@ function calculateEomsScore(
     yearCars.length > 0 ? Math.min(100, Math.round((closedCars.length / yearCars.length) * 100)) : 0;
 
   // 4. ACCREDITATION PERFORMANCE RATE (level achievement + mandatory gap closure combined)
+  const accreditablePrograms = scopedPrograms.filter((program) => program.isActive && !program.isNewProgram);
+  const accreditableProgramIds = new Set(accreditablePrograms.map((program) => program.id));
   const recommendationsList = scopedCompliances.reduce((acc: any[], c) => {
+    if (!accreditableProgramIds.has(c.programId)) return acc;
     c.accreditationRecords?.forEach((ar) => {
       ar.recommendations?.forEach((rec) => {
         if (rec.type !== 'Mandatory') return;
@@ -313,24 +317,25 @@ function calculateEomsScore(
     PSV: 20,
   };
   const accreditationLevelRate = (() => {
-    const scored = scopedPrograms
-      .filter((p) => p.isActive)
-      .map((p) => {
-        const compliance = scopedCompliances.find((c) => c.programId === p.id);
-        const records = compliance?.accreditationRecords || [];
-        const current = records.find((r) => r.lifecycleStatus === 'Current') || records[records.length - 1];
-        const level = current?.level?.trim() || 'Non Accredited';
-        for (const [key, score] of Object.entries(levelScoreMap)) {
-          if (level.includes(key) || level === key) return score;
-        }
-        if (level.toLowerCase().includes('candidate') || level.includes('PSV')) return 20;
-        return 0;
-      });
+    const scored = accreditablePrograms.map((p) => {
+      const compliance =
+        scopedCompliances.find((c) => c.programId === p.id && c.academicYear === selectedYear) ||
+        scopedCompliances.find((c) => c.programId === p.id);
+      const records = compliance?.accreditationRecords || [];
+      const current = records.find((r) => r.lifecycleStatus === 'Current') || records[records.length - 1];
+      const level = current?.level?.trim() || 'Non Accredited';
+      if (level.toLowerCase().includes('candidate') || level.includes('PSV')) return 20;
+      if (!isAaccupAccredited(p, compliance)) return 0;
+      for (const [key, score] of Object.entries(levelScoreMap)) {
+        if (level.includes(key) || level === key) return score;
+      }
+      return 0;
+    });
     return scored.length > 0 ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) : 0;
   })();
 
   const hasRecommends = recommendationsList.length > 0;
-  const hasPrograms = scopedPrograms.filter((p) => p.isActive).length > 0;
+  const hasPrograms = accreditablePrograms.length > 0;
   const accreditationRate = (() => {
     if (!hasRecommends && !hasPrograms) return 0;
     if (!hasRecommends) return accreditationLevelRate;

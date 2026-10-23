@@ -16,7 +16,8 @@ export function isAaccupAccredited(
   const current = records.find((record) => record.lifecycleStatus === 'Current') || records[records.length - 1];
   const level = current?.level.trim().toLowerCase() || '';
 
-  return !!level && !level.includes('non') && !level.includes('awaiting') && !level.includes('psv');
+  if (/\b(candidate|psv|awaiting result|non[\s-]*accredited)\b/.test(level)) return false;
+  return /\blevel\s+(?:iv|iii|ii|i)\b/.test(level);
 }
 
 export function calculateAaccupCoverage(

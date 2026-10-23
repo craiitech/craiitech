@@ -52,4 +52,35 @@ describe('calculateAaccupCoverage', () => {
       rate: 0,
     });
   });
+
+  it('does not count candidate, preliminary survey, awaiting result, or non-accredited statuses as accredited', () => {
+    const programs = [
+      program('candidate'),
+      program('candidate-for-level'),
+      program('psv'),
+      program('awaiting'),
+      program('awaiting-level'),
+      program('non-accredited'),
+      program('non-accredited-level'),
+      program('level-i'),
+      program('level-iv'),
+    ];
+    const records = new Map([
+      ['candidate', compliance('candidate', 'Candidate Status')],
+      ['candidate-for-level', compliance('candidate-for-level', 'Candidate for Level III')],
+      ['psv', compliance('psv', 'Preliminary Survey Visit (PSV)')],
+      ['awaiting', compliance('awaiting', 'AWAITING RESULT')],
+      ['awaiting-level', compliance('awaiting-level', 'Awaiting Result for Level IV')],
+      ['non-accredited', compliance('non-accredited', 'Non Accredited')],
+      ['non-accredited-level', compliance('non-accredited-level', 'Non-Accredited Level II')],
+      ['level-i', compliance('level-i', 'Level I Re-accredited')],
+      ['level-iv', compliance('level-iv', 'Level IV Accredited')],
+    ]);
+
+    expect(calculateAaccupCoverage(programs, records)).toEqual({
+      eligibleCount: 9,
+      accreditedCount: 2,
+      rate: 22,
+    });
+  });
 });

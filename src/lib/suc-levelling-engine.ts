@@ -9,6 +9,7 @@ import type {
   CorrectiveActionRequest,
   Risk,
 } from '@/lib/types';
+import { isAaccupAccredited } from '@/lib/aaccup-coverage';
 
 // DBM-CHED Standard SUC Levelling Thresholds
 export const SUC_LEVEL_THRESHOLDS: SucLevelThreshold[] = [
@@ -477,6 +478,7 @@ export function calculateBaselineKraScores(
 
   let accreditedCount = 0;
   let highAccreditedCount = 0;
+  let accreditableProgramCount = 0;
   let boardProgramsCount = 0;
   let boardPassedAboveNational = 0;
   let copcCount = 0;
@@ -488,11 +490,10 @@ export function calculateBaselineKraScores(
     const accRecords = comp?.accreditationRecords || [];
     const current = accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
     const lvl = (current?.level || '').toLowerCase();
-    if (lvl.includes('level i') || lvl.includes('level ii') || lvl.includes('level iii') || lvl.includes('level iv')) {
-      accreditedCount++;
-    }
-    if (lvl.includes('level iii') || lvl.includes('level iv')) {
-      highAccreditedCount++;
+    if (p.isActive !== false && !p.isNewProgram) {
+      accreditableProgramCount++;
+      if (isAaccupAccredited(p, comp)) accreditedCount++;
+      if (isAaccupAccredited(p, comp) && /\blevel\s+(?:iii|iv)\b/i.test(lvl)) highAccreditedCount++;
     }
 
     if (p.isBoardProgram) {
@@ -505,9 +506,9 @@ export function calculateBaselineKraScores(
     }
   });
 
-  const total = activePrograms.length || 1;
-  const highAccreditedRate = highAccreditedCount / total;
-  const accreditedRate = accreditedCount / total;
+  const total = activePrograms.filter((program) => program.isActive !== false).length || 1;
+  const highAccreditedRate = accreditableProgramCount > 0 ? highAccreditedCount / accreditableProgramCount : 0;
+  const accreditedRate = accreditableProgramCount > 0 ? accreditedCount / accreditableProgramCount : 0;
   const copcRate = copcCount / total;
   const boardRate = boardProgramsCount > 0 ? boardPassedAboveNational / boardProgramsCount : 0;
 

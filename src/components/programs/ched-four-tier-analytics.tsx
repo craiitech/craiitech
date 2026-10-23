@@ -67,6 +67,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Chart3DDefs } from '@/components/ui/chart-3d-defs';
+import { isAaccupAccredited } from '@/lib/aaccup-coverage';
 
 interface ChedFourTierAnalyticsProps {
   programs: AcademicProgram[];
@@ -211,35 +212,47 @@ export function ChedFourTierAnalytics({
       'Level I': 0,
       Candidate: 0,
       'Non-Accredited': 0,
+      'New Offering': 0,
     };
 
     let accreditedCount = 0;
+    let accreditableCount = 0;
 
     activePrograms.forEach((p) => {
       const rec = currentCompliances.find((c) => c.programId === p.id);
-      const currentMilestone = safeArray(rec?.accreditationRecords).find((m) => m?.lifecycleStatus === 'Current');
+      const milestones = safeArray(rec?.accreditationRecords);
+      const currentMilestone =
+        milestones.find((milestone) => milestone?.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
       const rawLevel = (currentMilestone?.level || '').trim();
 
-      if (rawLevel.includes('Level IV')) {
-        levelCounts['Level IV']++;
-        accreditedCount++;
-      } else if (rawLevel.includes('Level III')) {
-        levelCounts['Level III']++;
-        accreditedCount++;
-      } else if (rawLevel.includes('Level II')) {
-        levelCounts['Level II']++;
-        accreditedCount++;
-      } else if (rawLevel.includes('Level I')) {
-        levelCounts['Level I']++;
-        accreditedCount++;
+      if (p.isNewProgram) {
+        levelCounts['New Offering']++;
+      } else {
+        accreditableCount++;
+      }
+
+      if (p.isNewProgram) {
+        return;
       } else if (rawLevel.toLowerCase().includes('candidate') || rawLevel.includes('PSV')) {
         levelCounts['Candidate']++;
+      } else if (rawLevel.includes('Level IV')) {
+        levelCounts['Level IV']++;
+        if (isAaccupAccredited(p, rec)) accreditedCount++;
+      } else if (rawLevel.includes('Level III')) {
+        levelCounts['Level III']++;
+        if (isAaccupAccredited(p, rec)) accreditedCount++;
+      } else if (rawLevel.includes('Level II')) {
+        levelCounts['Level II']++;
+        if (isAaccupAccredited(p, rec)) accreditedCount++;
+      } else if (rawLevel.includes('Level I')) {
+        levelCounts['Level I']++;
+        if (isAaccupAccredited(p, rec)) accreditedCount++;
       } else {
         levelCounts['Non-Accredited']++;
       }
     });
 
-    const accreditationRate = totalActive > 0 ? Math.round((accreditedCount / totalActive) * 100) : 0;
+    const accreditationRate = accreditableCount > 0 ? Math.round((accreditedCount / accreditableCount) * 100) : 0;
 
     const accreditationBarData = [
       { level: 'Level IV', count: levelCounts['Level IV'], fill: '#16a34a' },
@@ -247,6 +260,7 @@ export function ChedFourTierAnalytics({
       { level: 'Level II', count: levelCounts['Level II'], fill: '#6366f1' },
       { level: 'Level I', count: levelCounts['Level I'], fill: '#8b5cf6' },
       { level: 'Candidate', count: levelCounts['Candidate'], fill: '#f59e0b' },
+      { level: 'New Offering', count: levelCounts['New Offering'], fill: '#a855f7' },
       { level: 'Non-Accredited', count: levelCounts['Non-Accredited'], fill: '#94a3b8' },
     ];
 
@@ -262,17 +276,17 @@ export function ChedFourTierAnalytics({
           return rec?.ched?.copcStatus === 'With COPC';
         }).length;
 
-        const accredited = campusPrograms.filter((p) => {
-          const rec = currentCompliances.find((c) => c.programId === p.id);
-          const cur = safeArray(rec?.accreditationRecords).find((m) => m?.lifecycleStatus === 'Current');
-          return cur && cur.level && !cur.level.includes('Non') && !cur.level.includes('Candidate');
+        const accreditable = campusPrograms.filter((program) => !program.isNewProgram);
+        const accredited = accreditable.filter((program) => {
+          const rec = currentCompliances.find((c) => c.programId === program.id);
+          return isAaccupAccredited(program, rec);
         }).length;
 
         return {
           campus: campus.name.replace(' Campus', ''),
           total,
           copcRate: Math.round((copc / total) * 100),
-          accreditationRate: Math.round((accredited / total) * 100),
+          accreditationRate: accreditable.length > 0 ? Math.round((accredited / accreditable.length) * 100) : 0,
         };
       })
       .filter(Boolean) as { campus: string; total: number; copcRate: number; accreditationRate: number }[];
@@ -328,28 +342,29 @@ export function ChedFourTierAnalytics({
     let totalFirstPassed = 0;
     let totalRetakers = 0;
     let totalRetakersPassed = 0;
-    let nationalWeightedSum = 0;
-    let examCount = 0;
+    let nationalRateSum = 0;
+    let nationalRateCount = 0;
 
-    currentCompliances.forEach((c) => {
-      safeArray(c?.boardPerformance).forEach((bp) => {
+    boardPrograms.forEach((program) => {
+      const compliance = currentCompliances.find((record) => record.programId === program.id);
+      safeArray(compliance?.boardPerformance).forEach((bp) => {
         totalFirstTakers += Number(bp?.firstTakersCount || 0);
         totalFirstPassed += Number(bp?.firstTakersPassed || 0);
         totalRetakers += Number(bp?.retakersCount || 0);
         totalRetakersPassed += Number(bp?.retakersPassed || 0);
         if (bp?.nationalPassingRate) {
-          nationalWeightedSum += Number(bp.nationalPassingRate);
-          examCount++;
+          nationalRateSum += Number(bp.nationalPassingRate);
+          nationalRateCount++;
         }
       });
     });
 
-    const firstTakersPassRate = totalFirstTakers > 0 ? Math.round((totalFirstPassed / totalFirstTakers) * 100) : 74;
-    const retakersPassRate = totalRetakers > 0 ? Math.round((totalRetakersPassed / totalRetakers) * 100) : 38;
+    const firstTakersPassRate = totalFirstTakers > 0 ? Math.round((totalFirstPassed / totalFirstTakers) * 100) : null;
+    const retakersPassRate = totalRetakers > 0 ? Math.round((totalRetakersPassed / totalRetakers) * 100) : null;
     const totalTakers = totalFirstTakers + totalRetakers;
     const totalPassed = totalFirstPassed + totalRetakersPassed;
-    const overallBoardPassRate = totalTakers > 0 ? Math.round((totalPassed / totalTakers) * 100) : 68;
-    const nationalAvgPassRate = examCount > 0 ? Math.round(nationalWeightedSum / examCount) : 56;
+    const overallBoardPassRate = totalTakers > 0 ? Math.round((totalPassed / totalTakers) * 100) : null;
+    const nationalAvgPassRate = nationalRateCount > 0 ? Math.round(nationalRateSum / nationalRateCount) : null;
 
     // 1.6 Faculty Educational Attainment & CMO Alignment
     let totalFaculty = 0;
@@ -388,6 +403,7 @@ export function ChedFourTierAnalytics({
       curriculumNotedRate,
       copcDistributionData,
       accreditedCount,
+      accreditableCount,
       accreditationRate,
       accreditationBarData,
       campusComplianceData,
@@ -395,6 +411,7 @@ export function ChedFourTierAnalytics({
       latestGradRate,
       latestTotalGrads,
       boardProgramsCount: boardPrograms.length,
+      hasBoardCandidateData: totalTakers > 0,
       firstTakersPassRate,
       retakersPassRate,
       overallBoardPassRate,
@@ -1290,7 +1307,7 @@ export function ChedFourTierAnalytics({
                 {descriptiveMetrics.accreditationRate}%
               </span>
               <span className="text-[10px] text-muted-foreground block mt-0.5">
-                {descriptiveMetrics.accreditedCount} Programs Level I-IV
+                {descriptiveMetrics.accreditedCount} of {descriptiveMetrics.accreditableCount} accreditable programs
               </span>
             </Card>
             <Card className="p-4 bg-purple-50/50 dark:bg-purple-950/20 border-purple-200/60 dark:border-purple-900/40">
@@ -1309,10 +1326,14 @@ export function ChedFourTierAnalytics({
                 Board Licensure
               </span>
               <span className="text-2xl font-black text-amber-950 dark:text-amber-100">
-                {descriptiveMetrics.overallBoardPassRate}%
+                {descriptiveMetrics.overallBoardPassRate === null
+                  ? 'N/A'
+                  : `${descriptiveMetrics.overallBoardPassRate}%`}
               </span>
               <span className="text-[10px] text-muted-foreground block mt-0.5">
-                vs National Avg ({descriptiveMetrics.nationalAvgPassRate}%)
+                {descriptiveMetrics.overallBoardPassRate === null
+                  ? `No board-exam candidate results recorded for AY ${selectedYear}`
+                  : `vs National Avg (${descriptiveMetrics.nationalAvgPassRate === null ? 'N/A' : `${descriptiveMetrics.nationalAvgPassRate}%`})`}
               </span>
             </Card>
             <Card className="p-4 bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/60 dark:border-blue-900/40">
@@ -1399,7 +1420,7 @@ export function ChedFourTierAnalytics({
                     <Award className="h-4 w-4 text-[#16a34a]" /> AACCUP Accreditation Spectrum
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Distribution of academic programs by official accreditation level
+                    Distribution of accreditable programs by official level; new offerings are shown separately
                   </p>
                 </div>
                 <Badge variant="outline" className="font-mono text-xs">
@@ -1508,30 +1529,44 @@ export function ChedFourTierAnalytics({
                   {descriptiveMetrics.boardProgramsCount} Board Offerings
                 </Badge>
               </div>
-              <div className="h-72 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={[
-                      { name: 'First Takers', rate: descriptiveMetrics.firstTakersPassRate, fill: '#16a34a' },
-                      { name: 'Repeat Retakers', rate: descriptiveMetrics.retakersPassRate, fill: '#f59e0b' },
-                      { name: 'University Overall', rate: descriptiveMetrics.overallBoardPassRate, fill: '#0284c7' },
-                      { name: 'National Passing Avg', rate: descriptiveMetrics.nationalAvgPassRate, fill: '#64748b' },
-                    ]}
-                    margin={{ top: 20, right: 20, left: -10, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
-                    <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 'bold' }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
-                    <RechartsTooltip />
-                    <Bar dataKey="rate" radius={[4, 4, 0, 0]}>
-                      <Cell fill="#16a34a" />
-                      <Cell fill="#f59e0b" />
-                      <Cell fill="#0284c7" />
-                      <Cell fill="#64748b" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {descriptiveMetrics.hasBoardCandidateData ? (
+                <div className="h-72 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { name: 'First Takers', rate: descriptiveMetrics.firstTakersPassRate, fill: '#16a34a' },
+                        { name: 'Repeat Retakers', rate: descriptiveMetrics.retakersPassRate, fill: '#f59e0b' },
+                        {
+                          name: 'University Overall',
+                          rate: descriptiveMetrics.overallBoardPassRate,
+                          fill: '#0284c7',
+                        },
+                        {
+                          name: 'National Passing Avg',
+                          rate: descriptiveMetrics.nationalAvgPassRate,
+                          fill: '#64748b',
+                        },
+                      ]}
+                      margin={{ top: 20, right: 20, left: -10, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 10, fontWeight: 'bold' }} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
+                      <RechartsTooltip />
+                      <Bar dataKey="rate" radius={[4, 4, 0, 0]}>
+                        <Cell fill="#16a34a" />
+                        <Cell fill="#f59e0b" />
+                        <Cell fill="#0284c7" />
+                        <Cell fill="#64748b" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="flex h-72 items-center justify-center text-sm text-muted-foreground">
+                  No board-exam candidate results recorded for AY {selectedYear}.
+                </div>
+              )}
               <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
                 <GraduationCap className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                 <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
@@ -1865,38 +1900,54 @@ export function ChedFourTierAnalytics({
                   </p>
                 </div>
               </div>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={diagnosticMetrics.boardDiagnosticData}
-                    margin={{ top: 15, right: 20, left: -10, bottom: 10 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
-                    <XAxis dataKey="category" tick={{ fontSize: 9, fontWeight: 'bold' }} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
-                    <RechartsTooltip />
-                    <Legend />
-                    <Bar
-                      dataKey="institutionalRate"
-                      name="University Passing Rate (%)"
-                      fill="#0284c7"
-                      radius={[4, 4, 0, 0]}
-                    />
-                    <Bar
-                      dataKey="nationalAvg"
-                      name="National Passing Benchmark (%)"
-                      fill="#94a3b8"
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              {descriptiveMetrics.hasBoardCandidateData ? (
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={diagnosticMetrics.boardDiagnosticData}
+                      margin={{ top: 15, right: 20, left: -10, bottom: 10 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.2} vertical={false} />
+                      <XAxis dataKey="category" tick={{ fontSize: 9, fontWeight: 'bold' }} />
+                      <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} unit="%" />
+                      <RechartsTooltip />
+                      <Legend />
+                      <Bar
+                        dataKey="institutionalRate"
+                        name="University Passing Rate (%)"
+                        fill="#0284c7"
+                        radius={[4, 4, 0, 0]}
+                      />
+                      <Bar
+                        dataKey="nationalAvg"
+                        name="National Passing Benchmark (%)"
+                        fill="#94a3b8"
+                        radius={[4, 4, 0, 0]}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
+                  No board-exam candidate results recorded for AY {selectedYear}.
+                </div>
+              )}
               <div className="pt-2 border-t text-[11px] text-muted-foreground">
                 <p>
-                  <strong>Key Finding:</strong> Fresh first-takers achieve a strong{' '}
-                  <strong>{descriptiveMetrics.firstTakersPassRate}% passing rate</strong> (well above the national{' '}
-                  {descriptiveMetrics.nationalAvgPassRate}% benchmark), but an accumulation of repeat retakers (at{' '}
-                  {descriptiveMetrics.retakersPassRate}%) drags down overall institutional standing.
+                  {descriptiveMetrics.hasBoardCandidateData ? (
+                    <>
+                      <strong>Key Finding:</strong> The recorded overall passing rate is{' '}
+                      <strong>{descriptiveMetrics.overallBoardPassRate}%</strong>
+                      {descriptiveMetrics.nationalAvgPassRate !== null &&
+                        ` against a national average of ${descriptiveMetrics.nationalAvgPassRate}%.`}
+                      {descriptiveMetrics.firstTakersPassRate !== null &&
+                        ` First-taker passing rate is ${descriptiveMetrics.firstTakersPassRate}%.`}
+                      {descriptiveMetrics.retakersPassRate !== null &&
+                        ` Repeat-retaker passing rate is ${descriptiveMetrics.retakersPassRate}%.`}
+                    </>
+                  ) : (
+                    'No board-exam candidate results are recorded for this academic year.'
+                  )}
                 </p>
               </div>
               <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
