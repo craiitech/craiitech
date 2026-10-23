@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { toArray } from '@/lib/ched-monitoring';
 
 interface ProgramRegistryProps {
   programs: AcademicProgram[];
@@ -155,7 +156,7 @@ export function ProgramRegistry({
                   }
                 });
 
-                const milestones = record.accreditationRecords || [];
+                const milestones = toArray(record.accreditationRecords);
                 milestones.forEach((m) => {
                   if (m.certificateLink) {
                     evidenceRegistry.push({
@@ -169,7 +170,7 @@ export function ProgramRegistry({
 
               const enrollmentTotal = (() => {
                 if (!record) return 0;
-                const records = record.enrollmentRecords || [];
+                const records = toArray(record.enrollmentRecords);
                 const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
 
                 if (records.length > 0) {
@@ -192,8 +193,10 @@ export function ProgramRegistry({
                 );
               })();
 
-              const gradsTotal =
-                record?.graduationRecords?.reduce((acc, r) => acc + (r.maleCount || 0) + (r.femaleCount || 0), 0) || 0;
+              const gradsTotal = toArray(record?.graduationRecords).reduce(
+                (acc, r) => acc + (r.maleCount || 0) + (r.femaleCount || 0),
+                0,
+              );
 
               let accLabel = '';
               let nextVisit = 'TBA';
@@ -201,8 +204,8 @@ export function ProgramRegistry({
               if (program.isNewProgram) {
                 accLabel = 'New Program Offering';
                 nextVisit = 'NEW PROGRAM';
-              } else if (record?.accreditationRecords && record.accreditationRecords.length > 0) {
-                const milestones = record.accreditationRecords;
+              } else if (toArray(record?.accreditationRecords).length > 0) {
+                const milestones = toArray(record?.accreditationRecords);
                 const current =
                   milestones.find((m) => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
                 accLabel = current?.level || 'Non-Accredited';

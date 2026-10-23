@@ -21,6 +21,7 @@ import {
   emptyEnrollmentTotals as emptyTotals,
   getComplianceEnrollmentSummary,
 } from '@/lib/enrollment';
+import { toArray } from '@/lib/ched-monitoring';
 
 interface BatchDataHubProps {
   programs: AcademicProgram[];
@@ -197,7 +198,7 @@ export function BatchDataHub({
       const sem2 = enrollmentSummary.secondSemester;
 
       // Graduation outcomes
-      const graduationRecords = record?.graduationRecords || [];
+      const graduationRecords = toArray(record?.graduationRecords);
       const graduationTotals = graduationRecords.reduce(
         (acc, r) => {
           const male = Number(r.maleCount) || 0;
@@ -221,14 +222,14 @@ export function BatchDataHub({
       }
 
       // Board examination outcomes
-      const boardRecords = record?.boardPerformance || [];
+      const boardRecords = toArray(record?.boardPerformance);
       const boardMale = boardRecords.reduce((acc, exam) => acc + (Number(exam.malePassers) || 0), 0);
       const boardFemale = boardRecords.reduce((acc, exam) => acc + (Number(exam.femalePassers) || 0), 0);
       const boardExamCount = boardRecords.length;
       const latestBoard = boardExamCount > 0 ? boardRecords[boardExamCount - 1].overallPassRate : 0;
 
       // Tracer study outcomes
-      const tracerRecords = record?.tracerRecords || [];
+      const tracerRecords = toArray(record?.tracerRecords);
       const tracerMale = tracerRecords.reduce((acc, tracer) => acc + (Number(tracer.maleTraced) || 0), 0);
       const tracerFemale = tracerRecords.reduce((acc, tracer) => acc + (Number(tracer.femaleTraced) || 0), 0);
       const tracerEmployed = tracerRecords.reduce(

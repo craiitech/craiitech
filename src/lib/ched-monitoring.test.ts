@@ -5,6 +5,7 @@ import {
   getChedPortfolioSnapshot,
   getChedYearSummaries,
   getLatestBoardExam,
+  toArray,
 } from './ched-monitoring';
 
 function makeProgram(id: string, isActive = true): AcademicProgram {
@@ -37,6 +38,16 @@ function makeCompliance(
     ched: { copcStatus, copcLink },
   } as ProgramComplianceRecord;
 }
+
+describe('toArray', () => {
+  it('returns arrays unchanged and normalizes malformed values to an empty array', () => {
+    const values = [1, 2, 3];
+
+    expect(toArray(values)).toBe(values);
+    expect(toArray<number>({ unexpected: 'object' })).toEqual([]);
+    expect(toArray<number>('not an array')).toEqual([]);
+  });
+});
 
 describe('CHED monitoring summaries', () => {
   it('distinguishes a missing record, an unknown status, and explicit COPC statuses', () => {

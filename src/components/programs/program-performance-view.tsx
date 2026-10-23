@@ -71,6 +71,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { toArray } from '@/lib/ched-monitoring';
 import { Progress } from '../ui/progress';
 import { Timestamp, collection, query, where } from '@/firebase/firestore-wrapper';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
@@ -118,7 +119,7 @@ export function ProgramPerformanceView({
       fourthYear: '4th Yr',
     };
 
-    const enrollmentRecords = record.enrollmentRecords || [];
+    const enrollmentRecords = toArray(record.enrollmentRecords);
 
     const enrollmentData = levels.map((level) => {
       let totalSem1 = 0;
@@ -146,8 +147,10 @@ export function ProgramPerformanceView({
     });
 
     const totalEnrollment = enrollmentData.reduce((acc, curr) => acc + curr['1st Sem'], 0);
-    const totalGraduates =
-      record.graduationRecords?.reduce((acc, r) => acc + (r.maleCount || 0) + (r.femaleCount || 0), 0) || 0;
+    const totalGraduates = toArray(record.graduationRecords).reduce(
+      (acc, r) => acc + (r.maleCount || 0) + (r.femaleCount || 0),
+      0,
+    );
 
     let totalFaculty = 0;
     let alignedFaculty = 0;
@@ -176,10 +179,8 @@ export function ProgramPerformanceView({
       },
     ].filter((d) => d.value > 0);
 
-    const latestBoard =
-      record.boardPerformance && record.boardPerformance.length > 0
-        ? record.boardPerformance[record.boardPerformance.length - 1]
-        : null;
+    const boardRecords = toArray(record.boardPerformance);
+    const latestBoard = boardRecords.length > 0 ? boardRecords[boardRecords.length - 1] : null;
 
     const boardComparisonData = latestBoard
       ? [
@@ -188,7 +189,7 @@ export function ProgramPerformanceView({
         ]
       : [];
 
-    const milestones = record.accreditationRecords || [];
+    const milestones = toArray(record.accreditationRecords);
     const latestAccreditation =
       milestones.find((m) => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
 

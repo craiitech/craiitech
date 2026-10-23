@@ -27,6 +27,12 @@ export type ChedPortfolioSnapshot = {
   rate: number;
 };
 
+export function toArray<T>(value: T[] | null | undefined): T[];
+export function toArray<T>(value: unknown): T[];
+export function toArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 export const normalizeProgramId = (id: string | undefined) =>
   String(id || '')
     .toLowerCase()

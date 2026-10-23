@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
+import { toArray } from '@/lib/ched-monitoring';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Award,
@@ -511,7 +512,7 @@ export function AccreditationMonitoringView({
     return activePrograms
       .map((p) => {
         const c = complianceMap.get(p.id);
-        const accRecords = c?.accreditationRecords || [];
+        const accRecords = toArray(c?.accreditationRecords);
         const current = accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
         const level = current?.level || 'Non Accredited';
         const lifecycle = current?.lifecycleStatus || 'N/A';
@@ -520,7 +521,8 @@ export function AccreditationMonitoringView({
         const openRecs = accRecords.reduce((count, r) => {
           return (
             count +
-            (r.recommendations?.filter((rec) => rec.type === 'Mandatory' && rec.status !== 'Closed').length || 0)
+            (toArray(r.recommendations).filter((rec) => rec.type === 'Mandatory' && rec.status !== 'Closed').length ||
+              0)
           );
         }, 0);
         const campusName = campusMap.get(p.campusId) || 'Unknown';
