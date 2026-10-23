@@ -453,73 +453,84 @@ export function UnifiedHomeDashboard({
       {/* TAB 1: OVERVIEW */}
       <TabsContent value="overview" className="space-y-6 animate-in fade-in duration-300">
         {/* Archipelagic University Institutional Statements */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border-indigo-200 bg-indigo-50/40 shadow-sm text-center">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-[11px] font-black uppercase tracking-wider text-indigo-700 flex items-center justify-center gap-1.5">
-                <Target className="h-3.5 w-3.5" />
-                Archipelagic University Vision
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingStatements ? (
-                <div className="space-y-2">
-                  <div className="h-3 w-full rounded bg-indigo-200/60 animate-pulse" />
-                  <div className="h-3 w-5/6 rounded bg-indigo-200/60 animate-pulse" />
-                  <div className="h-3 w-2/3 rounded bg-indigo-200/60 animate-pulse" />
-                </div>
-              ) : (
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-5">
-                  {archipelagicStatements?.vision?.trim() || 'No vision statement has been set yet.'}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+        <section aria-label="University vision, mission, and quality policy">
+          <div className="mb-4 text-center">
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Our Institutional Identity</p>
+            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900 dark:text-slate-100 sm:text-2xl">
+              Guided by purpose. United by quality.
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-3">
+            <Card className="group overflow-hidden rounded-2xl border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-indigo-100/70 text-center shadow-sm transition-shadow hover:shadow-lg dark:border-indigo-900 dark:from-indigo-950/70 dark:via-slate-950 dark:to-indigo-900/40">
+              <div className="h-1.5 bg-indigo-600" />
+              <CardHeader className="pb-2 pt-6">
+                <CardTitle className="flex items-center justify-center gap-2 text-sm font-black uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
+                  <Target className="h-4 w-4" />
+                  Archipelagic University Vision
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-6 pb-7">
+                {isLoadingStatements ? (
+                  <div className="space-y-3 py-2">
+                    <div className="h-5 w-full animate-pulse rounded bg-indigo-200/70 dark:bg-indigo-800/60" />
+                    <div className="h-5 w-5/6 animate-pulse rounded bg-indigo-200/70 dark:bg-indigo-800/60" />
+                    <div className="h-5 w-2/3 animate-pulse rounded bg-indigo-200/70 dark:bg-indigo-800/60" />
+                  </div>
+                ) : (
+                  <p className="text-lg font-bold leading-relaxed text-indigo-950 dark:text-indigo-100 sm:text-xl">
+                    {archipelagicStatements?.vision?.trim() || 'No vision statement has been set yet.'}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card className="border-emerald-200 bg-emerald-50/40 shadow-sm text-center">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-[11px] font-black uppercase tracking-wider text-emerald-700 flex items-center justify-center gap-1.5">
-                <Compass className="h-3.5 w-3.5" />
-                Archipelagic University Mission
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingStatements ? (
-                <div className="space-y-2">
-                  <div className="h-3 w-full rounded bg-emerald-200/60 animate-pulse" />
-                  <div className="h-3 w-5/6 rounded bg-emerald-200/60 animate-pulse" />
-                  <div className="h-3 w-2/3 rounded bg-emerald-200/60 animate-pulse" />
-                </div>
-              ) : (
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-5">
-                  {archipelagicStatements?.mission?.trim() || 'No mission statement has been set yet.'}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+            <Card className="group overflow-hidden rounded-2xl border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/70 text-center shadow-sm transition-shadow hover:shadow-lg dark:border-emerald-900 dark:from-emerald-950/70 dark:via-slate-950 dark:to-emerald-900/40">
+              <div className="h-1.5 bg-emerald-600" />
+              <CardHeader className="pb-2 pt-6">
+                <CardTitle className="flex items-center justify-center gap-2 text-sm font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+                  <Compass className="h-4 w-4" />
+                  Archipelagic University Mission
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-6 pb-7">
+                {isLoadingStatements ? (
+                  <div className="space-y-3 py-2">
+                    <div className="h-5 w-full animate-pulse rounded bg-emerald-200/70 dark:bg-emerald-800/60" />
+                    <div className="h-5 w-5/6 animate-pulse rounded bg-emerald-200/70 dark:bg-emerald-800/60" />
+                    <div className="h-5 w-2/3 animate-pulse rounded bg-emerald-200/70 dark:bg-emerald-800/60" />
+                  </div>
+                ) : (
+                  <p className="text-lg font-bold leading-relaxed text-emerald-950 dark:text-emerald-100 sm:text-xl">
+                    {archipelagicStatements?.mission?.trim() || 'No mission statement has been set yet.'}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
 
-          <Card className="border-amber-200 bg-amber-50/40 shadow-sm text-center">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-[11px] font-black uppercase tracking-wider text-amber-700 flex items-center justify-center gap-1.5">
-                <ShieldCheck className="h-3.5 w-3.5" />
-                Archipelagic University Quality Policy
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingStatements ? (
-                <div className="space-y-2">
-                  <div className="h-3 w-full rounded bg-amber-200/60 animate-pulse" />
-                  <div className="h-3 w-5/6 rounded bg-amber-200/60 animate-pulse" />
-                  <div className="h-3 w-2/3 rounded bg-amber-200/60 animate-pulse" />
-                </div>
-              ) : (
-                <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-5">
-                  {archipelagicStatements?.qualityPolicy?.trim() || 'No quality policy statement has been set yet.'}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+            <Card className="group overflow-hidden rounded-2xl border-amber-200 bg-gradient-to-br from-amber-50 via-white to-amber-100/70 text-center shadow-sm transition-shadow hover:shadow-lg dark:border-amber-900 dark:from-amber-950/70 dark:via-slate-950 dark:to-amber-900/40">
+              <div className="h-1.5 bg-amber-500" />
+              <CardHeader className="pb-2 pt-6">
+                <CardTitle className="flex items-center justify-center gap-2 text-sm font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                  <ShieldCheck className="h-4 w-4" />
+                  Archipelagic University Quality Policy
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-6 pb-7">
+                {isLoadingStatements ? (
+                  <div className="space-y-3 py-2">
+                    <div className="h-5 w-full animate-pulse rounded bg-amber-200/70 dark:bg-amber-800/60" />
+                    <div className="h-5 w-5/6 animate-pulse rounded bg-amber-200/70 dark:bg-amber-800/60" />
+                    <div className="h-5 w-2/3 animate-pulse rounded bg-amber-200/70 dark:bg-amber-800/60" />
+                  </div>
+                ) : (
+                  <p className="text-lg font-bold leading-relaxed text-amber-950 dark:text-amber-100 sm:text-xl">
+                    {archipelagicStatements?.qualityPolicy?.trim() || 'No quality policy statement has been set yet.'}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </section>
 
         {/* Executive Highlight Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

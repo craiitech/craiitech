@@ -204,7 +204,7 @@ export function OfficeConnectionCard() {
 
   return (
     <>
-      <Card className="shadow-md border-primary/10">
+      <Card id="connected-offices" className="scroll-mt-20 shadow-md border-primary/10">
         <CardHeader className="bg-primary/5 border-b">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>

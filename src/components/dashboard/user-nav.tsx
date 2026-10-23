@@ -99,6 +99,8 @@ export function UserNav({
 
   const { firstName, lastName, email, avatar } = userProfile;
   const fallback = `${firstName?.charAt(0) ?? ''}${lastName?.charAt(0) ?? ''}`;
+  const canRequestOffice =
+    Boolean(userProfile.email?.toLowerCase().endsWith('@rsu.edu.ph')) && Boolean(userProfile.verified);
 
   return (
     <div className="flex items-center gap-2 sm:gap-4">
@@ -189,6 +191,14 @@ export function UserNav({
                 <span>Profile</span>
               </Link>
             </DropdownMenuItem>
+            {canRequestOffice && (
+              <DropdownMenuItem asChild>
+                <Link href="/profile#connected-offices">
+                  <Building2 className="mr-2 h-4 w-4" />
+                  <span>Add / Connect Office</span>
+                </Link>
+              </DropdownMenuItem>
+            )}
             {canAccessExecutiveDisplay && (
               <DropdownMenuItem asChild>
                 <a
