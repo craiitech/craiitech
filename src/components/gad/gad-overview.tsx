@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import type { GADInitiative, ProgramComplianceRecord, GADSector, GADPlan, GADActivity, GadSettings } from '@/lib/types';
+import { getEnrollmentRecordTermSectors } from '@/lib/enrollment';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import {
@@ -123,20 +124,13 @@ export function GADOverview({
 
     compliances.forEach((rec) => {
       rec.enrollmentRecords?.forEach((enroll) => {
-        const term = enroll.firstSemester;
-        if (term) {
-          ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'].forEach((level) => {
-            const lData = (term as any)[level];
-            if (lData?.sectors) {
-              Object.entries(lData.sectors).forEach(([sec, counts]: any) => {
-                if (sectoralStats[sec]) {
-                  sectoralStats[sec].male += Number(counts.male || 0);
-                  sectoralStats[sec].female += Number(counts.female || 0);
-                }
-              });
-            }
-          });
-        }
+        const resolvedSectors = getEnrollmentRecordTermSectors(enroll, 'firstSemester');
+        Object.entries(resolvedSectors).forEach(([sec, counts]) => {
+          if (sectoralStats[sec]) {
+            sectoralStats[sec].male += Number(counts?.male || 0);
+            sectoralStats[sec].female += Number(counts?.female || 0);
+          }
+        });
       });
     });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   aggregateComplianceEnrollment,
   getComplianceEnrollmentSummary,
+  getEnrollmentRecordTermSectors,
   sumEnrollmentTerm,
   withEnrollmentOveralls,
 } from './enrollment';
@@ -218,5 +219,64 @@ describe('aggregateComplianceEnrollment', () => {
 
     expect(totals.firstSemester).toEqual({ male: 2, female: 2, total: 4 });
     expect(totals.secondSemester).toEqual({ male: 0, female: 0, total: 0 });
+  });
+});
+
+describe('getEnrollmentRecordTermSectors', () => {
+  it('resolves overall sectors when overallOnly is enabled', () => {
+    const rec = enrollmentRecord({
+      overallOnly: true,
+      overall: {
+        firstSemester: {
+          male: 20,
+          female: 30,
+          total: 50,
+          sectors: {
+            'Solo Parent': { male: 2, female: 5 },
+            PWD: { male: 1, female: 3 },
+          },
+        },
+        secondSemester: { male: 0, female: 0, total: 0 },
+      },
+    });
+
+    expect(getEnrollmentRecordTermSectors(rec, 'firstSemester')).toEqual({
+      'Solo Parent': { male: 2, female: 5 },
+      PWD: { male: 1, female: 3 },
+    });
+  });
+
+  it('merges year-level sectors and falls back to overall sectors when year-level sectors are zero', () => {
+    const rec = enrollmentRecord({
+      overallOnly: false,
+      firstSemester: {
+        firstYear: {
+          male: 10,
+          female: 10,
+          total: 20,
+          specialNeeds: 0,
+          sectors: { PWD: { male: 2, female: 1 } },
+        },
+        secondYear: level(0, 0),
+        thirdYear: level(0, 0),
+        fourthYear: level(0, 0),
+      },
+      overall: {
+        firstSemester: {
+          male: 10,
+          female: 10,
+          total: 20,
+          sectors: {
+            'Indigenous People': { male: 4, female: 6 },
+          },
+        },
+        secondSemester: { male: 0, female: 0, total: 0 },
+      },
+    });
+
+    expect(getEnrollmentRecordTermSectors(rec, 'firstSemester')).toEqual({
+      PWD: { male: 2, female: 1 },
+      'Indigenous People': { male: 4, female: 6 },
+    });
   });
 });

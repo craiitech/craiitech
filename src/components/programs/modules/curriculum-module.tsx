@@ -46,6 +46,7 @@ const GAD_SECTORS: GADSector[] = [
   'PWD',
   'Senior Citizen',
   'Youth/Student',
+  'Employee',
   'LGBTQA++',
   'Indigenous People',
 ];
@@ -97,6 +98,44 @@ function EnrollmentRecordCard({
     );
   };
 
+  const calculateTermSectorTotals = (term: string, sector: GADSector) => {
+    const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'];
+    return levels.reduce(
+      (totals, level) => ({
+        male: totals.male + (Number(recordValues?.[term]?.[level]?.sectors?.[sector]?.male) || 0),
+        female: totals.female + (Number(recordValues?.[term]?.[level]?.sectors?.[sector]?.female) || 0),
+      }),
+      { male: 0, female: 0 },
+    );
+  };
+
+  const getOverallSectorValues = (termKey: string, sector: GADSector) => {
+    const computed = calculateTermSectorTotals(termKey, sector);
+    const stored = recordValues?.overall?.[termKey]?.sectors?.[sector];
+    const storedMale = Number(stored?.male || 0);
+    const storedFemale = Number(stored?.female || 0);
+
+    if (overallOnly) {
+      return {
+        male: stored?.male !== undefined ? storedMale : computed.male,
+        female: stored?.female !== undefined ? storedFemale : computed.female,
+      };
+    }
+
+    if (computed.male + computed.female > 0) {
+      return computed;
+    }
+
+    return { male: storedMale, female: storedFemale };
+  };
+
+  const getOverallSectorGrandTotal = (termKey: string) => {
+    return GAD_SECTORS.reduce((sum, sector) => {
+      const vals = getOverallSectorValues(termKey, sector);
+      return sum + vals.male + vals.female;
+    }, 0);
+  };
+
   const getOverallValues = (termKey: string) => {
     const computed = calculateTermSexTotals(termKey);
     if (!overallOnly) return { ...computed, total: computed.male + computed.female };
@@ -117,6 +156,16 @@ function EnrollmentRecordCard({
       setValue(`enrollmentRecords.${index}.overall.${termKey}.female`, totals.female, { shouldDirty: true });
       setValue(`enrollmentRecords.${index}.overall.${termKey}.total`, totals.male + totals.female, {
         shouldDirty: true,
+      });
+
+      GAD_SECTORS.forEach((sector) => {
+        const secTotals = getOverallSectorValues(termKey, sector);
+        setValue(`enrollmentRecords.${index}.overall.${termKey}.sectors.${sector}.male`, secTotals.male, {
+          shouldDirty: true,
+        });
+        setValue(`enrollmentRecords.${index}.overall.${termKey}.sectors.${sector}.female`, secTotals.female, {
+          shouldDirty: true,
+        });
       });
     });
   };
@@ -223,8 +272,92 @@ function EnrollmentRecordCard({
     </div>
   );
 
+  const renderOverallSectorInputs = (termKey: string) => (
+    <div className="mt-3 p-4 rounded-xl bg-white dark:bg-slate-900 border border-primary/20 space-y-4 animate-in zoom-in duration-300 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2">
+        <div>
+          <p className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+            <Globe className="h-3.5 w-3.5" /> Over-all Program Sectoral Breakdown (Institutional GAD)
+          </p>
+          <p className="text-[9px] text-muted-foreground font-medium">
+            {overallOnly
+              ? 'Enter overall program headcounts per GAD sector for this semester.'
+              : 'Enter overall program sectoral counts directly if not disaggregated by year level, or review year-level sums.'}
+          </p>
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => setExpandedLevel(null)}
+          className="h-6 text-[9px] font-bold uppercase w-fit"
+        >
+          Collapse
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {GAD_SECTORS.map((sector) => {
+          const computed = calculateTermSectorTotals(termKey, sector);
+          const hasYearLevelSectorData = !overallOnly && computed.male + computed.female > 0;
+          const resolved = getOverallSectorValues(termKey, sector);
+
+          return (
+            <div
+              key={sector}
+              className="space-y-2 p-2.5 rounded-lg bg-slate-50/70 dark:bg-slate-800/60 border shadow-2xs"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[9px] font-black uppercase text-slate-700 dark:text-slate-200">{sector}</p>
+                <span className="text-[8px] font-mono font-black text-primary">
+                  Total: {resolved.male + resolved.female}
+                  {hasYearLevelSectorData ? ' (From Yr Levels)' : ''}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <FormField
+                  control={control}
+                  name={`enrollmentRecords.${index}.overall.${termKey}.sectors.${sector}.male`}
+                  render={({ field: inputField }) => (
+                    <div className="space-y-1">
+                      <Label className="text-[8px] uppercase font-bold text-muted-foreground">Male</Label>
+                      <Input
+                        type="number"
+                        value={hasYearLevelSectorData ? computed.male : (inputField.value ?? 0)}
+                        className="h-7 text-[10px] bg-white font-bold tabular-nums"
+                        disabled={!canEdit || hasYearLevelSectorData}
+                        onChange={(e) => inputField.onChange(Number(e.target.value))}
+                      />
+                    </div>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name={`enrollmentRecords.${index}.overall.${termKey}.sectors.${sector}.female`}
+                  render={({ field: inputField }) => (
+                    <div className="space-y-1">
+                      <Label className="text-[8px] uppercase font-bold text-muted-foreground">Female</Label>
+                      <Input
+                        type="number"
+                        value={hasYearLevelSectorData ? computed.female : (inputField.value ?? 0)}
+                        className="h-7 text-[10px] bg-white font-bold tabular-nums"
+                        disabled={!canEdit || hasYearLevelSectorData}
+                        onChange={(e) => inputField.onChange(Number(e.target.value))}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
   const renderTermInputs = (termKey: string) => {
     const overallValues = getOverallValues(termKey);
+    const isOverallSectorExpanded = expandedLevel === `${termKey}-overall`;
+    const overallSectorGrandTotal = getOverallSectorGrandTotal(termKey);
 
     return (
       <div className="space-y-4 mt-4">
@@ -305,7 +438,41 @@ function EnrollmentRecordCard({
             );
           })}
         </div>
-        <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/5 p-3">
+        <div
+          className={cn(
+            'space-y-2.5 rounded-xl border border-primary/20 bg-primary/5 p-3 transition-all',
+            isOverallSectorExpanded && 'ring-2 ring-primary border-primary',
+          )}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-primary/15 pb-2">
+            <div className="flex items-center gap-2">
+              <p className="text-[9px] font-black uppercase tracking-wider text-primary">
+                Over-all Program Enrollment &amp; GAD Sectors
+              </p>
+              {overallSectorGrandTotal > 0 && (
+                <Badge
+                  variant="outline"
+                  className="h-4 border-primary/30 bg-white px-1.5 text-[8px] font-mono font-black uppercase text-primary"
+                >
+                  Sectoral Total: {overallSectorGrandTotal}
+                </Badge>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpandedLevel(isOverallSectorExpanded ? null : `${termKey}-overall`)}
+              className="h-6 px-2.5 text-[8px] font-black uppercase bg-white border border-primary/20 text-primary hover:bg-primary/10 shadow-xs gap-1"
+            >
+              {isOverallSectorExpanded ? (
+                <LayoutList className="h-2.5 w-2.5" />
+              ) : (
+                <PlusCircle className="h-2.5 w-2.5" />
+              )}
+              {isOverallSectorExpanded ? 'Hide Over-all Sectors' : 'Sector Breakdown (Over-all)'}
+            </Button>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {renderOverallField(termKey, 'male', 'Total Overall Male', overallValues.male)}
             {renderOverallField(termKey, 'female', 'Total Overall Female', overallValues.female)}
@@ -313,9 +480,10 @@ function EnrollmentRecordCard({
           </div>
           <p className="text-[9px] italic text-muted-foreground">
             {overallOnly
-              ? 'Manual male and female totals are enabled for administrators. Overall Total is auto-computed from their sum.'
-              : 'Auto-computed from all year levels. Enable Overall Total Only to enter male and female totals manually.'}
+              ? 'Manual male and female totals and Over-all Sector Breakdown are enabled. Overall Total is auto-computed from their sum.'
+              : 'Auto-computed from all year levels. Use "Sector Breakdown (Over-all)" to log program-wide GAD sectors without breaking down by year level.'}
           </p>
+          {isOverallSectorExpanded && renderOverallSectorInputs(termKey)}
         </div>
       </div>
     );
@@ -490,11 +658,11 @@ function EnrollmentRecordCard({
         <div className="flex gap-6 text-[10px] font-black text-slate-800 dark:text-slate-200">
           <div className="flex items-center gap-2">
             <span className="opacity-40">1ST SEM TOTAL:</span>
-            <span className="text-primary tabular-nums">{calculateTermTotal('firstSemester')}</span>
+            <span className="text-primary tabular-nums">{getOverallValues('firstSemester').total}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="opacity-40">2ND SEM TOTAL:</span>
-            <span className="text-primary tabular-nums">{calculateTermTotal('secondSemester')}</span>
+            <span className="text-primary tabular-nums">{getOverallValues('secondSemester').total}</span>
           </div>
         </div>
       </CardFooter>
@@ -746,9 +914,24 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
     },
     overallOnly: false,
     overall: {
-      firstSemester: { male: 0, female: 0, total: 0 },
-      secondSemester: { male: 0, female: 0, total: 0 },
-      midYearTerm: { male: 0, female: 0, total: 0 },
+      firstSemester: {
+        male: 0,
+        female: 0,
+        total: 0,
+        sectors: GAD_SECTORS.reduce((acc, s) => ({ ...acc, [s]: { male: 0, female: 0 } }), {}),
+      },
+      secondSemester: {
+        male: 0,
+        female: 0,
+        total: 0,
+        sectors: GAD_SECTORS.reduce((acc, s) => ({ ...acc, [s]: { male: 0, female: 0 } }), {}),
+      },
+      midYearTerm: {
+        male: 0,
+        female: 0,
+        total: 0,
+        sectors: GAD_SECTORS.reduce((acc, s) => ({ ...acc, [s]: { male: 0, female: 0 } }), {}),
+      },
     },
   });
 
@@ -766,6 +949,15 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
 
     enrollFields.forEach((_, recordIndex) => {
       (['firstSemester', 'secondSemester', 'midYearTerm'] as const).forEach((termKey) => {
+        GAD_SECTORS.forEach((sector) => {
+          setValue(`enrollmentRecords.${recordIndex}.overall.${termKey}.sectors.${sector}.male`, 0, {
+            shouldDirty: true,
+          });
+          setValue(`enrollmentRecords.${recordIndex}.overall.${termKey}.sectors.${sector}.female`, 0, {
+            shouldDirty: true,
+          });
+        });
+
         (['firstYear', 'secondYear', 'thirdYear', 'fourthYear', 'fifthYear'] as const).forEach((level) => {
           const levelData = records[recordIndex]?.[termKey]?.[level];
           if (!levelData) return;

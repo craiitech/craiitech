@@ -65,6 +65,7 @@ import {
   addEnrollmentTotals,
   emptyEnrollmentTotals,
   getComplianceEnrollmentSummary,
+  getEnrollmentRecordTermSectors,
   getEnrollmentRecordsForYear,
   getUniqueComplianceRecords,
   type EnrollmentTermKey,
@@ -667,8 +668,13 @@ export function SDDHub({
       const enrollmentRecords = getEnrollmentRecordsForYear(record.enrollmentRecords, dashboardYear);
       if (enrollmentRecords.length > 0) {
         enrollmentRecords.forEach((rec) => {
-          if (rec.overallOnly) return; // Overall-only records carry no sector breakdown
-          collectSectors(rec.firstSemester);
+          const resolvedSectors = getEnrollmentRecordTermSectors(rec, 'firstSemester');
+          Object.entries(resolvedSectors).forEach(([sector, counts]) => {
+            if (studentSectors[sector]) {
+              studentSectors[sector].male += Number(counts?.male || 0);
+              studentSectors[sector].female += Number(counts?.female || 0);
+            }
+          });
         });
       } else {
         collectSectors(record.stats?.enrollment?.firstSemester);
@@ -933,8 +939,34 @@ export function SDDHub({
           const enrollmentRecords = getEnrollmentRecordsForYear(record.enrollmentRecords, year);
           if (enrollmentRecords.length > 0) {
             enrollmentRecords.forEach((rec) => {
-              if (rec.overallOnly) return;
-              collectTerm(rec?.[key]);
+              if (!rec.overallOnly) {
+                collectTerm(rec?.[key]);
+              }
+              if (levelMode !== 'selected') {
+                const resolvedSectors = getEnrollmentRecordTermSectors(rec, key);
+                Object.entries(resolvedSectors).forEach(([sector, counts]) => {
+                  const overallSec = rec.overall?.[key]?.sectors?.[sector as GADSector];
+                  // If overallOnly is true, or if year-level sectors had 0 and overall sectors had > 0, add them
+                  if (rec.overallOnly) {
+                    if (!sectorMap[sector]) sectorMap[sector] = { male: 0, female: 0 };
+                    sectorMap[sector].male += Number(counts?.male || 0);
+                    sectorMap[sector].female += Number(counts?.female || 0);
+                  } else if (overallSec) {
+                    const levelSecSum = levelDefs.reduce(
+                      (sum, { key: lKey }) =>
+                        sum +
+                        Number((rec?.[key] as any)?.[lKey]?.sectors?.[sector]?.male || 0) +
+                        Number((rec?.[key] as any)?.[lKey]?.sectors?.[sector]?.female || 0),
+                      0,
+                    );
+                    if (levelSecSum === 0) {
+                      if (!sectorMap[sector]) sectorMap[sector] = { male: 0, female: 0 };
+                      sectorMap[sector].male += Number(overallSec.male || 0);
+                      sectorMap[sector].female += Number(overallSec.female || 0);
+                    }
+                  }
+                });
+              }
             });
           } else {
             collectTerm((record.stats?.enrollment as any)?.[key]);

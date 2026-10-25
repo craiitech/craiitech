@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { ProgramComplianceRecord, Unit } from '@/lib/types';
+import { getComplianceEnrollmentSummary } from '@/lib/enrollment';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -48,18 +49,10 @@ export function UnitSddExplorer({
           o = 0;
 
         unitCompliances.forEach((record) => {
-          // Aggregate from enrollment (Baseline: 1st Sem)
-          const enrollmentRecords = record.enrollmentRecords || [];
-          const levels = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear'] as const;
-
-          if (enrollmentRecords.length > 0) {
-            enrollmentRecords.forEach((rec) => {
-              levels.forEach((level) => {
-                m += Number(rec.firstSemester?.[level]?.male || 0);
-                f += Number(rec.firstSemester?.[level]?.female || 0);
-              });
-            });
-          }
+          // Aggregate from enrollment (Baseline: 1st Sem, including Overall-Only records)
+          const summary = getComplianceEnrollmentSummary(record, { academicYear: selectedYear });
+          m += summary.firstSemester.male;
+          f += summary.firstSemester.female;
 
           // Aggregate from faculty
           if (record.faculty) {

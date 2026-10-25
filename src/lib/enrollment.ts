@@ -1,4 +1,10 @@
-import type { EnrollmentOverall, EnrollmentRecord, ProgramComplianceRecord, YearLevelEnrollment } from './types';
+import type {
+  EnrollmentOverall,
+  EnrollmentRecord,
+  GADSector,
+  ProgramComplianceRecord,
+  YearLevelEnrollment,
+} from './types';
 
 const ENROLLMENT_LEVEL_KEYS = ['firstYear', 'secondYear', 'thirdYear', 'fourthYear', 'fifthYear'] as const;
 
@@ -9,6 +15,8 @@ export type EnrollmentTermKey = (typeof ENROLLMENT_TERM_KEYS)[number];
 export type EnrollmentTotals = EnrollmentOverall;
 
 export type EnrollmentTermTotals = Record<EnrollmentTermKey, EnrollmentTotals>;
+
+export type EnrollmentSectorMap = Partial<Record<GADSector, { male: number; female: number }>>;
 
 export const emptyEnrollmentTotals = (): EnrollmentTotals => ({ male: 0, female: 0, total: 0 });
 
@@ -172,14 +180,145 @@ export function sumEnrollmentTerm(term?: YearLevelEnrollment | null): Enrollment
   return { male, female, total: male + female };
 }
 
+/**
+ * Sums GAD sector headcounts across all year levels for a given semester.
+ */
+export function sumEnrollmentTermSectors(term?: YearLevelEnrollment | null): EnrollmentSectorMap {
+  const sectors: EnrollmentSectorMap = {};
+  if (!term) return sectors;
+
+  ENROLLMENT_LEVEL_KEYS.forEach((level) => {
+    const levelSectors = term?.[level]?.sectors;
+    if (!levelSectors) return;
+    Object.entries(levelSectors).forEach(([sectorKey, counts]) => {
+      const sec = sectorKey as GADSector;
+      const m = Number(counts?.male || 0);
+      const f = Number(counts?.female || 0);
+      if (!sectors[sec]) {
+        sectors[sec] = { male: 0, female: 0 };
+      }
+      sectors[sec]!.male += m;
+      sectors[sec]!.female += f;
+    });
+  });
+
+  return sectors;
+}
+
+/**
+ * Resolves the canonical GAD sector breakdown for one enrollment record & semester.
+ * Supports both Year-Level sector entries and Over-all sector entries (including when
+ * `overallOnly` is enabled or when sectors are logged directly in the Over-all section).
+ */
+export function getEnrollmentRecordTermSectors(
+  record: EnrollmentRecord | null | undefined,
+  termKey: EnrollmentTermKey,
+): EnrollmentSectorMap {
+  if (!record) return {};
+
+  const levelSectors = sumEnrollmentTermSectors(record[termKey]);
+  const overallSectors = record.overall?.[termKey]?.sectors;
+
+  if (record.overallOnly) {
+    if (overallSectors && Object.keys(overallSectors).length > 0) {
+      const resolved: EnrollmentSectorMap = {};
+      Object.entries(overallSectors).forEach(([secKey, counts]) => {
+        const sec = secKey as GADSector;
+        resolved[sec] = {
+          male: Number(counts?.male || 0),
+          female: Number(counts?.female || 0),
+        };
+      });
+      return resolved;
+    }
+    return levelSectors;
+  }
+
+  // When not overallOnly, merge year-level sector sums with any overall sector entries:
+  // If year-level sectors for a specific sector are > 0, use the year-level sum;
+  // otherwise fall back to the overall sector entry if provided.
+  const merged: EnrollmentSectorMap = { ...levelSectors };
+  if (overallSectors) {
+    Object.entries(overallSectors).forEach(([secKey, counts]) => {
+      const sec = secKey as GADSector;
+      const oMale = Number(counts?.male || 0);
+      const oFemale = Number(counts?.female || 0);
+      const existing = merged[sec];
+      const existingTotal = (existing?.male || 0) + (existing?.female || 0);
+      if (existingTotal === 0 && oMale + oFemale > 0) {
+        merged[sec] = { male: oMale, female: oFemale };
+      }
+    });
+  }
+
+  return merged;
+}
+
+function resolveSavedOverallSectors(
+  overall: EnrollmentOverall | undefined,
+  term?: YearLevelEnrollment | null,
+  overallOnly?: boolean,
+): EnrollmentSectorMap | undefined {
+  const computed = sumEnrollmentTermSectors(term);
+  const manual = overall?.sectors;
+
+  const hasManual = manual && Object.values(manual).some((c) => (Number(c?.male) || 0) + (Number(c?.female) || 0) > 0);
+  const hasComputed = Object.values(computed).some((c) => (Number(c?.male) || 0) + (Number(c?.female) || 0) > 0);
+
+  if (!hasManual && !hasComputed && !overall?.sectors) {
+    return undefined;
+  }
+
+  if (overallOnly && manual) {
+    const normalized: EnrollmentSectorMap = {};
+    Object.entries(manual).forEach(([secKey, counts]) => {
+      const sec = secKey as GADSector;
+      normalized[sec] = {
+        male: Number(counts?.male || 0),
+        female: Number(counts?.female || 0),
+      };
+    });
+    return normalized;
+  }
+
+  // Merge computed and manual (preferring computed per sector when > 0, or manual when computed is 0)
+  const merged: EnrollmentSectorMap = {};
+  const allKeys = new Set<string>([...Object.keys(computed), ...Object.keys(manual || {})]);
+  allKeys.forEach((secKey) => {
+    const sec = secKey as GADSector;
+    const cMale = Number(computed[sec]?.male || 0);
+    const cFemale = Number(computed[sec]?.female || 0);
+    const mMale = Number(manual?.[sec]?.male || 0);
+    const mFemale = Number(manual?.[sec]?.female || 0);
+    if (cMale + cFemale > 0) {
+      merged[sec] = { male: cMale, female: cFemale };
+    } else {
+      merged[sec] = { male: mMale, female: mFemale };
+    }
+  });
+
+  return merged;
+}
+
 function normalizeManualOverall(overall: EnrollmentOverall | undefined, term?: YearLevelEnrollment | null) {
   const computed = sumEnrollmentTerm(term);
   const male = Number(overall?.male ?? computed.male);
   const female = Number(overall?.female ?? computed.female);
+  const sectors = resolveSavedOverallSectors(overall, term, true);
   return {
     male,
     female,
     total: male + female,
+    ...(sectors ? { sectors } : {}),
+  };
+}
+
+function normalizeComputedOverall(overall: EnrollmentOverall | undefined, term?: YearLevelEnrollment | null) {
+  const computed = sumEnrollmentTerm(term);
+  const sectors = resolveSavedOverallSectors(overall, term, false);
+  return {
+    ...computed,
+    ...(sectors ? { sectors } : {}),
   };
 }
 
@@ -198,9 +337,9 @@ export function withEnrollmentOveralls(record: EnrollmentRecord): EnrollmentReco
   return {
     ...record,
     overall: {
-      firstSemester: sumEnrollmentTerm(record.firstSemester),
-      secondSemester: sumEnrollmentTerm(record.secondSemester),
-      midYearTerm: sumEnrollmentTerm(record.midYearTerm),
+      firstSemester: normalizeComputedOverall(record.overall?.firstSemester, record.firstSemester),
+      secondSemester: normalizeComputedOverall(record.overall?.secondSemester, record.secondSemester),
+      midYearTerm: normalizeComputedOverall(record.overall?.midYearTerm, record.midYearTerm),
     },
   };
 }

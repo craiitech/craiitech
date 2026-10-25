@@ -1187,6 +1187,7 @@ export type EnrollmentOverall = {
   male: number;
   female: number;
   total: number;
+  sectors?: Partial<Record<GADSector, { male: number; female: number }>>;
 };
 
 export type EnrollmentRecord = {
