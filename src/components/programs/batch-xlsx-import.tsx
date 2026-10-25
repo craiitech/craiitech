@@ -6,7 +6,14 @@
 
 import { useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx-js-style';
-import type { AcademicProgram, Campus, EnrollmentRecord, ProgramComplianceRecord } from '@/lib/types';
+import type {
+  AcademicProgram,
+  Campus,
+  EnrollmentOverall,
+  EnrollmentRecord,
+  GADSector,
+  ProgramComplianceRecord,
+} from '@/lib/types';
 import { withEnrollmentOveralls } from '@/lib/enrollment';
 import { Button } from '@/components/ui/button';
 import {
@@ -92,6 +99,76 @@ const OVERALL_HEADERS = [
   'Overall Total',
 ];
 
+const GAD_SECTOR_COLUMNS: {
+  sector: GADSector;
+  maleHeader: string;
+  femaleHeader: string;
+  maleKey: string;
+  femaleKey: string;
+}[] = [
+  {
+    sector: 'Solo Parent',
+    maleHeader: 'Solo Parent Male',
+    femaleHeader: 'Solo Parent Female',
+    maleKey: 'soloparentmale',
+    femaleKey: 'soloparentfemale',
+  },
+  {
+    sector: 'PWD',
+    maleHeader: 'PWD Male',
+    femaleHeader: 'PWD Female',
+    maleKey: 'pwdmale',
+    femaleKey: 'pwdfemale',
+  },
+  {
+    sector: 'Senior Citizen',
+    maleHeader: 'Senior Citizen Male',
+    femaleHeader: 'Senior Citizen Female',
+    maleKey: 'seniorcitizenmale',
+    femaleKey: 'seniorcitizenfemale',
+  },
+  {
+    sector: 'Youth/Student',
+    maleHeader: 'Youth/Student Male',
+    femaleHeader: 'Youth/Student Female',
+    maleKey: 'youthstudentmale',
+    femaleKey: 'youthstudentfemale',
+  },
+  {
+    sector: 'Employee',
+    maleHeader: 'Employee Male',
+    femaleHeader: 'Employee Female',
+    maleKey: 'employeemale',
+    femaleKey: 'employeefemale',
+  },
+  {
+    sector: 'LGBTQA++',
+    maleHeader: 'LGBTQA++ Male',
+    femaleHeader: 'LGBTQA++ Female',
+    maleKey: 'lgbtqamale',
+    femaleKey: 'lgbtqafemale',
+  },
+  {
+    sector: 'Indigenous People',
+    maleHeader: 'Indigenous People Male',
+    femaleHeader: 'Indigenous People Female',
+    maleKey: 'indigenouspeoplemale',
+    femaleKey: 'indigenouspeoplefemale',
+  },
+];
+
+const SECTORAL_HEADERS = [
+  'Academic Year',
+  'Campus',
+  'Program',
+  'Program ID',
+  'Major / Specialization',
+  'Year Level',
+  'Semester',
+  ...GAD_SECTOR_COLUMNS.flatMap((col) => [col.maleHeader, col.femaleHeader]),
+  'Total Sectoral Headcount',
+];
+
 type EnrollmentUpdate = {
   program: AcademicProgram;
   year: number;
@@ -121,20 +198,46 @@ type OverallUpdate = {
   female: number;
 };
 
-type ImportScope = 'both' | 'enrollment' | 'graduation' | 'overall';
+type SectoralUpdate = {
+  program: AcademicProgram;
+  year: number;
+  majorId: string;
+  termKey: 'firstSemester' | 'secondSemester' | 'midYearTerm';
+  target: 'overall' | (typeof YEAR_LEVELS)[number]['key'];
+  sectors: Partial<Record<GADSector, { male: number; female: number }>>;
+};
+
+type ImportScope = 'both' | 'enrollment' | 'graduation' | 'overall' | 'sectoral';
 
 type ImportPreview = {
   fileName: string;
   enrollmentUpdates: EnrollmentUpdate[];
   graduationUpdates: GraduationUpdate[];
   overallUpdates: OverallUpdate[];
+  sectoralUpdates: SectoralUpdate[];
   programIds: string[];
   years: number[];
   skippedEnrollment: number;
   skippedGraduation: number;
   skippedOverall: number;
+  skippedSectoral: number;
   errors: string[];
 };
+
+function sanitizeForFirestore(obj: any): any {
+  if (obj === null || obj === undefined) return null;
+  if (typeof obj === 'number') return Number.isNaN(obj) ? 0 : obj;
+  if (typeof obj !== 'object') return obj;
+  if (obj instanceof Date || (obj && typeof obj.toDate === 'function')) return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
+  const sanitized: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      sanitized[key] = sanitizeForFirestore(value);
+    }
+  }
+  return sanitized;
+}
 
 const normalizeKey = (value: unknown) =>
   String(value ?? '')
@@ -179,7 +282,7 @@ const normalizeYearLevel = (value: unknown) => {
 
 const emptyStats = () => ({ male: 0, female: 0, total: 0, specialNeeds: 0, sectors: {} });
 
-const emptyOverallStats = () => ({ male: 0, female: 0, total: 0 });
+const emptyOverallStats = (): EnrollmentOverall => ({ male: 0, female: 0, total: 0 });
 
 const emptyOverall = () => ({
   firstSemester: emptyOverallStats(),
@@ -226,6 +329,79 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
 
   const activePrograms = useMemo(() => programs.filter((program) => program.isActive), [programs]);
   const campusMap = useMemo(() => new Map(campuses.map((campus) => [campus.id, campus.name])), [campuses]);
+
+  const buildSectoralWorksheet = (sortedPrograms: AcademicProgram[], mode: 'overall' | 'year-level') => {
+    const sectoralRows: (string | number)[][] = [];
+    const zeroSectors = GAD_SECTOR_COLUMNS.flatMap(() => [0, 0]);
+
+    sortedPrograms.forEach((program) => {
+      const campusName = campusMap.get(program.campusId) || '';
+      getProgramMajors(program).forEach((major) => {
+        if (mode === 'overall') {
+          SEMESTERS.forEach((semester) => {
+            sectoralRows.push([
+              selectedYear,
+              campusName,
+              program.name,
+              program.id,
+              major,
+              'Over-all',
+              semester.label,
+              ...zeroSectors,
+              0,
+            ]);
+          });
+        } else {
+          YEAR_LEVELS.forEach((level) => {
+            SEMESTERS.forEach((semester) => {
+              sectoralRows.push([
+                selectedYear,
+                campusName,
+                program.name,
+                program.id,
+                major,
+                level.label,
+                semester.label,
+                ...zeroSectors,
+                0,
+              ]);
+            });
+          });
+        }
+      });
+    });
+
+    const sheet = XLSX.utils.aoa_to_sheet([SECTORAL_HEADERS, ...sectoralRows]);
+    sheet['!cols'] = [
+      { wch: 14 }, // Academic Year
+      { wch: 24 }, // Campus
+      { wch: 38 }, // Program
+      { wch: 28 }, // Program ID
+      { wch: 26 }, // Major / Specialization
+      { wch: 14 }, // Year Level
+      { wch: 18 }, // Semester
+      ...GAD_SECTOR_COLUMNS.flatMap(() => [{ wch: 18 }, { wch: 20 }]),
+      { wch: 22 }, // Total Sectoral Headcount
+    ];
+    styleHeaderRow(sheet, SECTORAL_HEADERS.length);
+
+    const totalColIndex = SECTORAL_HEADERS.length - 1;
+    sectoralRows.forEach((_, index) => {
+      const totalCell = sheet[XLSX.utils.encode_cell({ r: index + 1, c: totalColIndex })];
+      if (!totalCell) return;
+      const rowNum = index + 2;
+      totalCell.t = 'n';
+      totalCell.f = `SUM(H${rowNum}:U${rowNum})`;
+      totalCell.v = 0;
+      totalCell.s = {
+        fill: { fgColor: { rgb: 'F1F5F9' } },
+        font: { bold: true },
+        alignment: { horizontal: 'right' },
+      };
+    });
+
+    return sheet;
+  };
 
   const downloadTemplate = () => {
     const workbook = XLSX.utils.book_new();
@@ -277,6 +453,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
 
     const enrollmentSheet = XLSX.utils.aoa_to_sheet([ENROLLMENT_HEADERS, ...enrollmentRows]);
     const graduationSheet = XLSX.utils.aoa_to_sheet([GRADUATION_HEADERS, ...graduationRows]);
+    const sectoralSheet = buildSectoralWorksheet(sortedPrograms, 'overall');
     enrollmentSheet['!cols'] = [
       { wch: 14 },
       { wch: 24 },
@@ -309,19 +486,23 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
       [''],
       ['1. Fill in the "Enrollment" sheet only for the year levels and semesters with data.'],
       ['2. Fill in the "Graduation" sheet only for programs and semesters with graduates.'],
-      ['3. Do not change the Campus, Program, Program ID, Major, Year Level, and Semester values.'],
-      ['4. Enter whole numbers for Male and Female. Rows with both values at 0 are ignored.'],
-      ['5. Academic Year must be numeric (example: 2025 for AY 2025-2026).'],
-      ['6. Only active programs listed in the "Programs" sheet are accepted.'],
       [
-        '7. Existing records are merged: imported values update the matching program, year, major, level, and semester.',
+        '3. Fill in the "Sectoral Breakdown" sheet for GAD Sectoral headcounts (Over-all or First Year..Fifth Year) per program and semester.',
       ],
-      ['8. Graduation "Year Level" is optional; use "All Levels" when the breakdown is not available.'],
+      ['4. Do not change the Campus, Program, Program ID, Major, Year Level, and Semester values.'],
+      ['5. Enter whole numbers for Male and Female. Rows with all values at 0 are ignored.'],
+      ['6. Academic Year must be numeric (example: 2025 for AY 2025-2026).'],
+      ['7. Only active programs listed in the "Programs" sheet are accepted.'],
+      [
+        '8. Existing records are merged: imported values update the matching program, year, major, level, and semester.',
+      ],
+      ['9. Graduation "Year Level" is optional; use "All Levels" when the breakdown is not available.'],
     ]);
     instructionsSheet['!cols'] = [{ wch: 110 }];
 
     XLSX.utils.book_append_sheet(workbook, enrollmentSheet, 'Enrollment');
     XLSX.utils.book_append_sheet(workbook, graduationSheet, 'Graduation');
+    XLSX.utils.book_append_sheet(workbook, sectoralSheet, 'Sectoral Breakdown');
     XLSX.utils.book_append_sheet(workbook, programSheet, 'Programs');
     XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
 
@@ -486,14 +667,67 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
     XLSX.writeFile(workbook, `RSU_CHED_Overall_Totals_Template_AY_${selectedYear}.xlsx`);
   };
 
+  const downloadSectoralTemplate = () => {
+    const workbook = XLSX.utils.book_new();
+    const sortedPrograms = [...activePrograms].sort((a, b) => {
+      const campusA = campusMap.get(a.campusId) || '';
+      const campusB = campusMap.get(b.campusId) || '';
+      return campusA.localeCompare(campusB) || a.name.localeCompare(b.name);
+    });
+
+    const overallSectoralSheet = buildSectoralWorksheet(sortedPrograms, 'overall');
+    const yearLevelSectoralSheet = buildSectoralWorksheet(sortedPrograms, 'year-level');
+
+    const programRows: (string | number)[][] = [['Campus', 'Program', 'Program ID', 'Major / Specialization']];
+    sortedPrograms.forEach((program) => {
+      const campusName = campusMap.get(program.campusId) || '';
+      getProgramMajors(program).forEach((major) => {
+        programRows.push([campusName, program.name, program.id, major]);
+      });
+    });
+    const programSheet = XLSX.utils.aoa_to_sheet(programRows);
+    programSheet['!cols'] = [{ wch: 24 }, { wch: 38 }, { wch: 28 }, { wch: 28 }];
+    styleHeaderRow(programSheet, 4);
+
+    const instructionsSheet = XLSX.utils.aoa_to_sheet([
+      ['GAD Sectoral Information Batch Import Instructions (Per Program & Academic Year)'],
+      [''],
+      [
+        '1. Use the "Sectoral Breakdown" sheet to enter Over-all Sectoral headcounts (Male & Female) per Program, Major, and Semester.',
+      ],
+      [
+        '2. Alternatively, use the "Sectoral by Year Level" sheet (or set "Year Level" to First Year..Fifth Year) to log sectoral counts per year level.',
+      ],
+      [
+        '3. Supported GAD Sectors: Solo Parent, PWD, Senior Citizen, Youth/Student, Employee, LGBTQA++, and Indigenous People.',
+      ],
+      ['4. Total Sectoral Headcount is calculated automatically across all 7 GAD sectors (Male + Female).'],
+      ['5. Rows where all sector Male and Female counts are 0 are ignored during import.'],
+      ['6. Existing enrollment headcounts (Male/Female totals) are preserved when importing sectoral information.'],
+      ['7. Do not change the Campus, Program, Program ID, Major / Specialization, and Semester values.'],
+      ['8. Academic Year must be numeric (example: 2025 for AY 2025-2026).'],
+      ['9. Imported sectoral records immediately sync with Rapid Hub Entry and the GAD Corner SDD Hub.'],
+    ]);
+    instructionsSheet['!cols'] = [{ wch: 125 }];
+
+    XLSX.utils.book_append_sheet(workbook, overallSectoralSheet, 'Sectoral Breakdown');
+    XLSX.utils.book_append_sheet(workbook, yearLevelSectoralSheet, 'Sectoral by Year Level');
+    XLSX.utils.book_append_sheet(workbook, programSheet, 'Programs');
+    XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
+
+    XLSX.writeFile(workbook, `RSU_CHED_Sectoral_Information_Template_AY_${selectedYear}.xlsx`);
+  };
+
   const parseWorkbook = (workbook: XLSX.WorkBook, fileName: string): ImportPreview => {
     const enrollmentUpdates: EnrollmentUpdate[] = [];
     const graduationUpdates: GraduationUpdate[] = [];
     const overallUpdates: OverallUpdate[] = [];
+    const sectoralUpdates: SectoralUpdate[] = [];
     const errors: string[] = [];
     let skippedEnrollment = 0;
     let skippedGraduation = 0;
     let skippedOverall = 0;
+    let skippedSectoral = 0;
 
     const programsById = new Map(activePrograms.map((program) => [String(program.id), program]));
     const programsByName = new Map<string, AcademicProgram>();
@@ -551,6 +785,24 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
           normalized[normalizeKey(key)] = value;
         });
         return normalized;
+      });
+    };
+
+    const readAllMatchingSheetRows = (sheetNames: string[]) => {
+      const matchingNames = workbook.SheetNames.filter((name) =>
+        sheetNames.some((candidate) => normalizeKey(candidate) === normalizeKey(name)),
+      );
+      return matchingNames.flatMap((sheetName) => {
+        const sheet = workbook.Sheets[sheetName];
+        if (!sheet) return [];
+        const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+        return rawRows.map((row, idx) => {
+          const normalized: Record<string, unknown> = { __sheetName: sheetName, __rowNumber: idx + 2 };
+          Object.entries(row).forEach(([key, value]) => {
+            normalized[normalizeKey(key)] = value;
+          });
+          return normalized;
+        });
       });
     };
 
@@ -661,11 +913,100 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
       });
     });
 
+    readAllMatchingSheetRows([
+      'Sectoral Breakdown',
+      'Sectoral by Year Level',
+      'Sectoral Information',
+      'Sectoral',
+      'Sectors',
+    ]).forEach((row) => {
+      const rowNumber = Number(row.__rowNumber) || 2;
+      const sheetLabel = String(row.__sheetName || 'Sectoral');
+      const program = resolveProgram(row);
+      const year = Math.trunc(toNumber(row.academicyear)) || selectedYear;
+
+      if (!program) {
+        skippedSectoral++;
+        if (errors.length < 10) errors.push(`${sheetLabel} row ${rowNumber}: program not found.`);
+        return;
+      }
+
+      const semester = normalizeSemester(row.semester);
+      const semesterDef = SEMESTERS.find((item) => item.label === semester);
+      if (!semesterDef) {
+        skippedSectoral++;
+        if (errors.length < 10) errors.push(`${sheetLabel} row ${rowNumber}: invalid semester.`);
+        return;
+      }
+
+      const rawLevel = String(row.yearlevel ?? '').trim();
+      const normLevel = normalizeKey(rawLevel);
+      const isOverallLevel =
+        !rawLevel ||
+        normLevel === 'overall' ||
+        normLevel === 'alllevels' ||
+        normLevel === 'all' ||
+        normLevel === 'total';
+      const parsedLevel = isOverallLevel ? null : normalizeYearLevel(rawLevel);
+
+      if (!isOverallLevel && !parsedLevel) {
+        skippedSectoral++;
+        if (errors.length < 10) errors.push(`${sheetLabel} row ${rowNumber}: invalid year level "${rawLevel}".`);
+        return;
+      }
+
+      const rowSectors: Partial<Record<GADSector, { male: number; female: number }>> = {};
+      let rowTotal = 0;
+
+      // Support Wide Format (7 sector Male/Female columns)
+      GAD_SECTOR_COLUMNS.forEach((col) => {
+        const male = toNumber(row[col.maleKey]);
+        const female = toNumber(row[col.femaleKey]);
+        if (male + female > 0) {
+          rowSectors[col.sector] = { male, female };
+          rowTotal += male + female;
+        }
+      });
+
+      // Also support Long Format (if a `Sector` column + `Male` / `Female` columns are provided)
+      if (rowTotal === 0 && row.sector) {
+        const rawSec = normalizeKey(row.sector);
+        const matchedCol = GAD_SECTOR_COLUMNS.find((col) => normalizeKey(col.sector) === rawSec);
+        if (matchedCol) {
+          const male = toNumber(row.male);
+          const female = toNumber(row.female);
+          if (male + female > 0) {
+            rowSectors[matchedCol.sector] = { male, female };
+            rowTotal += male + female;
+          }
+        }
+      }
+
+      if (rowTotal === 0) return;
+
+      sectoralUpdates.push({
+        program,
+        year,
+        majorId: resolveMajor(program, row.majorspecialization),
+        termKey: semesterDef.key,
+        target: isOverallLevel ? 'overall' : parsedLevel!.key,
+        sectors: rowSectors,
+      });
+    });
+
     const programIds = Array.from(
-      new Set([...enrollmentUpdates, ...graduationUpdates, ...overallUpdates].map((update) => update.program.id)),
+      new Set(
+        [...enrollmentUpdates, ...graduationUpdates, ...overallUpdates, ...sectoralUpdates].map(
+          (update) => update.program.id,
+        ),
+      ),
     );
     const years = Array.from(
-      new Set([...enrollmentUpdates, ...graduationUpdates, ...overallUpdates].map((update) => update.year)),
+      new Set(
+        [...enrollmentUpdates, ...graduationUpdates, ...overallUpdates, ...sectoralUpdates].map(
+          (update) => update.year,
+        ),
+      ),
     ).sort((a, b) => a - b);
 
     return {
@@ -673,11 +1014,13 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
       enrollmentUpdates,
       graduationUpdates,
       overallUpdates,
+      sectoralUpdates,
       programIds,
       years,
       skippedEnrollment,
       skippedGraduation,
       skippedOverall,
+      skippedSectoral,
       errors,
     };
   };
@@ -696,11 +1039,13 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
       if (
         parsed.enrollmentUpdates.length === 0 &&
         parsed.graduationUpdates.length === 0 &&
-        parsed.overallUpdates.length === 0
+        parsed.overallUpdates.length === 0 &&
+        parsed.sectoralUpdates.length === 0
       ) {
         toast({
           title: 'Nothing to Import',
-          description: 'No valid enrollment, graduation, or overall total rows with values were found in the file.',
+          description:
+            'No valid enrollment, graduation, overall total, or sectoral rows with values were found in the file.',
           variant: 'destructive',
         });
         return;
@@ -710,6 +1055,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
         parsed.enrollmentUpdates.length > 0,
         parsed.graduationUpdates.length > 0,
         parsed.overallUpdates.length > 0,
+        parsed.sectoralUpdates.length > 0,
       ].filter(Boolean).length;
 
       setImportScope(
@@ -719,7 +1065,9 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
             ? 'enrollment'
             : parsed.graduationUpdates.length > 0
               ? 'graduation'
-              : 'overall',
+              : parsed.overallUpdates.length > 0
+                ? 'overall'
+                : 'sectoral',
       );
       setPreview(parsed);
     } catch (error) {
@@ -740,8 +1088,14 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
     const enrollmentUpdates = importScope === 'both' || importScope === 'enrollment' ? preview.enrollmentUpdates : [];
     const graduationUpdates = importScope === 'both' || importScope === 'graduation' ? preview.graduationUpdates : [];
     const overallUpdates = importScope === 'both' || importScope === 'overall' ? preview.overallUpdates : [];
+    const sectoralUpdates = importScope === 'both' || importScope === 'sectoral' ? preview.sectoralUpdates : [];
 
-    if (enrollmentUpdates.length === 0 && graduationUpdates.length === 0 && overallUpdates.length === 0) {
+    if (
+      enrollmentUpdates.length === 0 &&
+      graduationUpdates.length === 0 &&
+      overallUpdates.length === 0 &&
+      sectoralUpdates.length === 0
+    ) {
       toast({
         title: 'Nothing to Import',
         description: 'The selected data type has no valid rows to import.',
@@ -761,13 +1115,21 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
           enrollmentUpdates: EnrollmentUpdate[];
           graduationUpdates: GraduationUpdate[];
           overallUpdates: OverallUpdate[];
+          sectoralUpdates: SectoralUpdate[];
         }
       >();
 
       const ensureGroup = (program: AcademicProgram, year: number) => {
         const key = `${program.id}-${year}`;
         if (!groups.has(key)) {
-          groups.set(key, { program, year, enrollmentUpdates: [], graduationUpdates: [], overallUpdates: [] });
+          groups.set(key, {
+            program,
+            year,
+            enrollmentUpdates: [],
+            graduationUpdates: [],
+            overallUpdates: [],
+            sectoralUpdates: [],
+          });
         }
         return groups.get(key)!;
       };
@@ -781,10 +1143,13 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
       overallUpdates.forEach((update) => {
         ensureGroup(update.program, update.year).overallUpdates.push(update);
       });
+      sectoralUpdates.forEach((update) => {
+        ensureGroup(update.program, update.year).sectoralUpdates.push(update);
+      });
 
       await Promise.all(
         Array.from(groups.values()).map(
-          async ({ program, year, enrollmentUpdates, graduationUpdates, overallUpdates }) => {
+          async ({ program, year, enrollmentUpdates, graduationUpdates, overallUpdates, sectoralUpdates }) => {
             const recordId = `${program.id}-${year}`;
             const existing = compliances.find(
               (record) => record.programId === program.id && Number(record.academicYear) === year,
@@ -855,11 +1220,56 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                 midYearTerm: existingOverall.midYearTerm || emptyOverallStats(),
               };
               nextOverall[update.termKey] = {
+                ...nextOverall[update.termKey],
                 male: update.male,
                 female: update.female,
                 total: update.male + update.female,
               };
               record.overall = nextOverall;
+            });
+
+            sectoralUpdates.forEach((update) => {
+              let record = recordByMajor.get(update.majorId);
+              if (!record) {
+                record = {
+                  id: `${program.id}-${year}-${update.majorId}`,
+                  academicYear: year,
+                  majorId: update.majorId,
+                  firstSemester: emptyYearLevelEnrollment(),
+                  secondSemester: emptyYearLevelEnrollment(),
+                  midYearTerm: emptyYearLevelEnrollment(),
+                };
+                recordByMajor.set(update.majorId, record);
+                enrollmentRecords.push(record);
+              }
+
+              if (update.target === 'overall') {
+                const existingOverall = record.overall || emptyOverall();
+                const currentTermOverall = existingOverall[update.termKey] || emptyOverallStats();
+                record.overall = {
+                  firstSemester: existingOverall.firstSemester || emptyOverallStats(),
+                  secondSemester: existingOverall.secondSemester || emptyOverallStats(),
+                  midYearTerm: existingOverall.midYearTerm || emptyOverallStats(),
+                  [update.termKey]: {
+                    ...currentTermOverall,
+                    sectors: {
+                      ...(currentTermOverall.sectors || {}),
+                      ...update.sectors,
+                    },
+                  },
+                };
+              } else {
+                const term = record[update.termKey] || emptyYearLevelEnrollment();
+                const current = term[update.target] || emptyStats();
+                term[update.target] = {
+                  ...current,
+                  sectors: {
+                    ...(current.sectors || {}),
+                    ...update.sectors,
+                  },
+                };
+                record[update.termKey] = term;
+              }
             });
 
             const graduationRecords = [...(existing?.graduationRecords || [])];
@@ -949,18 +1359,22 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                   }
                 : currentStats;
 
+            const sanitizedPayload = sanitizeForFirestore({
+              ...baseRecord,
+              id: recordId,
+              academicYear: year,
+              programId: program.id,
+              campusId: program.campusId,
+              unitId: program.collegeId || (program as any).unitId || '',
+              stats: nextStats,
+              enrollmentRecords: enrollmentRecordsWithOveralls,
+              graduationRecords,
+            });
+
             await setDoc(
               doc(firestore, 'programCompliances', recordId),
               {
-                ...baseRecord,
-                id: recordId,
-                academicYear: year,
-                programId: program.id,
-                campusId: program.campusId,
-                unitId: program.collegeId,
-                stats: nextStats,
-                enrollmentRecords: enrollmentRecordsWithOveralls,
-                graduationRecords,
+                ...sanitizedPayload,
                 updatedAt: serverTimestamp(),
                 updatedBy: userProfile.id,
               },
@@ -972,7 +1386,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
 
       toast({
         title: 'Import Complete',
-        description: `${enrollmentUpdates.length} enrollment row(s), ${graduationUpdates.length} graduation row(s), and ${overallUpdates.length} overall total row(s) were saved.`,
+        description: `${enrollmentUpdates.length} enrollment row(s), ${graduationUpdates.length} graduation row(s), ${overallUpdates.length} overall total row(s), and ${sectoralUpdates.length} sectoral row(s) were saved.`,
       });
       setPreview(null);
     } catch (error) {
@@ -998,12 +1412,14 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
               <ChevronDown className="h-3 w-3 opacity-60" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-64">
+          <DropdownMenuContent align="start" className="w-72">
             <DropdownMenuItem onClick={downloadTemplate} className="gap-2 text-[11px] font-bold">
               <FileSpreadsheet className="h-4 w-4 text-primary" />
               <div>
                 <p>Full CHED Batch Template</p>
-                <p className="text-[9px] font-normal text-muted-foreground">Enrollment and graduation rows</p>
+                <p className="text-[9px] font-normal text-muted-foreground">
+                  Enrollment, graduation, and sectoral rows
+                </p>
               </div>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={downloadGraduationTemplate} className="gap-2 text-[11px] font-bold">
@@ -1021,6 +1437,15 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                 <p>Overall Totals Only Template</p>
                 <p className="text-[9px] font-normal text-muted-foreground">
                   Totals-only entry with year levels zeroed
+                </p>
+              </div>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={downloadSectoralTemplate} className="gap-2 text-[11px] font-bold">
+              <FileSpreadsheet className="h-4 w-4 text-primary" />
+              <div>
+                <p>Sectoral Information Template</p>
+                <p className="text-[9px] font-normal text-muted-foreground">
+                  GAD 7-sector breakdown per program & AY (Over-all & Year-Level)
                 </p>
               </div>
             </DropdownMenuItem>
@@ -1051,24 +1476,28 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
 
           {preview && (
             <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border p-3">
+              <div className="grid grid-cols-3 gap-2.5">
+                <div className="rounded-lg border p-2.5">
                   <p className="text-[9px] font-black uppercase text-muted-foreground">Enrollment Rows</p>
                   <p className="text-lg font-black tabular-nums">{preview.enrollmentUpdates.length}</p>
                 </div>
-                <div className="rounded-lg border p-3">
+                <div className="rounded-lg border p-2.5">
                   <p className="text-[9px] font-black uppercase text-muted-foreground">Graduation Rows</p>
                   <p className="text-lg font-black tabular-nums">{preview.graduationUpdates.length}</p>
                 </div>
-                <div className="rounded-lg border p-3">
+                <div className="rounded-lg border p-2.5">
                   <p className="text-[9px] font-black uppercase text-muted-foreground">Overall Rows</p>
                   <p className="text-lg font-black tabular-nums">{preview.overallUpdates.length}</p>
                 </div>
-                <div className="rounded-lg border p-3">
+                <div className="rounded-lg border p-2.5">
+                  <p className="text-[9px] font-black uppercase text-muted-foreground">Sectoral Rows</p>
+                  <p className="text-lg font-black tabular-nums">{preview.sectoralUpdates.length}</p>
+                </div>
+                <div className="rounded-lg border p-2.5">
                   <p className="text-[9px] font-black uppercase text-muted-foreground">Programs</p>
                   <p className="text-lg font-black tabular-nums">{preview.programIds.length}</p>
                 </div>
-                <div className="rounded-lg border p-3">
+                <div className="rounded-lg border p-2.5">
                   <p className="text-[9px] font-black uppercase text-muted-foreground">Academic Years</p>
                   <p className="text-lg font-black tabular-nums">{preview.years.join(', ') || '—'}</p>
                 </div>
@@ -1079,7 +1508,7 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                 <RadioGroup
                   value={importScope}
                   onValueChange={(value) => setImportScope(value as ImportScope)}
-                  className="grid grid-cols-2 gap-2"
+                  className="grid grid-cols-2 sm:grid-cols-3 gap-2"
                 >
                   <Label
                     htmlFor="import-scope-both"
@@ -1093,7 +1522,8 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                     <span className="text-[9px] text-muted-foreground tabular-nums">
                       {preview.enrollmentUpdates.length +
                         preview.graduationUpdates.length +
-                        preview.overallUpdates.length}{' '}
+                        preview.overallUpdates.length +
+                        preview.sectoralUpdates.length}{' '}
                       rows
                     </span>
                   </Label>
@@ -1160,6 +1590,27 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                       {preview.overallUpdates.length} rows
                     </span>
                   </Label>
+                  <Label
+                    htmlFor="import-scope-sectoral"
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1 rounded-md border-2 p-2 text-center transition-all hover:bg-muted',
+                      preview.sectoralUpdates.length > 0 ? 'cursor-pointer' : 'cursor-not-allowed opacity-50',
+                      importScope === 'sectoral'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-slate-100 dark:border-slate-700',
+                    )}
+                  >
+                    <RadioGroupItem
+                      value="sectoral"
+                      id="import-scope-sectoral"
+                      className="sr-only"
+                      disabled={preview.sectoralUpdates.length === 0}
+                    />
+                    <span className="text-[10px] font-black uppercase">Sectoral</span>
+                    <span className="text-[9px] text-muted-foreground tabular-nums">
+                      {preview.sectoralUpdates.length} rows
+                    </span>
+                  </Label>
                 </RadioGroup>
                 <p className="text-[10px] text-muted-foreground">Only the selected dataset will be saved.</p>
                 {preview.overallUpdates.length > 0 && (
@@ -1173,14 +1624,17 @@ export function BatchXlsxImport({ programs, compliances, campuses, selectedYear,
                 )}
               </div>
 
-              {(preview.skippedEnrollment > 0 || preview.skippedGraduation > 0 || preview.skippedOverall > 0) && (
+              {(preview.skippedEnrollment > 0 ||
+                preview.skippedGraduation > 0 ||
+                preview.skippedOverall > 0 ||
+                preview.skippedSectoral > 0) && (
                 <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-amber-800">
                   <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                   <div className="text-xs">
                     <p className="font-bold uppercase">Skipped rows</p>
                     <p>
                       Enrollment: {preview.skippedEnrollment} | Graduation: {preview.skippedGraduation} | Overall:{' '}
-                      {preview.skippedOverall}
+                      {preview.skippedOverall} | Sectoral: {preview.skippedSectoral}
                     </p>
                     {preview.errors.length > 0 && (
                       <ul className="mt-1 list-disc pl-4 text-[10px]">
