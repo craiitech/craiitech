@@ -928,9 +928,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         roleLower === 'campus odimo' ||
         roleLower === 'auditor' ||
         roleLower.includes('vice president');
-      const isProfileIncomplete = isUnitOptionalUser
-        ? !userProfile.campusId || !userProfile.roleId || !userProfile.sex
-        : !userProfile.campusId || !userProfile.roleId || !userProfile.unitId || !userProfile.sex;
+      const hasBasicProfile =
+        Boolean(userProfile.firstName?.trim()) &&
+        Boolean(userProfile.lastName?.trim()) &&
+        Boolean(userProfile.campusId) &&
+        Boolean(userProfile.roleId) &&
+        Boolean(userProfile.sex);
+      const isProfileIncomplete = isUnitOptionalUser ? !hasBasicProfile : !hasBasicProfile || !userProfile.unitId;
       if (isProfileIncomplete) {
         router.push('/complete-registration');
         return;

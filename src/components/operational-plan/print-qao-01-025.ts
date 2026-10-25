@@ -112,6 +112,7 @@ export function printOperationalPlanForm(
                   ${objectiveCell}
                   <td style="border: 1px solid black; padding: 6px 8px; font-size: 11px; vertical-align: top;">
                     ${item.tasks || '—'}
+                    ${item.hasGadComponent ? `<div style="margin-top:3px;"><span style="display:inline-block; font-size:8.5px; background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe; border-radius:3px; padding:1px 4px; font-weight:bold;">GAD Component (${item.gadCategory || 'Client-Focused'})</span></div>` : ''}
                   </td>
                   <td style="border: 1px solid black; padding: 6px 8px; font-size: 11px; vertical-align: top; text-align: center;">
                     ${item.timelineStart && item.timelineEnd ? `${item.timelineStart} to ${item.timelineEnd}` : item.timelineStart || item.timelineEnd || '—'}

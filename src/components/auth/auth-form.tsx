@@ -102,6 +102,19 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       const additionalInfo = getAdditionalUserInfo(result);
 
       try {
+        const normalizedEmail = (user.email || '').trim().toLowerCase();
+        const isInstitutional = normalizedEmail.endsWith('@rsu.edu.ph') || normalizedEmail === 'admin@eoms.com';
+        if (!isInstitutional) {
+          if (auth) {
+            await auth.signOut();
+          }
+          setAuthError(
+            'Institutional Requirement: Please connect using your official Romblon State University Google account (@rsu.edu.ph).',
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
         const userDocRef = doc(firestore, 'users', user.uid);
         const userDoc = await getDoc(userDocRef);
 
@@ -112,11 +125,13 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
         // If it's a new Auth user OR the user exists in Auth but is missing their Firestore profile
         if (additionalInfo?.isNewUser || !userDoc.exists()) {
-          const [first = '', last = ''] = user.displayName?.split(' ') || [];
+          const nameParts = (user.displayName || '').trim().split(/\s+/).filter(Boolean);
+          const first = nameParts[0] || '';
+          const last = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
           const userData = {
             id: user.uid,
             email: user.email,
-            firstName: firstName || first || 'User',
+            firstName: firstName || first || '',
             lastName: lastName || last || '',
             sex: sex || '',
             avatar: user.photoURL,
@@ -126,29 +141,46 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             unitId: '',
             verified: false,
             ndaAccepted: false,
+            privacyPolicyAgreed: false,
           };
           await setDoc(userDocRef, userData, { merge: true });
 
-          const method = (result as any).credential?.providerId || (user.email ? 'password' : 'unknown');
-          await logUserActivity(user.uid, `${userData.firstName} ${userData.lastName}`, 'New User', 'user_register', {
-            method,
-          });
+          const method = (result as any).credential?.providerId || (user.email ? 'google.com' : 'unknown');
+          await logUserActivity(
+            user.uid,
+            `${userData.firstName} ${userData.lastName}`.trim() || user.email || 'New User',
+            'New User',
+            'user_register',
+            { method },
+          );
 
           toast({
-            title: 'Account Created!',
-            description: 'Please complete your registration details.',
+            title: 'RSU Google Account Connected!',
+            description:
+              'Please provide your First Name, Last Name, Sex Identification, and agree to the Data Privacy Statement.',
           });
           router.push('/complete-registration');
         } else {
-          // Returning user
-          router.push('/dashboard');
+          const existingData = userDoc.data();
+          const needsOnboarding =
+            !existingData?.firstName ||
+            !existingData?.lastName ||
+            !existingData?.sex ||
+            !existingData?.campusId ||
+            (!existingData?.privacyPolicyAgreed && !existingData?.ndaAccepted);
+
+          if (needsOnboarding && normalizedEmail !== 'admin@eoms.com') {
+            router.push('/complete-registration');
+          } else {
+            router.push('/dashboard');
+          }
         }
       } catch (err) {
         setAuthError('An error occurred while setting up your institutional profile. Please try again.');
         setIsSubmitting(false);
       }
     },
-    [firestore, firstName, lastName, sex, router, toast],
+    [auth, firestore, firstName, lastName, sex, router, toast],
   );
 
   // Handle Redirect Result on Mount
@@ -173,12 +205,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
   }, [auth, firestore, handleAuthResult]);
 
-  useEffect(() => {
-    if (activeTab === 'signup') {
-      setIsPrivacyDialogOpen(true);
-    }
-  }, [activeTab]);
-
   const togglePasswordVisibility = () => setIsPasswordVisible(!isPasswordVisible);
 
   const handleTabChange = (tab: 'signin' | 'signup') => {
@@ -190,10 +216,6 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setSex('');
     setIsPasswordVisible(false);
     setAuthError(null);
-
-    if (tab === 'signup') {
-      setIsPrivacyDialogOpen(true);
-    }
   };
 
   const clearError = () => {
@@ -292,7 +314,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setIsSubmitting(true);
     setAuthError(null);
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
+    provider.setCustomParameters({ prompt: 'select_account', hd: 'rsu.edu.ph' });
 
     // Attempt popup first
     signInWithPopup(auth, provider)
@@ -396,148 +418,48 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   );
 
   const renderSignUp = () => (
-    <form onSubmit={handleSignUp} className="space-y-6">
-      <div className="flex gap-4">
-        <div className="space-y-2 w-full">
-          <Label htmlFor="first-name">First Name</Label>
-          <Input
-            id="first-name"
-            placeholder="John"
-            required
-            value={firstName}
-            onChange={(e) => {
-              setFirstName(e.target.value);
-              clearError();
-            }}
-            disabled={isSubmitting}
-            className="bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
-          />
+    <div className="space-y-5">
+      <div className="rounded-xl bg-gray-800/60 border border-gray-700/80 p-4 space-y-3 text-left">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="text-[11px] font-black uppercase tracking-widest text-emerald-300">
+            Official RSU Google Workspace Enrollment
+          </span>
         </div>
-        <div className="space-y-2 w-full">
-          <Label htmlFor="last-name">Last Name</Label>
-          <Input
-            id="last-name"
-            placeholder="Doe"
-            required
-            value={lastName}
-            onChange={(e) => {
-              setLastName(e.target.value);
-              clearError();
-            }}
-            disabled={isSubmitting}
-            className="bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
-          />
+        <p className="text-xs text-gray-300 leading-relaxed">
+          Account registration uses your official{' '}
+          <strong className="text-white">Romblon State University Email (@rsu.edu.ph)</strong> via Google
+          Authentication.
+        </p>
+        <div className="space-y-1.5 pt-1 border-t border-gray-700/60 text-[11px] text-gray-300">
+          <p className="font-bold text-white">What happens after connecting your RSU Google account:</p>
+          <ol className="list-decimal pl-4 space-y-1 text-gray-300">
+            <li>
+              Enter and verify your official <strong>First Name</strong> and <strong>Last Name</strong>.
+            </li>
+            <li>
+              Select your <strong>Sex Identification</strong> (required under CMO No. 1, s. 2015 GAD SDD).
+            </li>
+            <li>
+              Select your <strong>Campus, Role, and Unit</strong> assignment.
+            </li>
+            <li>
+              Review and agree to the <strong>Data Privacy Statement (RA 10173)</strong>.
+            </li>
+          </ol>
         </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="sex-signup">Sex Identification (GAD Standard)</Label>
-        <Select
-          onValueChange={(val) => {
-            setSex(val);
-            clearError();
-          }}
-          value={sex}
-        >
-          <SelectTrigger id="sex-signup" className="h-10 bg-gray-800/50 border-gray-700 text-white">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-gray-400" />
-              <SelectValue placeholder="Select sex" />
-            </div>
-          </SelectTrigger>
-          <SelectContent className="bg-gray-800 border-gray-700 text-white">
-            <SelectItem value="Male">Male</SelectItem>
-            <SelectItem value="Female">Female</SelectItem>
-            <SelectItem value="Others (LGBTQI++)">Others (LGBTQI++)</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="email-signup">Email</Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            id="email-signup"
-            type="email"
-            placeholder="Enter your email"
-            required
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              clearError();
-            }}
-            disabled={isSubmitting}
-            className="pl-9 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
-          />
-        </div>
-        <p className="text-xs text-muted-foreground pt-1">Please use your official RSU email address.</p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="password-signup">Password</Label>
-        <div className="relative">
-          <Input
-            id="password-signup"
-            type={isPasswordVisible ? 'text' : 'password'}
-            required
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              clearError();
-            }}
-            disabled={isSubmitting}
-            placeholder="Create a password"
-            className="pr-10 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
-          />
-          <button
-            type="button"
-            onClick={togglePasswordVisibility}
-            className="absolute inset-y-0 right-0 flex items-center pr-3"
-          >
-            {isPasswordVisible ? (
-              <EyeOff className="h-4 w-4 text-gray-400" />
-            ) : (
-              <Eye className="h-4 w-4 text-gray-400" />
-            )}
-          </button>
-        </div>
-      </div>
-
-      <div className="flex items-center space-x-2">
-        <Checkbox
-          id="privacy-policy"
-          checked={privacyPolicyAgreed}
-          onCheckedChange={(checked) => {
-            setPrivacyPolicyAgreed(checked as boolean);
-            clearError();
-          }}
-        />
-        <label
-          htmlFor="privacy-policy"
-          className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-        >
-          I agree to the{' '}
-          <Button
-            type="button"
-            variant="link"
-            className="p-0 h-auto text-xs text-white hover:underline"
-            onClick={() => setIsPrivacyDialogOpen(true)}
-          >
-            Data Privacy Statement
-          </Button>
-          .
-        </label>
       </div>
 
       <Button
-        type="submit"
-        className="w-full bg-white dark:bg-slate-900 text-black dark:text-white hover:bg-gray-200"
-        disabled={isSubmitting || !privacyPolicyAgreed}
+        type="button"
+        onClick={processGoogleSignIn}
+        disabled={isSubmitting}
+        className="w-full h-12 bg-white hover:bg-gray-100 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl flex items-center justify-center gap-2.5"
       >
-        {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Create an account
+        {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon className="h-5 w-5" />}
+        Sign up with RSU Email (rsu.edu.ph)
       </Button>
-    </form>
+    </div>
   );
 
   return (
@@ -594,35 +516,38 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
         {activeTab === 'signup' ? renderSignUp() : renderSignIn()}
 
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-gray-700" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-gray-800/50 px-2 text-gray-400 backdrop-blur-sm rounded-full">
-              Or sign {activeTab === 'signup' ? 'up' : 'in'} with
-            </span>
-          </div>
-        </div>
+        {activeTab === 'signin' && (
+          <>
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-700" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-gray-800/50 px-2 text-gray-400 backdrop-blur-sm rounded-full">Or sign in with</span>
+              </div>
+            </div>
 
-        <div className="grid grid-cols-1 gap-4">
-          <Button
-            variant="outline"
-            className="bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 text-white"
-            onClick={processGoogleSignIn}
-            disabled={isSubmitting}
-          >
-            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            <GoogleIcon className="mr-2 h-5 w-5" />
-            Google
-          </Button>
-        </div>
+            <div className="grid grid-cols-1 gap-4">
+              <Button
+                variant="outline"
+                className="bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 text-white"
+                onClick={processGoogleSignIn}
+                disabled={isSubmitting}
+              >
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <GoogleIcon className="mr-2 h-5 w-5" />
+                RSU Email (rsu.edu.ph) via Google
+              </Button>
+            </div>
+          </>
+        )}
         {activeTab === 'signup' && (
           <p className="mt-6 text-center text-xs text-gray-400">
-            By creating an account, you agree to our{' '}
-            <Link href="/terms" className="underline hover:text-white">
-              Terms & Service
-            </Link>
+            By connecting your RSU Google account, you will next confirm your Name, GAD Sex Identification, and{' '}
+            <button type="button" onClick={() => setIsPrivacyDialogOpen(true)} className="underline hover:text-white">
+              Data Privacy Statement
+            </button>
+            .
           </p>
         )}
       </div>

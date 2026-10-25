@@ -70,6 +70,8 @@ export type User = {
   unitName?: string; // denormalized
   verified: boolean;
   ndaAccepted?: boolean;
+  privacyPolicyAgreed?: boolean;
+  privacyConsentAt?: any;
   lastSeen?: any;
   accessibility?: UserAccessibility;
   lastSeenVersion?: string; // Track the last changelog version seen by the user
@@ -1352,6 +1354,118 @@ export type GADSector =
 
 export type GADCategory = 'CLIENT-FOCUSED ACTIVITIES' | 'ORGANIZATION-FOCUSED ACTIVITIES' | 'ATTRIBUTED PROGRAM';
 export type GADImplementationStatus = 'Done' | 'Partially Done' | 'On-going' | 'Yet to be implemented' | 'Not Done';
+export type GADMainstreamingPillar = 'CURRICULUM' | 'RESEARCH' | 'EXTENSION' | 'POLICY_GOVERNANCE' | 'FACILITIES';
+
+// ============================================================
+// CMO No. 1, s. 2015 GAD Compliance & Assessment Module (docs/GAD.md)
+// ============================================================
+
+export type CMOCategory = 'CURRICULUM' | 'RESEARCH' | 'EXTENSION';
+export type CMOResponseValue = 'NO' | 'PARTIAL' | 'YES';
+export type CMOMovType = 'PRIMARY' | 'ADDITIONAL';
+export type CMOValidatorTier = 'INTERNAL' | 'EXTERNAL';
+export type CMOValidatorSeat =
+  'PDPMED_1' | 'PDPMED_2' | 'PDPMED_3' | 'NMFO_TSRCD_SCD' | 'PCW_1' | 'PCW_2' | 'PCW_3' | 'PCW_4' | 'CHED';
+
+export type CMOSubmissionStatus = 'DRAFT' | 'SUBMITTED' | 'INTERNAL_VALIDATION' | 'EXTERNAL_VALIDATION' | 'FINALIZED';
+
+export type CMOIndicatorDefinition = {
+  id: number; // 1 to 20
+  itemCode: string; // '1' .. '20' (with 8a & 8b represented in rubric)
+  category: CMOCategory;
+  title: string;
+  description: string;
+  maxScore: number; // 2.0 for Item 1, 1.0 for Items 2-20 (Total = 20.00)
+  scoringRubric: {
+    NO: { score: number; label: string };
+    PARTIAL: { score: number; label: string };
+    YES: { score: number; label: string };
+  };
+  primaryMovRequirements: string[];
+  additionalMovRequirements: string[];
+  subIndicators?: {
+    code: string;
+    label: string;
+    maxScore: number;
+  }[];
+};
+
+export type CMOMovRecord = {
+  id: string;
+  submissionId: string; // `${unitId}_${year}`
+  indicatorId: number; // 1 to 20
+  unitId: string;
+  campusId: string;
+  year: number;
+  movType: CMOMovType;
+  documentCategory: string;
+  fileName: string;
+  fileUrl: string;
+  sourceType?: 'MANUAL' | 'EOMS_MATRIX_SYNC';
+  sourceOpItemId?: string;
+  sourceQomId?: string;
+  uploadedBy: string;
+  uploadedByName?: string;
+  uploadedAt: any;
+};
+
+export type CMOSubmissionItem = {
+  indicatorId: number;
+  selfResponse?: CMOResponseValue;
+  selfScore: number;
+  selfRemarks?: string;
+  subResponses?: Record<string, boolean>; // For Item 8 (8a, 8b)
+  finalValidatedResponse?: CMOResponseValue;
+  finalValidatedScore?: number;
+  validatorConsensusRemarks?: string;
+  updatedAt?: any;
+};
+
+export type CMOValidatorAssessment = {
+  id: string; // `${submissionId}_${indicatorId}_${validatorSeat}`
+  submissionId: string;
+  unitId: string;
+  campusId: string;
+  year: number;
+  indicatorId: number;
+  validatorUid: string;
+  validatorName: string;
+  validatorTier: CMOValidatorTier;
+  validatorSeat: CMOValidatorSeat;
+  validatedResponse: CMOResponseValue;
+  validatedScore: number;
+  validatorRemarks: string;
+  assessedAt: any;
+};
+
+export type CMOSubmission = {
+  id: string; // `${unitId}_${year}`
+  unitId: string;
+  unitName?: string;
+  campusId: string;
+  year: number;
+  status: CMOSubmissionStatus;
+  items: Record<number, CMOSubmissionItem>;
+  movs?: CMOMovRecord[];
+  rawScoreSelf: number; // Out of 20.00
+  complianceRateSelf: number; // (rawScoreSelf / 20) * 100
+  weightedScoreSelf: number; // complianceRateSelf * 0.40
+  rawScoreValidated: number; // Out of 20.00
+  complianceRateValidated: number; // (rawScoreValidated / 20) * 100
+  weightedScoreValidated: number; // complianceRateValidated * 0.40
+  sectionScores?: {
+    curriculum: { self: number; validated: number; max: number };
+    research: { self: number; validated: number; max: number };
+    extension: { self: number; validated: number; max: number };
+  };
+  submittedBy?: string;
+  submittedByName?: string;
+  submittedAt?: any;
+  finalizedBy?: string;
+  finalizedByName?: string;
+  finalizedAt?: any;
+  updatedAt: any;
+};
 
 // GAD Plan & Budget types
 export type GADPlan = {
@@ -1370,8 +1484,11 @@ export type GADPlan = {
   responsibleOffice: string;
   status: 'Draft' | 'Finalized';
   category?: GADCategory;
+  gadPillar?: GADMainstreamingPillar;
+  cmoIndicatorId?: number;
   hgdgScore?: number;
   hgdgAttributionRate?: number;
+  originalProgramBudget?: number;
   psCost?: number;
   mooeCost?: number;
   coCost?: number;
@@ -1381,6 +1498,15 @@ export type GADPlan = {
   actualCost?: number;
   varianceRemarks?: string;
   driveLink?: string;
+  targetBeneficiaries?: {
+    male: number;
+    female: number;
+  };
+  // EOMS Matrix Bi-Directional Traceability
+  isSyncedFromEomsMatrix?: boolean;
+  sourcePlanId?: string;
+  sourceOpItemId?: string;
+  sourceQomId?: string;
   createdAt: any;
   updatedAt: any;
 };
@@ -1413,7 +1539,17 @@ export type GADActivity = {
   implementationStatus?: GADImplementationStatus;
   driveLink?: string; // Google Drive link for documentation and evidence
   deviceFingerprint: string; // For unauthenticated identification
+  // EOMS Matrix Bi-Directional Traceability
+  isSyncedFromEomsMatrix?: boolean;
+  sourcePlanId?: string;
+  sourceOpItemId?: string;
+  sourceQomId?: string;
+  sourceMonth?: number;
+  cmoIndicatorId?: number;
+  gadPillar?: GADMainstreamingPillar;
+  gadCategory?: GADCategory;
   createdAt: any;
+  updatedAt?: any;
 };
 
 export type UnitPersonnelCensus = {
@@ -2172,6 +2308,28 @@ export type OperationalPlanItem = {
   isCompleted?: boolean;
   attainmentPercentage?: number;
   status?: string;
+  // GAD Component (CMO No. 1, s. 2015 & PCW GPB Integration)
+  hasGadComponent?: boolean;
+  gadCategory?: GADCategory;
+  gadPillar?: GADMainstreamingPillar;
+  cmoIndicatorId?: number;
+  genderIssue?: string;
+  causeOfIssue?: string;
+  gadObjective?: string;
+  gadActivityName?: string;
+  gadBudget?: number;
+  gadOriginalProgramBudget?: number;
+  hgdgScore?: number;
+  hgdgAttributionRate?: number;
+  psCost?: number;
+  mooeCost?: number;
+  coCost?: number;
+  sourceOfBudget?: string;
+  gadTargetBeneficiaries?: {
+    male: number;
+    female: number;
+  };
+  gadPlanId?: string;
   createdAt: any;
   updatedAt?: any;
 };
@@ -2208,6 +2366,28 @@ export type QualityObjectiveItem = {
   tenPointAgendas?: string[];
   qualityObjective?: string;
   opItemId?: string;
+  // GAD Component (CMO No. 1, s. 2015 & PCW GPB Integration)
+  hasGadComponent?: boolean;
+  gadCategory?: GADCategory;
+  gadPillar?: GADMainstreamingPillar;
+  cmoIndicatorId?: number;
+  genderIssue?: string;
+  causeOfIssue?: string;
+  gadObjective?: string;
+  gadActivityName?: string;
+  gadBudget?: number;
+  gadOriginalProgramBudget?: number;
+  hgdgScore?: number;
+  hgdgAttributionRate?: number;
+  psCost?: number;
+  mooeCost?: number;
+  coCost?: number;
+  sourceOfBudget?: string;
+  gadTargetBeneficiaries?: {
+    male: number;
+    female: number;
+  };
+  gadPlanId?: string;
   createdAt: any;
   updatedAt?: any;
 };
@@ -2222,6 +2402,19 @@ export type MonthlyAccomplishmentEntry = {
   evidenceName?: string; // Descriptive title / label of evidence document
   reportedBy?: string; // Name of person who logged the accomplishment
   date?: string; // ISO date string of update
+  // GAD Monthly Accomplishment & Sex-Disaggregated Data (SDD) Integration
+  hasGadComponent?: boolean;
+  gadParticipants?: {
+    male: number;
+    female: number;
+    sectors?: Partial<Record<GADSector, { male: number; female: number }>>;
+  };
+  gadActualCost?: number;
+  gadActualPs?: number;
+  gadActualMooe?: number;
+  gadActualCo?: number;
+  gadVarianceRemarks?: string;
+  gadActivityId?: string;
 };
 
 // ============================================================

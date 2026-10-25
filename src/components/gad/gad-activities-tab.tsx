@@ -245,6 +245,19 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                       >
                         {a.activityId}
                       </Badge>
+                      {a.isSyncedFromEomsMatrix && (
+                        <Badge className="h-4 text-[8px] font-black uppercase bg-emerald-600 text-white border-none">
+                          EOMS Matrix Synced
+                        </Badge>
+                      )}
+                      {a.cmoIndicatorId && (
+                        <Badge
+                          variant="outline"
+                          className="h-4 text-[8px] font-black uppercase border-violet-400 text-violet-700"
+                        >
+                          CMO #{a.cmoIndicatorId}
+                        </Badge>
+                      )}
                       <span className="text-[9px] font-bold text-muted-foreground">
                         {unitMap.get(a.implementingUnitId)}
                       </span>

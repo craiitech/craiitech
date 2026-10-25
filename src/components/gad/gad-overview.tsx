@@ -169,11 +169,13 @@ export function GADOverview({
       .filter((d) => d.total > 0)
       .sort((a, b) => b.total - a.total);
 
-    // 5. Evidence & HGDG Attribution
+    // 5. Evidence, HGDG Attribution & EOMS Matrix Sync
     const plansWithHGDG = gadPlans.filter(
       (p) => (p.hgdgScore && p.hgdgScore > 0) || p.category === 'ATTRIBUTED PROGRAM',
     ).length;
     const totalHGDG = plansWithHGDG;
+    const eomsSyncedPlans = gadPlans.filter((p) => p.isSyncedFromEomsMatrix).length;
+    const eomsSyncedActivities = gadActivities.filter((a) => a.isSyncedFromEomsMatrix).length;
 
     const itemsWithDrive =
       gadPlans.filter((p) => Boolean(p.driveLink)).length + gadActivities.filter((a) => Boolean(a.driveLink)).length;
@@ -258,6 +260,15 @@ export function GADOverview({
         desc: `${totalHGDG} initiative(s) evaluated under the Harmonized Gender and Development Guidelines (HGDG) for gender mainstreaming.`,
         metric: `${totalHGDG} HGDG Scored`,
         badgeText: 'Compliance',
+      });
+    }
+
+    if (eomsSyncedPlans > 0 || eomsSyncedActivities > 0) {
+      strengths.push({
+        title: 'EOMS Action Plan Matrix GAD Integration',
+        desc: `${eomsSyncedPlans} Action Plan(s) and ${eomsSyncedActivities} monthly accomplishment log(s) directly synchronized from the Unit EOMS Digital Document with CMO No. 1, s. 2015 descriptors.`,
+        metric: `${eomsSyncedPlans} Plans / ${eomsSyncedActivities} Logs`,
+        badgeText: 'EOMS Synced',
       });
     }
 

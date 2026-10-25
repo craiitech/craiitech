@@ -52,7 +52,19 @@ import type {
   VpStrategicGoal,
   Unit,
   Campus,
+  GADCategory,
+  GADMainstreamingPillar,
+  GADSector,
 } from '@/lib/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  CMO_2015_INDICATORS,
+  GAD_PILLAR_OPTIONS,
+  CMO_2015_MANDATE_PRESETS,
+  calculateHgdgAttributionRate,
+  getHgdgTierDescription,
+} from '@/lib/cmo-2015-indicators';
+import { syncActionPlanToGadPlan, syncMonthlyLogToGadCorner } from '@/lib/gad-eoms-sync';
 import {
   Lock,
   Unlock,
@@ -90,6 +102,15 @@ import { ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, L
 
 const MONTH_NAMES = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May.', 'Jun.', 'Jul.', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
 const MONTH_ABBRS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+const GAD_SECTORS_LIST: GADSector[] = [
+  'Solo Parent',
+  'PWD',
+  'Senior Citizen',
+  'Youth/Student',
+  'Employee',
+  'LGBTQA++',
+  'Indigenous People',
+];
 
 export interface OperationalPlanWorkspaceProps {
   onNavigateToWizard?: (step: 1 | 2 | 3 | 4 | 5 | 6, itemId?: string, month?: number) => void;
@@ -137,6 +158,20 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
   const [formStatus, setFormStatus] = useState<'Pending' | 'Ongoing' | 'Achieved' | 'Delayed'>('Ongoing');
   const [formRemarks, setFormRemarks] = useState('');
   const [formActiveMonths, setFormActiveMonths] = useState<number[]>([1, 2, 3]);
+  // GAD Component State in Add/Edit Action Plan Modal (CMO No. 1, s. 2015 & PCW GPB)
+  const [formHasGadComponent, setFormHasGadComponent] = useState<boolean>(false);
+  const [formGadCategory, setFormGadCategory] = useState<GADCategory>('CLIENT-FOCUSED ACTIVITIES');
+  const [formGadPillar, setFormGadPillar] = useState<GADMainstreamingPillar>('CURRICULUM');
+  const [formCmoIndicatorId, setFormCmoIndicatorId] = useState<number | undefined>(undefined);
+  const [formGenderIssue, setFormGenderIssue] = useState<string>('');
+  const [formCauseOfIssue, setFormCauseOfIssue] = useState<string>('');
+  const [formGadObjective, setFormGadObjective] = useState<string>('');
+  const [formGadBudget, setFormGadBudget] = useState<number>(0);
+  const [formGadOriginalProgramBudget, setFormGadOriginalProgramBudget] = useState<number>(0);
+  const [formHgdgScore, setFormHgdgScore] = useState<number>(8);
+  const [formSourceOfBudget, setFormSourceOfBudget] = useState<string>('GAA');
+  const [formTargetMale, setFormTargetMale] = useState<number>(0);
+  const [formTargetFemale, setFormTargetFemale] = useState<number>(0);
 
   // Monthly Accomplishment Modal State (Actual Month Log)
   const [isMonthlyLogDialogOpen, setIsMonthlyLogDialogOpen] = useState(false);
@@ -148,6 +183,18 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
   const [logEvidenceLink, setLogEvidenceLink] = useState<string>('');
   const [logNotes, setLogNotes] = useState<string>('');
   const [isSavingLog, setIsSavingLog] = useState(false);
+  // GAD & SDD State in Log Monthly Accomplishment Modal
+  const [logHasGadComponent, setLogHasGadComponent] = useState<boolean>(false);
+  const [logMaleJoined, setLogMaleJoined] = useState<number>(0);
+  const [logFemaleJoined, setLogFemaleJoined] = useState<number>(0);
+  const [logShowSectors, setLogShowSectors] = useState<boolean>(false);
+  const [logSectors, setLogSectors] = useState<Partial<Record<GADSector, { male: number; female: number }>>>({});
+  const [logGadActualCost, setLogGadActualCost] = useState<number>(0);
+  const [logGadVarianceRemarks, setLogGadVarianceRemarks] = useState<string>('');
+  const [logGadCategory, setLogGadCategory] = useState<GADCategory>('CLIENT-FOCUSED ACTIVITIES');
+  const [logGadPillar, setLogGadPillar] = useState<GADMainstreamingPillar>('CURRICULUM');
+  const [logCmoIndicatorId, setLogCmoIndicatorId] = useState<number | undefined>(undefined);
+  const [logGenderIssue, setLogGenderIssue] = useState<string>('');
 
   // Analysis & Problems Encountered State
   const [analysisBelowTarget, setAnalysisBelowTarget] = useState('');
@@ -156,9 +203,9 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
 
   // Executive Triage, Filter & Header Presentation State
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'needs-update' | 'overdue' | 'this-month' | 'achieved'>(
-    'all',
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'needs-update' | 'overdue' | 'this-month' | 'achieved' | 'gad-component'
+  >('all');
   const [inChargeFilter, setInChargeFilter] = useState<string>('all');
   const [isHeaderExpanded, setIsHeaderExpanded] = useState<boolean>(false);
 
@@ -318,6 +365,20 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
           remarks: op.remarks || '',
           attainmentPercentage: op.actualMetricValue ?? op.attainmentPercentage ?? 0,
           opItemId: op.id,
+          hasGadComponent: op.hasGadComponent || false,
+          gadCategory: op.gadCategory,
+          gadPillar: op.gadPillar,
+          cmoIndicatorId: op.cmoIndicatorId,
+          genderIssue: op.genderIssue,
+          causeOfIssue: op.causeOfIssue,
+          gadObjective: op.gadObjective,
+          gadBudget: op.gadBudget ?? op.budget,
+          gadOriginalProgramBudget: op.gadOriginalProgramBudget,
+          hgdgScore: op.hgdgScore,
+          hgdgAttributionRate: op.hgdgAttributionRate,
+          sourceOfBudget: op.sourceOfBudget,
+          gadTargetBeneficiaries: op.gadTargetBeneficiaries,
+          gadPlanId: op.gadPlanId,
           createdAt: op.createdAt,
         });
       }
@@ -404,8 +465,15 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
     let thisMonthConductedCount = 0;
     let needsUpdateCount = 0;
     let movCount = 0;
+    let gadComponentCount = 0;
 
     unifiedMonitoringItems.forEach((item) => {
+      const hasGad =
+        Boolean(item.hasGadComponent) ||
+        Object.values(item.monthlyAccomplishments || {}).some(
+          (a) => Boolean(a?.hasGadComponent) || (a?.gadParticipants?.male || 0) + (a?.gadParticipants?.female || 0) > 0,
+        );
+      if (hasGad) gadComponentCount++;
       const activeMonths = item.activeMonths || [];
       const actualMonths =
         item.actualMonths ||
@@ -459,6 +527,7 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
       thisMonthConductedCount,
       needsUpdateCount,
       movCount,
+      gadComponentCount,
       overallProgressPercent,
     };
   }, [unifiedMonitoringItems, currentMonthNum]);
@@ -502,11 +571,18 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
 
       const needsUpdate = !isAchieved && (isOverdue || (isThisMonth && !isThisMonthConducted) || !hasUpdate);
 
+      const hasGad =
+        Boolean(item.hasGadComponent) ||
+        Object.values(item.monthlyAccomplishments || {}).some(
+          (a) => Boolean(a?.hasGadComponent) || (a?.gadParticipants?.male || 0) + (a?.gadParticipants?.female || 0) > 0,
+        );
+
       // Status Filter
       if (statusFilter === 'achieved' && !isAchieved) return false;
       if (statusFilter === 'overdue' && !isOverdue) return false;
       if (statusFilter === 'this-month' && !isThisMonth) return false;
       if (statusFilter === 'needs-update' && !needsUpdate) return false;
+      if (statusFilter === 'gad-component' && !hasGad) return false;
 
       // In-charge filter
       if (inChargeFilter !== 'all') {
@@ -566,12 +642,26 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
       setFormTaskText(item.taskText || '');
       setFormInCharge(item.inCharge || item.responsiblePerson || 'QA UNIT');
       setFormResourcesNeeded(item.resourcesNeeded || 'Human Resource / Budget / Supplies & Materials');
-      setFormBudget(0);
+      setFormBudget(item.gadBudget || 0);
       setFormTargetIndicator(item.targetIndicator || '');
       setFormStatus(item.status || 'Ongoing');
       setFormRemarks(item.remarks || '');
       setFormActiveMonths(item.activeMonths || [1, 2, 3]);
       setFormVpGoalId('none');
+      // GAD fields
+      setFormHasGadComponent(Boolean(item.hasGadComponent));
+      setFormGadCategory(item.gadCategory || 'CLIENT-FOCUSED ACTIVITIES');
+      setFormGadPillar(item.gadPillar || 'CURRICULUM');
+      setFormCmoIndicatorId(item.cmoIndicatorId);
+      setFormGenderIssue(item.genderIssue || '');
+      setFormCauseOfIssue(item.causeOfIssue || '');
+      setFormGadObjective(item.gadObjective || '');
+      setFormGadBudget(item.gadBudget || 0);
+      setFormGadOriginalProgramBudget(item.gadOriginalProgramBudget || item.gadBudget || 0);
+      setFormHgdgScore(item.hgdgScore ?? 8);
+      setFormSourceOfBudget(item.sourceOfBudget || 'GAA');
+      setFormTargetMale(item.gadTargetBeneficiaries?.male || 0);
+      setFormTargetFemale(item.gadTargetBeneficiaries?.female || 0);
     } else {
       setEditingItem(null);
       setFormObjectiveText(metaUnitQualityObjective || 'To ensure institutional compliance and quality objectives');
@@ -584,11 +674,25 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
       setFormRemarks('');
       setFormActiveMonths([new Date().getMonth() + 1]);
       setFormVpGoalId('none');
+      // GAD fields reset
+      setFormHasGadComponent(false);
+      setFormGadCategory('CLIENT-FOCUSED ACTIVITIES');
+      setFormGadPillar('CURRICULUM');
+      setFormCmoIndicatorId(undefined);
+      setFormGenderIssue('');
+      setFormCauseOfIssue('');
+      setFormGadObjective('');
+      setFormGadBudget(0);
+      setFormGadOriginalProgramBudget(0);
+      setFormHgdgScore(8);
+      setFormSourceOfBudget('GAA');
+      setFormTargetMale(0);
+      setFormTargetFemale(0);
     }
     setIsActionPlanDialogOpen(true);
   };
 
-  // Save Action Plan (Writes to qualityObjectives AND operationalPlanItems)
+  // Save Action Plan (Writes to qualityObjectives, operationalPlanItems, AND gadPlans if GAD Component is enabled)
   const handleSaveActionPlan = async () => {
     if (!firestore || !planDocId || !selectedUnitId || !userProfile) return;
     if (!formTaskText.trim()) {
@@ -607,6 +711,34 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
       const startMonthName = formActiveMonths.length > 0 ? MONTH_NAMES[Math.min(...formActiveMonths) - 1] : 'Jan.';
       const endMonthName = formActiveMonths.length > 0 ? MONTH_NAMES[Math.max(...formActiveMonths) - 1] : 'Dec.';
 
+      const hgdgAttrRate =
+        formGadCategory === 'ATTRIBUTED PROGRAM' ? calculateHgdgAttributionRate(Number(formHgdgScore) || 0) : 1;
+      const computedGadBudget =
+        formGadCategory === 'ATTRIBUTED PROGRAM' && Number(formGadOriginalProgramBudget) > 0
+          ? Number((Number(formGadOriginalProgramBudget) * hgdgAttrRate).toFixed(2))
+          : Number(formGadBudget) || Number(formBudget) || 0;
+
+      const gadCommonFields = {
+        hasGadComponent: formHasGadComponent,
+        gadCategory: formHasGadComponent ? formGadCategory : null,
+        gadPillar: formHasGadComponent ? formGadPillar : null,
+        cmoIndicatorId: formHasGadComponent && formCmoIndicatorId ? Number(formCmoIndicatorId) : null,
+        genderIssue: formHasGadComponent ? formGenderIssue.trim() : '',
+        causeOfIssue: formHasGadComponent ? formCauseOfIssue.trim() : '',
+        gadObjective: formHasGadComponent ? formGadObjective.trim() : '',
+        gadBudget: formHasGadComponent ? computedGadBudget : 0,
+        gadOriginalProgramBudget: formHasGadComponent ? Number(formGadOriginalProgramBudget) || computedGadBudget : 0,
+        hgdgScore: formHasGadComponent && formGadCategory === 'ATTRIBUTED PROGRAM' ? Number(formHgdgScore) || 0 : null,
+        hgdgAttributionRate: formHasGadComponent && formGadCategory === 'ATTRIBUTED PROGRAM' ? hgdgAttrRate : null,
+        sourceOfBudget: formHasGadComponent ? formSourceOfBudget : 'GAA',
+        gadTargetBeneficiaries: formHasGadComponent
+          ? { male: Number(formTargetMale) || 0, female: Number(formTargetFemale) || 0 }
+          : { male: 0, female: 0 },
+      };
+
+      let savedQomId = editingItem?.id || '';
+      let savedOpId = editingItem?.opItemId || '';
+
       if (editingItem && !editingItem.id.startsWith('syn_')) {
         // Update existing QualityObjective
         await updateDoc(doc(firestore, 'qualityObjectives', editingItem.id), {
@@ -619,6 +751,7 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
           activeMonths: formActiveMonths,
           status: formStatus,
           remarks: formRemarks.trim(),
+          ...gadCommonFields,
           updatedAt: serverTimestamp(),
         });
 
@@ -631,14 +764,14 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
             timelineEnd: `${endMonthName} ${selectedYear}`,
             personsResponsible: formInCharge.trim(),
             resources: formResourcesNeeded.trim(),
-            budget: Number(formBudget) || 0,
+            budget: Number(formBudget) || computedGadBudget || 0,
             successIndicator: formTargetIndicator.trim(),
             remarks: formRemarks.trim(),
             status: formStatus,
+            ...gadCommonFields,
             updatedAt: serverTimestamp(),
           });
         }
-        toast({ title: 'Monitoring Updated', description: 'Action Plan and Operational Plan synchronized.' });
       } else {
         // Create new item in both collections
         const newOpRef = await addDoc(collection(firestore, 'operationalPlanItems'), {
@@ -654,18 +787,19 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
           timelineEnd: `${endMonthName} ${selectedYear}`,
           personsResponsible: formInCharge.trim(),
           resources: formResourcesNeeded.trim(),
-          budget: Number(formBudget) || 0,
+          budget: Number(formBudget) || computedGadBudget || 0,
           successIndicator: formTargetIndicator.trim(),
           targetMetricValue: 100,
           targetMetricUnit: '%',
           isBaselineLocked: false,
           progressUpdates: '',
           remarks: formRemarks.trim(),
+          ...gadCommonFields,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
 
-        await addDoc(collection(firestore, 'qualityObjectives'), {
+        const newQomRef = await addDoc(collection(firestore, 'qualityObjectives'), {
           planId: planDocId,
           unitId: selectedUnitId,
           year: selectedYear,
@@ -680,15 +814,64 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
           status: formStatus,
           remarks: formRemarks.trim(),
           opItemId: newOpRef.id,
+          ...gadCommonFields,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
 
-        toast({
-          title: 'Action Plan Created',
-          description: 'Item added to Quality Objectives Monitoring and Operational Plan.',
-        });
+        savedQomId = newQomRef.id;
+        savedOpId = newOpRef.id;
       }
+
+      // Sync to GAD Corner (`gadPlans` GPB Registry)
+      if (savedQomId) {
+        const campusObjId = currentUnit?.campusIds?.[0] || userProfile.campusId || '';
+        const syncedGadPlanId = await syncActionPlanToGadPlan({
+          firestore,
+          planId: planDocId,
+          qomId: savedQomId,
+          opItemId: savedOpId,
+          unitId: selectedUnitId,
+          unitName: currentUnit?.name || '',
+          campusId: campusObjId,
+          year: selectedYear,
+          objectiveText: formObjectiveText.trim(),
+          taskText: formTaskText.trim(),
+          targetIndicator: formTargetIndicator.trim(),
+          responsiblePerson: formInCharge.trim(),
+          inCharge: formInCharge.trim(),
+          hasGadComponent: formHasGadComponent,
+          gadCategory: formGadCategory,
+          gadPillar: formGadPillar,
+          cmoIndicatorId: formCmoIndicatorId,
+          genderIssue: formGenderIssue,
+          causeOfIssue: formCauseOfIssue,
+          gadObjective: formGadObjective,
+          gadBudget: computedGadBudget,
+          gadOriginalProgramBudget: Number(formGadOriginalProgramBudget) || computedGadBudget,
+          hgdgScore: Number(formHgdgScore) || 0,
+          sourceOfBudget: formSourceOfBudget,
+          gadTargetBeneficiaries: {
+            male: Number(formTargetMale) || 0,
+            female: Number(formTargetFemale) || 0,
+          },
+          existingGadPlanId: editingItem?.gadPlanId,
+        });
+
+        if (syncedGadPlanId) {
+          await updateDoc(doc(firestore, 'qualityObjectives', savedQomId), { gadPlanId: syncedGadPlanId });
+          if (savedOpId) {
+            await updateDoc(doc(firestore, 'operationalPlanItems', savedOpId), { gadPlanId: syncedGadPlanId });
+          }
+        }
+      }
+
+      toast({
+        title: editingItem ? 'Monitoring Updated' : 'Action Plan Created',
+        description: formHasGadComponent
+          ? 'Synchronized with Operational Plan and GAD Corner (GPB Monitoring).'
+          : 'Synchronized with Quality Objectives Monitoring and Operational Plan.',
+      });
 
       setIsActionPlanDialogOpen(false);
     } catch (e: any) {
@@ -776,6 +959,16 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
       setLogAttainment(existingAcc.attainment ?? 100);
       setLogEvidenceLink(existingAcc.evidenceLink || '');
       setLogNotes(existingAcc.notes || '');
+      // GAD & SDD fields for this month
+      setLogHasGadComponent(Boolean(existingAcc.hasGadComponent ?? item.hasGadComponent));
+      setLogMaleJoined(existingAcc.gadParticipants?.male ?? 0);
+      setLogFemaleJoined(existingAcc.gadParticipants?.female ?? 0);
+      setLogSectors(existingAcc.gadParticipants?.sectors || {});
+      setLogShowSectors(
+        Boolean(existingAcc.gadParticipants?.sectors && Object.keys(existingAcc.gadParticipants.sectors).length > 0),
+      );
+      setLogGadActualCost(existingAcc.gadActualCost ?? item.gadBudget ?? 0);
+      setLogGadVarianceRemarks(existingAcc.gadVarianceRemarks || '');
     } else {
       const isConducted = item.actualMonths?.includes(month);
       setLogImplemented(isConducted ? true : true);
@@ -783,12 +976,24 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
       setLogAttainment(item.attainmentPercentage || 100);
       setLogEvidenceLink(item.movLink || '');
       setLogNotes(item.remarks || '');
+      // Pre-fill GAD checkbox if parent Action Plan has a GAD component
+      setLogHasGadComponent(Boolean(item.hasGadComponent));
+      setLogMaleJoined(0);
+      setLogFemaleJoined(0);
+      setLogSectors({});
+      setLogShowSectors(false);
+      setLogGadActualCost(item.gadBudget || 0);
+      setLogGadVarianceRemarks('');
     }
+    setLogGadCategory(item.gadCategory || 'CLIENT-FOCUSED ACTIVITIES');
+    setLogGadPillar(item.gadPillar || 'CURRICULUM');
+    setLogCmoIndicatorId(item.cmoIndicatorId);
+    setLogGenderIssue(item.genderIssue || '');
 
     setIsMonthlyLogDialogOpen(true);
   };
 
-  // Save Monthly Accomplishment Entry
+  // Save Monthly Accomplishment Entry (and sync Gender Component & Male/Female SDD to GAD Corner)
   const handleSaveMonthlyAccomplishment = async () => {
     if (!firestore || !loggingItem || !planDocId || !userProfile) return;
     setIsSavingLog(true);
@@ -808,6 +1013,16 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
           notes: logNotes.trim(),
           reportedBy: `${userProfile.firstName} ${userProfile.lastName} (${userProfile.email})`,
           date: new Date().toISOString(),
+          hasGadComponent: logHasGadComponent,
+          gadParticipants: logHasGadComponent
+            ? {
+                male: Math.max(0, Number(logMaleJoined) || 0),
+                female: Math.max(0, Number(logFemaleJoined) || 0),
+                sectors: logSectors,
+              }
+            : undefined,
+          gadActualCost: logHasGadComponent ? Math.max(0, Number(logGadActualCost) || 0) : undefined,
+          gadVarianceRemarks: logHasGadComponent ? logGadVarianceRemarks.trim() : undefined,
         },
       };
 
@@ -823,6 +1038,20 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
         .filter((v) => v > 0);
       const overallAttainment = reportedAttainments.length > 0 ? Math.max(...reportedAttainments) : logAttainment;
       const computedStatus = overallAttainment >= 100 ? 'Achieved' : overallAttainment > 0 ? 'Ongoing' : 'Pending';
+
+      const parentHasGad = Boolean(loggingItem.hasGadComponent || logHasGadComponent);
+      const gadParentUpdates = parentHasGad
+        ? {
+            hasGadComponent: true,
+            gadCategory: logGadCategory || loggingItem.gadCategory || 'CLIENT-FOCUSED ACTIVITIES',
+            gadPillar: logGadPillar || loggingItem.gadPillar || 'CURRICULUM',
+            cmoIndicatorId: logCmoIndicatorId ?? loggingItem.cmoIndicatorId ?? null,
+            genderIssue:
+              logGenderIssue.trim() ||
+              loggingItem.genderIssue ||
+              `CMO No. 1, s. 2015 Gender Mainstreaming in: ${loggingItem.taskText}`,
+          }
+        : {};
 
       let targetQomId = loggingItem.id;
       if (loggingItem.id.startsWith('syn_')) {
@@ -846,6 +1075,7 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
           remarks: logNotes.trim() || loggingItem.remarks || '',
           attainmentPercentage: overallAttainment,
           opItemId: loggingItem.opItemId,
+          ...gadParentUpdates,
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         });
@@ -859,6 +1089,7 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
           actualOutput: logOutput.trim() || loggingItem.actualOutput || '',
           movLink: logEvidenceLink.trim() || loggingItem.movLink || '',
           remarks: logNotes.trim() || loggingItem.remarks || '',
+          ...gadParentUpdates,
           updatedAt: serverTimestamp(),
         });
       }
@@ -873,7 +1104,56 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
           remarks: logNotes.trim() || loggingItem.remarks || '',
           isCompleted: overallAttainment >= 100,
           status: computedStatus,
+          ...gadParentUpdates,
           updatedAt: serverTimestamp(),
+        });
+      }
+
+      // Sync Gender Component & Male/Female SDD into GAD Corner (`gadPlans`, `gadActivities`, SDD Hub, & `cmoSubmissions`)
+      const campusObjId = currentUnit?.campusIds?.[0] || userProfile.campusId || '';
+      const { gadPlanId: syncedGadPlanId, gadActivityId: syncedGadActId } = await syncMonthlyLogToGadCorner({
+        firestore,
+        planId: planDocId,
+        qomId: targetQomId,
+        opItemId: loggingItem.opItemId,
+        unitId: selectedUnitId,
+        unitName: currentUnit?.name || '',
+        campusId: campusObjId,
+        year: selectedYear,
+        month: selectedLogMonth,
+        objectiveText: loggingItem.objectiveText,
+        taskText: loggingItem.taskText,
+        targetIndicator: loggingItem.targetIndicator,
+        responsiblePerson: loggingItem.responsiblePerson,
+        inCharge: loggingItem.inCharge,
+        implemented: logImplemented,
+        output: logOutput.trim(),
+        notes: logNotes.trim(),
+        evidenceLink: logEvidenceLink.trim(),
+        reportedBy: `${userProfile.firstName} ${userProfile.lastName}`,
+        hasGadComponent: logHasGadComponent,
+        maleParticipants: Number(logMaleJoined) || 0,
+        femaleParticipants: Number(logFemaleJoined) || 0,
+        sectorBreakdown: logSectors,
+        gadActualCost: Number(logGadActualCost) || 0,
+        gadVarianceRemarks: logGadVarianceRemarks.trim(),
+        gadCategory: logGadCategory,
+        gadPillar: logGadPillar,
+        cmoIndicatorId: logCmoIndicatorId,
+        genderIssue: logGenderIssue.trim(),
+        gadBudget: loggingItem.gadBudget || Number(logGadActualCost) || 0,
+        existingGadPlanId: loggingItem.gadPlanId,
+        allMonthlyAccomplishments: newAcc,
+      });
+
+      if (syncedGadPlanId || syncedGadActId) {
+        newAcc[selectedLogMonth] = {
+          ...newAcc[selectedLogMonth],
+          gadActivityId: syncedGadActId || undefined,
+        };
+        await updateDoc(doc(firestore, 'qualityObjectives', targetQomId), {
+          gadPlanId: syncedGadPlanId || loggingItem.gadPlanId || '',
+          monthlyAccomplishments: newAcc,
         });
       }
 
@@ -884,7 +1164,9 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
 
       toast({
         title: 'Monthly Accomplishment Saved',
-        description: `Recorded actual accomplishment for ${MONTH_NAMES[selectedLogMonth - 1]}. Operational Plan synchronized.`,
+        description: logHasGadComponent
+          ? `Recorded ${MONTH_NAMES[selectedLogMonth - 1]} accomplishment & synced SDD (${logMaleJoined}M / ${logFemaleJoined}F) to GAD Corner.`
+          : `Recorded actual accomplishment for ${MONTH_NAMES[selectedLogMonth - 1]}. Operational Plan synchronized.`,
       });
       setIsMonthlyLogDialogOpen(false);
     } catch (e: any) {
@@ -1698,6 +1980,18 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
             >
               <CheckCircle2 className="h-3 w-3" /> Done ({executiveMetrics.achievedCount})
             </Button>
+            <Button
+              size="sm"
+              variant={statusFilter === 'gad-component' ? 'default' : 'outline'}
+              onClick={() => setStatusFilter('gad-component')}
+              className={`h-7 text-xs font-bold gap-1 ${
+                statusFilter === 'gad-component'
+                  ? 'bg-violet-600 text-white hover:bg-violet-700'
+                  : 'text-violet-700 dark:text-violet-300 border-violet-300 dark:border-violet-800/60 bg-violet-50/40 dark:bg-violet-950/20'
+              }`}
+            >
+              <Sparkles className="h-3 w-3" /> GAD Component ({executiveMetrics.gadComponentCount})
+            </Button>
           </div>
 
           {/* Right: In-Charge Filter & Search Input */}
@@ -1929,6 +2223,51 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
                                   <Calendar className="h-2.5 w-2.5" /> Due This Month
                                 </Badge>
                               )}
+                              {(() => {
+                                const monthlyGadList = Object.values(item.monthlyAccomplishments || {});
+                                const totalMale = monthlyGadList.reduce(
+                                  (acc, m) => acc + (Number(m?.gadParticipants?.male) || 0),
+                                  0,
+                                );
+                                const totalFemale = monthlyGadList.reduce(
+                                  (acc, m) => acc + (Number(m?.gadParticipants?.female) || 0),
+                                  0,
+                                );
+                                const hasRowGad =
+                                  Boolean(item.hasGadComponent) ||
+                                  monthlyGadList.some((m) => Boolean(m?.hasGadComponent)) ||
+                                  totalMale + totalFemale > 0;
+                                if (!hasRowGad) return null;
+                                return (
+                                  <>
+                                    <Badge className="bg-violet-600 hover:bg-violet-700 text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 gap-1">
+                                      <Sparkles className="h-2.5 w-2.5 text-amber-200" />
+                                      GAD •{' '}
+                                      {item.gadCategory === 'ORGANIZATION-FOCUSED ACTIVITIES'
+                                        ? 'Org-Focused'
+                                        : item.gadCategory === 'ATTRIBUTED PROGRAM'
+                                          ? `Attributed (${Math.round((item.hgdgAttributionRate ?? 0.5) * 100)}%)`
+                                          : 'Client-Focused'}
+                                    </Badge>
+                                    {item.cmoIndicatorId && (
+                                      <Badge
+                                        variant="outline"
+                                        className="border-violet-400 text-violet-700 dark:text-violet-300 text-[9px] font-bold px-1.5 py-0.5"
+                                      >
+                                        CMO 1 s. 2015 #{item.cmoIndicatorId}
+                                      </Badge>
+                                    )}
+                                    {(totalMale > 0 || totalFemale > 0) && (
+                                      <Badge
+                                        variant="outline"
+                                        className="border-rose-300 bg-rose-50/70 dark:bg-rose-950/30 text-rose-700 dark:text-rose-300 text-[9px] font-bold px-1.5 py-0.5"
+                                      >
+                                        SDD: {totalMale}M / {totalFemale}F
+                                      </Badge>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </div>
                           </TableCell>
 
@@ -2486,6 +2825,267 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
                 />
               </div>
             </div>
+
+            {/* GAD Component Declaration & CMO No. 1, s. 2015 Integration Card */}
+            <div className="p-3.5 rounded-xl border border-violet-300 dark:border-violet-800/70 bg-violet-50/40 dark:bg-violet-950/20 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-start gap-2.5">
+                  <Checkbox
+                    id="action-plan-gad-checkbox"
+                    checked={formHasGadComponent}
+                    onCheckedChange={(checked) => setFormHasGadComponent(Boolean(checked))}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <label
+                      htmlFor="action-plan-gad-checkbox"
+                      className="text-xs font-black uppercase tracking-tight text-violet-900 dark:text-violet-200 cursor-pointer flex items-center gap-1.5"
+                    >
+                      <Sparkles className="h-3.5 w-3.5 text-violet-600" />
+                      This Deliverable / PPA has a Gender (GAD) Component
+                    </label>
+                    <p className="text-[10.5px] text-muted-foreground">
+                      Check to automatically include and monitor this program in the GAD Corner (GPB, GAD AR, &amp; CMO
+                      No. 1, s. 2015).
+                    </p>
+                  </div>
+                </div>
+                {formHasGadComponent && (
+                  <Badge className="bg-violet-600 text-white text-[9px] font-black uppercase shrink-0">
+                    Synced to GAD Corner
+                  </Badge>
+                )}
+              </div>
+
+              {formHasGadComponent && (
+                <div className="space-y-3 pt-2 border-t border-violet-200 dark:border-violet-800/60">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-black uppercase text-violet-800 dark:text-violet-300">
+                      Quick-Fill from CMO No. 1, s. 2015 Mandate Presets (Optional)
+                    </Label>
+                    <Select
+                      onValueChange={(idxStr) => {
+                        const preset = CMO_2015_MANDATE_PRESETS[Number(idxStr)];
+                        if (preset) {
+                          setFormGenderIssue(preset.genderIssue);
+                          setFormCauseOfIssue(preset.causeOfIssue);
+                          setFormGadObjective(preset.gadObjective);
+                          setFormGadPillar(preset.pillar);
+                          if (preset.cmoIndicatorId) setFormCmoIndicatorId(preset.cmoIndicatorId);
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs bg-background">
+                        <SelectValue placeholder="Select a CHED CMO No. 1, s. 2015 Mandate template..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CMO_2015_MANDATE_PRESETS.map((p, i) => (
+                          <SelectItem key={i} value={String(i)} className="text-xs">
+                            {p.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold uppercase">PCW GAD Category</Label>
+                      <Select value={formGadCategory} onValueChange={(v) => setFormGadCategory(v as GADCategory)}>
+                        <SelectTrigger className="h-8 text-xs bg-background">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CLIENT-FOCUSED ACTIVITIES" className="text-xs">
+                            Client-Focused GAD Activity (Students / Community)
+                          </SelectItem>
+                          <SelectItem value="ORGANIZATION-FOCUSED ACTIVITIES" className="text-xs">
+                            Organization-Focused GAD Activity (Internal / Policy / Staff)
+                          </SelectItem>
+                          <SelectItem value="ATTRIBUTED PROGRAM" className="text-xs">
+                            Attributed Regular Program (HGDG Scored)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold uppercase">CMO No. 1, s. 2015 Pillar</Label>
+                      <Select
+                        value={formGadPillar}
+                        onValueChange={(v) => setFormGadPillar(v as GADMainstreamingPillar)}
+                      >
+                        <SelectTrigger className="h-8 text-xs bg-background">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GAD_PILLAR_OPTIONS.map((p) => (
+                            <SelectItem key={p.value} value={p.value} className="text-xs">
+                              {p.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold uppercase">
+                      Link to CMO No. 1, s. 2015 Tripartite Descriptor (#1–20) (Optional)
+                    </Label>
+                    <Select
+                      value={formCmoIndicatorId ? String(formCmoIndicatorId) : 'none'}
+                      onValueChange={(v) => setFormCmoIndicatorId(v === 'none' ? undefined : Number(v))}
+                    >
+                      <SelectTrigger className="h-8 text-xs bg-background">
+                        <SelectValue placeholder="Select CMO 1 s. 2015 Descriptor..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-56">
+                        <SelectItem value="none" className="text-xs">
+                          -- General GAD Plan / Not tied to specific descriptor --
+                        </SelectItem>
+                        {CMO_2015_INDICATORS.map((ind) => (
+                          <SelectItem key={ind.id} value={String(ind.id)} className="text-xs">
+                            [{ind.category}] #{ind.itemCode}: {ind.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold uppercase">Gender Issue / CMO 1 s. 2015 GAD Mandate</Label>
+                    <Textarea
+                      rows={2}
+                      value={formGenderIssue}
+                      onChange={(e) => setFormGenderIssue(e.target.value)}
+                      placeholder="State the gender issue or CHED CMO No. 1, s. 2015 mandate addressed by this deliverable..."
+                      className="text-xs bg-background"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold uppercase">Cause of Gender Issue</Label>
+                      <Input
+                        value={formCauseOfIssue}
+                        onChange={(e) => setFormCauseOfIssue(e.target.value)}
+                        placeholder="Root cause of the gender gap..."
+                        className="h-8 text-xs bg-background"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] font-bold uppercase">GAD Result Statement / Objective</Label>
+                      <Input
+                        value={formGadObjective}
+                        onChange={(e) => setFormGadObjective(e.target.value)}
+                        placeholder="Expected gender-responsive outcome..."
+                        className="h-8 text-xs bg-background"
+                      />
+                    </div>
+                  </div>
+
+                  {formGadCategory === 'ATTRIBUTED PROGRAM' ? (
+                    <div className="p-2.5 rounded-lg bg-background border space-y-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div>
+                          <Label className="text-[10px] font-bold">Total Program Budget (₱)</Label>
+                          <Input
+                            type="number"
+                            value={formGadOriginalProgramBudget || ''}
+                            onChange={(e) => setFormGadOriginalProgramBudget(Number(e.target.value))}
+                            className="h-8 text-xs font-mono mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold">HGDG Score (0–20)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            max={20}
+                            step={0.5}
+                            value={formHgdgScore}
+                            onChange={(e) => setFormHgdgScore(Number(e.target.value))}
+                            className="h-8 text-xs font-mono mt-1"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-[10px] font-bold">Attributable GAD Budget</Label>
+                          <div className="h-8 px-2.5 rounded border bg-muted/40 flex items-center text-xs font-black text-violet-700 dark:text-violet-300 mt-1">
+                            ₱
+                            {(
+                              (Number(formGadOriginalProgramBudget) || 0) * calculateHgdgAttributionRate(formHgdgScore)
+                            ).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-violet-700 dark:text-violet-300 font-semibold">
+                        HGDG Tier: {getHgdgTierDescription(formHgdgScore)}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <div>
+                        <Label className="text-[10px] font-bold">GAD Budget (₱)</Label>
+                        <Input
+                          type="number"
+                          value={formGadBudget || formBudget || ''}
+                          onChange={(e) => setFormGadBudget(Number(e.target.value))}
+                          placeholder="0"
+                          className="h-8 text-xs font-mono bg-background mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-bold">Fund Source</Label>
+                        <Select value={formSourceOfBudget} onValueChange={setFormSourceOfBudget}>
+                          <SelectTrigger className="h-8 text-xs bg-background mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="GAA" className="text-xs">
+                              GAA (5% GAD)
+                            </SelectItem>
+                            <SelectItem value="STF" className="text-xs">
+                              STF / Fiduciary
+                            </SelectItem>
+                            <SelectItem value="IGP" className="text-xs">
+                              IGP
+                            </SelectItem>
+                            <SelectItem value="External Grant" className="text-xs">
+                              External Grant
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+                          Target Male
+                        </Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={formTargetMale || ''}
+                          onChange={(e) => setFormTargetMale(Number(e.target.value))}
+                          placeholder="0"
+                          className="h-8 text-xs bg-background mt-1"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[10px] font-bold text-rose-700 dark:text-rose-300">Target Female</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={formTargetFemale || ''}
+                          onChange={(e) => setFormTargetFemale(Number(e.target.value))}
+                          placeholder="0"
+                          className="h-8 text-xs bg-background mt-1"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
@@ -2501,21 +3101,21 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
 
       {/* 8. Dialog: Monthly Accomplishment Modal (Actual Month - Blue Bar) */}
       <Dialog open={isMonthlyLogDialogOpen} onOpenChange={setIsMonthlyLogDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <Calendar className="h-4 w-4 text-blue-600" />
-              Log Monthly Accomplishment — {MONTH_NAMES[selectedLogMonth - 1]} {selectedYear}
+              Log Actual Accomplishment — {MONTH_NAMES[selectedLogMonth - 1]} {selectedYear}
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Record the actual output, attainment %, and evidence for this action plan during{' '}
+              Record the actual output, attainment %, Gender (GAD) Component SDD participants, and evidence for{' '}
               {MONTH_NAMES[selectedLogMonth - 1]}.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="p-3 bg-muted/40 rounded-lg border space-y-1">
-              <div className="text-[11px] text-muted-foreground font-bold">Action Plan:</div>
+              <div className="text-[11px] text-muted-foreground font-bold">Action Plan / Deliverable:</div>
               <div className="text-xs font-bold text-foreground">
                 {loggingItem?.taskText || loggingItem?.objectiveText}
               </div>
@@ -2562,6 +3162,193 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
                   />
                 </div>
 
+                {/* Gender (GAD) Component Checkbox & Male/Female SDD Participant Inputs */}
+                <div className="p-3.5 rounded-xl border border-violet-300 dark:border-violet-800 bg-violet-50/50 dark:bg-violet-950/25 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-2.5">
+                      <Checkbox
+                        id="monthly-log-gad-checkbox"
+                        checked={logHasGadComponent}
+                        onCheckedChange={(checked) => setLogHasGadComponent(Boolean(checked))}
+                        className="mt-0.5"
+                      />
+                      <div>
+                        <label
+                          htmlFor="monthly-log-gad-checkbox"
+                          className="text-xs font-black uppercase tracking-tight text-violet-900 dark:text-violet-200 cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Sparkles className="h-3.5 w-3.5 text-violet-600" />
+                          This Program / Activity has a Gender (GAD) Component
+                        </label>
+                        <p className="text-[10.5px] text-muted-foreground">
+                          Check to record Male &amp; Female participants (SDD) and automatically sync with GAD Corner
+                          monitoring.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {logHasGadComponent && (
+                    <div className="space-y-3 pt-2 border-t border-violet-200 dark:border-violet-800/60">
+                      {/* Male & Female Who Joined (Sex-Disaggregated Data) */}
+                      <div className="grid grid-cols-3 gap-2.5">
+                        <div className="p-2.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800 text-center">
+                          <Label className="text-[10px] font-black uppercase text-indigo-700 dark:text-indigo-300 block mb-1">
+                            Male Joined
+                          </Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={logMaleJoined}
+                            onChange={(e) => setLogMaleJoined(Math.max(0, Number(e.target.value) || 0))}
+                            className="h-9 text-center font-black text-sm bg-background"
+                          />
+                        </div>
+
+                        <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-center">
+                          <Label className="text-[10px] font-black uppercase text-rose-700 dark:text-rose-300 block mb-1">
+                            Female Joined
+                          </Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={logFemaleJoined}
+                            onChange={(e) => setLogFemaleJoined(Math.max(0, Number(e.target.value) || 0))}
+                            className="h-9 text-center font-black text-sm bg-background"
+                          />
+                        </div>
+
+                        <div className="p-2.5 rounded-lg bg-slate-900 text-white flex flex-col items-center justify-center">
+                          <span className="text-[9px] font-black uppercase text-slate-300">Total SDD Reach</span>
+                          <span className="text-xl font-black tabular-nums mt-0.5">
+                            {(Number(logMaleJoined) || 0) + (Number(logFemaleJoined) || 0)}
+                          </span>
+                          <span className="text-[9px] text-violet-300">Participants</span>
+                        </div>
+                      </div>
+
+                      {/* Optional 7 Marginalized Sectors Breakdown Toggle */}
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() => setLogShowSectors(!logShowSectors)}
+                          className="text-[10.5px] font-bold text-violet-700 dark:text-violet-300 hover:underline flex items-center gap-1"
+                        >
+                          {logShowSectors ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                          {logShowSectors ? 'Hide' : 'Add'} Marginalized / Vulnerable Sectors Breakdown (Solo Parent,
+                          PWD, IP, Youth, LGBTQA++)
+                        </button>
+
+                        {logShowSectors && (
+                          <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 p-2.5 rounded-lg bg-background border">
+                            {GAD_SECTORS_LIST.map((sec) => {
+                              const secData = logSectors[sec] || { male: 0, female: 0 };
+                              return (
+                                <div key={sec} className="p-2 rounded border bg-muted/20 space-y-1">
+                                  <span className="text-[10px] font-black uppercase block">{sec}</span>
+                                  <div className="grid grid-cols-2 gap-1.5">
+                                    <div>
+                                      <span className="text-[9px] text-indigo-600 font-bold">Male</span>
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        value={secData.male || ''}
+                                        onChange={(e) =>
+                                          setLogSectors((prev) => ({
+                                            ...prev,
+                                            [sec]: { ...secData, male: Math.max(0, Number(e.target.value) || 0) },
+                                          }))
+                                        }
+                                        placeholder="0"
+                                        className="h-7 text-xs"
+                                      />
+                                    </div>
+                                    <div>
+                                      <span className="text-[9px] text-rose-600 font-bold">Female</span>
+                                      <Input
+                                        type="number"
+                                        min={0}
+                                        value={secData.female || ''}
+                                        onChange={(e) =>
+                                          setLogSectors((prev) => ({
+                                            ...prev,
+                                            [sec]: { ...secData, female: Math.max(0, Number(e.target.value) || 0) },
+                                          }))
+                                        }
+                                        placeholder="0"
+                                        className="h-7 text-xs"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* GAD Category, CMO 1 s. 2015 Descriptor & Actual GAD Expenditure */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold uppercase">GAD Classification</Label>
+                          <Select value={logGadCategory} onValueChange={(v) => setLogGadCategory(v as GADCategory)}>
+                            <SelectTrigger className="h-8 text-xs bg-background">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="CLIENT-FOCUSED ACTIVITIES" className="text-xs">
+                                Client-Focused GAD
+                              </SelectItem>
+                              <SelectItem value="ORGANIZATION-FOCUSED ACTIVITIES" className="text-xs">
+                                Organization-Focused GAD
+                              </SelectItem>
+                              <SelectItem value="ATTRIBUTED PROGRAM" className="text-xs">
+                                Attributed Program (HGDG)
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[10px] font-bold uppercase">Actual GAD Cost Expended (₱)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            value={logGadActualCost || ''}
+                            onChange={(e) => setLogGadActualCost(Number(e.target.value) || 0)}
+                            placeholder="0.00"
+                            className="h-8 text-xs font-mono bg-background"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <Label className="text-[10px] font-bold uppercase">
+                          CMO No. 1, s. 2015 Descriptor Link (Auto-links MOV to GAD Assessment)
+                        </Label>
+                        <Select
+                          value={logCmoIndicatorId ? String(logCmoIndicatorId) : 'none'}
+                          onValueChange={(v) => setLogCmoIndicatorId(v === 'none' ? undefined : Number(v))}
+                        >
+                          <SelectTrigger className="h-8 text-xs bg-background">
+                            <SelectValue placeholder="Optional: Link to CMO 1 s. 2015 Descriptor #1–20" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-52">
+                            <SelectItem value="none" className="text-xs">
+                              -- General GAD Activity (GPB / GAD AR / SDD Hub) --
+                            </SelectItem>
+                            {CMO_2015_INDICATORS.map((ind) => (
+                              <SelectItem key={ind.id} value={String(ind.id)} className="text-xs">
+                                [{ind.category}] #{ind.itemCode}: {ind.title}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold">MOV / Evidence Drive Link</Label>
                   <Input
@@ -2596,7 +3383,7 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {isSavingLog ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Save Accomplishment &amp; Sync Plan
+              {logHasGadComponent ? 'Save Accomplishment & Sync to GAD Corner' : 'Save Accomplishment & Sync Plan'}
             </Button>
           </DialogFooter>
         </DialogContent>

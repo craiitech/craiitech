@@ -90,6 +90,7 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { UnitSddExplorer } from './unit-sdd-explorer';
+import { SDDDecisionSupport } from './sdd-decision-support';
 
 interface SDDHubProps {
   compliances: ProgramComplianceRecord[];
@@ -694,6 +695,7 @@ export function SDDHub({
     return {
       s1: createPieData(s1Male, s1Female),
       studentSectors: sectoralChartData,
+      studentSectorMap: studentSectors,
       totals: { s1: s1Male + s1Female },
     };
   }, [studentRecordSource, dashboardYear, activeProgramIds]);
@@ -1577,6 +1579,20 @@ export function SDDHub({
           </div>
         </CardHeader>
       </Card>
+
+      {/* TOP MANAGEMENT SDD ANALYTICS & SECTORAL DECISION SUPPORT SYSTEM */}
+      <SDDDecisionSupport
+        dashboardYear={dashboardYear}
+        unitName={unitName || 'Institutional'}
+        studentBaseline={studentSourceBaseline}
+        studentSecondSem={studentYearlyData.find((entry) => entry.year === dashboardYear)?.secondSemester}
+        previousYearStudentBaseline={studentYearlyData.find((entry) => entry.year === dashboardYear - 1)?.firstSemester}
+        studentSectorCounts={aggregatedData.studentSectorMap}
+        censuses={reportCensuses || []}
+        activities={activities || []}
+        signatories={signatories || undefined}
+        gadSettings={gadSettings || undefined}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* 3D SVG GRADIENTS & DEPTH FILTERS */}

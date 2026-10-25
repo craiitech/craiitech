@@ -81,6 +81,7 @@ export function printQualityObjectivesMonitoringForm(
             <td rowspan="2" style="border: 1px solid black; text-align: center; font-weight: bold; font-size: 10px; width: 25px;">${idx + 1}</td>
             <td rowspan="2" style="border: 1px solid black; padding: 4px 6px; font-size: 10px; vertical-align: top; max-width: 220px;">
               <strong>${item.taskText || item.objectiveText || '—'}</strong>
+              ${item.hasGadComponent ? `<span style="display:inline-block; font-size:8px; background:#f3e8ff; color:#6b21a8; border:1px solid #d8b4fe; border-radius:2px; padding:0px 3px; margin-left:4px; font-weight:bold;">GAD</span>` : ''}
               ${item.objectiveText && item.taskText && item.objectiveText !== item.taskText ? `<div style="font-size: 8.5px; color: #555; margin-top: 2px;">Obj: ${item.objectiveText}</div>` : ''}
             </td>
             ${planMonthCells}

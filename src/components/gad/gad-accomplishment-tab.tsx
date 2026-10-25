@@ -350,12 +350,19 @@ export function GADAccomplishmentTab({
                   <TableRow key={item.id} className="hover:bg-muted/20 transition-colors group">
                     <TableCell className="pl-8 py-5">
                       <div className="space-y-1.5">
-                        <Badge
-                          variant="outline"
-                          className="text-[8px] font-black uppercase bg-slate-100 dark:bg-slate-800 border-slate-300"
-                        >
-                          {item.category || 'CLIENT-FOCUSED ACTIVITIES'}
-                        </Badge>
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Badge
+                            variant="outline"
+                            className="text-[8px] font-black uppercase bg-slate-100 dark:bg-slate-800 border-slate-300"
+                          >
+                            {item.category || 'CLIENT-FOCUSED ACTIVITIES'}
+                          </Badge>
+                          {(item as any).isSyncedFromEomsMatrix && (
+                            <Badge className="text-[8px] font-black uppercase bg-emerald-600 text-white">
+                              EOMS Matrix Synced
+                            </Badge>
+                          )}
+                        </div>
                         <p className="font-black text-sm text-slate-900 dark:text-slate-100 leading-tight uppercase group-hover:text-primary transition-colors">
                           {item.pap}
                         </p>

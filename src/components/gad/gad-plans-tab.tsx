@@ -363,6 +363,21 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                       )}
                     </TableCell>
                     <TableCell className="max-w-xs">
+                      <div className="flex flex-wrap items-center gap-1 mb-0.5">
+                        {plan.isSyncedFromEomsMatrix && (
+                          <Badge className="h-4 px-1.5 text-[7px] font-black uppercase bg-emerald-600 text-white">
+                            EOMS Matrix Synced
+                          </Badge>
+                        )}
+                        {plan.cmoIndicatorId && (
+                          <Badge
+                            variant="outline"
+                            className="h-4 px-1.5 text-[7px] font-black uppercase border-violet-400 text-violet-700"
+                          >
+                            CMO #{plan.cmoIndicatorId}
+                          </Badge>
+                        )}
+                      </div>
                       <p className="font-bold text-xs">{plan.gadActivityName || plan.pap}</p>
                       <p className="text-[9px] text-muted-foreground italic mt-0.5 line-clamp-2">{plan.pap}</p>
                     </TableCell>
