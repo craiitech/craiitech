@@ -1,12 +1,15 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   AlertDialog,
   AlertDialogAction,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -33,6 +36,9 @@ import {
   QrCode,
   Camera,
   CalendarCheck,
+  Mail,
+  MessageSquare,
+  Clock,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -95,6 +101,28 @@ const features = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const [isAccessNoticeOpen, setIsAccessNoticeOpen] = useState(false);
+  const [countdown, setCountdown] = useState(10);
+
+  useEffect(() => {
+    if (!isAccessNoticeOpen) {
+      setCountdown(10);
+      return;
+    }
+
+    if (countdown <= 0) {
+      router.push('/login');
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [isAccessNoticeOpen, countdown, router]);
+
   return (
     <div className="relative min-h-screen flex flex-col">
       {/* Full-Page Fixed Background */}
@@ -227,16 +255,95 @@ export default function Home() {
             </div>
 
             <div className="flex flex-wrap justify-center gap-4 pt-6">
-              <Button
-                asChild
-                size="lg"
-                variant="default"
-                className="w-full max-w-[280px] sm:w-auto h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-primary/40 transition-all hover:scale-105 active:scale-95 flex justify-center items-center"
-              >
-                <Link href="/login" className="flex items-center gap-2">
-                  Access Portal <ArrowRight className="h-5 w-5" />
-                </Link>
-              </Button>
+              <AlertDialog open={isAccessNoticeOpen} onOpenChange={setIsAccessNoticeOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size="lg"
+                    variant="default"
+                    className="w-full max-w-[280px] sm:w-auto h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-primary/40 transition-all hover:scale-105 active:scale-95 flex justify-center items-center gap-2"
+                  >
+                    Access Portal <ArrowRight className="h-5 w-5" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="bg-slate-950 border border-primary/30 text-white max-w-lg shadow-2xl">
+                  <AlertDialogHeader className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-black uppercase tracking-widest">
+                        <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
+                        Important Portal Advisory
+                      </div>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/20 border border-primary/40 text-emerald-300 text-[11px] font-black tabular-nums">
+                        <Clock className="h-3.5 w-3.5 animate-pulse" />
+                        {countdown}s
+                      </div>
+                    </div>
+                    <AlertDialogTitle className="text-xl font-black uppercase tracking-tight text-white">
+                      Official RSU Email Required (@rsu.edu.ph)
+                    </AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-4 text-sm text-slate-200 leading-relaxed pt-1">
+                        <p className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-100 font-medium">
+                          Please be reminded to register and sign in using your{' '}
+                          <span className="font-black text-amber-300 underline decoration-amber-400/60 underline-offset-4">
+                            Official RSU Email (@rsu.edu.ph)
+                          </span>
+                          . Personal email accounts are not permitted for portal registration.
+                        </p>
+
+                        <div className="space-y-2.5 rounded-xl bg-white/5 border border-white/10 p-4 text-xs">
+                          <div className="flex items-start gap-2.5">
+                            <Mail className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+                            <p className="text-slate-200">
+                              You may contact the <strong className="text-white">DPO Office</strong> at{' '}
+                              <a href="mailto:dpo@rsu.edu.ph" className="font-black text-emerald-400 hover:underline">
+                                dpo@rsu.edu.ph
+                              </a>{' '}
+                              for more information and assistance regarding your Official RSU Email.
+                            </p>
+                          </div>
+                          <div className="flex items-start gap-2.5 pt-2 border-t border-white/10">
+                            <MessageSquare className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
+                            <p className="text-slate-200">
+                              For More Details, Contact the{' '}
+                              <strong className="text-white">QA Office via Official GC</strong>.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-1.5 pt-1">
+                          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-primary transition-all duration-1000 ease-linear"
+                              style={{ width: `${((10 - countdown) / 10) * 100}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between pt-2">
+                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                              Redirecting to login in {countdown} second{countdown === 1 ? '' : 's'}...
+                            </span>
+                            <span className="text-xs font-black italic tracking-wide text-emerald-400">- Sir Mavz</span>
+                          </div>
+                        </div>
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter className="border-t border-white/10 pt-4 mt-2 flex sm:justify-between items-center gap-2">
+                    <AlertDialogCancel className="bg-white/5 border-white/20 text-white hover:bg-white/10 hover:text-white font-bold uppercase text-xs tracking-wider mt-0">
+                      Cancel
+                    </AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={(e) => {
+                        e.preventDefault();
+                        router.push('/login');
+                      }}
+                      disabled={countdown > 0}
+                      className="bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs tracking-widest px-6 disabled:opacity-50"
+                    >
+                      {countdown > 0 ? `Please Read (${countdown}s)` : 'Proceed to Portal'}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
               <Button
                 asChild
                 size="lg"
