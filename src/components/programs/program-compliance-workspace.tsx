@@ -25,11 +25,16 @@ const complianceSchema = z.record(z.any());
 
 function sanitizeForFirestore(obj: any): any {
   if (obj === null || obj === undefined) return null;
+  if (typeof obj === 'number') return Number.isNaN(obj) ? 0 : obj;
   if (typeof obj !== 'object') return obj;
   if (obj instanceof Date || (obj && typeof obj.toDate === 'function')) return obj;
   if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
   const sanitized: any = {};
-  for (const [key, value] of Object.entries(obj)) sanitized[key] = sanitizeForFirestore(value);
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      sanitized[key] = sanitizeForFirestore(value);
+    }
+  }
   return sanitized;
 }
 

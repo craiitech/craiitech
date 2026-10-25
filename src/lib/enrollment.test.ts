@@ -279,4 +279,43 @@ describe('getEnrollmentRecordTermSectors', () => {
       'Indigenous People': { male: 4, female: 6 },
     });
   });
+
+  it('normalizes partial or undefined sector counts to finite zeroes when saving via withEnrollmentOveralls', () => {
+    const rawRec = enrollmentRecord({
+      overallOnly: false,
+      firstSemester: {
+        firstYear: {
+          male: 12,
+          female: 15,
+          total: 27,
+          specialNeeds: 0,
+          sectors: {
+            PWD: { male: 3, female: undefined as any },
+          },
+        },
+        secondYear: level(0, 0),
+        thirdYear: level(0, 0),
+        fourthYear: level(0, 0),
+      },
+      overall: {
+        firstSemester: {
+          male: 12,
+          female: 15,
+          total: 27,
+          sectors: {
+            'Solo Parent': { male: undefined as any, female: 4 },
+            Employee: { male: undefined as any, female: undefined as any },
+          },
+        },
+        secondSemester: { male: 0, female: 0, total: 0 },
+      },
+    });
+
+    const normalized = withEnrollmentOveralls(rawRec);
+
+    expect(normalized.firstSemester.firstYear.sectors?.PWD).toEqual({ male: 3, female: 0 });
+    expect(normalized.overall?.firstSemester?.sectors?.PWD).toEqual({ male: 3, female: 0 });
+    expect(normalized.overall?.firstSemester?.sectors?.['Solo Parent']).toEqual({ male: 0, female: 4 });
+    expect(normalized.overall?.firstSemester?.sectors?.Employee).toEqual({ male: 0, female: 0 });
+  });
 });

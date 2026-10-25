@@ -212,8 +212,13 @@ function EnrollmentRecordCard({
     );
   };
 
-  const renderSectorInputs = (termKey: string, level: string) => (
-    <div className="mt-4 p-4 rounded-xl bg-primary/5 border border-primary/10 space-y-4 animate-in zoom-in duration-300">
+  const renderSectorInputs = (termKey: string, level: string, isVisible: boolean) => (
+    <div
+      className={cn(
+        'mt-4 p-4 rounded-xl bg-primary/5 border border-primary/10 space-y-4 animate-in zoom-in duration-300',
+        !isVisible && 'hidden',
+      )}
+    >
       <div className="flex items-center justify-between border-b pb-2">
         <p className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
           <Globe className="h-3 w-3" /> Sectoral Breakdown (Institutional GAD)
@@ -229,51 +234,70 @@ function EnrollmentRecordCard({
         </Button>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {GAD_SECTORS.map((sector) => (
-          <div key={sector} className="space-y-2 p-2 rounded-lg bg-white border shadow-sm">
-            <p className="text-[9px] font-black uppercase text-slate-700 dark:text-slate-300">{sector}</p>
-            <div className="grid grid-cols-2 gap-2">
-              <FormField
-                control={control}
-                name={`enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.male`}
-                render={({ field: inputField }) => (
-                  <div className="space-y-1">
-                    <Label className="text-[8px] uppercase font-bold text-muted-foreground">Male</Label>
-                    <Input
-                      type="number"
-                      {...inputField}
-                      className="h-7 text-[10px]"
-                      disabled={!canEdit || overallOnly}
-                      onChange={(e) => inputField.onChange(Number(e.target.value))}
-                    />
-                  </div>
-                )}
-              />
-              <FormField
-                control={control}
-                name={`enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.female`}
-                render={({ field: inputField }) => (
-                  <div className="space-y-1">
-                    <Label className="text-[8px] uppercase font-bold text-muted-foreground">Female</Label>
-                    <Input
-                      type="number"
-                      {...inputField}
-                      className="h-7 text-[10px]"
-                      disabled={!canEdit || overallOnly}
-                      onChange={(e) => inputField.onChange(Number(e.target.value))}
-                    />
-                  </div>
-                )}
-              />
+        {GAD_SECTORS.map((sector) => {
+          const malePath = `enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.male`;
+          const femalePath = `enrollmentRecords.${index}.${termKey}.${level}.sectors.${sector}.female`;
+          return (
+            <div key={sector} className="space-y-2 p-2 rounded-lg bg-white border shadow-sm">
+              <p className="text-[9px] font-black uppercase text-slate-700 dark:text-slate-300">{sector}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <FormField
+                  control={control}
+                  name={malePath}
+                  defaultValue={0}
+                  render={({ field: inputField }) => (
+                    <div className="space-y-1">
+                      <Label className="text-[8px] uppercase font-bold text-muted-foreground">Male</Label>
+                      <Input
+                        type="number"
+                        value={inputField.value ?? 0}
+                        className="h-7 text-[10px]"
+                        disabled={!canEdit || overallOnly}
+                        onChange={(e) => {
+                          const num = Number(e.target.value) || 0;
+                          inputField.onChange(num);
+                          setValue(malePath, num, { shouldDirty: true, shouldTouch: true });
+                        }}
+                      />
+                    </div>
+                  )}
+                />
+                <FormField
+                  control={control}
+                  name={femalePath}
+                  defaultValue={0}
+                  render={({ field: inputField }) => (
+                    <div className="space-y-1">
+                      <Label className="text-[8px] uppercase font-bold text-muted-foreground">Female</Label>
+                      <Input
+                        type="number"
+                        value={inputField.value ?? 0}
+                        className="h-7 text-[10px]"
+                        disabled={!canEdit || overallOnly}
+                        onChange={(e) => {
+                          const num = Number(e.target.value) || 0;
+                          inputField.onChange(num);
+                          setValue(femalePath, num, { shouldDirty: true, shouldTouch: true });
+                        }}
+                      />
+                    </div>
+                  )}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
 
-  const renderOverallSectorInputs = (termKey: string) => (
-    <div className="mt-3 p-4 rounded-xl bg-white dark:bg-slate-900 border border-primary/20 space-y-4 animate-in zoom-in duration-300 shadow-xs">
+  const renderOverallSectorInputs = (termKey: string, isVisible: boolean) => (
+    <div
+      className={cn(
+        'mt-3 p-4 rounded-xl bg-white dark:bg-slate-900 border border-primary/20 space-y-4 animate-in zoom-in duration-300 shadow-xs',
+        !isVisible && 'hidden',
+      )}
+    >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-2">
         <div>
           <p className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
@@ -300,6 +324,8 @@ function EnrollmentRecordCard({
           const computed = calculateTermSectorTotals(termKey, sector);
           const hasYearLevelSectorData = !overallOnly && computed.male + computed.female > 0;
           const resolved = getOverallSectorValues(termKey, sector);
+          const malePath = `enrollmentRecords.${index}.overall.${termKey}.sectors.${sector}.male`;
+          const femalePath = `enrollmentRecords.${index}.overall.${termKey}.sectors.${sector}.female`;
 
           return (
             <div
@@ -316,7 +342,8 @@ function EnrollmentRecordCard({
               <div className="grid grid-cols-2 gap-2">
                 <FormField
                   control={control}
-                  name={`enrollmentRecords.${index}.overall.${termKey}.sectors.${sector}.male`}
+                  name={malePath}
+                  defaultValue={0}
                   render={({ field: inputField }) => (
                     <div className="space-y-1">
                       <Label className="text-[8px] uppercase font-bold text-muted-foreground">Male</Label>
@@ -325,14 +352,19 @@ function EnrollmentRecordCard({
                         value={hasYearLevelSectorData ? computed.male : (inputField.value ?? 0)}
                         className="h-7 text-[10px] bg-white font-bold tabular-nums"
                         disabled={!canEdit || hasYearLevelSectorData}
-                        onChange={(e) => inputField.onChange(Number(e.target.value))}
+                        onChange={(e) => {
+                          const num = Number(e.target.value) || 0;
+                          inputField.onChange(num);
+                          setValue(malePath, num, { shouldDirty: true, shouldTouch: true });
+                        }}
                       />
                     </div>
                   )}
                 />
                 <FormField
                   control={control}
-                  name={`enrollmentRecords.${index}.overall.${termKey}.sectors.${sector}.female`}
+                  name={femalePath}
+                  defaultValue={0}
                   render={({ field: inputField }) => (
                     <div className="space-y-1">
                       <Label className="text-[8px] uppercase font-bold text-muted-foreground">Female</Label>
@@ -341,7 +373,11 @@ function EnrollmentRecordCard({
                         value={hasYearLevelSectorData ? computed.female : (inputField.value ?? 0)}
                         className="h-7 text-[10px] bg-white font-bold tabular-nums"
                         disabled={!canEdit || hasYearLevelSectorData}
-                        onChange={(e) => inputField.onChange(Number(e.target.value))}
+                        onChange={(e) => {
+                          const num = Number(e.target.value) || 0;
+                          inputField.onChange(num);
+                          setValue(femalePath, num, { shouldDirty: true, shouldTouch: true });
+                        }}
                       />
                     </div>
                   )}
@@ -433,7 +469,7 @@ function EnrollmentRecordCard({
                     </div>
                   </FormItem>
                 </div>
-                {isExpanded && renderSectorInputs(termKey, level)}
+                {renderSectorInputs(termKey, level, isExpanded)}
               </div>
             );
           })}
@@ -483,7 +519,7 @@ function EnrollmentRecordCard({
               ? 'Manual male and female totals and Over-all Sector Breakdown are enabled. Overall Total is auto-computed from their sum.'
               : 'Auto-computed from all year levels. Use "Sector Breakdown (Over-all)" to log program-wide GAD sectors without breaking down by year level.'}
           </p>
-          {isOverallSectorExpanded && renderOverallSectorInputs(termKey)}
+          {renderOverallSectorInputs(termKey, isOverallSectorExpanded)}
         </div>
       </div>
     );
@@ -631,13 +667,13 @@ function EnrollmentRecordCard({
             </TabsTrigger>
           </TabsList>
           <div className="p-4">
-            <TabsContent value="first" className="mt-0">
+            <TabsContent value="first" forceMount className="mt-0 data-[state=inactive]:hidden">
               {renderTermInputs('firstSemester')}
             </TabsContent>
-            <TabsContent value="second" className="mt-0">
+            <TabsContent value="second" forceMount className="mt-0 data-[state=inactive]:hidden">
               {renderTermInputs('secondSemester')}
             </TabsContent>
-            <TabsContent value="mid" className="mt-0">
+            <TabsContent value="mid" forceMount className="mt-0 data-[state=inactive]:hidden">
               {renderTermInputs('midYearTerm')}
             </TabsContent>
           </div>

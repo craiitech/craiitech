@@ -52,6 +52,21 @@ interface BatchEntryDialogProps {
 
 const complianceSchema = z.record(z.any());
 
+function sanitizeForFirestore(obj: any): any {
+  if (obj === null || obj === undefined) return null;
+  if (typeof obj === 'number') return Number.isNaN(obj) ? 0 : obj;
+  if (typeof obj !== 'object') return obj;
+  if (obj instanceof Date || (obj && typeof obj.toDate === 'function')) return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeForFirestore);
+  const sanitized: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (value !== undefined) {
+      sanitized[key] = sanitizeForFirestore(value);
+    }
+  }
+  return sanitized;
+}
+
 export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selectedYear }: BatchEntryDialogProps) {
   const { userProfile, firestore } = useUser();
   const { toast } = useToast();
@@ -83,6 +98,9 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
       if (record) {
         methods.reset({
           ...record,
+          enrollmentRecords: Array.isArray(record.enrollmentRecords)
+            ? record.enrollmentRecords.map((rec) => withEnrollmentOveralls(rec))
+            : [],
           graduationRecords: (record.graduationRecords || []).map((graduation) => ({
             ...graduation,
             year: completeAcademicYearInput(graduation.year),
@@ -135,16 +153,20 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
         ? values.enrollmentRecords.map((record: any) => withEnrollmentOveralls(record))
         : values.enrollmentRecords;
 
+      const sanitizedPayload = sanitizeForFirestore({
+        ...values,
+        enrollmentRecords,
+        id: recordId,
+        academicYear: currentAY,
+        programId: program.id,
+        campusId: program.campusId,
+        unitId: program.collegeId || (program as any).unitId || '',
+      });
+
       await setDoc(
         doc(firestore, 'programCompliances', recordId),
         {
-          ...values,
-          enrollmentRecords,
-          id: recordId,
-          academicYear: currentAY,
-          programId: program.id,
-          campusId: program.campusId,
-          unitId: program.collegeId,
+          ...sanitizedPayload,
           updatedAt: serverTimestamp(),
           updatedBy: userProfile.id,
         },

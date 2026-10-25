@@ -175,8 +175,8 @@ export function aggregateComplianceEnrollment(
 }
 
 export function sumEnrollmentTerm(term?: YearLevelEnrollment | null): EnrollmentOverall {
-  const male = ENROLLMENT_LEVEL_KEYS.reduce((sum, level) => sum + Number(term?.[level]?.male || 0), 0);
-  const female = ENROLLMENT_LEVEL_KEYS.reduce((sum, level) => sum + Number(term?.[level]?.female || 0), 0);
+  const male = ENROLLMENT_LEVEL_KEYS.reduce((sum, level) => sum + (Number(term?.[level]?.male) || 0), 0);
+  const female = ENROLLMENT_LEVEL_KEYS.reduce((sum, level) => sum + (Number(term?.[level]?.female) || 0), 0);
   return { male, female, total: male + female };
 }
 
@@ -192,8 +192,8 @@ export function sumEnrollmentTermSectors(term?: YearLevelEnrollment | null): Enr
     if (!levelSectors) return;
     Object.entries(levelSectors).forEach(([sectorKey, counts]) => {
       const sec = sectorKey as GADSector;
-      const m = Number(counts?.male || 0);
-      const f = Number(counts?.female || 0);
+      const m = Number(counts?.male) || 0;
+      const f = Number(counts?.female) || 0;
       if (!sectors[sec]) {
         sectors[sec] = { male: 0, female: 0 };
       }
@@ -225,8 +225,8 @@ export function getEnrollmentRecordTermSectors(
       Object.entries(overallSectors).forEach(([secKey, counts]) => {
         const sec = secKey as GADSector;
         resolved[sec] = {
-          male: Number(counts?.male || 0),
-          female: Number(counts?.female || 0),
+          male: Number(counts?.male) || 0,
+          female: Number(counts?.female) || 0,
         };
       });
       return resolved;
@@ -241,8 +241,8 @@ export function getEnrollmentRecordTermSectors(
   if (overallSectors) {
     Object.entries(overallSectors).forEach(([secKey, counts]) => {
       const sec = secKey as GADSector;
-      const oMale = Number(counts?.male || 0);
-      const oFemale = Number(counts?.female || 0);
+      const oMale = Number(counts?.male) || 0;
+      const oFemale = Number(counts?.female) || 0;
       const existing = merged[sec];
       const existingTotal = (existing?.male || 0) + (existing?.female || 0);
       if (existingTotal === 0 && oMale + oFemale > 0) {
@@ -274,8 +274,8 @@ function resolveSavedOverallSectors(
     Object.entries(manual).forEach(([secKey, counts]) => {
       const sec = secKey as GADSector;
       normalized[sec] = {
-        male: Number(counts?.male || 0),
-        female: Number(counts?.female || 0),
+        male: Number(counts?.male) || 0,
+        female: Number(counts?.female) || 0,
       };
     });
     return normalized;
@@ -286,10 +286,10 @@ function resolveSavedOverallSectors(
   const allKeys = new Set<string>([...Object.keys(computed), ...Object.keys(manual || {})]);
   allKeys.forEach((secKey) => {
     const sec = secKey as GADSector;
-    const cMale = Number(computed[sec]?.male || 0);
-    const cFemale = Number(computed[sec]?.female || 0);
-    const mMale = Number(manual?.[sec]?.male || 0);
-    const mFemale = Number(manual?.[sec]?.female || 0);
+    const cMale = Number(computed[sec]?.male) || 0;
+    const cFemale = Number(computed[sec]?.female) || 0;
+    const mMale = Number(manual?.[sec]?.male) || 0;
+    const mFemale = Number(manual?.[sec]?.female) || 0;
     if (cMale + cFemale > 0) {
       merged[sec] = { male: cMale, female: cFemale };
     } else {
@@ -300,10 +300,44 @@ function resolveSavedOverallSectors(
   return merged;
 }
 
+function normalizeYearLevelTerm(term?: YearLevelEnrollment | null): YearLevelEnrollment | undefined {
+  if (!term) return term ?? undefined;
+  const normalized: any = { ...term };
+  ENROLLMENT_LEVEL_KEYS.forEach((level) => {
+    const levelData = term[level];
+    if (!levelData) return;
+    const male = Number(levelData.male) || 0;
+    const female = Number(levelData.female) || 0;
+    const total = Math.max(Number(levelData.total) || 0, male + female);
+    const cleanedLevel: any = {
+      ...levelData,
+      male,
+      female,
+      total,
+    };
+    if (levelData.specialNeeds !== undefined) {
+      cleanedLevel.specialNeeds = Number(levelData.specialNeeds) || 0;
+    }
+    if (levelData.sectors) {
+      const cleanedSectors: EnrollmentSectorMap = {};
+      Object.entries(levelData.sectors).forEach(([secKey, counts]) => {
+        const sec = secKey as GADSector;
+        cleanedSectors[sec] = {
+          male: Number(counts?.male) || 0,
+          female: Number(counts?.female) || 0,
+        };
+      });
+      cleanedLevel.sectors = cleanedSectors;
+    }
+    normalized[level] = cleanedLevel;
+  });
+  return normalized;
+}
+
 function normalizeManualOverall(overall: EnrollmentOverall | undefined, term?: YearLevelEnrollment | null) {
   const computed = sumEnrollmentTerm(term);
-  const male = Number(overall?.male ?? computed.male);
-  const female = Number(overall?.female ?? computed.female);
+  const male = Number(overall?.male ?? computed.male) || 0;
+  const female = Number(overall?.female ?? computed.female) || 0;
   const sectors = resolveSavedOverallSectors(overall, term, true);
   return {
     male,
@@ -323,23 +357,33 @@ function normalizeComputedOverall(overall: EnrollmentOverall | undefined, term?:
 }
 
 export function withEnrollmentOveralls(record: EnrollmentRecord): EnrollmentRecord {
+  const firstSemester = normalizeYearLevelTerm(record.firstSemester) ?? record.firstSemester;
+  const secondSemester = normalizeYearLevelTerm(record.secondSemester) ?? record.secondSemester;
+  const midYearTerm = normalizeYearLevelTerm(record.midYearTerm) ?? record.midYearTerm;
+
   if (record.overallOnly) {
     return {
       ...record,
+      firstSemester,
+      secondSemester,
+      midYearTerm,
       overall: {
-        firstSemester: normalizeManualOverall(record.overall?.firstSemester, record.firstSemester),
-        secondSemester: normalizeManualOverall(record.overall?.secondSemester, record.secondSemester),
-        midYearTerm: normalizeManualOverall(record.overall?.midYearTerm, record.midYearTerm),
+        firstSemester: normalizeManualOverall(record.overall?.firstSemester, firstSemester),
+        secondSemester: normalizeManualOverall(record.overall?.secondSemester, secondSemester),
+        midYearTerm: normalizeManualOverall(record.overall?.midYearTerm, midYearTerm),
       },
     };
   }
 
   return {
     ...record,
+    firstSemester,
+    secondSemester,
+    midYearTerm,
     overall: {
-      firstSemester: normalizeComputedOverall(record.overall?.firstSemester, record.firstSemester),
-      secondSemester: normalizeComputedOverall(record.overall?.secondSemester, record.secondSemester),
-      midYearTerm: normalizeComputedOverall(record.overall?.midYearTerm, record.midYearTerm),
+      firstSemester: normalizeComputedOverall(record.overall?.firstSemester, firstSemester),
+      secondSemester: normalizeComputedOverall(record.overall?.secondSemester, secondSemester),
+      midYearTerm: normalizeComputedOverall(record.overall?.midYearTerm, midYearTerm),
     },
   };
 }
