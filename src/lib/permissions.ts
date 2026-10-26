@@ -173,6 +173,15 @@ export const PERMISSION_GROUPS: Record<string, PermissionGroup> = {
       'kpi.export': 'Export KPI Data',
     },
   },
+  gaa_bur: {
+    label: 'GAA & BUR Monitoring',
+    permissions: {
+      'gaa_bur.view': 'View GAA & BUR Data',
+      'gaa_bur.manage': 'Manage GAA Targets',
+      'gaa_bur.enter_actuals': 'Enter BUR Actuals',
+      'gaa_bur.export': 'Import / Export GAA & BUR Data',
+    },
+  },
   okr: {
     label: 'OKR Management',
     permissions: {
@@ -210,7 +219,14 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
   const lower = roleName.toLowerCase();
   const isAdminRole = lower.includes('admin');
   const isVp = lower.includes('vice president');
+  const isPresident = lower.includes('president');
   const isAuditor = lower.includes('auditor');
+  const isBudgetRole =
+    lower.includes('budget') ||
+    lower.includes('accountant') ||
+    lower.includes('accounting') ||
+    lower.includes('finance');
+  const isIpdoRole = lower.includes('ipdo') || lower.includes('institutional planning and development');
 
   // FIAMO-specific role detection
   const isUnitCoordinator = lower.includes('unit coordinator');
@@ -313,6 +329,26 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
     perms['programs.delete'] = true;
     perms['eval.view_results'] = true;
     perms['eval.manage_cycles'] = true;
+  }
+
+  if (isPresident) {
+    perms['gaa_bur.view'] = true;
+    perms['gaa_bur.manage'] = true;
+    perms['gaa_bur.enter_actuals'] = true;
+    perms['gaa_bur.export'] = true;
+  }
+
+  if (isBudgetRole) {
+    perms['gaa_bur.view'] = true;
+    perms['gaa_bur.enter_actuals'] = true;
+    perms['gaa_bur.export'] = true;
+  }
+
+  if (isIpdoRole) {
+    perms['gaa_bur.view'] = true;
+    perms['gaa_bur.manage'] = true;
+    perms['gaa_bur.enter_actuals'] = true;
+    perms['gaa_bur.export'] = true;
   }
 
   // FIAMO-specific permissions

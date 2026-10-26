@@ -522,6 +522,13 @@ export function SidebarNav({
       icon: <ClipboardList />,
     },
     {
+      href: '/gaa-bur',
+      label: 'GAA & BUR Monitoring',
+      active: pathname.startsWith('/gaa-bur'),
+      roles: ['Admin', 'Vice President', 'President', 'Budget Officer', 'Accountant', 'IPDO'],
+      icon: <Target />,
+    },
+    {
       href: '/reports',
       label: 'Reports',
       active: pathname.startsWith('/reports'),
@@ -567,8 +574,20 @@ export function SidebarNav({
       const isVp = roleLower.includes('vice president');
       const isPresident = roleLower.includes('president');
       const isQmsHead = roleLower.includes('quality management system head') || roleLower.includes('qms head');
+      const isBudgetRole =
+        roleLower.includes('budget') ||
+        roleLower.includes('accountant') ||
+        roleLower.includes('accounting') ||
+        roleLower.includes('finance');
+      const unitNameLower = (unitDoc?.name || userProfile?.unitName || '').toLowerCase();
+      const isIpdoUser =
+        roleLower.includes('ipdo') ||
+        unitNameLower.includes('ipdo') ||
+        unitNameLower.includes('institutional planning and development');
 
       if (route.roles.some((r) => r.toLowerCase() === roleLower)) return true;
+      if (isBudgetRole && route.roles.includes('Budget Officer')) return true;
+      if (isIpdoUser && route.roles.includes('IPDO')) return true;
       if (isVp && route.roles.some((r) => r.toLowerCase() === 'vice president')) return true;
       if (
         isPresident &&

@@ -494,6 +494,53 @@ export type PbbSubmission = {
   submittedByName: string;
 };
 
+export type GaaBurFinancialTargets = {
+  ps: number;
+  mooe: number;
+  co: number;
+};
+
+export type GaaBurRateTargets = {
+  obligation: number;
+  disbursement: number;
+};
+
+export type GaaBurPhysicalTarget = {
+  id: string;
+  indicator: string;
+  baseline: number;
+  target: number;
+  actual: number;
+  unit: string;
+  remarks: string;
+};
+
+export type GaaBurTargets = {
+  id?: string;
+  year: number;
+  financial: GaaBurFinancialTargets;
+  burTargets: GaaBurRateTargets;
+  physicalTargets: GaaBurPhysicalTarget[];
+  createdAt?: any;
+  updatedAt?: any;
+  updatedBy?: string;
+};
+
+export type GaaBurQuarter = 1 | 2 | 3 | 4;
+
+export type GaaBurReport = {
+  id?: string;
+  year: number;
+  quarter: GaaBurQuarter;
+  allotments: number;
+  obligations: number;
+  disbursements: number;
+  remarks?: string;
+  createdAt?: any;
+  updatedAt?: any;
+  updatedBy?: string;
+};
+
 export type BackupSettings = {
   targetDriveLink?: string;
   lastConfiguredAt?: any;

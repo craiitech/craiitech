@@ -51,6 +51,18 @@ service cloud.firestore {
       );
     }
 
+    function isBudgetOfficer() {
+      return isSignedIn() && hasProfile() &&
+        profile().get('role', '').matches('(?i).*(budget|accountant|accounting|finance).*');
+    }
+
+    function isIpdo() {
+      return isSignedIn() && hasProfile() && (
+        profile().get('role', '').matches('(?i).*(ipdo|institutional planning and development).*') ||
+        profile().get('unitName', '').matches('(?i).*(ipdo|institutional planning and development).*')
+      );
+    }
+
     function isHomeDashboardReviewer(unitId) {
       return isSignedIn() &&
         exists(/databases/$(database)/documents/campusSettings/global) &&
@@ -258,6 +270,18 @@ service cloud.firestore {
     match /pbbSubmissions/{id} {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn();
+      allow delete: if isAdmin();
+    }
+
+    match /gaaBurTargets/{id} {
+      allow read: if isAdmin() || isVpOffice() || isBudgetOfficer() || isIpdo();
+      allow create, update: if isAdmin() || isVpOffice() || isBudgetOfficer() || isIpdo();
+      allow delete: if isAdmin();
+    }
+
+    match /gaaBurReports/{id} {
+      allow read: if isAdmin() || isVpOffice() || isBudgetOfficer() || isIpdo();
+      allow create, update: if isAdmin() || isVpOffice() || isBudgetOfficer() || isIpdo();
       allow delete: if isAdmin();
     }
     

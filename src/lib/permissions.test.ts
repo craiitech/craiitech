@@ -50,6 +50,32 @@ describe('getDefaultPermissions', () => {
     expect(perms['eval.manage_cycles']).toBe(true);
     expect(perms['submissions.view_supervised']).toBe(true);
     expect(perms['submissions.view_all']).toBeUndefined();
+    expect(perms['gaa_bur.view']).toBe(true);
+    expect(perms['gaa_bur.manage']).toBe(true);
+    expect(perms['gaa_bur.enter_actuals']).toBe(true);
+  });
+
+  it('grants budget roles access to BUR actuals but not target management', () => {
+    const perms = getDefaultPermissions('Budget Officer');
+    expect(perms['gaa_bur.view']).toBe(true);
+    expect(perms['gaa_bur.enter_actuals']).toBe(true);
+    expect(perms['gaa_bur.export']).toBe(true);
+    expect(perms['gaa_bur.manage']).toBeUndefined();
+  });
+
+  it('does not grant GAA and BUR access to regular employees', () => {
+    const perms = getDefaultPermissions('Employee');
+    expect(perms['gaa_bur.view']).toBeUndefined();
+    expect(perms['gaa_bur.manage']).toBeUndefined();
+    expect(perms['gaa_bur.enter_actuals']).toBeUndefined();
+  });
+
+  it('grants full GAA and BUR access to IPDO roles', () => {
+    const perms = getDefaultPermissions('IPDO Director');
+    expect(perms['gaa_bur.view']).toBe(true);
+    expect(perms['gaa_bur.manage']).toBe(true);
+    expect(perms['gaa_bur.enter_actuals']).toBe(true);
+    expect(perms['gaa_bur.export']).toBe(true);
   });
 
   it('restricts unit coordinators and unit heads from submissions.view_all', () => {
