@@ -29,6 +29,7 @@ import {
   PieChart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -72,6 +73,7 @@ export function AccreditationMonitoringView({
   const [detailLifecycleFilter, setDetailLifecycleFilter] = useState<string>('all');
   const [detailSortBy, setDetailSortBy] = useState<string>('name');
   const [accredYearFilter, setAccredYearFilter] = useState<number | 'all'>('all');
+  const [includeClosedPrograms, setIncludeClosedPrograms] = useState(true);
   const [upcomingAccredYear, setUpcomingAccredYear] = useState<number | null>(null);
   const [recommendationsTypeFilter, setRecommendationsTypeFilter] = useState<string>('all');
   const [recommendationsStatusFilter, setRecommendationsStatusFilter] = useState<string>('all');
@@ -103,6 +105,7 @@ export function AccreditationMonitoringView({
       level: string;
       dateOfSurvey: string;
       lifecycleStatus: string;
+      isActive: boolean;
     }[] = [];
 
     compliances.forEach((c) => {
@@ -122,6 +125,7 @@ export function AccreditationMonitoringView({
           level: rec.level,
           dateOfSurvey: rec.dateOfSurvey || '—',
           lifecycleStatus: rec.lifecycleStatus || 'N/A',
+          isActive: p.isActive,
         });
       });
     });
@@ -135,9 +139,11 @@ export function AccreditationMonitoringView({
   }, [accreditationPerYear]);
 
   const filteredAccredPerYear = useMemo(() => {
-    if (accredYearFilter === 'all') return accreditationPerYear;
-    return accreditationPerYear.filter((r) => r.year === accredYearFilter);
-  }, [accreditationPerYear, accredYearFilter]);
+    let rows = accreditationPerYear;
+    if (!includeClosedPrograms) rows = rows.filter((r) => r.isActive);
+    if (accredYearFilter === 'all') return rows;
+    return rows.filter((r) => r.year === accredYearFilter);
+  }, [accreditationPerYear, accredYearFilter, includeClosedPrograms]);
 
   // ── Upcoming Accreditation: programs whose validity expires in the selected upcoming year ──
   const upcomingAccredPrograms = useMemo(() => {
@@ -1835,6 +1841,21 @@ export function AccreditationMonitoringView({
                       ))}
                     </SelectContent>
                   </Select>
+
+                  <label
+                    htmlFor="include-closed-programs"
+                    className="flex items-center gap-2 cursor-pointer select-none"
+                  >
+                    <Checkbox
+                      id="include-closed-programs"
+                      checked={includeClosedPrograms}
+                      onCheckedChange={(v) => setIncludeClosedPrograms(v === true)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                      Include Closed Programs
+                    </span>
+                  </label>
 
                   {/* Divider */}
                   <div className="h-5 w-px bg-slate-200 mx-1" />
