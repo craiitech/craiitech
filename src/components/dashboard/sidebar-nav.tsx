@@ -38,6 +38,7 @@ import {
   Target,
   Landmark,
   Briefcase,
+  ChevronDown,
 } from 'lucide-react';
 import {
   SidebarGroup,
@@ -82,7 +83,17 @@ const SIDEBAR_NAV_GROUPS: { id: string; label: string; hrefs: string[] }[] = [
   {
     id: 'quality',
     label: 'Quality & Compliance',
-    hrefs: ['/submissions', '/approvals', '/audit', '/risk-register', '/qa-reports'],
+    hrefs: [
+      '/submissions',
+      '/approvals',
+      '/audit',
+      '/risk-register',
+      '/qa-reports',
+      '/operational-plan',
+      '/manuals',
+      '/eoms-policy-manual',
+      '/university-documents',
+    ],
   },
   {
     id: 'monitoring',
@@ -93,11 +104,6 @@ const SIDEBAR_NAV_GROUPS: { id: string; label: string; hrefs: string[] }[] = [
     id: 'programs',
     label: 'Institutional Programs',
     hrefs: ['/gad-corner', '/pbb-submissions', '/gaa-bur'],
-  },
-  {
-    id: 'documents',
-    label: 'Documents & References',
-    hrefs: ['/operational-plan', '/manuals', '/eoms-policy-manual', '/university-documents'],
   },
   {
     id: 'administration',
@@ -148,6 +154,7 @@ export function SidebarNav({
         )
       : false);
 
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [isVisitorDialogOpen, setIsVisitorDialogOpen] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [csmQrUrl, setCsmQrUrl] = useState('');
@@ -691,108 +698,140 @@ export function SidebarNav({
       })).filter((group) => group.routes.length > 0)
     : [{ key: 'all', label: null, routes: visibleRoutes }];
 
+  const toggleGroup = (groupId: string) => {
+    setCollapsedGroups((previous) => {
+      const next = new Set(previous);
+      if (next.has(groupId)) {
+        next.delete(groupId);
+      } else {
+        next.add(groupId);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className={cn('flex flex-col h-full', className)} {...props}>
       <div className="flex flex-1 flex-col gap-1">
-        {navGroups.map((group) => (
-          <SidebarGroup key={group.key} className="p-0">
-            {group.label && (
-              <SidebarGroupLabel className="h-7 px-2 text-[10px] font-black uppercase tracking-widest text-sidebar-foreground/50">
-                {group.label}
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.routes.map((route) => {
-                  const isAllowedOffline = ALLOWED_OFFLINE_ROUTES.some((r) => route.href.startsWith(r));
-                  const isDisabled = (!isOnline || isForcedOffline) && !isAllowedOffline;
+        {navGroups.map((group) => {
+          const isCollapsed = group.label ? collapsedGroups.has(group.key) : false;
 
-                  return (
-                    <SidebarMenuItem key={route.href}>
-                      {route.href === '/visitor-logbook' ? (
-                        <SidebarMenuButton
-                          isActive={route.active}
-                          tooltip={route.label}
-                          onClick={() => setIsVisitorDialogOpen(true)}
-                          className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent"
-                        >
-                          {route.icon}
-                          <span>{route.label}</span>
-                        </SidebarMenuButton>
-                      ) : (
-                        <SidebarMenuButton
-                          asChild
-                          isActive={route.active}
-                          tooltip={route.label}
-                          onClick={(e) => handleNavClick(e, route.href)}
-                          className={cn(
-                            '[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent',
-                            isDisabled && 'opacity-20 cursor-not-allowed grayscale pointer-events-auto',
-                          )}
-                        >
-                          <Link href={route.href}>
-                            {isDisabled ? <WifiOff className="h-4 w-4" /> : route.icon}
-                            <span>{route.label}</span>
-                            {route.showBadge &&
-                              !isDisabled &&
-                              (route.href === '/settings'
-                                ? isAdmin &&
-                                  pendingUserApprovalsCount > 0 && (
-                                    <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                      {pendingUserApprovalsCount}
-                                    </SidebarMenuBadge>
-                                  )
-                                : route.href === '/communications'
-                                  ? commNotificationCount > 0 && (
-                                      <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                        {commNotificationCount}
-                                      </SidebarMenuBadge>
-                                    )
-                                  : route.href === '/unit-forms'
-                                    ? formRequestNotificationsCount > 0 && (
+          return (
+            <SidebarGroup key={group.key} className="p-0">
+              {group.label && (
+                <SidebarGroupLabel asChild className="h-7 px-2 text-sidebar-foreground/50">
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.key)}
+                    aria-expanded={!isCollapsed}
+                    aria-controls={`sidebar-group-${group.key}`}
+                    className="flex w-full items-center justify-between rounded-md text-[10px] font-black uppercase tracking-widest transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  >
+                    <span>{group.label}</span>
+                    <ChevronDown
+                      className={cn(
+                        'h-3.5 w-3.5 shrink-0 transition-transform duration-200',
+                        isCollapsed && '-rotate-90',
+                      )}
+                    />
+                  </button>
+                </SidebarGroupLabel>
+              )}
+              {!isCollapsed && (
+                <SidebarGroupContent id={`sidebar-group-${group.key}`}>
+                  <SidebarMenu>
+                    {group.routes.map((route) => {
+                      const isAllowedOffline = ALLOWED_OFFLINE_ROUTES.some((r) => route.href.startsWith(r));
+                      const isDisabled = (!isOnline || isForcedOffline) && !isAllowedOffline;
+
+                      return (
+                        <SidebarMenuItem key={route.href}>
+                          {route.href === '/visitor-logbook' ? (
+                            <SidebarMenuButton
+                              isActive={route.active}
+                              tooltip={route.label}
+                              onClick={() => setIsVisitorDialogOpen(true)}
+                              className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent"
+                            >
+                              {route.icon}
+                              <span>{route.label}</span>
+                            </SidebarMenuButton>
+                          ) : (
+                            <SidebarMenuButton
+                              asChild
+                              isActive={route.active}
+                              tooltip={route.label}
+                              onClick={(e) => handleNavClick(e, route.href)}
+                              className={cn(
+                                '[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent',
+                                isDisabled && 'opacity-20 cursor-not-allowed grayscale pointer-events-auto',
+                              )}
+                            >
+                              <Link href={route.href}>
+                                {isDisabled ? <WifiOff className="h-4 w-4" /> : route.icon}
+                                <span>{route.label}</span>
+                                {route.showBadge &&
+                                  !isDisabled &&
+                                  (route.href === '/settings'
+                                    ? isAdmin &&
+                                      pendingUserApprovalsCount > 0 && (
                                         <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                          {formRequestNotificationsCount}
+                                          {pendingUserApprovalsCount}
                                         </SidebarMenuBadge>
                                       )
-                                    : route.href === '/manuals'
-                                      ? manualsNotificationCount > 0 && (
+                                    : route.href === '/communications'
+                                      ? commNotificationCount > 0 && (
                                           <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                            {manualsNotificationCount}
+                                            {commNotificationCount}
                                           </SidebarMenuBadge>
                                         )
-                                      : route.href === '/risk-register'
-                                        ? riskNotificationsCount > 0 && (
+                                      : route.href === '/unit-forms'
+                                        ? formRequestNotificationsCount > 0 && (
                                             <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                              {riskNotificationsCount}
+                                              {formRequestNotificationsCount}
                                             </SidebarMenuBadge>
                                           )
-                                        : route.href === '/qa-reports'
-                                          ? qaReportsNotificationCount > 0 && (
+                                        : route.href === '/manuals'
+                                          ? manualsNotificationCount > 0 && (
                                               <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                                {qaReportsNotificationCount}
+                                                {manualsNotificationCount}
                                               </SidebarMenuBadge>
                                             )
-                                          : route.href === '/academic-programs'
-                                            ? accreditationNotificationsCount > 0 && (
+                                          : route.href === '/risk-register'
+                                            ? riskNotificationsCount > 0 && (
                                                 <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                                  {accreditationNotificationsCount}
+                                                  {riskNotificationsCount}
                                                 </SidebarMenuBadge>
                                               )
-                                            : notificationCount > 0 && (
-                                                <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
-                                                  {notificationCount}
-                                                </SidebarMenuBadge>
-                                              ))}
-                          </Link>
-                        </SidebarMenuButton>
-                      )}
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+                                            : route.href === '/qa-reports'
+                                              ? qaReportsNotificationCount > 0 && (
+                                                  <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                                    {qaReportsNotificationCount}
+                                                  </SidebarMenuBadge>
+                                                )
+                                              : route.href === '/academic-programs'
+                                                ? accreditationNotificationsCount > 0 && (
+                                                    <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                                      {accreditationNotificationsCount}
+                                                    </SidebarMenuBadge>
+                                                  )
+                                                : notificationCount > 0 && (
+                                                    <SidebarMenuBadge className="bg-destructive text-destructive-foreground font-black text-[10px] animate-in zoom-in duration-300">
+                                                      {notificationCount}
+                                                    </SidebarMenuBadge>
+                                                  ))}
+                              </Link>
+                            </SidebarMenuButton>
+                          )}
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              )}
+            </SidebarGroup>
+          );
+        })}
       </div>
       <div className="mt-auto">
         <SidebarMenu>

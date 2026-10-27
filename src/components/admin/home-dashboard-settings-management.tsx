@@ -336,8 +336,8 @@ export function HomeDashboardSettingsManagement() {
               </div>
               <p className="text-[11px] text-slate-500 leading-relaxed">
                 When enabled, the sidebar is organized under purpose-based headings such as Overview, Daily Operations,
-                Quality &amp; Compliance, Monitoring, Institutional Programs, Documents, and Administration. Turn it off
-                to restore the flat menu list for all users.
+                Quality &amp; Compliance, Monitoring, Institutional Programs, and Administration. Turn it off to restore
+                the flat menu list for all users.
               </p>
             </div>
           </div>
