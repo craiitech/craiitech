@@ -55,12 +55,19 @@ describe('getDefaultPermissions', () => {
     expect(perms['gaa_bur.enter_actuals']).toBe(true);
   });
 
-  it('grants budget roles access to BUR actuals but not target management', () => {
-    const perms = getDefaultPermissions('Budget Officer');
+  it('grants campus directors view access to GAA and BUR data', () => {
+    const perms = getDefaultPermissions('Campus Director');
     expect(perms['gaa_bur.view']).toBe(true);
-    expect(perms['gaa_bur.enter_actuals']).toBe(true);
-    expect(perms['gaa_bur.export']).toBe(true);
     expect(perms['gaa_bur.manage']).toBeUndefined();
+    expect(perms['gaa_bur.enter_actuals']).toBeUndefined();
+  });
+
+  it('does not grant budget roles access to GAA and BUR data', () => {
+    const perms = getDefaultPermissions('Budget Officer');
+    expect(perms['gaa_bur.view']).toBeUndefined();
+    expect(perms['gaa_bur.manage']).toBeUndefined();
+    expect(perms['gaa_bur.enter_actuals']).toBeUndefined();
+    expect(perms['gaa_bur.export']).toBeUndefined();
   });
 
   it('does not grant GAA and BUR access to regular employees', () => {

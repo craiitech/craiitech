@@ -51,9 +51,9 @@ service cloud.firestore {
       );
     }
 
-    function isBudgetOfficer() {
+    function isCampusDirector() {
       return isSignedIn() && hasProfile() &&
-        profile().get('role', '').matches('(?i).*(budget|accountant|accounting|finance).*');
+        profile().get('role', '').matches('(?i).*campus director.*');
     }
 
     function isIpdo() {
@@ -274,14 +274,14 @@ service cloud.firestore {
     }
 
     match /gaaBurTargets/{id} {
-      allow read: if isAdmin() || isVpOffice() || isBudgetOfficer() || isIpdo();
-      allow create, update: if isAdmin() || isVpOffice() || isBudgetOfficer() || isIpdo();
+      allow read: if isAdmin() || isVpOffice() || isCampusDirector() || isIpdo();
+      allow create, update: if isAdmin() || isVpOffice() || isIpdo();
       allow delete: if isAdmin();
     }
 
     match /gaaBurReports/{id} {
-      allow read: if isAdmin() || isVpOffice() || isBudgetOfficer() || isIpdo();
-      allow create, update: if isAdmin() || isVpOffice() || isBudgetOfficer() || isIpdo();
+      allow read: if isAdmin() || isVpOffice() || isCampusDirector() || isIpdo();
+      allow create, update: if isAdmin() || isVpOffice() || isIpdo();
       allow delete: if isAdmin();
     }
     

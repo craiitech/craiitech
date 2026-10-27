@@ -220,12 +220,8 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
   const isAdminRole = lower.includes('admin');
   const isVp = lower.includes('vice president');
   const isPresident = lower.includes('president');
+  const isCampusDirector = lower.includes('campus director');
   const isAuditor = lower.includes('auditor');
-  const isBudgetRole =
-    lower.includes('budget') ||
-    lower.includes('accountant') ||
-    lower.includes('accounting') ||
-    lower.includes('finance');
   const isIpdoRole = lower.includes('ipdo') || lower.includes('institutional planning and development');
 
   // FIAMO-specific role detection
@@ -338,10 +334,8 @@ export function getDefaultPermissions(roleName: string): Record<string, boolean>
     perms['gaa_bur.export'] = true;
   }
 
-  if (isBudgetRole) {
+  if (isCampusDirector) {
     perms['gaa_bur.view'] = true;
-    perms['gaa_bur.enter_actuals'] = true;
-    perms['gaa_bur.export'] = true;
   }
 
   if (isIpdoRole) {
