@@ -567,3 +567,91 @@
     animation: panel-fadein 400ms ease-out both;
   }
 }
+
+/* Center informational card content while leaving interactive/form cards untouched. */
+[data-card]:not(
+    :has(
+      form,
+      table,
+      input,
+      textarea,
+      select,
+      button,
+      canvas,
+      [contenteditable='true'],
+      [role='combobox'],
+      [role='table'],
+      [role='tablist']
+    )
+  )
+  > [data-card-header],
+[data-card]:not(
+    :has(
+      form,
+      table,
+      input,
+      textarea,
+      select,
+      button,
+      canvas,
+      [contenteditable='true'],
+      [role='combobox'],
+      [role='table'],
+      [role='tablist']
+    )
+  )
+  > [data-card-content],
+[data-card]:not(
+    :has(
+      form,
+      table,
+      input,
+      textarea,
+      select,
+      button,
+      canvas,
+      [contenteditable='true'],
+      [role='combobox'],
+      [role='table'],
+      [role='tablist']
+    )
+  )
+  > [data-card-footer] {
+  text-align: center;
+}
+
+[data-card]:not(
+    :has(
+      form,
+      table,
+      input,
+      textarea,
+      select,
+      button,
+      canvas,
+      [contenteditable='true'],
+      [role='combobox'],
+      [role='table'],
+      [role='tablist']
+    )
+  )
+  > [data-card-header],
+[data-card]:not(
+    :has(
+      form,
+      table,
+      input,
+      textarea,
+      select,
+      button,
+      canvas,
+      [contenteditable='true'],
+      [role='combobox'],
+      [role='table'],
+      [role='tablist']
+    )
+  )
+  > [data-card-footer] {
+  align-items: center;
+  justify-content: center;
+}

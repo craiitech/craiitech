@@ -964,11 +964,11 @@ function SummaryCard({
 }) {
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      <CardHeader className="flex flex-col items-center space-y-1 pb-2 text-center">
         <div className="text-muted-foreground">{icon}</div>
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="text-center">
         <div className="text-xl font-bold">{value}</div>
         <p className="text-xs text-muted-foreground">{description}</p>
       </CardContent>
