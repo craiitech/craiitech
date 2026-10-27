@@ -308,6 +308,7 @@ export type CampusSetting = {
   enableUnifiedHomeDashboard?: boolean;
   homeDashboardDefaultTab?: string;
   allowUserWorkspaceSwitch?: boolean;
+  groupSidebarMenus?: boolean;
   homeDashboardReviewers?: Record<string, string>;
   homeDashboardVerifiers?: Record<string, string>;
 };

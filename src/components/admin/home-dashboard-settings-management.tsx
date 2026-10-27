@@ -38,6 +38,7 @@ export function HomeDashboardSettingsManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isEnabled, setIsEnabled] = useState(false);
   const [allowWorkspaceSwitch, setAllowWorkspaceSwitch] = useState(true);
+  const [groupSidebarMenus, setGroupSidebarMenus] = useState(true);
   const [defaultTab, setDefaultTab] = useState('overview');
   const [reviewers, setReviewers] = useState<Record<string, string>>({});
   const [verifiers, setVerifiers] = useState<Record<string, string>>({});
@@ -56,6 +57,7 @@ export function HomeDashboardSettingsManagement() {
     if (globalSetting) {
       setIsEnabled(!!globalSetting.enableUnifiedHomeDashboard);
       setAllowWorkspaceSwitch(globalSetting.allowUserWorkspaceSwitch !== false);
+      setGroupSidebarMenus(globalSetting.groupSidebarMenus !== false);
       setDefaultTab(globalSetting.homeDashboardDefaultTab || 'overview');
       setReviewers(globalSetting.homeDashboardReviewers || {});
       setVerifiers(globalSetting.homeDashboardVerifiers || {});
@@ -71,6 +73,7 @@ export function HomeDashboardSettingsManagement() {
         {
           enableUnifiedHomeDashboard: isEnabled,
           allowUserWorkspaceSwitch: allowWorkspaceSwitch,
+          groupSidebarMenus: groupSidebarMenus,
           homeDashboardDefaultTab: defaultTab,
           homeDashboardReviewers: reviewers,
           homeDashboardVerifiers: verifiers,
@@ -85,9 +88,7 @@ export function HomeDashboardSettingsManagement() {
 
       toast({
         title: 'Home Dashboard Settings Saved',
-        description: isEnabled
-          ? 'Unified Strategic Home Dashboard is now ACTIVE for all users.'
-          : 'Unified Strategic Home Dashboard is now OFF. Standard role-based workspaces are restored.',
+        description: `${isEnabled ? 'Unified Strategic Home Dashboard is now ACTIVE for all users.' : 'Unified Strategic Home Dashboard is now OFF. Standard role-based workspaces are restored.'} Sidebar menus are now ${groupSidebarMenus ? 'grouped' : 'flat'}.`,
       });
     } catch (err: any) {
       console.error('Failed to update home dashboard settings:', err);
@@ -253,7 +254,7 @@ export function HomeDashboardSettingsManagement() {
           </div>
 
           {/* Additional Options */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pt-2">
             {/* Allow User Workspace Toggle */}
             <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
@@ -319,6 +320,24 @@ export function HomeDashboardSettingsManagement() {
               </Select>
               <p className="text-[11px] text-slate-500">
                 Select which framework tab opens by default when users enter the system dashboard.
+              </p>
+            </div>
+
+            {/* Sidebar Menu Grouping */}
+            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label
+                  htmlFor="group-sidebar-toggle"
+                  className="text-xs font-black uppercase tracking-tight text-slate-800 dark:text-slate-200 cursor-pointer"
+                >
+                  Group Sidebar Menus
+                </Label>
+                <Switch id="group-sidebar-toggle" checked={groupSidebarMenus} onCheckedChange={setGroupSidebarMenus} />
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed">
+                When enabled, the sidebar is organized under purpose-based headings such as Overview, Daily Operations,
+                Quality &amp; Compliance, Monitoring, Institutional Programs, Documents, and Administration. Turn it off
+                to restore the flat menu list for all users.
               </p>
             </div>
           </div>
