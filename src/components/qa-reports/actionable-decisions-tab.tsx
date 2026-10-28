@@ -666,7 +666,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         id: crypto.randomUUID(),
         description: values.description,
         implementationDate: Timestamp.fromDate(new Date(values.implementationDate)),
-        googleDriveLink: values.googleDriveLink || undefined,
+        ...(values.googleDriveLink ? { googleDriveLink: values.googleDriveLink } : {}),
         submittedBy: `${userProfile.firstName} ${userProfile.lastName}`,
         submittedById: userProfile.id,
         submittedAt: Timestamp.now(),
@@ -682,7 +682,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
       const updatedActions = [...existingActions, newAction];
 
       await updateDoc(docRef, {
-        actionEntries: updatedActions,
+        actionEntries: arrayUnion(newAction),
         updatedAt: serverTimestamp(),
         status: selectedOutput.status === 'Open' ? 'On-going' : selectedOutput.status,
       });
@@ -702,7 +702,12 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
       });
       setIsActionEntryDialogOpen(false);
     } catch (error) {
-      toast({ title: 'Failed', description: 'Could not add action entry.', variant: 'destructive' });
+      console.error('Failed to add action entry:', error);
+      toast({
+        title: 'Failed',
+        description: error instanceof Error ? error.message : 'Could not add action entry.',
+        variant: 'destructive',
+      });
     } finally {
       setIsActionSubmitting(false);
     }
