@@ -564,6 +564,19 @@ export function CorrectiveActionRequestTab({
     userRole?.toLowerCase().includes('quality management') ||
     userRole?.toLowerCase().includes('qms');
 
+  const isCampusScopedSupervisor =
+    userRole === 'Campus Director' ||
+    userRole === 'Campus ODIMO' ||
+    (userRole?.toLowerCase().includes('vice president') ?? false);
+
+  const campusScopeLabel = isInstitutionalViewer
+    ? 'Institution-wide view'
+    : isUserVpOffice && supervisedUnitIds.length > 0
+      ? 'Campuses of units under your office'
+      : isCampusScopedSupervisor
+        ? 'Your assigned campus only'
+        : 'Campuses assigned to your unit';
+
   const carQuery = useMemoFirebase(
     () => (firestore ? query(collection(firestore, 'correctiveActionRequests'), orderBy('createdAt', 'desc')) : null),
     [firestore],
@@ -957,8 +970,125 @@ export function CorrectiveActionRequestTab({
   };
 
   const iqaCampusFindingStats = useMemo(() => {
+    const baseVisibleCampusIds = (() => {
+      if (isInstitutionalViewer) return null;
+
+      const scopedCampusIds = new Set<string>();
+
+      if (isUserVpOffice && supervisedUnitIds.length > 0) {
+        supervisedUnitIds.forEach((unitId) => {
+          const supervisedUnit = units.find((unit) => unit.id === unitId);
+          (supervisedUnit?.campusIds || []).forEach((campusId) => scopedCampusIds.add(campusId));
+        });
+        return scopedCampusIds;
+      }
+
+      if (isCampusScopedSupervisor) {
+        if (userProfile?.campusId) scopedCampusIds.add(userProfile.campusId);
+        return scopedCampusIds;
+      }
+
+      const ownUnit = units.find((unit) => unit.id === userProfile?.unitId);
+      (ownUnit?.campusIds || []).forEach((campusId) => scopedCampusIds.add(campusId));
+      if (userProfile?.campusId) scopedCampusIds.add(userProfile.campusId);
+
+      return scopedCampusIds;
+    })();
+
+    const eligibleSchedules = (schedules || []).filter((schedule) => {
+      if (campusFilter !== 'all' && schedule.campusId !== campusFilter) return false;
+      if (yearFilter !== 'all') {
+        const scheduleDate = parseCarDate(schedule.scheduledDate);
+        if (!scheduleDate || scheduleDate.getFullYear() !== Number(yearFilter)) return false;
+      }
+
+      if (!isInstitutionalViewer) {
+        if (isUserVpOffice && supervisedUnitIds.length > 0) {
+          if (!supervisedUnitIds.includes(schedule.targetId)) return false;
+        } else if (isCampusScopedSupervisor) {
+          if (schedule.campusId !== userProfile?.campusId) return false;
+        } else if (schedule.targetId !== userProfile?.unitId) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    const eligibleCars = (rawCars || []).filter((car) => {
+      if (car.auditType === 'EQA') return false;
+      if (yearFilter !== 'all' && getCarYear(car) !== Number(yearFilter)) return false;
+      if (
+        campusFilter !== 'all' &&
+        car.campusId !== campusFilter &&
+        !(car.assignedUnits || []).some((assignment) => assignment.campusId === campusFilter)
+      ) {
+        return false;
+      }
+
+      if (isInstitutionalViewer) return true;
+
+      if (isUserVpOffice && supervisedUnitIds.length > 0) {
+        const supervisedOwn = supervisedUnitIds.includes(car.unitId);
+        const supervisedAssignment = (car.assignedUnits || []).some((assignment) =>
+          supervisedUnitIds.includes(assignment.unitId),
+        );
+        return supervisedOwn || supervisedAssignment;
+      }
+
+      if (isCampusScopedSupervisor) {
+        const campusAccess = car.campusId === userProfile?.campusId;
+        const campusAssignment = (car.assignedUnits || []).some(
+          (assignment) => assignment.campusId === userProfile?.campusId,
+        );
+        return campusAccess || campusAssignment;
+      }
+
+      const unitOwn = car.unitId === userProfile?.unitId;
+      const unitAssignment = (car.assignedUnits || []).some((assignment) => assignment.unitId === userProfile?.unitId);
+      return unitOwn || unitAssignment;
+    });
+
+    if (baseVisibleCampusIds) {
+      eligibleSchedules.forEach((schedule) => {
+        if (schedule.campusId) baseVisibleCampusIds.add(schedule.campusId);
+      });
+
+      eligibleCars.forEach((car) => {
+        if (isUserVpOffice && supervisedUnitIds.length > 0) {
+          if (supervisedUnitIds.includes(car.unitId) && car.campusId) {
+            baseVisibleCampusIds.add(car.campusId);
+          }
+          (car.assignedUnits || []).forEach((assignment) => {
+            if (supervisedUnitIds.includes(assignment.unitId) && assignment.campusId) {
+              baseVisibleCampusIds.add(assignment.campusId);
+            }
+          });
+          return;
+        }
+
+        if (isCampusScopedSupervisor) {
+          if (userProfile?.campusId) baseVisibleCampusIds.add(userProfile.campusId);
+          return;
+        }
+
+        if (car.unitId === userProfile?.unitId && car.campusId) {
+          baseVisibleCampusIds.add(car.campusId);
+        }
+        (car.assignedUnits || []).forEach((assignment) => {
+          if (assignment.unitId === userProfile?.unitId && assignment.campusId) {
+            baseVisibleCampusIds.add(assignment.campusId);
+          }
+        });
+      });
+    }
+
     const campusStats = campuses
-      .filter((campus) => campusFilter === 'all' || campus.id === campusFilter)
+      .filter(
+        (campus) =>
+          (campusFilter === 'all' || campus.id === campusFilter) &&
+          (baseVisibleCampusIds === null || baseVisibleCampusIds.has(campus.id)),
+      )
       .map((campus) => ({
         campusId: campus.id,
         campus: campus.name,
@@ -971,31 +1101,6 @@ export function CorrectiveActionRequestTab({
       }));
     const statsByCampus = new Map(campusStats.map((stats) => [stats.campusId, stats]));
 
-    const eligibleSchedules = (schedules || []).filter((schedule) => {
-      if (campusFilter !== 'all' && schedule.campusId !== campusFilter) return false;
-      if (yearFilter !== 'all') {
-        const scheduleDate = parseCarDate(schedule.scheduledDate);
-        if (!scheduleDate || scheduleDate.getFullYear() !== Number(yearFilter)) return false;
-      }
-
-      if (!isInstitutionalViewer) {
-        if (isUserVpOffice && supervisedUnitIds.length > 0) {
-          if (!supervisedUnitIds.includes(schedule.targetId)) return false;
-        } else {
-          const isCampusSupervisor =
-            userRole === 'Campus Director' ||
-            userRole === 'Campus ODIMO' ||
-            userRole?.toLowerCase().includes('vice president');
-          if (isCampusSupervisor) {
-            if (schedule.campusId !== userProfile?.campusId) return false;
-          } else if (schedule.targetId !== userProfile?.unitId) {
-            return false;
-          }
-        }
-      }
-
-      return true;
-    });
     const eligibleScheduleIds = new Set(eligibleSchedules.map((schedule) => schedule.id));
 
     const schedulesById = new Map(eligibleSchedules.map((schedule) => [schedule.id, schedule]));
@@ -1010,43 +1115,7 @@ export function CorrectiveActionRequestTab({
       else if (finding.type === 'Compliance') campusStats.Compliant += 1;
     });
 
-    (rawCars || []).forEach((car) => {
-      if (car.auditType === 'EQA') return;
-      if (yearFilter !== 'all' && getCarYear(car) !== Number(yearFilter)) return;
-      if (
-        campusFilter !== 'all' &&
-        car.campusId !== campusFilter &&
-        !(car.assignedUnits || []).some((assignment) => assignment.campusId === campusFilter)
-      ) {
-        return;
-      }
-
-      const isCampusSupervisor =
-        userRole === 'Campus Director' ||
-        userRole === 'Campus ODIMO' ||
-        userRole?.toLowerCase().includes('vice president');
-      if (!isInstitutionalViewer) {
-        if (isUserVpOffice && supervisedUnitIds.length > 0) {
-          const supervisedOwn = supervisedUnitIds.includes(car.unitId);
-          const supervisedAssignment = (car.assignedUnits || []).some((assignment) =>
-            supervisedUnitIds.includes(assignment.unitId),
-          );
-          if (!supervisedOwn && !supervisedAssignment) return;
-        } else if (isCampusSupervisor) {
-          const campusAccess = car.campusId === userProfile?.campusId;
-          const campusAssignment = (car.assignedUnits || []).some(
-            (assignment) => assignment.campusId === userProfile?.campusId,
-          );
-          if (!campusAccess && !campusAssignment) return;
-        } else {
-          const unitOwn = car.unitId === userProfile?.unitId;
-          const unitAssignment = (car.assignedUnits || []).some(
-            (assignment) => assignment.unitId === userProfile?.unitId,
-          );
-          if (!unitOwn && !unitAssignment) return;
-        }
-      }
-
+    eligibleCars.forEach((car) => {
       const campusIds = new Set(
         (car.assignedUnits || [])
           .filter((assignment) => {
@@ -1054,7 +1123,7 @@ export function CorrectiveActionRequestTab({
             if (isUserVpOffice && supervisedUnitIds.length > 0) {
               return supervisedUnitIds.includes(assignment.unitId);
             }
-            if (isCampusSupervisor) return assignment.campusId === userProfile?.campusId;
+            if (isCampusScopedSupervisor) return assignment.campusId === userProfile?.campusId;
             return assignment.unitId === userProfile?.unitId;
           })
           .map((assignment) => assignment.campusId),
@@ -1062,6 +1131,7 @@ export function CorrectiveActionRequestTab({
       if (campusIds.size === 0 && car.campusId) campusIds.add(car.campusId);
 
       campusIds.forEach((campusId) => {
+        if (!campusId) return;
         if (campusFilter !== 'all' && campusId !== campusFilter) return;
         const campusStats = statsByCampus.get(campusId);
         if (!campusStats) return;
@@ -1079,10 +1149,11 @@ export function CorrectiveActionRequestTab({
     findings,
     schedules,
     rawCars,
+    units,
     isInstitutionalViewer,
+    isCampusScopedSupervisor,
     isUserVpOffice,
     supervisedUnitIds,
-    userRole,
     userProfile?.campusId,
     userProfile?.unitId,
   ]);
@@ -2367,6 +2438,7 @@ export function CorrectiveActionRequestTab({
             <CardDescription className="text-xs">
               Finding counts show recorded NC, OFI, and Compliance findings; CAR counts show open, ongoing, and closed
               internal audit actions.
+              <span className="font-semibold text-foreground"> Scope: {campusScopeLabel}.</span>
               {yearFilter !== 'all' ? ` Filtered to ${yearFilter}.` : ''}
             </CardDescription>
           </CardHeader>
