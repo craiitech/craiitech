@@ -525,7 +525,8 @@ export function ActionableDecisionsRegisterPrintTemplate({
                 </td>
                 <td className="p-1.5 border-r border-black">
                   {item.followUpRemarks ? (
-                    <div>
+                    <div className="mb-1.5">
+                      <p className="text-[6.5pt] font-bold uppercase text-gray-600">General Progress Summary</p>
                       <p className="leading-snug">{item.followUpRemarks}</p>
                       {item.actionTakenBy && (
                         <p className="text-[7pt] text-gray-500 mt-0.5">
@@ -533,13 +534,37 @@ export function ActionableDecisionsRegisterPrintTemplate({
                         </p>
                       )}
                     </div>
-                  ) : (
+                  ) : null}
+                  {item.actionEntries && item.actionEntries.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {item.actionEntries.map((entry, entryIndex) => {
+                        const unitName =
+                          entry.unitName || (entry.unitId ? unitMap.get(entry.unitId) || entry.unitId : undefined);
+                        const campusName =
+                          entry.campusName ||
+                          (entry.campusId ? campusMap.get(entry.campusId) || entry.campusId : undefined);
+
+                        return (
+                          <div
+                            key={entry.id || `${entry.unitId || 'unit'}-${entryIndex}`}
+                            className="border-t border-gray-300 pt-1 first:border-t-0 first:pt-0"
+                          >
+                            <p className="font-bold text-[7pt] text-blue-800 leading-tight">
+                              {unitName || 'General Unit Response'}
+                              {campusName && <span className="font-normal text-gray-600"> ({campusName})</span>}
+                            </p>
+                            <p className="leading-snug mt-0.5">{entry.description}</p>
+                            <p className="text-[6.5pt] text-gray-600 mt-0.5">
+                              Implemented: {safeDate(entry.implementationDate)}
+                              {entry.submittedBy ? ` | By: ${entry.submittedBy}` : ''}
+                              {entry.actionStatus ? ` | ${entry.actionStatus}` : ''}
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : item.followUpRemarks ? null : (
                     <span className="text-gray-400 italic">No progress logged</span>
-                  )}
-                  {item.actionEntries && item.actionEntries.length > 0 && (
-                    <p className="text-[7pt] font-bold text-blue-700 mt-1">
-                      {item.actionEntries.length} itemized action record(s)
-                    </p>
                   )}
                 </td>
                 <td className="p-1.5 border-r border-black">

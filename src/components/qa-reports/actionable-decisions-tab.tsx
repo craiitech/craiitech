@@ -1166,14 +1166,16 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                               >
                                 <Plus className="h-3.5 w-3.5 mr-1" /> ACTION
                               </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenUpdate(output)}
-                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm"
-                              >
-                                UPDATE
-                              </Button>
+                              {isAdmin && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleOpenUpdate(output)}
+                                  className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm"
+                                >
+                                  UPDATE
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
