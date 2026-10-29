@@ -922,11 +922,13 @@ export function RiskDecisionReportsDialog({
                     <SelectItem value="all" className="text-xs font-bold">
                       All Campuses (University-Wide)
                     </SelectItem>
-                    {allCampuses.map((c) => (
-                      <SelectItem key={c.id} value={c.id} className="text-xs font-bold">
-                        {c.name}
-                      </SelectItem>
-                    ))}
+                    {allCampuses
+                      .filter((c) => c.id)
+                      .map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="text-xs font-bold">
+                          {c.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -950,16 +952,20 @@ export function RiskDecisionReportsDialog({
                         : `All Filtered Units (${unitsInFilter.length} Units)`}
                     </SelectItem>
                     {isAuditReport
-                      ? auditUnitsList.map((u) => (
-                          <SelectItem key={u.unitId} value={u.unitId} className="text-xs font-bold">
-                            {u.unitName} ({u.complianceStatus})
-                          </SelectItem>
-                        ))
-                      : unitsInFilter.map((u) => (
-                          <SelectItem key={u.unitId} value={u.unitId} className="text-xs font-bold">
-                            {u.unitName} ({u.risks.length} {u.risks.length === 1 ? 'entry' : 'entries'})
-                          </SelectItem>
-                        ))}
+                      ? auditUnitsList
+                          .filter((u) => u.unitId)
+                          .map((u) => (
+                            <SelectItem key={u.unitId} value={u.unitId} className="text-xs font-bold">
+                              {u.unitName} ({u.complianceStatus})
+                            </SelectItem>
+                          ))
+                      : unitsInFilter
+                          .filter((u) => u.unitId)
+                          .map((u) => (
+                            <SelectItem key={u.unitId} value={u.unitId} className="text-xs font-bold">
+                              {u.unitName} ({u.risks.length} {u.risks.length === 1 ? 'entry' : 'entries'})
+                            </SelectItem>
+                          ))}
                   </SelectContent>
                 </Select>
               </div>
