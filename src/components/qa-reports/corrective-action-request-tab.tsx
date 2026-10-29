@@ -595,8 +595,12 @@ export function CorrectiveActionRequestTab({
       const yr = getCarYear(car);
       if (yr) years.add(yr);
     });
+    (schedules || []).forEach((schedule) => {
+      const scheduleDate = parseCarDate(schedule.scheduledDate);
+      if (scheduleDate) years.add(scheduleDate.getFullYear());
+    });
     return Array.from(years).sort((a, b) => b - a);
-  }, [rawCars]);
+  }, [rawCars, schedules]);
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: currentSignatories } = useDoc<Signatories>(signatoryRef);
@@ -948,6 +952,160 @@ export function CorrectiveActionRequestTab({
     Open: { label: 'Open', color: 'hsl(var(--destructive))' },
     'On-Going': { label: 'On-Going', color: 'hsl(48 96% 53%)' },
     Closed: { label: 'Closed', color: 'hsl(142 71% 45%)' },
+  };
+
+  const iqaCampusFindingStats = useMemo(() => {
+    const campusStats = campuses
+      .filter((campus) => campusFilter === 'all' || campus.id === campusFilter)
+      .map((campus) => ({
+        campusId: campus.id,
+        campus: campus.name,
+        NC: 0,
+        OFI: 0,
+        Compliant: 0,
+        Open: 0,
+        Ongoing: 0,
+        Closed: 0,
+      }));
+    const statsByCampus = new Map(campusStats.map((stats) => [stats.campusId, stats]));
+
+    const eligibleSchedules = (schedules || []).filter((schedule) => {
+      if (campusFilter !== 'all' && schedule.campusId !== campusFilter) return false;
+      if (yearFilter !== 'all') {
+        const scheduleDate = parseCarDate(schedule.scheduledDate);
+        if (!scheduleDate || scheduleDate.getFullYear() !== Number(yearFilter)) return false;
+      }
+
+      if (!isInstitutionalViewer) {
+        if (isUserVpOffice && supervisedUnitIds.length > 0) {
+          if (!supervisedUnitIds.includes(schedule.targetId)) return false;
+        } else {
+          const isCampusSupervisor =
+            userRole === 'Campus Director' ||
+            userRole === 'Campus ODIMO' ||
+            userRole?.toLowerCase().includes('vice president');
+          if (isCampusSupervisor) {
+            if (schedule.campusId !== userProfile?.campusId) return false;
+          } else if (schedule.targetId !== userProfile?.unitId) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+    const eligibleScheduleIds = new Set(eligibleSchedules.map((schedule) => schedule.id));
+
+    const schedulesById = new Map(eligibleSchedules.map((schedule) => [schedule.id, schedule]));
+    (findings || []).forEach((finding) => {
+      if (!eligibleScheduleIds.has(finding.auditScheduleId)) return;
+      const schedule = schedulesById.get(finding.auditScheduleId);
+      const campusStats = schedule ? statsByCampus.get(schedule.campusId) : undefined;
+      if (!campusStats) return;
+
+      if (finding.type === 'Non-Conformance') campusStats.NC += 1;
+      else if (finding.type === 'Observation for Improvement') campusStats.OFI += 1;
+      else if (finding.type === 'Compliance') campusStats.Compliant += 1;
+    });
+
+    (rawCars || []).forEach((car) => {
+      if (car.auditType === 'EQA') return;
+      if (yearFilter !== 'all' && getCarYear(car) !== Number(yearFilter)) return;
+      if (
+        campusFilter !== 'all' &&
+        car.campusId !== campusFilter &&
+        !(car.assignedUnits || []).some((assignment) => assignment.campusId === campusFilter)
+      ) {
+        return;
+      }
+
+      const isCampusSupervisor =
+        userRole === 'Campus Director' ||
+        userRole === 'Campus ODIMO' ||
+        userRole?.toLowerCase().includes('vice president');
+      if (!isInstitutionalViewer) {
+        if (isUserVpOffice && supervisedUnitIds.length > 0) {
+          const supervisedOwn = supervisedUnitIds.includes(car.unitId);
+          const supervisedAssignment = (car.assignedUnits || []).some((assignment) =>
+            supervisedUnitIds.includes(assignment.unitId),
+          );
+          if (!supervisedOwn && !supervisedAssignment) return;
+        } else if (isCampusSupervisor) {
+          const campusAccess = car.campusId === userProfile?.campusId;
+          const campusAssignment = (car.assignedUnits || []).some(
+            (assignment) => assignment.campusId === userProfile?.campusId,
+          );
+          if (!campusAccess && !campusAssignment) return;
+        } else {
+          const unitOwn = car.unitId === userProfile?.unitId;
+          const unitAssignment = (car.assignedUnits || []).some(
+            (assignment) => assignment.unitId === userProfile?.unitId,
+          );
+          if (!unitOwn && !unitAssignment) return;
+        }
+      }
+
+      const campusIds = new Set(
+        (car.assignedUnits || [])
+          .filter((assignment) => {
+            if (isInstitutionalViewer) return true;
+            if (isUserVpOffice && supervisedUnitIds.length > 0) {
+              return supervisedUnitIds.includes(assignment.unitId);
+            }
+            if (isCampusSupervisor) return assignment.campusId === userProfile?.campusId;
+            return assignment.unitId === userProfile?.unitId;
+          })
+          .map((assignment) => assignment.campusId),
+      );
+      if (campusIds.size === 0 && car.campusId) campusIds.add(car.campusId);
+
+      campusIds.forEach((campusId) => {
+        if (campusFilter !== 'all' && campusId !== campusFilter) return;
+        const campusStats = statsByCampus.get(campusId);
+        if (!campusStats) return;
+        if (car.status === 'Open') campusStats.Open += 1;
+        else if (car.status === 'Closed') campusStats.Closed += 1;
+        else campusStats.Ongoing += 1;
+      });
+    });
+
+    return campusStats.sort((a, b) => a.campus.localeCompare(b.campus));
+  }, [
+    campuses,
+    campusFilter,
+    yearFilter,
+    findings,
+    schedules,
+    rawCars,
+    isInstitutionalViewer,
+    isUserVpOffice,
+    supervisedUnitIds,
+    userRole,
+    userProfile?.campusId,
+    userProfile?.unitId,
+  ]);
+  const iqaCampusFindingTotals = useMemo(
+    () =>
+      iqaCampusFindingStats.reduce(
+        (totals, campus) => ({
+          NC: totals.NC + campus.NC,
+          OFI: totals.OFI + campus.OFI,
+          Compliant: totals.Compliant + campus.Compliant,
+          Open: totals.Open + campus.Open,
+          Ongoing: totals.Ongoing + campus.Ongoing,
+          Closed: totals.Closed + campus.Closed,
+        }),
+        { NC: 0, OFI: 0, Compliant: 0, Open: 0, Ongoing: 0, Closed: 0 },
+      ),
+    [iqaCampusFindingStats],
+  );
+  const iqaCampusFindingChartConfig = {
+    NC: { label: 'NC', color: 'hsl(0 84% 60%)' },
+    OFI: { label: 'OFI', color: 'hsl(38 92% 50%)' },
+    Compliant: { label: 'Compliant', color: 'hsl(142 71% 45%)' },
+    Open: { label: 'Open CARs', color: 'hsl(0 84% 60%)' },
+    Ongoing: { label: 'Ongoing CARs', color: 'hsl(38 92% 50%)' },
+    Closed: { label: 'Closed CARs', color: 'hsl(142 71% 45%)' },
   };
 
   const ncGapsCount = useMemo(() => {
@@ -2139,6 +2297,105 @@ export function CorrectiveActionRequestTab({
           </div>
         </CardFooter>
       </Card>
+
+      {effectiveTypeFilter !== 'EQA' && (
+        <Card className="border-primary/10 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" /> IQA Findings &amp; CAR Status by Site / Campus
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Finding counts show recorded NC, OFI, and Compliance findings; CAR counts show open, ongoing, and closed
+              internal audit actions.
+              {yearFilter !== 'all' ? ` Filtered to ${yearFilter}.` : ''}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="text-[10px] font-black uppercase">Site / Campus</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase text-rose-600">NC</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase text-amber-600">OFI</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase text-emerald-600">
+                      Compliant
+                    </TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase text-rose-700">Open</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase text-blue-600">Ongoing</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase text-emerald-700">
+                      Closed
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {iqaCampusFindingStats.map((campus) => (
+                    <TableRow key={campus.campusId}>
+                      <TableCell className="text-xs font-bold">{campus.campus}</TableCell>
+                      <TableCell className="text-right text-xs font-semibold">{campus.NC}</TableCell>
+                      <TableCell className="text-right text-xs font-semibold">{campus.OFI}</TableCell>
+                      <TableCell className="text-right text-xs font-semibold">{campus.Compliant}</TableCell>
+                      <TableCell className="text-right text-xs font-semibold">{campus.Open}</TableCell>
+                      <TableCell className="text-right text-xs font-semibold">{campus.Ongoing}</TableCell>
+                      <TableCell className="text-right text-xs font-semibold">{campus.Closed}</TableCell>
+                    </TableRow>
+                  ))}
+                  {iqaCampusFindingStats.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-20 text-center text-xs text-muted-foreground">
+                        No campus data available for the selected filters.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+                {iqaCampusFindingStats.length > 0 && (
+                  <TableFooter>
+                    <TableRow className="font-black">
+                      <TableCell className="text-xs uppercase">Total</TableCell>
+                      <TableCell className="text-right text-xs">{iqaCampusFindingTotals.NC}</TableCell>
+                      <TableCell className="text-right text-xs">{iqaCampusFindingTotals.OFI}</TableCell>
+                      <TableCell className="text-right text-xs">{iqaCampusFindingTotals.Compliant}</TableCell>
+                      <TableCell className="text-right text-xs">{iqaCampusFindingTotals.Open}</TableCell>
+                      <TableCell className="text-right text-xs">{iqaCampusFindingTotals.Ongoing}</TableCell>
+                      <TableCell className="text-right text-xs">{iqaCampusFindingTotals.Closed}</TableCell>
+                    </TableRow>
+                  </TableFooter>
+                )}
+              </Table>
+            </div>
+            <ChartContainer config={iqaCampusFindingChartConfig} className="h-[340px] w-full">
+              <ResponsiveContainer>
+                <BarChart data={iqaCampusFindingStats} margin={{ top: 8, right: 12, left: -16, bottom: 48 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="campus"
+                    angle={-30}
+                    textAnchor="end"
+                    interval={0}
+                    height={64}
+                    tick={{ fontSize: 9, fontWeight: 700 }}
+                  />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
+                  <RechartsTooltip content={<ChartTooltipContent />} />
+                  <Legend
+                    wrapperStyle={{
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                    }}
+                  />
+                  <Bar dataKey="NC" fill="#ef4444" />
+                  <Bar dataKey="OFI" fill="#f59e0b" />
+                  <Bar dataKey="Compliant" fill="#16a34a" />
+                  <Bar dataKey="Open" fill="#be123c" />
+                  <Bar dataKey="Ongoing" fill="#2563eb" />
+                  <Bar dataKey="Closed" fill="#0f766e" />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs defaultValue="registry" className="space-y-6">
         <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10 animate-tab-highlight rounded-md">
