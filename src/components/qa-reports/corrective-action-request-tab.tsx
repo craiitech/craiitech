@@ -49,6 +49,7 @@ import {
   ClipboardList,
   Undo2,
   Printer,
+  BarChart3 as BarChartReportIcon,
   Target,
   Filter,
   Building2,
@@ -100,6 +101,7 @@ import { CARPrintTemplate } from './car-print-template';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getNextCarActionInfo, parseCarDate, type CarNextActionInfo } from '@/lib/car-utils';
 import { CARControlRegisterTemplate } from './car-control-register-template';
+import { CARRegistryReportPrintTemplate } from './car-registry-report-print-template';
 import { CAROverdueMemorandumDialog } from './car-overdue-memorandum-dialog';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import {
@@ -1996,6 +1998,52 @@ export function CorrectiveActionRequestTab({
     }
   };
 
+  const handlePrintRegistryReport = () => {
+    try {
+      const typeFilterLabel =
+        effectiveTypeFilter === 'EQA'
+          ? 'External Quality Audit (EQA) CARs'
+          : effectiveTypeFilter === 'IQA'
+            ? 'Internal Quality Audit (IQA) CARs'
+            : 'All CARs (IQA and EQA)';
+      const campusFilterName =
+        campusFilter === 'all' ? 'All Sites / Campuses' : campusMap.get(campusFilter) || campusFilter;
+      const generatedBy = userProfile
+        ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() ||
+          userProfile.email ||
+          'QA Administrator'
+        : 'QA Administrator';
+
+      const reportHtml = renderToStaticMarkup(
+        <CARRegistryReportPrintTemplate
+          cars={filteredCars}
+          yearlyPerformance={yearlyPerformance}
+          yearlyPerformanceTotals={yearlyPerformanceTotals}
+          campusFindings={iqaCampusFindingStats}
+          campusFindingTotals={iqaCampusFindingTotals}
+          unitMap={unitMap}
+          campusMap={campusMap}
+          yearFilter={yearFilter}
+          campusFilterName={campusFilterName}
+          typeFilterLabel={typeFilterLabel}
+          generatedBy={generatedBy}
+          signatories={currentSignatories || undefined}
+        />,
+      );
+
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.open();
+        printWindow.document.write(
+          `<!DOCTYPE html><html><head><title>CAR Registry Analytical Report</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 13in 8.5in landscape; margin: 0.4in; } @media print { html, body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display: none !important; } tr { page-break-inside: avoid !important; break-inside: avoid !important; } thead { display: table-header-group; } } body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; padding: 24px; margin: 0; color: #000; }</style></head><body><div class="no-print mb-6 flex justify-center"><button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-xl font-black uppercase text-xs tracking-widest">Click to Print CAR Registry Report</button></div><div id="print-content">${reportHtml}</div></body></html>`,
+        );
+        printWindow.document.close();
+      }
+    } catch (e) {
+      console.error('CAR Registry report print failed:', e);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -2012,16 +2060,28 @@ export function CorrectiveActionRequestTab({
               : 'Central institutional management and tracking for Non-Conformance findings and Corrective Action Requests.'}
           </p>
         </div>
-        {(canManage || isInstitutionalViewer) && (
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <Button
-            onClick={handleOpenCreateNew}
+            onClick={handlePrintRegistryReport}
             size="sm"
-            className="shadow-lg shadow-primary/20 shrink-0 font-black uppercase text-[10px] tracking-widest"
+            variant="outline"
+            className="font-black uppercase text-[10px] tracking-widest gap-2"
+            title="Print CAR Registry analytical report with tables, graphs, and visualizations"
           >
-            <PlusCircle className="mr-2 h-4 w-4" />
-            {effectiveTypeFilter === 'EQA' ? 'Issue New EQA CAR' : 'Issue New CAR'}
+            <BarChartReportIcon className="h-4 w-4" />
+            Print Report
           </Button>
-        )}
+          {(canManage || isInstitutionalViewer) && (
+            <Button
+              onClick={handleOpenCreateNew}
+              size="sm"
+              className="shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              {effectiveTypeFilter === 'EQA' ? 'Issue New EQA CAR' : 'Issue New CAR'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {auditTypeFilter === 'ALL' && (
