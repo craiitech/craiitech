@@ -36,6 +36,7 @@ import { LogoManagement } from '@/components/admin/logo-management';
 import { KpiDefinitionsManager } from '@/components/admin/kpi-definitions-manager';
 import { PermissionMatrix } from '@/components/admin/permission-matrix';
 import { SecuritySpecificationsManagement } from '@/components/admin/security-specifications-management';
+import { AuthAccessSettingsManagement } from '@/components/admin/auth-access-settings-management';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -283,7 +284,9 @@ export default function SettingsPage() {
           <TabsContent value="fiamo" className="space-y-4 animate-in fade-in duration-500">
             <FiamoSettingsManagement />
           </TabsContent>
-          <TabsContent value="security" className="space-y-4 animate-in fade-in duration-500">
+          <TabsContent value="security" className="space-y-6 animate-in fade-in duration-500">
+            <AuthAccessSettingsManagement />
+            <Separator />
             <SecuritySpecificationsManagement />
           </TabsContent>
         </Tabs>

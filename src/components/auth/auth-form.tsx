@@ -20,7 +20,7 @@ import {
   UserCredential,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from '@/firebase/firestore-wrapper';
+import { doc, setDoc, getDoc, type Firestore } from '@/firebase/firestore-wrapper';
 import { Loader2, Mail, X, Eye, EyeOff, AlertCircle, Users, KeyRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Checkbox } from '../ui/checkbox';
@@ -38,6 +38,29 @@ import {
 
 interface AuthFormProps {
   initialTab: 'signin' | 'signup';
+}
+
+type AuthAccessPolicy = {
+  allowExternalGoogleAccounts: boolean;
+  allowRegisteredExternalEmails: boolean;
+};
+
+const DEFAULT_AUTH_ACCESS_POLICY: AuthAccessPolicy = {
+  allowExternalGoogleAccounts: false,
+  allowRegisteredExternalEmails: false,
+};
+
+async function getAuthAccessPolicy(firestore: Firestore): Promise<AuthAccessPolicy> {
+  try {
+    const settingsDoc = await getDoc(doc(firestore, 'system', 'settings'));
+    const data = settingsDoc.exists() ? settingsDoc.data() : {};
+    return {
+      allowExternalGoogleAccounts: data.allowExternalGoogleAccounts === true,
+      allowRegisteredExternalEmails: data.allowRegisteredExternalEmails === true,
+    };
+  } catch {
+    return DEFAULT_AUTH_ACCESS_POLICY;
+  }
 }
 
 const firebaseErrorMap: Record<string, string> = {
@@ -73,6 +96,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authAccessPolicy, setAuthAccessPolicy] = useState<AuthAccessPolicy>(DEFAULT_AUTH_ACCESS_POLICY);
 
   // Forgot Password States
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -92,6 +116,19 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
   }, [user, userProfile, isUserLoading, router]);
 
+  // Load the administrator-configured sign-in policy so the Google account chooser
+  // can avoid restricting to the RSU Workspace domain when external accounts are allowed.
+  useEffect(() => {
+    if (!firestore) return;
+    let cancelled = false;
+    getAuthAccessPolicy(firestore).then((policy) => {
+      if (!cancelled) setAuthAccessPolicy(policy);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [firestore]);
+
   /**
    * Centralized logic to handle authentication results.
    */
@@ -104,19 +141,40 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       try {
         const normalizedEmail = (user.email || '').trim().toLowerCase();
         const isInstitutional = normalizedEmail.endsWith('@rsu.edu.ph') || normalizedEmail === 'admin@eoms.com';
-        if (!isInstitutional) {
+        const providerId = additionalInfo?.providerId || (result as any).credential?.providerId || '';
+        const isGoogle = providerId === 'google.com';
+
+        const userDocRef = doc(firestore, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        const isRegistered = userDoc.exists();
+        const policy = await getAuthAccessPolicy(firestore);
+        setAuthAccessPolicy(policy);
+
+        let isAccessAllowed = isInstitutional;
+        if (!isAccessAllowed) {
+          if (policy.allowRegisteredExternalEmails) {
+            // Any email domain is accepted, but only for accounts already in the registry.
+            isAccessAllowed = isRegistered;
+          } else if (policy.allowExternalGoogleAccounts) {
+            // Non-institutional accounts may enter only through Google sign-in.
+            isAccessAllowed = isGoogle;
+          }
+        }
+
+        if (!isAccessAllowed) {
           if (auth) {
             await auth.signOut();
           }
           setAuthError(
-            'Institutional Requirement: Please connect using your official Romblon State University Google account (@rsu.edu.ph).',
+            policy.allowRegisteredExternalEmails
+              ? 'Access Denied: This email is not registered in the system. Please contact the administrator to register your account.'
+              : policy.allowExternalGoogleAccounts
+                ? 'Access Denied: Please sign in with your official @rsu.edu.ph account or continue with Google.'
+                : 'Institutional Requirement: Please connect using your official Romblon State University Google account (@rsu.edu.ph).',
           );
           setIsSubmitting(false);
           return;
         }
-
-        const userDocRef = doc(firestore, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
 
         if (typeof window !== 'undefined') {
           sessionStorage.removeItem('rsu_eoms_digest_seen_session');
@@ -314,7 +372,11 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setIsSubmitting(true);
     setAuthError(null);
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account', hd: 'rsu.edu.ph' });
+    const allowExternalAccounts =
+      authAccessPolicy.allowExternalGoogleAccounts || authAccessPolicy.allowRegisteredExternalEmails;
+    provider.setCustomParameters(
+      allowExternalAccounts ? { prompt: 'select_account' } : { prompt: 'select_account', hd: 'rsu.edu.ph' },
+    );
 
     // Attempt popup first
     signInWithPopup(auth, provider)
