@@ -1,6 +1,5 @@
 'use client';
 
-import { FileText } from 'lucide-react';
 import { useUser } from '@/firebase';
 import Image from 'next/image';
 import { cn, getDirectDriveLink } from '@/lib/utils';
@@ -10,20 +9,20 @@ export function Logo({ className, ...props }: { className?: string }) {
 
   if (systemSettings?.logoUrl) {
     return (
-      <div className={cn("relative h-8 w-8", className)}>
-        <Image 
-          src={getDirectDriveLink(systemSettings.logoUrl)} 
-          alt="University Logo" 
-          fill 
-          className="object-contain" 
-        />
+      <div className={cn('relative h-8 w-8', className)}>
+        <Image src={getDirectDriveLink(systemSettings.logoUrl)} alt="University Logo" fill className="object-contain" />
       </div>
     );
   }
 
   return (
-    <FileText
-      className={cn("text-primary", className)}
+    <Image
+      src="/rsulogo.png"
+      alt="Romblon State University"
+      width={48}
+      height={48}
+      priority
+      className={cn('object-contain', className)}
       {...props}
     />
   );

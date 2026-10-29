@@ -23,17 +23,7 @@ import type {
 } from '@/lib/types';
 import { collection, query, where, Query, doc, updateDoc, serverTimestamp } from '@/firebase/firestore-wrapper';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Building2,
-  School,
-  Info,
-  WifiOff,
-  ShieldAlert,
-  Database,
-  CloudDownload,
-  RotateCw,
-  Loader2,
-} from 'lucide-react';
+import { Building2, School, Info, WifiOff, ShieldAlert, Database, CloudDownload, RotateCw } from 'lucide-react';
 import { ActivityLogProvider } from '@/lib/activity-log-provider';
 import { YearProvider } from '@/lib/year-provider';
 import { WebLlmProvider } from '@/context/web-llm-provider';
@@ -60,8 +50,9 @@ const CURRENT_SYSTEM_VERSION = '2.7.0';
 const FullScreenLoader = () => (
   <div className="flex h-dvh w-full items-center justify-center p-4 bg-background/60 backdrop-blur-xl">
     <div className="flex flex-col items-center gap-4 text-center animate-in fade-in duration-700">
-      <div className="relative h-20 w-20 rounded-3xl bg-white shadow-2xl border border-primary/10 flex items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl border border-primary/10 bg-white shadow-2xl">
+        <div className="absolute inset-2 rounded-full border-2 border-primary/15 border-t-primary animate-spin" />
+        <Logo className="relative z-10 h-12 w-12" />
       </div>
       <div className="space-y-1">
         <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
