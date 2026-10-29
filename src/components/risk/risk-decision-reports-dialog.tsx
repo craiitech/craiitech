@@ -49,6 +49,7 @@ import {
   type UnitComplianceAuditItem,
 } from '@/components/risk/risk-decision-print-templates';
 import { cn, normalizeReportType, parseDateSafe } from '@/lib/utils';
+import { openInstitutionalPrintPreview } from '@/lib/print-preview';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { submissionTypes } from '@/lib/constants';
 import { useUser } from '@/firebase/provider';
@@ -230,9 +231,7 @@ export function RiskDecisionReportsDialog({
   const [selectedStatusScope, setSelectedStatusScope] = useState<string>('all');
 
   // Communication & Signatory Controls
-  const [communicationType, setCommunicationType] = useState<string>(
-    canIssueQACommunication ? 'QA Memorandum' : 'Report Only',
-  );
+  const [communicationType, setCommunicationType] = useState<string>('Report Only');
 
   useEffect(() => {
     if (!canIssueQACommunication && communicationType !== 'Report Only') {
@@ -636,108 +635,107 @@ export function RiskDecisionReportsDialog({
           .join('');
       }
 
-      const printWindow = window.open('', '_blank');
-      if (printWindow) {
-        const isReportOnly = communicationType === 'Report Only';
-        printWindow.document.open();
-        printWindow.document.write(`
-          <!DOCTYPE html>
-          <html>
-          <head>
-              <title>${isReportOnly ? reportTitle : communicationType} - ${reportTitle} (AY ${activeYear})</title>
-              <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-              <style>
-                  @page { 
-                      size: ${paperSize === 'folio' ? '8.5in 13in' : paperSize === 'a4' ? '8.27in 11.69in' : '8.5in 11in'} !important; 
-                      margin: 0 !important; 
-                  }
-                  * { box-sizing: border-box !important; }
-                  body { 
-                      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
-                      background: #e2e8f0; 
-                      padding: 24px 0; 
-                      margin: 0;
-                      color: black; 
-                  }
-                  .memo-root-document { 
-                      margin: 0 auto !important; 
-                      width: 8.5in !important; 
-                  }
-                  .memo-page-1, .memo-attachment-page {
-                      width: 8.5in !important;
-                      min-height: ${paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in'} !important;
-                      background: white !important;
-                      position: relative !important;
-                      box-sizing: border-box !important;
-                      padding: 0.35in 0.45in 0.75in 0.45in !important;
-                      margin: 0 auto 30px auto !important;
-                      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
-                  }
-                  .memo-footer-banner {
-                      position: absolute !important;
-                      bottom: 0.25in !important;
-                      left: 0.45in !important;
-                      right: 0.45in !important;
-                  }
-                  @media print { 
-                      html, body { 
-                          margin: 0 !important; 
-                          padding: 0 !important; 
-                          background: white !important; 
-                          -webkit-print-color-adjust: exact !important; 
-                          print-color-adjust: exact !important; 
-                      } 
-                      .no-print { display: none !important; } 
-                      #print-content { padding: 0 !important; margin: 0 !important; width: 100% !important; }
-                      .memo-root-document { padding: 0 !important; margin: 0 !important; width: 100% !important; }
-                      .memo-page-1 {
-                          page-break-after: always !important;
-                          break-after: page !important;
-                          page-break-inside: avoid !important;
-                          break-inside: avoid !important;
-                          position: relative !important;
-                          box-sizing: border-box !important;
-                          padding: 0.35in 0.45in 0.75in 0.45in !important;
-                          margin: 0 !important;
-                          box-shadow: none !important;
-                          width: 8.5in !important;
-                          height: ${paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in'} !important;
-                          max-height: ${paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in'} !important;
-                          overflow: hidden !important;
-                      }
-                      .memo-attachment-page {
-                          page-break-before: always !important;
-                          break-before: page !important;
-                          position: relative !important;
-                          box-sizing: border-box !important;
-                          padding: 0.35in 0.45in 0.75in 0.45in !important;
-                          margin: 0 !important;
-                          box-shadow: none !important;
-                          width: 8.5in !important;
-                          min-height: ${paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in'} !important;
-                      }
-                      .memo-footer-banner {
-                          position: absolute !important;
-                          bottom: 0.25in !important;
-                          left: 0.45in !important;
-                          right: 0.45in !important;
-                      }
-                  } 
-                  table { border-collapse: collapse !important; width: 100% !important; }
-                  td, th { overflow: hidden; word-wrap: break-word; }
-              </style>
-          </head>
-          <body>
-              <div class="no-print mb-6 flex justify-center">
-                  <button onclick="window.print()" class="bg-indigo-600 text-white px-8 py-3 rounded shadow-xl hover:bg-indigo-700 font-sans font-black uppercase text-xs tracking-widest transition-all">Click to Print ${isReportOnly ? 'Report' : communicationType} (${paperSize === 'folio' ? 'Folio 8.5x13' : paperSize.toUpperCase()} Format)</button>
-              </div>
-              <div id="print-content">
-                  ${reportsHtml}
-              </div>
-          </body>
-          </html>
-        `);
-        printWindow.document.close();
+      const isReportOnly = communicationType === 'Report Only';
+      const pageSize = paperSize === 'folio' ? '8.5in 13in' : paperSize === 'a4' ? '8.27in 11.69in' : '8.5in 11in';
+      const pageHeight = paperSize === 'folio' ? '13in' : paperSize === 'a4' ? '11.69in' : '11in';
+      const fileName = `${isReportOnly ? reportTitle : communicationType} - ${reportTitle} (AY ${activeYear})`;
+      const printFormatLabel = paperSize === 'folio' ? 'Folio 8.5x13' : paperSize.toUpperCase();
+
+      const riskPrintCss = `
+        @page { size: ${pageSize} !important; margin: 0 !important; }
+        * { box-sizing: border-box !important; }
+        body {
+          font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+          background: #e2e8f0;
+          padding: 24px 0;
+          margin: 0;
+          color: black;
+        }
+        .memo-root-document { margin: 0 auto !important; width: 8.5in !important; }
+        .memo-page-1, .memo-attachment-page {
+          width: 8.5in !important;
+          min-height: ${pageHeight} !important;
+          background: white !important;
+          position: relative !important;
+          box-sizing: border-box !important;
+          padding: 0.35in 0.45in 0.75in 0.45in !important;
+          margin: 0 auto 30px auto !important;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12) !important;
+        }
+        .memo-footer-banner {
+          position: absolute !important;
+          bottom: 0.25in !important;
+          left: 0.45in !important;
+          right: 0.45in !important;
+        }
+        @media screen {
+          #print-document {
+            width: ${pageSize.split(' ')[0]} !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            background: transparent !important;
+            box-shadow: none !important;
+          }
+        }
+        @media print {
+          html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          #print-content { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+          .memo-root-document { padding: 0 !important; margin: 0 !important; width: 100% !important; }
+          .memo-page-1 {
+            page-break-after: always !important;
+            break-after: page !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            position: relative !important;
+            box-sizing: border-box !important;
+            padding: 0.35in 0.45in 0.75in 0.45in !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            width: 8.5in !important;
+            height: ${pageHeight} !important;
+            max-height: ${pageHeight} !important;
+            overflow: hidden !important;
+          }
+          .memo-attachment-page {
+            page-break-before: always !important;
+            break-before: page !important;
+            position: relative !important;
+            box-sizing: border-box !important;
+            padding: 0.35in 0.45in 0.75in 0.45in !important;
+            margin: 0 !important;
+            box-shadow: none !important;
+            width: 8.5in !important;
+            min-height: ${pageHeight} !important;
+          }
+          .memo-footer-banner {
+            position: absolute !important;
+            bottom: 0.25in !important;
+            left: 0.45in !important;
+            right: 0.45in !important;
+          }
+        }
+        table { border-collapse: collapse !important; width: 100% !important; }
+        td, th { overflow: hidden; word-wrap: break-word; }
+      `;
+
+      const printWindow = openInstitutionalPrintPreview({
+        title: fileName,
+        contentHtml: reportsHtml,
+        pageSize,
+        previewWidth: pageSize.split(' ')[0],
+        toolbarLabel: `Print ${isReportOnly ? 'Report' : communicationType} (${printFormatLabel} Format)`,
+        description: 'Preview the report below, then print or save it as a PDF.',
+        extraCss: riskPrintCss,
+      });
+
+      if (!printWindow) {
+        console.error('Print window was blocked. Please allow pop-ups for this site.');
       }
     } catch (err) {
       console.error('Failed to generate report window', err);

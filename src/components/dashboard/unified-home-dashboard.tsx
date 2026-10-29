@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -49,11 +50,69 @@ import { IslandCampusEquityTab } from '@/components/dashboard/strategic/island-c
 import { ExecutiveOverview } from '@/components/dashboard/executive-overview';
 import { KpiDashboardTab } from '@/components/dashboard/kpi-dashboard-tab';
 import { DashboardDataReviewRibbon } from '@/components/dashboard/dashboard-data-review-ribbon';
+import { UnifiedDashboardPrintTemplate } from '@/components/dashboard/unified-dashboard-print-template';
+import { openInstitutionalPrintPreview } from '@/lib/print-preview';
+import { useToast } from '@/hooks/use-toast';
 import { getUnitProgramsChedWarnings } from '@/lib/ched-compliance-warnings';
 import { calculateAaccupCoverage } from '@/lib/aaccup-coverage';
 import { calculateBaselineKraScores, evaluateSucClassification } from '@/lib/suc-levelling-engine';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+
+const DASHBOARD_TAB_LABELS: Record<string, string> = {
+  overview: '1. Executive Overview',
+  'archipelagic-intelligence': '2. Archipelagic Intelligence (AQ)',
+  'suc-levelling': '3. SUC Levelling',
+  'ched-monitoring': '4. CHED Program Monitoring',
+  eoms: '5. EOMS (ISO 21001:2025)',
+  'ched-isa': '6. CHED ISA',
+  aaccup: '7. AACCUP Accreditation',
+  'risk-intelligence': '8. Risk Intelligence',
+  'campus-equity': '9. Island Campus Equity',
+  kpis: '10. KPIs & Scorecards',
+};
+
+const DASHBOARD_PRINT_EXTRA_CSS = `
+    #print-content { width: 100%; }
+    #print-content *, #print-content *::before, #print-content *::after {
+      animation: none !important;
+      transition: none !important;
+    }
+    #print-content .sticky {
+      position: static !important;
+      top: auto !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      backdrop-filter: none !important;
+    }
+    #print-content .institutional-header {
+      background: #fff !important;
+      border-bottom: 1px solid #cbd5e1 !important;
+    }
+    #print-content [data-radix-scroll-area-viewport] {
+      overflow: visible !important;
+      height: auto !important;
+      max-height: none !important;
+    }
+    #print-content div:has(> [data-radix-scroll-area-viewport]) {
+      overflow: visible !important;
+      height: auto !important;
+      max-height: none !important;
+    }
+    #print-content [data-radix-scroll-area-scrollbar] { display: none !important; }
+    #print-content button, #print-content select, #print-content textarea,
+    #print-content input, #print-content [role="tablist"] { display: none !important; }
+    #print-content table { width: 100% !important; font-size: 8pt; }
+    #print-content thead { display: table-header-group; }
+    #print-content tr, #print-content svg, #print-content .recharts-wrapper,
+    #print-content .recharts-responsive-container { break-inside: avoid; page-break-inside: avoid; }
+    #print-content svg { max-width: 100% !important; height: auto !important; }
+    #print-content img { max-width: 100%; }
+    #print-content a { color: inherit !important; text-decoration: none !important; }
+    .print-heading { break-after: avoid; page-break-after: avoid; }
+`;
 
 export interface UnifiedHomeDashboardProps {
   submissions: Submission[];
@@ -99,6 +158,8 @@ export function UnifiedHomeDashboard({
   const [activeTab, setActiveTab] = useState(defaultTab || 'overview');
   const [scope, setScope] = useState<'university' | 'unit'>(initialScope);
   const [selectedUnitId, setSelectedUnitId] = useState<string>(userProfile?.unitId || units?.[0]?.id || '');
+  const dashboardRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   const firestore = useFirestore();
   const statementsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'archipelagicStatements') : null),
@@ -222,8 +283,83 @@ export function UnifiedHomeDashboard({
     };
   }, [scopedPrograms, allCompliances, scopedCars, scopedRisks, scopedSubmissions, selectedYear]);
 
+  const handlePrintBriefing = () => {
+    const dashboardNode = dashboardRef.current;
+    if (!dashboardNode) {
+      toast({
+        title: 'Print unavailable',
+        description: 'The dashboard is not ready yet. Please try again.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const clone = dashboardNode.cloneNode(true) as HTMLElement;
+
+      clone
+        .querySelectorAll('[role="tablist"], button, select, textarea, input, [role="combobox"], [data-print-hide]')
+        .forEach((node) => node.remove());
+      clone.querySelectorAll('[role="tabpanel"][data-state="inactive"]').forEach((node) => node.remove());
+      clone.querySelectorAll('[data-radix-scroll-area-scrollbar]').forEach((node) => node.remove());
+      clone.querySelectorAll('.sticky').forEach((node) => {
+        const element = node as HTMLElement;
+        element.style.position = 'static';
+        element.style.top = 'auto';
+      });
+
+      const activeTabLabel = DASHBOARD_TAB_LABELS[activeTab] || 'Dashboard Briefing';
+      const generatedAt = new Date();
+      const generatedBy = userProfile
+        ? [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ').trim()
+        : '';
+
+      const reportHtml = renderToStaticMarkup(
+        <UnifiedDashboardPrintTemplate
+          activeTabLabel={activeTabLabel}
+          scope={scope}
+          unitName={currentUnit?.name}
+          selectedYear={selectedYear}
+          generatedBy={generatedBy || undefined}
+          generatedAt={generatedAt}
+          contentHtml={clone.outerHTML}
+        />,
+      );
+
+      const documentTitle = `${
+        scope === 'university' ? 'Institutional' : 'Unit'
+      } Briefing — ${activeTabLabel} — AY ${selectedYear}`;
+
+      const printWindow = openInstitutionalPrintPreview({
+        title: documentTitle,
+        contentHtml: reportHtml,
+        pageSize: '13in 8.5in',
+        previewWidth: '13in',
+        toolbarLabel: 'Print / Save as PDF',
+        description: 'Preview the briefing below, then print or save it as a PDF.',
+        extraCss: DASHBOARD_PRINT_EXTRA_CSS,
+      });
+
+      if (!printWindow) {
+        toast({
+          title: 'Print window blocked',
+          description: 'Allow pop-ups for this site to generate the printable briefing.',
+          variant: 'destructive',
+        });
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to generate dashboard print briefing', error);
+      toast({
+        title: 'Print generation failed',
+        description: 'An error occurred while building the printable briefing. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+    <Tabs ref={dashboardRef} value={activeTab} onValueChange={setActiveTab} className="space-y-6">
       {/* Institutional Top Control Bar */}
       <div className="sticky top-0 z-30 pt-2 pb-3 -mx-4 px-4 lg:-mx-8 lg:px-8 bg-background/95 backdrop-blur-md border-b institutional-header space-y-3">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -340,7 +476,7 @@ export function UnifiedHomeDashboard({
             )}
 
             <Button
-              onClick={() => window.print()}
+              onClick={handlePrintBriefing}
               variant="outline"
               size="sm"
               className="h-8 text-xs font-black uppercase tracking-wider gap-1 shadow-sm"
