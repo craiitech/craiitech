@@ -34,6 +34,9 @@ import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import { copyToClipboard } from '@/lib/evaluation-export';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { UniversityHeading } from '@/components/common/university-heading';
+import { openInstitutionalPrintPreview } from '@/lib/print-preview';
 
 export type RiskAnalysisScope = 'unit' | 'supervisory' | 'institutional';
 
@@ -49,6 +52,84 @@ interface AiRiskIntelligenceCardProps {
   isSupervisor?: boolean;
   userRole?: string | null;
 }
+
+const escapePrintHtml = (value: string) =>
+  value.replace(/[&<>"']/g, (character) => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    };
+    return entities[character] ?? character;
+  });
+
+const formatInlinePrintText = (value: string) =>
+  escapePrintHtml(value)
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*\*/g, '');
+
+const formatRiskIntelligenceForPrint = (text: string) => {
+  const blocks: string[] = [];
+  let bulletItems: string[] = [];
+  let orderedItems: string[] = [];
+
+  const flushLists = () => {
+    if (bulletItems.length > 0) {
+      blocks.push(`<ul class="report-list">${bulletItems.join('')}</ul>`);
+      bulletItems = [];
+    }
+    if (orderedItems.length > 0) {
+      blocks.push(`<ol class="report-list">${orderedItems.join('')}</ol>`);
+      orderedItems = [];
+    }
+  };
+
+  text.split(/\r?\n/).forEach((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) {
+      flushLists();
+      return;
+    }
+
+    const headingMatch = line.match(/^(?:={3,}\s*(.+?)\s*={3,}|#{1,6}\s+(.+))$/);
+    if (headingMatch) {
+      flushLists();
+      blocks.push(`<h2 class="section-title">${formatInlinePrintText(headingMatch[1] || headingMatch[2])}</h2>`);
+      return;
+    }
+
+    const directiveMatch = line.match(/^(\d+)\.\s+(.+?):\s*(.*)$/);
+    if (directiveMatch) {
+      flushLists();
+      blocks.push(
+        `<div class="directive-box"><strong>${directiveMatch[1]}. ${formatInlinePrintText(directiveMatch[2])}:</strong> ${formatInlinePrintText(directiveMatch[3])}</div>`,
+      );
+      return;
+    }
+
+    const bulletMatch = line.match(/^[-*•]\s+(.+)$/);
+    if (bulletMatch) {
+      if (orderedItems.length > 0) flushLists();
+      bulletItems.push(`<li>${formatInlinePrintText(bulletMatch[1])}</li>`);
+      return;
+    }
+
+    const orderedMatch = line.match(/^\d+\.\s+(.+)$/);
+    if (orderedMatch) {
+      if (bulletItems.length > 0) flushLists();
+      orderedItems.push(`<li>${formatInlinePrintText(orderedMatch[1])}</li>`);
+      return;
+    }
+
+    flushLists();
+    blocks.push(`<p>${formatInlinePrintText(line)}</p>`);
+  });
+
+  flushLists();
+  return blocks.join('');
+};
 
 export function AiRiskIntelligenceCard({
   risks,
@@ -319,94 +400,90 @@ export function AiRiskIntelligenceCard({
   };
 
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      const scopeTitle =
-        analysisScope === 'unit'
-          ? `Unit Risk Action Plan • ${currentTargetUnitName}`
-          : analysisScope === 'supervisory'
-            ? `Supervisory Risk Oversight • ${currentTargetCampusName}`
-            : 'Quality Assurance Office • Institutional Risk Intelligence Briefing';
+    const scopeTitle =
+      analysisScope === 'unit'
+        ? `Unit Risk Action Plan: ${currentTargetUnitName}`
+        : analysisScope === 'supervisory'
+          ? `Supervisory Risk Oversight: ${currentTargetCampusName}`
+          : 'Institutional Risk Intelligence Briefing';
+    const reportTitle =
+      analysisScope === 'unit'
+        ? 'UNIT RISK ACTION PLAN'
+        : analysisScope === 'supervisory'
+          ? 'SUPERVISORY RISK OVERSIGHT'
+          : 'INSTITUTIONAL RISK INTELLIGENCE BRIEFING';
+    const now = new Date();
+    const reportHeading = renderToStaticMarkup(
+      <UniversityHeading
+        officeName="QUALITY ASSURANCE OFFICE"
+        subOffice="Institutional Effectiveness, Monitoring & Evaluation"
+        reportTitle={reportTitle}
+        reportSubtitle={`${analysisScope === 'unit' ? currentTargetUnitName : currentTargetCampusName} • Academic Year ${selectedYear}`}
+        refNo={`RSU-QAO-RI-${selectedYear}-${format(now, 'MMdd')}`}
+        datePrinted={now}
+        variant="standard"
+      />,
+    );
+    const formattedPrintContent = formatRiskIntelligenceForPrint(intelligenceText);
 
-      // Clean intelligence text for print
-      const formattedPrintContent = intelligenceText
-        .split('\n')
-        .map((line) => {
-          const l = line.trim();
-          if (!l) return '<br/>';
-          if (l.match(/^(?:===|##|###)\s*(.+?)\s*(?:===)?$/i)) {
-            const heading = l.replace(/^[#=\s]+|[#=\s]+$/g, '');
-            return `<div class="section-title">${heading}</div>`;
-          }
-          if (l.match(/^(\d+)\.\s+(.+?):\s*(.*)$/)) {
-            const m = l.match(/^(\d+)\.\s+(.+?):\s*(.*)$/)!;
-            return `<div class="directive-box"><strong>${m[1]}. ${m[2]}:</strong> ${m[3]}</div>`;
-          }
-          return `<p style="margin: 4px 0;">${l}</p>`;
-        })
-        .join('');
+    const contentHtml = `
+      <article class="risk-intelligence-report">
+        ${reportHeading}
+        <section class="kri-grid" aria-label="Key risk indicators">
+          <div class="kri-card">
+            <div class="kri-value">${riskAnalytics.totalRisks}</div>
+            <div class="kri-label">Total Risks Logged</div>
+          </div>
+          <div class="kri-card">
+            <div class="kri-value text-rose-700">${riskAnalytics.topAttentionItems.length}</div>
+            <div class="kri-label">${analysisScope === 'unit' ? 'Action Required' : 'High Priority'}</div>
+          </div>
+          <div class="kri-card">
+            <div class="kri-value text-amber-700">${riskAnalytics.overdueCount}</div>
+            <div class="kri-label">Overdue Mitigations</div>
+          </div>
+          <div class="kri-card">
+            <div class="kri-value text-emerald-700">${riskAnalytics.resolutionRate}%</div>
+            <div class="kri-label">Closure Resolution Rate</div>
+          </div>
+        </section>
+        <section class="report-content">${formattedPrintContent}</section>
+        <footer class="report-footer">
+          Generated via Local On-Device AI Engine • Romblon State University EOMS Portal • ISO 21001:2018 Standard
+        </footer>
+      </article>
+    `;
 
-      printWindow.document.open();
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>RSU_${analysisScope.toUpperCase()}_Risk_Analysis_AY${selectedYear}</title>
-            <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #0f172a; line-height: 1.6; }
-              h1 { font-size: 18pt; text-transform: uppercase; margin-bottom: 4px; text-align: center; }
-              h2 { font-size: 13pt; text-transform: uppercase; margin-top: 0; color: #475569; text-align: center; }
-              .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 16px; margin-bottom: 24px; }
-              .section-title { font-size: 11pt; font-weight: 900; text-transform: uppercase; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; margin-top: 20px; margin-bottom: 10px; color: #0f172a; }
-              .directive-box { border-left: 3px solid #059669; background: #f0fdf4; padding: 8px 12px; margin: 6px 0; border-radius: 0 4px 4px 0; font-size: 9pt; }
-              .kri-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
-              .kri-card { border: 1px solid #cbd5e1; padding: 12px; border-radius: 6px; text-align: center; background: #f8fafc; }
-              .kri-value { font-size: 16pt; font-weight: bold; }
-              .kri-label { font-size: 8pt; text-transform: uppercase; color: #64748b; font-weight: bold; margin-top: 4px; }
-              .content { font-size: 9.5pt; line-height: 1.65; }
-              .footer { margin-top: 40px; border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 8pt; color: #94a3b8; text-align: center; font-style: italic; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>Romblon State University</h1>
-              <h2>Quality Assurance Office</h2>
-              <p style="font-size: 11pt; font-weight: bold; margin-top: 4px; color: #1e293b;">${scopeTitle}</p>
-              <p style="font-size: 10pt; font-weight: bold; margin-top: 4px; color: #64748b;">ACADEMIC YEAR ${selectedYear}</p>
-            </div>
-            
-            <div class="kri-grid">
-              <div class="kri-card">
-                <div class="kri-value">${riskAnalytics.totalRisks}</div>
-                <div class="kri-label">Total Risks Logged</div>
-              </div>
-              <div class="kri-card">
-                <div class="kri-value" style="color: #b91c1c;">${riskAnalytics.topAttentionItems.length}</div>
-                <div class="kri-label">${analysisScope === 'unit' ? 'Action Required' : 'High Priority'}</div>
-              </div>
-              <div class="kri-card">
-                <div class="kri-value" style="color: #d97706;">${riskAnalytics.overdueCount}</div>
-                <div class="kri-label">Overdue Mitigations</div>
-              </div>
-              <div class="kri-card">
-                <div class="kri-value" style="color: #15803d;">${riskAnalytics.resolutionRate}%</div>
-                <div class="kri-label">Closure Resolution Rate</div>
-              </div>
-            </div>
+    const printWindow = openInstitutionalPrintPreview({
+      title: `${scopeTitle} (AY ${selectedYear})`,
+      contentHtml,
+      pageSize: '8.5in 13in',
+      previewWidth: '8.5in',
+      toolbarLabel: `Print ${scopeTitle}`,
+      description: 'Review the report below, then print or save it as a PDF.',
+      extraCss: `
+        .risk-intelligence-report { color: #0f172a; font-family: Arial, sans-serif; }
+        .kri-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 16px 0 24px; }
+        .kri-card { border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; text-align: center; background: #f8fafc; break-inside: avoid; }
+        .kri-value { font-size: 16pt; font-weight: 800; }
+        .kri-label { margin-top: 4px; color: #475569; font-size: 8pt; font-weight: 700; text-transform: uppercase; }
+        .report-content { font-size: 10pt; line-height: 1.6; }
+        .report-content p { margin: 0 0 12px; }
+        .section-title { margin: 22px 0 10px; padding-bottom: 5px; border-bottom: 1px solid #cbd5e1; color: #0f172a; font-size: 12pt; font-weight: 800; line-height: 1.35; }
+        .report-list { margin: 4px 0 16px; padding-left: 24px; }
+        .report-list li { margin: 0 0 6px; padding-left: 3px; }
+        .directive-box { margin: 10px 0; padding: 9px 12px; border-left: 3px solid #15803d; background: #f0fdf4; break-inside: avoid; }
+        .report-footer { margin-top: 28px; padding-top: 10px; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 8pt; }
+        @media print {
+          .kri-grid { gap: 8px; }
+          .kri-card { padding: 8px; }
+          .section-title { break-after: avoid; }
+        }
+      `,
+    });
 
-            <div class="content">${formattedPrintContent}</div>
-
-            <div class="footer">
-              Generated via Local On-Device AI Engine • Romblon State University EOMS Portal • ISO 21001:2018 Standard
-            </div>
-          </body>
-        </html>
-      `);
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 500);
+    if (!printWindow) {
+      console.error('Print window was blocked. Please allow pop-ups for this site.');
     }
   };
 
