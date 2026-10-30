@@ -212,6 +212,15 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     );
   }, [userRole, userProfile?.unitId, userProfile?.unitName, units]);
 
+  const canViewInstitutionalPresentation =
+    isAdmin ||
+    isAuditor ||
+    isUserVpOffice ||
+    userRole?.toLowerCase().includes('vice president') ||
+    userRole?.toLowerCase().includes('president') ||
+    userRole?.toLowerCase().includes('quality management') ||
+    userRole?.toLowerCase().includes('qms');
+
   const supervisedUnitIds = useMemo(() => {
     if (!isUserVpOffice || !units) return [];
     return getSupervisedUnitIds(userProfile?.unitId, units);
@@ -810,6 +819,22 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
+                          {canViewInstitutionalPresentation && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-[10px] font-black uppercase tracking-wider gap-1.5 border-emerald-800/20 text-emerald-900"
+                              onClick={() =>
+                                window.open(
+                                  `/management-review/presentation/${encodeURIComponent(selectedMr.id)}`,
+                                  '_blank',
+                                  'noopener,noreferrer',
+                                )
+                              }
+                            >
+                              <Presentation className="h-3 w-3" /> Present
+                            </Button>
+                          )}
                           {selectedMr.minutesLink && (
                             <Button variant="outline" size="sm" className="h-8 text-[10px] font-bold gap-1.5" asChild>
                               <a href={selectedMr.minutesLink} target="_blank" rel="noopener noreferrer">

@@ -96,8 +96,16 @@ export function CurrentYearManagementReview({
   onSelectReviewInArchive,
 }: CurrentYearManagementReviewProps) {
   const firestore = useFirestore();
-  const { userProfile, isAdmin } = useUser();
+  const { userProfile, isAdmin, isAuditor, isVp, isVpOffice, userRole } = useUser();
   const { toast } = useToast();
+  const canViewInstitutionalPresentation =
+    isAdmin ||
+    isAuditor ||
+    isVp ||
+    isVpOffice ||
+    userRole?.toLowerCase().includes('president') ||
+    userRole?.toLowerCase().includes('quality management') ||
+    userRole?.toLowerCase().includes('qms');
 
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
@@ -946,6 +954,22 @@ export function CurrentYearManagementReview({
                       <TableCell>
                         {part.driveFolderLink ? (
                           <div className="flex items-center gap-2">
+                            {canViewInstitutionalPresentation && currentMr && (
+                              <Button
+                                onClick={() =>
+                                  window.open(
+                                    `/management-review/presentation/${encodeURIComponent(currentMr.id)}`,
+                                    '_blank',
+                                    'noopener,noreferrer',
+                                  )
+                                }
+                                size="sm"
+                                variant="outline"
+                                className="h-9 px-4 font-black uppercase text-[10px] tracking-widest shadow-sm gap-2 border-emerald-800/20 text-emerald-900"
+                              >
+                                <Eye className="h-4 w-4" /> Start Presentation
+                              </Button>
+                            )}
                             <Button
                               variant="outline"
                               size="sm"
