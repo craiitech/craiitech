@@ -32,6 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getUnitProgramsChedWarnings, getProgramChedWarnings } from '@/lib/ched-compliance-warnings';
 import { AcademicUnitChedWarningsCard } from '@/components/programs/academic-unit-ched-warnings-card';
+import { printManagementReviewEvidenceReport } from '@/components/qa-reports/management-review-evidence-print';
 import {
   getChedCopcCategory,
   getChedPortfolioSnapshot,
@@ -187,6 +188,76 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
     previousYearRate === undefined
       ? `AY ${selectedYear} provides the current baseline. Compare future results while monitoring the separately reported missing-record and unknown-status counts.`
       : `The recorded COPC rate changed ${currentYearStats.rate - previousYearRate > 0 ? 'up' : currentYearStats.rate - previousYearRate < 0 ? 'down' : 'by'} ${Math.abs(currentYearStats.rate - previousYearRate)} percentage point(s) from AY ${selectedYear - 1}. Use the separate missing-record and unknown-status counts when interpreting this trend.`;
+
+  const handlePrintManagementReviewBrief = () => {
+    const reportTotal = programDetailData.length;
+    const reportWithCopc = programDetailData.filter((program) => program.copcStatus === 'With COPC').length;
+    const reportInProgress = programDetailData.filter((program) => program.copcStatus === 'In Progress').length;
+    const reportNoCopc = programDetailData.filter((program) => program.copcStatus === 'No COPC').length;
+    const reportNoRecord = programDetailData.filter((program) => program.copcStatus === 'No Record').length;
+    const reportUnknown = programDetailData.filter((program) => program.copcStatus === 'Status Unknown').length;
+    const reportMissingEvidence = programDetailData.filter(
+      (program) => program.copcStatus === 'With COPC' && !program.copcLink,
+    ).length;
+    const reportCopcRate = reportTotal > 0 ? Math.round((reportWithCopc / reportTotal) * 100) : 0;
+    const reportActions = [
+      reportNoRecord > 0 && `Create AY ${selectedYear} monitoring records for ${reportNoRecord} program(s).`,
+      reportUnknown > 0 && `Validate unknown COPC statuses for ${reportUnknown} program(s).`,
+      reportNoCopc > 0 && `Agree recovery plans for ${reportNoCopc} program(s) marked No COPC.`,
+      reportInProgress > 0 && `Review application milestones for ${reportInProgress} program(s) in progress.`,
+      reportMissingEvidence > 0 && `Attach or verify COPC evidence for ${reportMissingEvidence} program(s).`,
+    ].filter((item): item is string => Boolean(item));
+
+    printManagementReviewEvidenceReport({
+      title: 'CHED COPC Program Monitoring Management Review Analysis',
+      source: 'CHED Program Monitoring dashboard and program compliance records',
+      period: `Academic year ${selectedYear}`,
+      scope: `${reportTotal} active program(s) under the current campus, unit, COPC, degree, and warning filters`,
+      summary: [
+        { label: 'Active programs in report', value: String(reportTotal) },
+        { label: 'With COPC', value: `${reportWithCopc} (${reportCopcRate}%)` },
+        { label: 'In progress', value: String(reportInProgress) },
+        { label: 'No COPC / no record / unknown', value: `${reportNoCopc} / ${reportNoRecord} / ${reportUnknown}` },
+      ],
+      sections: [
+        {
+          title: 'Regulatory monitoring evidence',
+          items: [
+            `${reportCopcRate}% of the programs included in this report are marked With COPC for AY ${selectedYear}.`,
+            `Separate data-quality indicators: ${reportNoRecord} missing academic-year records; ${reportUnknown} unknown COPC statuses.`,
+            `${reportMissingEvidence} program(s) marked With COPC are missing an evidence link; ${programDetailData.filter((program) => !program.cmoLink || !program.boardApprovalLink).length} have a missing CMO or Board approval link.`,
+          ],
+        },
+        {
+          title: 'Management review decisions to consider',
+          items:
+            reportActions.length > 0
+              ? reportActions
+              : [
+                  'Maintain monitoring, validate supporting COPC evidence, and confirm whether any program-specific follow-up is required.',
+                ],
+        },
+      ],
+      records: programDetailData.map((program) => ({
+        title: `${program.name}${program.abbreviation ? ` (${program.abbreviation})` : ''}`,
+        status: program.copcStatus,
+        details: [
+          `Campus / unit: ${program.campus} / ${program.unit}`,
+          `Degree level: ${program.level}${program.isNewProgram ? ' · New program' : ''}`,
+          `COPC award date: ${program.copcAwardDate || 'Not recorded'}`,
+          `COPC evidence: ${program.copcLink || 'Not linked'}`,
+          `CMO / Board evidence: ${program.cmoLink || 'No CMO link'} / ${program.boardApprovalLink || 'No Board link'}`,
+          `RQAT visits recorded: ${program.rqatVisitsCount}`,
+          `Monitoring warnings: ${program.warningSummary.warnings.map((warning) => warning.description).join('; ') || 'None reported'}`,
+        ],
+      })),
+      references: [
+        'ISO 21001:2025, clause 9.3: consider regulatory/monitoring results, EOMS performance, and actions needed to address risks or improvement opportunities. Official standard overview: https://www.iso.org/standard/21001',
+        'CHED CMO No. 09, s. 2023 describes procedures for processing COPC/CPA requests per program and per campus: https://cms-cdn.e.gov.ph/CHED/pdf/2023-CMO-No09.pdf. Verify the current program-specific PSG and applicable issuances before determining regulatory status.',
+        'COPC status and evidence counts reflect portal records; they do not replace CHED authorization or legal review.',
+      ],
+    });
+  };
 
   // COPC Breakdown by Degree Level (Undergraduate vs Graduate) — uses all active programs against current year compliances
   const copcLevelBreakdown = useMemo(() => {
@@ -556,6 +627,15 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
               >
                 <Printer className="h-3.5 w-3.5" />
                 Print Trend
+              </Button>
+              <Button
+                onClick={handlePrintManagementReviewBrief}
+                variant="outline"
+                size="sm"
+                className="h-8 bg-white border-indigo-200 text-indigo-800 font-black uppercase text-[9px] tracking-widest gap-1.5 shadow-sm hover:bg-indigo-50"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Print MR Analysis
               </Button>
             </div>
           </div>

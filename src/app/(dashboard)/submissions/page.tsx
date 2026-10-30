@@ -59,6 +59,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
 import { cn, normalizeReportType, getSupervisedUnitIds, isVpOffice } from '@/lib/utils';
 import { submissionTypes } from '@/lib/constants';
+import { printManagementReviewEvidenceReport } from '@/components/qa-reports/management-review-evidence-print';
 import Link from 'next/link';
 
 const getYearCycleRowColor = (year: number, cycle: string) => {
@@ -496,6 +497,102 @@ export default function SubmissionsPage() {
     return sub.statusId?.toUpperCase() || 'UNKNOWN';
   };
 
+  const handlePrintManagementReviewBrief = () => {
+    const reportYears =
+      yearFilter === 'all'
+        ? Array.from(new Set(dashboardSubmissions.map((submission) => Number(submission.year)))).sort((a, b) => a - b)
+        : [Number(yearFilter)];
+    const yearsToReview = reportYears.length > 0 ? reportYears : [new Date().getFullYear()];
+    const cyclesToReview = ['first', 'final'] as const;
+    const missingByUnitCycle = dashboardUnits.flatMap((unit) =>
+      yearsToReview.flatMap((year) =>
+        cyclesToReview.map((cycle) => {
+          const submittedTypes = new Set(
+            dashboardSubmissions
+              .filter(
+                (submission) =>
+                  submission.unitId === unit.id &&
+                  Number(submission.year) === year &&
+                  submission.cycleId?.toLowerCase().includes(cycle),
+              )
+              .map((submission) => submission.reportType),
+          );
+          const missing = submissionTypes.filter((type) => !submittedTypes.has(normalizeReportType(type)));
+          return { unitName: unit.name, year, cycle, missing };
+        }),
+      ),
+    );
+    const missingCount = missingByUnitCycle.reduce((count, row) => count + row.missing.length, 0);
+    const uniqueUnits = new Set(dashboardSubmissions.map((submission) => submission.unitId)).size;
+    const approvedCount = dashboardSubmissions.filter((submission) => submission.statusId === 'approved').length;
+    const draftCount = dashboardSubmissions.filter((submission) => submission.isDraft).length;
+    const needsEntryCount = dashboardSubmissions.filter((submission) => submission.submissionNeedsEntry).length;
+
+    printManagementReviewEvidenceReport({
+      title: 'EOMS Submission Management Review Analysis',
+      source: 'EOMS Submission Hub',
+      period:
+        yearFilter === 'all' ? `Available reporting years: ${yearsToReview.join(', ')}` : `Calendar year ${yearFilter}`,
+      scope: `${dashboardUnits.length} authorized unit(s)${
+        campusFilter === 'all' ? '' : ` · ${campusMap.get(campusFilter) || 'selected campus'}`
+      }${unitFilter === 'all' ? '' : ` · ${allUnits?.find((unit) => unit.id === unitFilter)?.name || 'selected unit'}`}`,
+      summary: [
+        { label: 'Submission records', value: String(dashboardSubmissions.length) },
+        { label: 'Units with records', value: `${uniqueUnits} / ${dashboardUnits.length}` },
+        { label: 'Approved', value: String(approvedCount) },
+        { label: 'Draft / needs entry', value: `${draftCount} / ${needsEntryCount}` },
+      ],
+      sections: [
+        {
+          title: 'Submission coverage and workflow evidence',
+          items: [
+            `The portal defines ${submissionTypes.length} EOMS submission type(s): ${submissionTypes.join(', ')}.`,
+            `${missingCount} expected unit/year/cycle submission slot(s) are not represented in this data view. Coverage counts use the two portal cycles (first and final) and this report's authorized unit/year scope.`,
+            `${dashboardSubmissions.filter((submission) => submission.statusId === 'submitted').length} record(s) are awaiting approval; ${dashboardSubmissions.filter((submission) => submission.statusId === 'rejected').length} are marked rejected.`,
+            'This report summarizes portal metadata and submission links only; it does not assess the completeness or conformity of files stored in external drives.',
+          ],
+        },
+        {
+          title: 'Management review decisions to consider',
+          items: [
+            'Review missing submissions and late/returned records with the responsible unit and confirm a recovery date.',
+            'Confirm records needing data entry have assigned owners and that approved final versions—not drafts—are used as controlled evidence.',
+            'Assess recurring submission gaps, portal process effectiveness, and resource or training needs.',
+          ],
+        },
+        {
+          title: 'Missing submissions by unit, year, and cycle',
+          items:
+            missingByUnitCycle.filter((row) => row.missing.length > 0).length > 0
+              ? missingByUnitCycle
+                  .filter((row) => row.missing.length > 0)
+                  .map((row) => `${row.unitName} · ${row.year} · ${row.cycle} cycle: ${row.missing.join(', ')}`)
+                  .slice(0, 100)
+              : dashboardUnits.length > 0
+                ? ['No missing submission slots were identified for the report scope.']
+                : ['No units are available in the current authorized scope.'],
+        },
+      ],
+      records: dashboardSubmissions.map((submission) => ({
+        title: `${submission.reportType} · ${submission.cycleId} cycle · ${submission.year}`,
+        status: getStatusText(submission),
+        details: [
+          `Unit / campus: ${submission.unitName || 'Not recorded'} / ${campusMap.get(submission.campusId) || 'Not recorded'}`,
+          `Control number: ${submission.controlNumber || 'Not recorded'}`,
+          `Submitted: ${safeFormatDate(submission.submissionDate)}`,
+          `Revision: ${submission.revision ?? 'Not recorded'}`,
+          `Version: ${submission.isDraft ? 'Draft' : 'Final'}`,
+          `Needs data entry: ${submission.submissionNeedsEntry ? 'Yes' : 'No'}`,
+          `Evidence: ${submission.googleDriveLink || 'Not linked'}`,
+        ],
+      })),
+      references: [
+        'ISO 21001:2025, clause 9.3: review EOMS performance/effectiveness, audit and monitoring results, and resource or improvement needs as applicable.',
+        'The missing-slot calculation reflects the application submission types and first/final cycles; verify the current reporting calendar and applicability before management decisions.',
+      ],
+    });
+  };
+
   const reportSelectedYear = yearFilter === 'all' ? new Date().getFullYear().toString() : yearFilter;
   const canSubmit = !isAuditor && (can('submissions.create') || !isSupervisor || isUnitRole);
 
@@ -539,6 +636,13 @@ export default function SubmissionsPage() {
                     className="h-9 font-black uppercase text-[10px] tracking-widest border-primary/30 text-primary hover:bg-primary/10 bg-white dark:bg-slate-900 shadow-sm"
                   >
                     <Sparkles className="mr-2 h-4 w-4 text-primary" /> Decision Support Audit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handlePrintManagementReviewBrief}
+                    className="h-9 font-black uppercase text-[10px] tracking-widest"
+                  >
+                    <FileText className="mr-2 h-4 w-4" /> Print MR Report
                   </Button>
                   <Button
                     variant="outline"

@@ -27,6 +27,7 @@ import {
   CalendarClock,
   BarChart3,
   PieChart,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -43,6 +44,7 @@ import {
   DialogTrigger,
   DialogClose,
 } from '@/components/ui/dialog';
+import { printManagementReviewEvidenceReport } from '@/components/qa-reports/management-review-evidence-print';
 
 export interface AccreditationMonitoringViewProps {
   programs: AcademicProgram[];
@@ -770,6 +772,64 @@ export function AccreditationMonitoringView({
     recommendationsStatusFilter,
     recommendationsCampusFilter,
   ]);
+
+  const handlePrintManagementReviewBrief = () => {
+    const openMandatory = filteredRecommendations.filter(
+      (item) => item.recommendation.type === 'Mandatory' && item.recommendation.status !== 'Closed',
+    ).length;
+
+    printManagementReviewEvidenceReport({
+      title: 'Program Accreditation Performance Management Review Analysis',
+      source: 'Academic Program Accreditation Monitoring and recommendations records',
+      period: `Academic year ${selectedYear}; survey history ${
+        accredYearFilter === 'all' ? 'all recorded years' : `calendar year ${accredYearFilter}`
+      }`,
+      scope: `${programDetailData.length} active program record(s) in the current monitoring filters`,
+      summary: [
+        { label: 'Accreditable programs', value: String(stats.accreditable) },
+        { label: 'Accredited', value: `${stats.accredited} (${stats.rate}%)` },
+        { label: 'Candidate / new', value: `${stats.candidate} / ${stats.newPrograms}` },
+        { label: 'Open mandatory recommendations', value: String(openMandatory) },
+      ],
+      sections: [
+        {
+          title: 'Accreditation performance and risk evidence',
+          items: [
+            `${stats.nonAccredited} accreditable program(s) are marked non-accredited; ${stats.expiringOrExpired} record(s) have accreditation validity marked expired or expiring in the current calendar year.`,
+            `Accreditation level distribution: Level IV ${stats.levelIV}, Level III ${stats.levelIII}, Level II ${stats.levelII}, Level I ${stats.levelI}, candidate ${stats.candidate}.`,
+            `${openMandatory} mandatory recommendation(s) are visible under the selected survey-year/type/status/campus filters.`,
+            'Rates and counts are based on the status and lifecycle data entered in the portal; verify certificates, survey results, and validity dates before external reporting.',
+          ],
+        },
+        {
+          title: 'Management review decisions to consider',
+          items: [
+            'Prioritize resources and schedules for re-survey, self-survey preparation, and programs with expiring or expired accreditation.',
+            'Assign accountable owners and dates for open mandatory recommendations and confirm evidence for closure.',
+            'Review whether accreditation results, program outcomes, and recurring recommendations indicate systemic improvement or resource needs.',
+          ],
+        },
+      ],
+      records: programDetailData.map((program) => ({
+        title: `${program.name}${program.abbreviation ? ` (${program.abbreviation})` : ''}`,
+        status: program.accreditationLevel,
+        details: [
+          `Campus / unit: ${program.campus} / ${program.unit}`,
+          `Degree level: ${program.degreeLevel}${program.isNewProgram ? ' · New program' : ''}`,
+          `Accreditation lifecycle: ${program.lifecycle}`,
+          `Latest survey date: ${program.surveyDate}`,
+          `Validity: ${program.validityDate}`,
+          `Mandatory recommendations open: ${program.openRecs}`,
+          `Academic-year record available: ${program.hasRecord ? 'Yes' : 'No'}`,
+        ],
+      })),
+      references: [
+        'ISO 21001:2025, clause 9.3: review monitoring and measurement results, evaluation outcomes, and opportunities for improvement as applicable.',
+        'CHED program-specific PSGs and AACCUP accreditation instruments are program- and review-cycle-specific; confirm the current applicable instrument and certified status before final decisions.',
+        'This is a management-review input summary of portal data, not an accreditation determination or substitute for official certificates and survey reports.',
+      ],
+    });
+  };
 
   const accreditationBadge = (level: string) => {
     if (level.includes('Level IV'))
@@ -1535,6 +1595,15 @@ export function AccreditationMonitoringView({
               >
                 <Printer className="h-3.5 w-3.5" />
                 Print Status Report
+              </Button>
+              <Button
+                onClick={handlePrintManagementReviewBrief}
+                variant="outline"
+                size="sm"
+                className="h-8 bg-white border-violet-200 text-violet-700 font-black uppercase text-[9px] tracking-widest gap-1.5 shadow-sm hover:bg-violet-50"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Print MR Analysis
               </Button>
             </div>
           </div>

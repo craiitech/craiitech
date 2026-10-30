@@ -37,6 +37,7 @@ import {
 import { renderToStaticMarkup } from 'react-dom/server';
 import { format } from 'date-fns';
 import { RORPrintTemplate } from '@/components/risk/ror-print-template';
+import { printManagementReviewEvidenceReport } from '@/components/qa-reports/management-review-evidence-print';
 import {
   ExecutiveRiskBriefingTemplate,
   RiskResourceAllocationTemplate,
@@ -62,6 +63,7 @@ export type DecisionReportType =
   | 'accountability-tracker'
   | 'effectiveness-audit'
   | 'opportunity-scorecard'
+  | 'university-risk-analysis'
   | 'ror-standard';
 
 export interface DecisionReportOption {
@@ -159,6 +161,18 @@ export const REPORT_OPTIONS: DecisionReportOption[] = [
       'Evaluates institutional opportunity capture rates, realized academic partnerships, research grants, and strategic advancements.',
     icon: Sparkles,
     pageSize: '11.5in 8.5in',
+    orientation: 'landscape',
+  },
+  {
+    id: 'university-risk-analysis',
+    title: 'University Risk Analysis & Mitigation Report',
+    category: 'Management Review Input',
+    badge: 'ISO 21001:2025 · 9.3',
+    badgeColor: 'bg-rose-100 text-rose-800 border-rose-200',
+    description:
+      'University-wide analysis of logged risks and opportunities, mitigation ownership, target dates, residual ratings, and evidence gaps for Management Review.',
+    icon: AlertTriangle,
+    pageSize: '13in 8.5in',
     orientation: 'landscape',
   },
   {
@@ -437,6 +451,89 @@ export function RiskDecisionReportsDialog({
       let reportsHtml = '';
       const reportOption = REPORT_OPTIONS.find((r) => r.id === selectedReportId);
       const reportTitle = reportOption?.title || 'Decision-Support Report';
+
+      if (selectedReportId === 'university-risk-analysis') {
+        const risks = targetUnitGroups.flatMap((group) =>
+          group.risks.map((risk) => ({ risk, unitName: group.unitName, campusName: group.campusName })),
+        );
+        const riskEntries = risks.filter(({ risk }) => risk.type === 'Risk');
+        const opportunityEntries = risks.filter(({ risk }) => risk.type === 'Opportunity');
+        const overdueEntries = risks.filter(({ risk }) => {
+          if (risk.status === 'Closed' || !risk.targetDate) return false;
+          const targetDate = parseDateSafe(risk.targetDate);
+          return targetDate ? targetDate < new Date() : false;
+        });
+        const missingMitigation = riskEntries.filter(({ risk }) => !risk.treatmentAction?.trim());
+        const unassessedResidual = riskEntries.filter(({ risk }) => !risk.postTreatment);
+        const highPriority = riskEntries.filter(({ risk }) => /critical|high/i.test(risk.preTreatment?.rating || ''));
+        const scope =
+          selectedUnitScope !== 'all'
+            ? allUnits?.find((unit) => unit.id === selectedUnitScope)?.name || 'Selected unit'
+            : selectedCampusScope !== 'all'
+              ? campusMap.get(selectedCampusScope) || 'Selected campus'
+              : 'All campuses and units';
+        const recordRows = risks.map(({ risk, unitName, campusName }) => ({
+          title: `${risk.type}: ${risk.description || 'Untitled entry'}`,
+          status: risk.status,
+          details: [
+            `Objective: ${risk.objective || 'Not recorded'}`,
+            `Campus / unit: ${campusName} / ${unitName}`,
+            `Initial assessment: ${risk.preTreatment?.rating || 'Not recorded'} (magnitude ${
+              risk.preTreatment?.magnitude ?? 'N/A'
+            })`,
+            `Current controls: ${risk.currentControls || 'Not recorded'}`,
+            `Mitigation / treatment: ${risk.treatmentAction || 'Not recorded'}`,
+            `Owner: ${risk.responsiblePersonName || 'Not assigned'}`,
+            `Target date: ${parseDateSafe(risk.targetDate)?.toLocaleDateString() || 'Not set'}`,
+            `Residual assessment: ${risk.postTreatment?.rating || 'Not assessed'} (magnitude ${
+              risk.postTreatment?.magnitude ?? 'N/A'
+            })`,
+            `Treatment evidence: ${risk.postTreatment?.evidence || 'Not recorded'}`,
+            `Resources requested: ${risk.resourcesNeeded || 'None recorded'}`,
+          ],
+        }));
+
+        printManagementReviewEvidenceReport({
+          title: reportTitle,
+          source: 'Risk & Opportunity Register (ROR)',
+          period: `Calendar year ${activeYear}`,
+          scope,
+          summary: [
+            { label: 'Total entries', value: String(risks.length) },
+            { label: 'Risks / opportunities', value: `${riskEntries.length} / ${opportunityEntries.length}` },
+            { label: 'High or critical risks', value: String(highPriority.length) },
+            { label: 'Overdue open items', value: String(overdueEntries.length) },
+          ],
+          sections: [
+            {
+              title: 'Risk and opportunity performance evidence',
+              items: [
+                `${riskEntries.filter(({ risk }) => risk.status === 'Open').length} risks are Open; ${
+                  riskEntries.filter(({ risk }) => risk.status === 'In Progress').length
+                } are In Progress; ${riskEntries.filter(({ risk }) => risk.status === 'Closed').length} are Closed.`,
+                `${missingMitigation.length} risk record(s) have no treatment action recorded; ${unassessedResidual.length} have no post-treatment assessment.`,
+                `${overdueEntries.length} non-closed record(s) have a past target date based on available dates.`,
+                'Magnitude and rating values are reproduced from the register; the report does not independently validate the risk methodology or treatment effectiveness.',
+              ],
+            },
+            {
+              title: 'Management review decisions to consider',
+              items: [
+                'Confirm whether the current controls and proposed treatments adequately address the recorded risks and opportunities.',
+                'Assign accountable owners and due dates for missing, overdue, or unassessed mitigation actions.',
+                'Decide whether additional people, funding, facilities, information systems, or external support are needed.',
+                'Record accepted residual risks, required escalation, and the next monitoring interval in the official Management Review minutes.',
+              ],
+            },
+          ],
+          records: recordRows,
+          references: [
+            'ISO 21001:2025, clause 9.3 (management review): use effectiveness of actions taken to address risks and opportunities as a review input.',
+            'ISO 21001:2025 is the current published edition; ISO 21001:2018 has been withdrawn. Confirm institutional transition and certification scope with the responsible QMS authority.',
+          ],
+        });
+        return;
+      }
 
       if (selectedReportId === 'non-submission-audit') {
         if (targetAuditUnits.length === 0) return;

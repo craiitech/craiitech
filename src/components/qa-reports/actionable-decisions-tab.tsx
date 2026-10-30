@@ -88,6 +88,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { formatManagementReviewDate, printManagementReviewEvidenceReport } from './management-review-evidence-print';
 
 interface ActionableDecisionsTabProps {
   campuses: Campus[];
@@ -541,6 +542,72 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     units,
   ]);
 
+  const handlePrintManagementReviewBrief = () => {
+    const actionEntries = processedOutputs.flatMap((output) => output.actionEntries || []);
+    const statusCount = (status: ManagementReviewOutput['status']) =>
+      processedOutputs.filter((output) => output.status === status).length;
+
+    printManagementReviewEvidenceReport({
+      title: 'Actionable Decisions Management Review Analysis',
+      source: 'Management Review outputs and follow-up action log',
+      period: selectedYear === 'all' ? 'All available Management Review sessions' : `Calendar year ${selectedYear}`,
+      scope: 'Records visible under the current user access, year, search, and status filters',
+      summary: [
+        { label: 'Decision outputs', value: String(processedOutputs.length) },
+        { label: 'Open / ongoing', value: `${statusCount('Open')} / ${statusCount('On-going')}` },
+        { label: 'Submitted for verification', value: String(statusCount('Submit for Closure Verification')) },
+        {
+          label: 'Logged action entries',
+          value: `${actionEntries.length} (${actionEntries.filter((entry) => entry.actionStatus === 'Completed').length} completed)`,
+        },
+      ],
+      sections: [
+        {
+          title: 'Implementation and effectiveness evidence',
+          items: [
+            `${statusCount('Closed')} decision output(s) are marked Closed; closure evidence and verification remarks should be checked against the source records.`,
+            `${statusCount('Open') + statusCount('On-going')} decision output(s) remain Open or On-going.`,
+            `${actionEntries.filter((entry) => entry.actionStatus === 'Pending Verification').length} action entry/entries are awaiting verification.`,
+            'Completion counts are workflow status indicators and do not by themselves establish that the action was effective.',
+          ],
+        },
+        {
+          title: 'Management review decisions to consider',
+          items: [
+            'Confirm which previous Management Review decisions were implemented and whether the intended results were achieved.',
+            'Escalate overdue or unverified actions; confirm accountable owners, revised due dates, and evidence requirements.',
+            'Assess whether the decision remains relevant, requires additional resources, or should be revised or carried forward.',
+          ],
+        },
+      ],
+      records: processedOutputs.map((output) => ({
+        title: output.description,
+        status: output.status,
+        details: [
+          `Review session: ${reviewMap.get(output.mrId)?.title || 'Management Review'}`,
+          `Initiator: ${output.initiator || 'Not recorded'}`,
+          `Assigned units: ${
+            output.assignments
+              ?.map(
+                (assignment) =>
+                  `${campusMap.get(assignment.campusId) || 'Campus'} / ${unitMap.get(assignment.unitId) || 'Unit'}`,
+              )
+              .join('; ') || 'Not assigned'
+          }`,
+          `Action plan: ${output.actionPlan || 'Not recorded'}`,
+          `Follow-up due: ${formatManagementReviewDate(output.followUpDate)}`,
+          `Action entries: ${(output.actionEntries || []).length}`,
+          `Follow-up remarks: ${output.followUpRemarks || 'Not recorded'}`,
+          `Verification: ${output.verificationRemarks || 'Not recorded'}${output.verifiedBy ? ` (verified by ${output.verifiedBy})` : ''}`,
+        ],
+      })),
+      references: [
+        'ISO 21001:2025, clause 9.3: review the status of actions from previous management reviews and decide on improvement needs.',
+        'The report reflects records available in this view; action effectiveness remains a management determination supported by evidence.',
+      ],
+    });
+  };
+
   const updateForm = useForm<z.infer<typeof updateSchema>>({
     resolver: zodResolver(updateSchema),
     defaultValues: {
@@ -827,15 +894,26 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => handleOpenPrintPreview()}
-            className="h-9 gap-1.5 text-xs font-black uppercase tracking-wider bg-white shadow-sm border-slate-300 text-slate-800 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
-            title="Print Actionable Decisions Reports & Register"
-          >
-            <Printer className="h-3.5 w-3.5 text-primary" />
-            Print Report / Register
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              onClick={() => handleOpenPrintPreview()}
+              className="h-9 gap-1.5 text-xs font-black uppercase tracking-wider bg-white shadow-sm border-slate-300 text-slate-800 hover:bg-slate-50 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200"
+              title="Print Actionable Decisions Reports & Register"
+            >
+              <Printer className="h-3.5 w-3.5 text-primary" />
+              Print Report / Register
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handlePrintManagementReviewBrief}
+              disabled={processedOutputs.length === 0}
+              className="h-9 gap-1.5 text-xs font-black uppercase tracking-wider"
+            >
+              <FileText className="h-3.5 w-3.5 text-primary" />
+              Print MR Analysis
+            </Button>
+          </div>
           <div className="flex flex-col items-end">
             <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 flex items-center gap-1">
               <Filter className="h-2.5 w-2.5" /> Review Year Filter

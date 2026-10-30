@@ -73,6 +73,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { printManagementReviewEvidenceReport } from '@/components/qa-reports/management-review-evidence-print';
 
 const SHARED_ACADEMIC_ID = 'academic-shared';
 
@@ -376,6 +377,60 @@ export default function UnitFormsPage() {
     [firestore, selectedUnitId],
   );
   const { data: forms, isLoading: isLoadingForms } = useCollection<UnitForm>(formsQuery);
+  const allFormsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'unitForms') : null), [firestore]);
+  const { data: allForms, isLoading: isLoadingAllForms } = useCollection<UnitForm>(allFormsQuery);
+
+  const handlePrintManagementReviewBrief = () => {
+    const formRecords = allForms || [];
+    const unitsWithForms = new Set(formRecords.map((form) => form.unitId)).size;
+    const missingLinks = formRecords.filter((form) => !form.googleDriveLink?.trim()).length;
+    const missingRevision = formRecords.filter((form) => !form.revision?.trim() || !form.revisionDate?.trim()).length;
+
+    printManagementReviewEvidenceReport({
+      title: 'EOMS Controlled Forms Management Review Analysis',
+      source: 'University Unit Forms Registry',
+      period: 'Current registered form revisions',
+      scope: 'All form records visible to signed-in users in the Unit Forms registry',
+      summary: [
+        { label: 'Registered forms', value: String(formRecords.length) },
+        { label: 'Units represented', value: String(unitsWithForms) },
+        { label: 'Missing source links', value: String(missingLinks) },
+        { label: 'Revision metadata gaps', value: String(missingRevision) },
+      ],
+      sections: [
+        {
+          title: 'Controlled documented information evidence',
+          items: [
+            `${formRecords.length} controlled form record(s) are listed across ${unitsWithForms} unit(s).`,
+            `${missingLinks} record(s) do not have a source link and ${missingRevision} lack a revision number or revision date.`,
+            'This report checks registry metadata only; verify approval, availability at point of use, change control, retention, and the contents of linked forms separately.',
+          ],
+        },
+        {
+          title: 'Management review decisions to consider',
+          items: [
+            'Assign owners and target dates for missing or stale form metadata and confirm each linked document is the approved current version.',
+            'Review whether form changes are authorized, communicated to affected units, and retained as controlled documented information.',
+            'Determine whether gaps indicate training, access, process, or resource needs across units.',
+          ],
+        },
+      ],
+      records: formRecords.map((form) => ({
+        title: `${form.formCode || 'No code'} · ${form.formName || 'Unnamed form'}`,
+        status: form.revision ? `Revision ${form.revision}` : 'Revision not recorded',
+        details: [
+          `Unit: ${allUnits?.find((unit) => unit.id === form.unitId)?.name || form.unitId || 'Not recorded'}`,
+          `Campus: ${campusMap.get(form.campusId) || form.campusId || 'Not recorded'}`,
+          `Revision date: ${form.revisionDate || 'Not recorded'}`,
+          `Source document: ${form.googleDriveLink || 'Not linked'}`,
+        ],
+      })),
+      references: [
+        'ISO 21001:2025, clause 9.3: review EOMS performance/effectiveness and opportunities for improvement; consider whether document-control process issues require action.',
+        'The form catalog includes all registry records accessible in this signed-in view and does not assert that every required institutional form has been registered.',
+      ],
+    });
+  };
 
   const handleSaveAdminLinks = async () => {
     if (!firestore) return;
@@ -421,6 +476,17 @@ export default function UnitFormsPage() {
             </div>
             {currentTab !== 'request-other' && currentTab !== 'inbox' && (
               <div className="flex items-center gap-2">
+                {currentTab === 'roster' && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrintManagementReviewBrief}
+                    disabled={isLoadingAllForms || !allForms}
+                    title="Print the all-units controlled forms registry as Management Review evidence"
+                  >
+                    <FileText className="mr-2 h-4 w-4" /> Print MR Forms Report
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   size="sm"
