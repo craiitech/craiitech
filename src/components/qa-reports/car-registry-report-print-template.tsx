@@ -38,6 +38,7 @@ interface CARRegistryReportPrintTemplateProps {
   campusMap: Map<string, string>;
   yearFilter: string;
   campusFilterName: string;
+  auditTypeFilter: 'IQA' | 'EQA' | 'ALL';
   typeFilterLabel: string;
   generatedBy: string;
   signatories?: Signatories;
@@ -237,10 +238,14 @@ export function CARRegistryReportPrintTemplate({
   campusMap,
   yearFilter,
   campusFilterName,
+  auditTypeFilter,
   typeFilterLabel,
   generatedBy,
   signatories,
 }: CARRegistryReportPrintTemplateProps) {
+  const showIqa = auditTypeFilter !== 'EQA';
+  const showEqa = auditTypeFilter !== 'IQA';
+
   const summary = useMemo(() => {
     const total = cars.length;
     const iqaCount = cars.filter((car) => car.auditType !== 'EQA').length;
@@ -306,7 +311,7 @@ export function CARRegistryReportPrintTemplate({
         </tbody>
       </table>
 
-      <div className="grid grid-cols-6 gap-2 mb-4 text-center">
+      <div className={`grid ${showIqa && showEqa ? 'grid-cols-6' : 'grid-cols-5'} gap-2 mb-4 text-center`}>
         <div className="border border-slate-900 p-2 bg-slate-50">
           <p className="font-black uppercase text-slate-600" style={{ fontSize: '6.5pt' }}>
             Total CARs
@@ -318,28 +323,32 @@ export function CARRegistryReportPrintTemplate({
             Registry Records
           </p>
         </div>
-        <div className="border border-blue-800 p-2 bg-blue-50">
-          <p className="font-black uppercase text-blue-700" style={{ fontSize: '6.5pt' }}>
-            IQA CARs
-          </p>
-          <p className="font-black text-blue-700" style={{ fontSize: '16pt' }}>
-            {summary.iqaCount}
-          </p>
-          <p className="font-semibold text-blue-600" style={{ fontSize: '6pt' }}>
-            Internal Audit
-          </p>
-        </div>
-        <div className="border border-violet-800 p-2 bg-violet-50">
-          <p className="font-black uppercase text-violet-700" style={{ fontSize: '6.5pt' }}>
-            EQA CARs
-          </p>
-          <p className="font-black text-violet-700" style={{ fontSize: '16pt' }}>
-            {summary.eqaCount}
-          </p>
-          <p className="font-semibold text-violet-600" style={{ fontSize: '6pt' }}>
-            External Audit
-          </p>
-        </div>
+        {showIqa && (
+          <div className="border border-blue-800 p-2 bg-blue-50">
+            <p className="font-black uppercase text-blue-700" style={{ fontSize: '6.5pt' }}>
+              IQA CARs
+            </p>
+            <p className="font-black text-blue-700" style={{ fontSize: '16pt' }}>
+              {summary.iqaCount}
+            </p>
+            <p className="font-semibold text-blue-600" style={{ fontSize: '6pt' }}>
+              Internal Audit
+            </p>
+          </div>
+        )}
+        {showEqa && (
+          <div className="border border-violet-800 p-2 bg-violet-50">
+            <p className="font-black uppercase text-violet-700" style={{ fontSize: '6.5pt' }}>
+              EQA CARs
+            </p>
+            <p className="font-black text-violet-700" style={{ fontSize: '16pt' }}>
+              {summary.eqaCount}
+            </p>
+            <p className="font-semibold text-violet-600" style={{ fontSize: '6pt' }}>
+              External Audit
+            </p>
+          </div>
+        )}
         <div className="border border-rose-700 p-2 bg-rose-50">
           <p className="font-black uppercase text-rose-700" style={{ fontSize: '6.5pt' }}>
             Open
@@ -377,8 +386,17 @@ export function CARRegistryReportPrintTemplate({
 
       <div className="border border-slate-400 bg-slate-50 p-2 mb-4" style={{ fontSize: '7.5pt' }}>
         <strong>Executive Interpretation:</strong> The registry contains {summary.total} corrective action request
-        {summary.total === 1 ? '' : 's'} for the selected scope, of which {summary.iqaCount} are internal audit (IQA)
-        and {summary.eqaCount} are external audit (EQA) findings. {summary.closed} CAR
+        {summary.total === 1 ? '' : 's'} for the selected scope, of which{' '}
+        {auditTypeFilter === 'IQA' ? (
+          <>{summary.iqaCount} are internal audit (IQA) findings.</>
+        ) : auditTypeFilter === 'EQA' ? (
+          <>{summary.eqaCount} are external audit (EQA) findings.</>
+        ) : (
+          <>
+            {summary.iqaCount} are internal audit (IQA) and {summary.eqaCount} are external audit (EQA) findings.
+          </>
+        )}{' '}
+        {summary.closed} CAR
         {summary.closed === 1 ? ' has' : 's have'} been closed, {summary.ongoing} remain on-going, and {summary.open}{' '}
         remain open. The current resolution rate is {resolutionRate}
         {summary.overdue > 0
@@ -399,8 +417,8 @@ export function CARRegistryReportPrintTemplate({
               <tr className="bg-slate-200">
                 <th className="border border-black p-1 text-left uppercase">Year</th>
                 <th className="border border-black p-1 text-right uppercase">Total NC</th>
-                <th className="border border-black p-1 text-right uppercase">IQA</th>
-                <th className="border border-black p-1 text-right uppercase">EQA</th>
+                {showIqa && <th className="border border-black p-1 text-right uppercase">IQA</th>}
+                {showEqa && <th className="border border-black p-1 text-right uppercase">EQA</th>}
                 <th className="border border-black p-1 text-right uppercase">Open</th>
                 <th className="border border-black p-1 text-right uppercase">On-Going</th>
                 <th className="border border-black p-1 text-right uppercase">Closed</th>
@@ -409,7 +427,10 @@ export function CARRegistryReportPrintTemplate({
             <tbody>
               {yearlyPerformance.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="border border-black p-2 text-center italic text-slate-500">
+                  <td
+                    colSpan={5 + Number(showIqa) + Number(showEqa)}
+                    className="border border-black p-2 text-center italic text-slate-500"
+                  >
                     No records available.
                   </td>
                 </tr>
@@ -420,12 +441,16 @@ export function CARRegistryReportPrintTemplate({
                     <td className="border border-black p-1 text-right font-bold">
                       {row.NC} ({formatPct(row.NC, yearlyPerformanceTotals.NC)})
                     </td>
-                    <td className="border border-black p-1 text-right font-semibold text-blue-700">
-                      {row.iqaCount} ({formatPct(row.iqaCount, row.NC)})
-                    </td>
-                    <td className="border border-black p-1 text-right font-semibold text-violet-700">
-                      {row.eqaCount} ({formatPct(row.eqaCount, row.NC)})
-                    </td>
+                    {showIqa && (
+                      <td className="border border-black p-1 text-right font-semibold text-blue-700">
+                        {row.iqaCount} ({formatPct(row.iqaCount, row.NC)})
+                      </td>
+                    )}
+                    {showEqa && (
+                      <td className="border border-black p-1 text-right font-semibold text-violet-700">
+                        {row.eqaCount} ({formatPct(row.eqaCount, row.NC)})
+                      </td>
+                    )}
                     <td className="border border-black p-1 text-right font-semibold text-rose-700">
                       {row.Open} ({formatPct(row.Open, row.NC)})
                     </td>
@@ -443,10 +468,16 @@ export function CARRegistryReportPrintTemplate({
               <tr className="bg-slate-100 font-black">
                 <td className="border border-black p-1 uppercase">Total</td>
                 <td className="border border-black p-1 text-right">{yearlyPerformanceTotals.NC}</td>
-                <td className="border border-black p-1 text-right text-blue-700">{yearlyPerformanceTotals.iqaCount}</td>
-                <td className="border border-black p-1 text-right text-violet-700">
-                  {yearlyPerformanceTotals.eqaCount}
-                </td>
+                {showIqa && (
+                  <td className="border border-black p-1 text-right text-blue-700">
+                    {yearlyPerformanceTotals.iqaCount}
+                  </td>
+                )}
+                {showEqa && (
+                  <td className="border border-black p-1 text-right text-violet-700">
+                    {yearlyPerformanceTotals.eqaCount}
+                  </td>
+                )}
                 <td className="border border-black p-1 text-right text-rose-700">{yearlyPerformanceTotals.Open}</td>
                 <td className="border border-black p-1 text-right text-amber-700">
                   {yearlyPerformanceTotals['On-Going']}

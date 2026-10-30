@@ -2096,6 +2096,7 @@ export function CorrectiveActionRequestTab({
           campusMap={campusMap}
           yearFilter={yearFilter}
           campusFilterName={campusFilterName}
+          auditTypeFilter={effectiveTypeFilter}
           typeFilterLabel={typeFilterLabel}
           generatedBy={generatedBy}
           signatories={currentSignatories || undefined}
