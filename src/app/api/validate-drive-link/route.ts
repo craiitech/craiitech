@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { enforceRateLimit } from '@/lib/rate-limit';
+
+const DRIVE_LINK_RATE_LIMIT = { name: 'drive-link-validation', limit: 12, windowSeconds: 60 };
 
 const isGoogleDriveHost = (hostname: string) =>
   hostname === 'google.com' ||
@@ -36,6 +39,9 @@ async function readResponsePreview(response: Response, maxBytes = 16_384): Promi
 }
 
 export async function POST(req: NextRequest) {
+  const rateLimitResponse = await enforceRateLimit(req, DRIVE_LINK_RATE_LIMIT);
+  if (rateLimitResponse) return rateLimitResponse;
+
   try {
     const { url } = await req.json();
 

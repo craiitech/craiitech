@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAdminFirestore, getAdminAuth } from '@/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
+import { enforceRateLimit } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
+
+const SEED_IP_RATE_LIMIT = { name: 'kpi-seed-ip', limit: 10, windowSeconds: 600 };
+const SEED_USER_RATE_LIMIT = { name: 'kpi-seed-user', limit: 3, windowSeconds: 600 };
 
 const KPI_DEFINITIONS = [
   {
@@ -217,6 +221,9 @@ const KPI_DEFINITIONS = [
 ];
 
 export async function GET(req: NextRequest) {
+  const ipRateLimitResponse = await enforceRateLimit(req, SEED_IP_RATE_LIMIT);
+  if (ipRateLimitResponse) return ipRateLimitResponse;
+
   try {
     const auth = getAdminAuth();
     const firestore = getAdminFirestore();
@@ -230,6 +237,7 @@ export async function GET(req: NextRequest) {
     const expectedSecret = process.env.ADMIN_SEED_SECRET;
 
     let isAuthorized = false;
+    let rateLimitSubject = 'admin-seed-secret';
     if (expectedSecret && secretParam === expectedSecret) {
       isAuthorized = true;
     } else if (auth && authHeader?.startsWith('Bearer ')) {
@@ -240,6 +248,7 @@ export async function GET(req: NextRequest) {
         const role = userDoc.data()?.role;
         if (role === 'Admin' || role === 'Super Admin' || decoded.email === 'admin@eoms.com') {
           isAuthorized = true;
+          rateLimitSubject = `user:${decoded.uid}`;
         }
       } catch {
         // invalid token
@@ -252,6 +261,9 @@ export async function GET(req: NextRequest) {
         { status: 403 },
       );
     }
+
+    const userRateLimitResponse = await enforceRateLimit(req, SEED_USER_RATE_LIMIT, rateLimitSubject);
+    if (userRateLimitResponse) return userRateLimitResponse;
 
     const col = firestore.collection('kpiDefinitions');
     const existingSnap = await col.get();

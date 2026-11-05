@@ -5,3 +5,7 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+
+# Configure UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN as
+# Firebase App Hosting secrets. Rate-limited API routes fail closed in production
+# when the shared limiter is not configured or cannot be reached.

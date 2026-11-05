@@ -4,6 +4,10 @@ import http from 'http';
 import { URL } from 'url';
 import { extractDriveFolderId } from '@/lib/utils';
 import { getAdminAuth } from '@/firebase/admin';
+import { enforceRateLimit } from '@/lib/rate-limit';
+
+const UPLOAD_IP_RATE_LIMIT = { name: 'drive-upload-ip', limit: 12, windowSeconds: 600 };
+const UPLOAD_USER_RATE_LIMIT = { name: 'drive-upload-user', limit: 6, windowSeconds: 600 };
 
 const DEFAULT_SCRIPT_URL =
   process.env.GOOGLE_SCRIPT_WEBHOOK_URL ||
@@ -93,6 +97,9 @@ function sendToGoogleAppsScript(
 }
 
 export async function POST(req: NextRequest) {
+  const ipRateLimitResponse = await enforceRateLimit(req, UPLOAD_IP_RATE_LIMIT);
+  if (ipRateLimitResponse) return ipRateLimitResponse;
+
   try {
     // Security check: Verify caller identity to prevent unauthorized uploads
     const authHeader = req.headers.get('authorization');
@@ -109,7 +116,9 @@ export async function POST(req: NextRequest) {
       }
       const token = authHeader.split('Bearer ')[1];
       try {
-        await auth.verifyIdToken(token);
+        const decodedToken = await auth.verifyIdToken(token);
+        const userRateLimitResponse = await enforceRateLimit(req, UPLOAD_USER_RATE_LIMIT, `user:${decodedToken.uid}`);
+        if (userRateLimitResponse) return userRateLimitResponse;
       } catch (authError) {
         return NextResponse.json(
           {
