@@ -30,7 +30,7 @@ const RSU_EMAIL_DOMAIN = '@rsu.edu.ph';
 export function OfficeConnectionCard() {
   const firestore = useFirestore();
   const { toast } = useToast();
-  const { user, userProfile, assignments } = useUser();
+  const { user, userProfile, assignments, activeAssignment, setActiveAssignmentId } = useUser();
   const { logSessionActivity } = useSessionActivity();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -202,6 +202,19 @@ export function OfficeConnectionCard() {
     }
   };
 
+  const handleActivate = (assignmentId: string, unitName: string) => {
+    if (assignmentId === activeAssignment?.id) return;
+    setActiveAssignmentId(assignmentId);
+    logSessionActivity(`Switched active designation from profile: ${unitName}`, {
+      action: 'switch_active_assignment',
+      details: { assignmentId },
+    });
+    toast({
+      title: 'Active designation switched',
+      description: `${unitName} is now your active office.`,
+    });
+  };
+
   return (
     <>
       <Card id="connected-offices" className="scroll-mt-20 shadow-md border-primary/10">
@@ -243,7 +256,11 @@ export function OfficeConnectionCard() {
               return (
                 <div
                   key={assignment.id}
-                  className="flex flex-col gap-1 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+                  className={
+                    assignment.id === activeAssignment?.id
+                      ? 'flex flex-col gap-2 rounded-lg border border-primary/40 bg-primary/5 p-3 sm:flex-row sm:items-center sm:justify-between'
+                      : 'flex flex-col gap-2 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between'
+                  }
                 >
                   <div>
                     <p className="text-sm font-bold">{resolvedUnitName}</p>
@@ -252,11 +269,30 @@ export function OfficeConnectionCard() {
                       {resolvedCampusName ? ` • ${resolvedCampusName}` : ''}
                     </p>
                   </div>
-                  {assignment.isPrimary && (
-                    <Badge variant="secondary" className="w-fit text-[9px] font-black uppercase tracking-wider">
-                      Primary
-                    </Badge>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {assignment.isPrimary && (
+                      <Badge variant="secondary" className="w-fit text-[9px] font-black uppercase tracking-wider">
+                        Primary
+                      </Badge>
+                    )}
+                    {assignment.id === activeAssignment?.id ? (
+                      <Badge className="w-fit gap-1 text-[9px] font-black uppercase tracking-wider">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Active
+                      </Badge>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[9px] font-black uppercase tracking-wider"
+                        onClick={() => handleActivate(assignment.id, resolvedUnitName)}
+                      >
+                        <CheckCircle2 className="mr-1.5 h-3 w-3" />
+                        Activate
+                      </Button>
+                    )}
+                  </div>
                 </div>
               );
             })}
