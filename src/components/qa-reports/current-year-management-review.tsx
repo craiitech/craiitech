@@ -1861,7 +1861,7 @@ export function CurrentYearManagementReview({
       {/* DIALOG: EDIT / ADD AGENDA PART                                             */}
       {/* -------------------------------------------------------------------------- */}
       <Dialog open={isPartDialogOpen} onOpenChange={setIsPartDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-2 text-primary mb-1">
               <ShieldCheck className="h-5 w-5" />

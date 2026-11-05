@@ -57,7 +57,7 @@ const FullScreenLoader = () => (
       <div className="space-y-1">
         <h2 className="text-xl font-black uppercase tracking-[0.3em] text-primary">Synchronizing Institutional Data</h2>
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-          Accessing RSU Quality Management System Cloud Registry...
+          Accessing RSU Unified Archipelagic Quality Assurance Cloud Registry...
         </p>
       </div>
     </div>

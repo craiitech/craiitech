@@ -1350,7 +1350,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
           if (!open) setEditingMr(null);
         }}
       >
-        <DialogContent className="sm:max-w-2xl max-h-[90dvh] flex flex-col p-0 overflow-hidden shadow-2xl border-none">
+        <DialogContent className="sm:max-w-2xl h-[85dvh] max-h-[90dvh] flex flex-col gap-0 p-0 overflow-hidden shadow-2xl border-none">
           <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
               <Presentation className="h-5 w-5" />
@@ -1368,7 +1368,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 max-h-[calc(90dvh-140px)]">
+          <ScrollArea className="flex-1 min-h-0">
             <Form {...mrForm}>
               <form onSubmit={mrForm.handleSubmit(handleMrSubmit)} id="mr-manage-form" className="space-y-6 p-6">
                 {/* 1. Basic Identity */}
@@ -1725,7 +1725,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
           if (!open) setEditingOutput(null);
         }}
       >
-        <DialogContent className="max-w-3xl h-[85dvh] flex flex-col p-0 overflow-hidden shadow-2xl">
+        <DialogContent className="max-w-3xl h-[85dvh] max-h-[90dvh] flex flex-col gap-0 p-0 overflow-hidden shadow-2xl">
           <DialogHeader className="p-6 border-b bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <div className="flex items-center gap-2 text-primary mb-1">
               <ListChecks className="h-5 w-5" />
@@ -1737,9 +1737,9 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
           <Form {...outputForm}>
             <form
               onSubmit={outputForm.handleSubmit(handleOutputSubmit)}
-              className="flex-1 flex flex-col overflow-hidden"
+              className="flex-1 min-h-0 flex flex-col overflow-hidden"
             >
-              <ScrollArea className="flex-1">
+              <ScrollArea className="flex-1 min-h-0">
                 <div className="p-8 space-y-8">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="md:col-span-3">
