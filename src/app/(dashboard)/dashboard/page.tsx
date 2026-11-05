@@ -792,8 +792,45 @@ export default function HomePage() {
 
   const unitMrOutputs = useMemo(() => {
     if (!mrOutputs || !userProfile?.unitId) return [];
-    return mrOutputs.filter((o) => o.assignments?.some((a: any) => a.unitId === userProfile.unitId));
-  }, [mrOutputs, userProfile]);
+    const myUnit = allUnits?.find((u) => u.id === userProfile.unitId);
+    const myUnitNameLower = (myUnit?.name || userProfile.unitName || '').trim().toLowerCase();
+    const myUnitCategory = myUnit?.category || 'Administrative';
+
+    return mrOutputs.filter((o) => {
+      const hasAssignment = o.assignments?.some((a: any) => {
+        if (a.unitId === userProfile.unitId) return true;
+        const aUnitName = (allUnits?.find((u) => u.id === a.unitId)?.name || a.unitId || '').trim().toLowerCase();
+        if (myUnitNameLower && aUnitName === myUnitNameLower) return true;
+
+        const isMyCampus =
+          !a.campusId ||
+          a.campusId === 'university-wide' ||
+          !userProfile.campusId ||
+          a.campusId === userProfile.campusId;
+        if (!isMyCampus) return false;
+
+        if (a.unitId === 'all-units') return true;
+        if (a.unitId === 'all-academic-units' && myUnitCategory === 'Academic') return true;
+        if (a.unitId === 'all-admin-units' && (myUnitCategory === 'Administrative' || myUnitCategory === 'Support'))
+          return true;
+        if (a.unitId === 'all-redi-units' && myUnitCategory === 'Research') return true;
+        return false;
+      });
+      if (hasAssignment) return true;
+      if (o.concernedUnitIds?.includes(userProfile.unitId)) return true;
+      const initiatorLower = (o.initiator || '').trim().toLowerCase();
+      if (
+        myUnitNameLower &&
+        myUnitNameLower.length >= 3 &&
+        initiatorLower &&
+        (initiatorLower.includes(myUnitNameLower) ||
+          (initiatorLower.length >= 4 && myUnitNameLower.includes(initiatorLower)))
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }, [mrOutputs, userProfile, allUnits]);
 
   const compliancesQuery = useMemoFirebase(() => {
     if (!firestore || !selectedYear) return null;

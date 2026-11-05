@@ -175,7 +175,8 @@ export function computeUnitResponseRoster(
             matched = true;
           } else if (
             target.unitId === ALL_ADMIN_ID &&
-            units.find((u) => u.id === entryUnit)?.category === 'Administrative'
+            ((units.find((u) => u.id === entryUnit)?.category || 'Administrative') === 'Administrative' ||
+              units.find((u) => u.id === entryUnit)?.category === 'Support')
           ) {
             target.entries.push(entry);
             target.hasResponded = true;
@@ -401,56 +402,119 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   const processedOutputs = useMemo(() => {
     if (!rawOutputs || !userProfile) return [];
 
+    const roleLower = userRole?.toLowerCase() || '';
     const isInstitutionalViewer =
       isAdmin ||
       isAuditor ||
-      userRole?.toLowerCase().includes('president') ||
-      userRole?.toLowerCase().includes('quality management') ||
-      userRole?.toLowerCase().includes('qms');
+      (roleLower.includes('president') && !roleLower.includes('vice president')) ||
+      roleLower.includes('quality management') ||
+      roleLower.includes('qms');
     const isCampusSupervisor =
-      userRole === 'Campus Director' ||
-      userRole === 'Campus ODIMO' ||
-      userRole?.toLowerCase().includes('vice president');
-    const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
+      userRole === 'Campus Director' || userRole === 'Campus ODIMO' || roleLower.includes('vice president');
+    const isUnitLevel =
+      !isInstitutionalViewer &&
+      Boolean(
+        userProfile.unitId ||
+        userProfile.unitName ||
+        userRole === 'Unit Head' ||
+        userRole === 'Unit Coordinator' ||
+        userRole === 'Unit ODIMO' ||
+        roleLower.includes('unit') ||
+        roleLower.includes('head') ||
+        roleLower.includes('coordinator'),
+      );
+
+    const myUnitNameLower = (myUnit?.name || userProfile.unitName || '').trim().toLowerCase();
+    const myUnitCategory = myUnit?.category || 'Administrative';
+    const isMultiCampusUnit = (myUnit?.campusIds?.length || 0) > 1;
 
     let result = rawOutputs
       .map((output) => {
         const visibleAssignments = (output.assignments || []).filter((a) => {
           if (isInstitutionalViewer) return true;
-          const isInstitutionalTarget = a.campusId === 'university-wide';
-          const isMyCampus = a.campusId === userProfile.campusId;
+          const isInstitutionalTarget = !a.campusId || a.campusId === 'university-wide';
+          const isMyCampus = !userProfile.campusId || a.campusId === userProfile.campusId;
+
+          const assignmentUnitNameLower = (unitMap.get(a.unitId) || a.unitId || '').trim().toLowerCase();
+          const isDirectUnitMatch =
+            (Boolean(userProfile.unitId) && a.unitId === userProfile.unitId) ||
+            (Boolean(myUnitNameLower) && assignmentUnitNameLower === myUnitNameLower);
+
+          if (isDirectUnitMatch) {
+            if (
+              isInstitutionalTarget ||
+              isMyCampus ||
+              !isMultiCampusUnit ||
+              !myUnit?.campusIds?.includes(a.campusId) ||
+              !myUnit?.campusIds?.includes(userProfile.campusId)
+            ) {
+              return true;
+            }
+          }
 
           if (isUserVpOffice && supervisedUnitIds.length > 0) {
             if (isInstitutionalTarget) return true;
             if (a.unitId === ALL_UNITS_ID) return true;
-            if (a.unitId === ALL_ACADEMIC_ID && (vpCategory === 'Academic' || myUnit?.category === 'Academic'))
+            if (a.unitId === ALL_ACADEMIC_ID && (vpCategory === 'Academic' || myUnitCategory === 'Academic'))
               return true;
-            if (a.unitId === ALL_ADMIN_ID && (vpCategory === 'Administrative' || myUnit?.category === 'Administrative'))
+            if (
+              a.unitId === ALL_ADMIN_ID &&
+              (vpCategory === 'Administrative' || myUnitCategory === 'Administrative' || myUnitCategory === 'Support')
+            )
               return true;
-            if (a.unitId === ALL_REDI_ID && (vpCategory === 'Research' || myUnit?.category === 'Research')) return true;
+            if (a.unitId === ALL_REDI_ID && (vpCategory === 'Research' || myUnitCategory === 'Research')) return true;
             if (supervisedUnitIds.includes(a.unitId)) return true;
           }
 
-          if (isCampusSupervisor) return isInstitutionalTarget || isMyCampus;
+          if (isCampusSupervisor && (isInstitutionalTarget || isMyCampus)) return true;
+
           if (isUnitLevel) {
             if (!isInstitutionalTarget && !isMyCampus) return false;
             if (a.unitId === ALL_UNITS_ID) return true;
-            if (a.unitId === ALL_ACADEMIC_ID && myUnit?.category === 'Academic') return true;
-            if (a.unitId === ALL_ADMIN_ID && myUnit?.category === 'Administrative') return true;
-            if (a.unitId === ALL_REDI_ID && myUnit?.category === 'Research') return true;
-            if (a.unitId === userProfile.unitId) return true;
+            if (a.unitId === ALL_ACADEMIC_ID && myUnitCategory === 'Academic') return true;
+            if (a.unitId === ALL_ADMIN_ID && (myUnitCategory === 'Administrative' || myUnitCategory === 'Support'))
+              return true;
+            if (a.unitId === ALL_REDI_ID && myUnitCategory === 'Research') return true;
           }
           return false;
         });
 
-        if (visibleAssignments.length === 0 && !isInstitutionalViewer) return null;
+        const initiatorLower = (output.initiator || '').trim().toLowerCase();
+        const isInitiatorMatch =
+          Boolean(myUnitNameLower && myUnitNameLower.length >= 3 && initiatorLower) &&
+          (initiatorLower.includes(myUnitNameLower) ||
+            (initiatorLower.length >= 4 && myUnitNameLower.includes(initiatorLower)));
+
+        const isConcernedUnitMatch =
+          (Boolean(userProfile.unitId) && Boolean(output.concernedUnitIds?.includes(userProfile.unitId))) ||
+          (Boolean(myUnitNameLower) &&
+            Boolean(
+              output.concernedUnitIds?.some(
+                (id) => (unitMap.get(id) || id || '').trim().toLowerCase() === myUnitNameLower,
+              ),
+            ));
+
+        let finalAssignments = visibleAssignments;
+        if (finalAssignments.length === 0 && !isInstitutionalViewer && (isInitiatorMatch || isConcernedUnitMatch)) {
+          finalAssignments =
+            output.assignments && output.assignments.length > 0
+              ? output.assignments
+              : [
+                  {
+                    campusId: userProfile.campusId || 'university-wide',
+                    unitId: userProfile.unitId || myUnit?.id || myUnit?.name || output.initiator,
+                  },
+                ];
+        }
+
+        if (finalAssignments.length === 0 && !isInstitutionalViewer) return null;
 
         if (selectedYear !== 'all') {
           const reviewData = reviewMap.get(output.mrId);
           if (reviewData?.year !== selectedYear) return null;
         }
 
-        return { ...output, assignments: visibleAssignments };
+        return { ...output, assignments: finalAssignments };
       })
       .filter(Boolean as any) as ManagementReviewOutput[];
 
@@ -935,7 +999,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         </div>
       </div>
 
-      <Tabs defaultValue="insights" className="space-y-6">
+      <Tabs defaultValue={isAdmin || isAuditor ? 'insights' : 'registry'} className="space-y-6">
         <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10">
           <TabsTrigger value="insights" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
             <BarChart3 className="h-3.5 w-3.5" /> Strategic Insights
@@ -1085,6 +1149,12 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                                 {output.description}
                               </span>
                               <div className="flex flex-wrap items-center gap-2 mt-1">
+                                {output.initiator && (
+                                  <div className="flex items-center gap-1 text-[9px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-tighter bg-primary/10 px-1.5 py-0.5 rounded">
+                                    <User className="h-2.5 w-2.5 text-primary" />
+                                    Source / Initiator: {output.initiator}
+                                  </div>
+                                )}
                                 <div className="flex items-center gap-1.5 text-[9px] font-black text-primary/60 uppercase tracking-tighter">
                                   <History className="h-2.5 w-2.5" />
                                   From: {reviewMap.get(output.mrId)?.title || 'MR Session'}
@@ -1244,16 +1314,14 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                               >
                                 <Plus className="h-3.5 w-3.5 mr-1" /> ACTION
                               </Button>
-                              {isAdmin && (
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleOpenUpdate(output)}
-                                  className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm"
-                                >
-                                  UPDATE
-                                </Button>
-                              )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleOpenUpdate(output)}
+                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm"
+                              >
+                                UPDATE
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>

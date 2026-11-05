@@ -511,18 +511,54 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const decisionNotificationsCount = useMemo(() => {
     if (!decisionNotifications || !userProfile) return 0;
+    const myUnit = allUnits?.find((u) => u.id === userProfile.unitId);
+    const myUnitNameLower = (myUnit?.name || userProfile.unitName || '').trim().toLowerCase();
+    const myUnitCategory = myUnit?.category || 'Administrative';
+
     return decisionNotifications.filter((o) => {
       if (o.status === 'Closed') return false;
       if (isAdmin) return true;
       if (isSupervisor) {
         return (
           o.assignments?.some((a: any) => {
+            if (!a.campusId || a.campusId === 'university-wide' || a.campusId === userProfile.campusId) return true;
             const unit = allUnits?.find((u) => u.id === a.unitId);
             return unit?.campusIds?.includes(userProfile.campusId);
           }) || false
         );
       }
-      return o.assignments?.some((a: any) => a.unitId === userProfile.unitId) || false;
+      const hasAssignment = o.assignments?.some((a: any) => {
+        if (a.unitId === userProfile.unitId) return true;
+        const aUnitName = (allUnits?.find((u) => u.id === a.unitId)?.name || a.unitId || '').trim().toLowerCase();
+        if (myUnitNameLower && aUnitName === myUnitNameLower) return true;
+
+        const isMyCampus =
+          !a.campusId ||
+          a.campusId === 'university-wide' ||
+          !userProfile.campusId ||
+          a.campusId === userProfile.campusId;
+        if (!isMyCampus) return false;
+
+        if (a.unitId === 'all-units') return true;
+        if (a.unitId === 'all-academic-units' && myUnitCategory === 'Academic') return true;
+        if (a.unitId === 'all-admin-units' && (myUnitCategory === 'Administrative' || myUnitCategory === 'Support'))
+          return true;
+        if (a.unitId === 'all-redi-units' && myUnitCategory === 'Research') return true;
+        return false;
+      });
+      if (hasAssignment) return true;
+      if (userProfile.unitId && o.concernedUnitIds?.includes(userProfile.unitId)) return true;
+      const initiatorLower = (o.initiator || '').trim().toLowerCase();
+      if (
+        myUnitNameLower &&
+        myUnitNameLower.length >= 3 &&
+        initiatorLower &&
+        (initiatorLower.includes(myUnitNameLower) ||
+          (initiatorLower.length >= 4 && myUnitNameLower.includes(initiatorLower)))
+      ) {
+        return true;
+      }
+      return false;
     }).length;
   }, [decisionNotifications, userProfile, allUnits, isAdmin, isSupervisor]);
 

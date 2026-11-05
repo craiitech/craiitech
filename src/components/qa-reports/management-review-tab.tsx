@@ -232,39 +232,74 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
   }, [isUserVpOffice, userProfile?.unitId, units]);
 
   /**
-   * VISIBILITY LOGIC FOR UNIT COORDINATORS & ODIMOS
+   * VISIBILITY LOGIC FOR UNIT HEADS, COORDINATORS & ODIMOS
    * Filters the outputs of a selected MR based on user's authorized scope.
    */
   const processedOutputs = useMemo(() => {
     if (!rawOutputs || !userProfile) return [];
 
+    const roleLower = userRole?.toLowerCase() || '';
     const isInstitutionalViewer =
       isAdmin ||
       isAuditor ||
-      userRole?.toLowerCase().includes('president') ||
-      userRole?.toLowerCase().includes('quality management') ||
-      userRole?.toLowerCase().includes('qms');
+      (roleLower.includes('president') && !roleLower.includes('vice president')) ||
+      roleLower.includes('quality management') ||
+      roleLower.includes('qms');
     const isCampusSupervisor =
-      userRole === 'Campus Director' ||
-      userRole === 'Campus ODIMO' ||
-      userRole?.toLowerCase().includes('vice president');
-    const isUnitLevel = userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO';
+      userRole === 'Campus Director' || userRole === 'Campus ODIMO' || roleLower.includes('vice president');
+    const isUnitLevel =
+      !isInstitutionalViewer &&
+      Boolean(
+        userProfile.unitId ||
+        userProfile.unitName ||
+        userRole === 'Unit Head' ||
+        userRole === 'Unit Coordinator' ||
+        userRole === 'Unit ODIMO' ||
+        roleLower.includes('unit') ||
+        roleLower.includes('head') ||
+        roleLower.includes('coordinator'),
+      );
+
+    const myUnitNameLower = (myUnit?.name || userProfile.unitName || '').trim().toLowerCase();
+    const myUnitCategory = myUnit?.category || 'Administrative';
+    const isMultiCampusUnit = (myUnit?.campusIds?.length || 0) > 1;
 
     return rawOutputs.filter((output) => {
       if (isInstitutionalViewer) return true;
 
       const visibleAssignments = (output.assignments || []).filter((a) => {
-        const isInstitutionalTarget = a.campusId === UNIVERSITY_WIDE_ID;
-        const isMyCampus = a.campusId === userProfile.campusId;
+        const isInstitutionalTarget = !a.campusId || a.campusId === UNIVERSITY_WIDE_ID;
+        const isMyCampus = !userProfile.campusId || a.campusId === userProfile.campusId;
+
+        const assignmentUnitNameLower = (units.find((u) => u.id === a.unitId)?.name || a.unitId || '')
+          .trim()
+          .toLowerCase();
+        const isDirectUnitMatch =
+          (Boolean(userProfile.unitId) && a.unitId === userProfile.unitId) ||
+          (Boolean(myUnitNameLower) && assignmentUnitNameLower === myUnitNameLower);
+
+        if (isDirectUnitMatch) {
+          if (
+            isInstitutionalTarget ||
+            isMyCampus ||
+            !isMultiCampusUnit ||
+            !myUnit?.campusIds?.includes(a.campusId) ||
+            !myUnit?.campusIds?.includes(userProfile.campusId)
+          ) {
+            return true;
+          }
+        }
 
         if (isUserVpOffice && supervisedUnitIds.length > 0) {
           if (isInstitutionalTarget) return true;
           if (a.unitId === ALL_UNITS_ID) return true;
-          if (a.unitId === ALL_ACADEMIC_ID && (vpCategory === 'Academic' || myUnit?.category === 'Academic'))
+          if (a.unitId === ALL_ACADEMIC_ID && (vpCategory === 'Academic' || myUnitCategory === 'Academic')) return true;
+          if (
+            a.unitId === ALL_ADMIN_ID &&
+            (vpCategory === 'Administrative' || myUnitCategory === 'Administrative' || myUnitCategory === 'Support')
+          )
             return true;
-          if (a.unitId === ALL_ADMIN_ID && (vpCategory === 'Administrative' || myUnit?.category === 'Administrative'))
-            return true;
-          if (a.unitId === ALL_REDI_ID && (vpCategory === 'Research' || myUnit?.category === 'Research')) return true;
+          if (a.unitId === ALL_REDI_ID && (vpCategory === 'Research' || myUnitCategory === 'Research')) return true;
           if (supervisedUnitIds.includes(a.unitId)) return true;
         }
 
@@ -275,17 +310,45 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
         if (isUnitLevel) {
           if (!isInstitutionalTarget && !isMyCampus) return false;
           if (a.unitId === ALL_UNITS_ID) return true;
-          if (a.unitId === ALL_ACADEMIC_ID && myUnit?.category === 'Academic') return true;
-          if (a.unitId === ALL_ADMIN_ID && myUnit?.category === 'Administrative') return true;
-          if (a.unitId === ALL_REDI_ID && myUnit?.category === 'Research') return true;
-          if (a.unitId === userProfile.unitId) return true;
+          if (a.unitId === ALL_ACADEMIC_ID && myUnitCategory === 'Academic') return true;
+          if (a.unitId === ALL_ADMIN_ID && (myUnitCategory === 'Administrative' || myUnitCategory === 'Support'))
+            return true;
+          if (a.unitId === ALL_REDI_ID && myUnitCategory === 'Research') return true;
         }
         return false;
       });
 
-      return visibleAssignments.length > 0;
+      if (visibleAssignments.length > 0) return true;
+
+      const initiatorLower = (output.initiator || '').trim().toLowerCase();
+      const isInitiatorMatch =
+        Boolean(myUnitNameLower && myUnitNameLower.length >= 3 && initiatorLower) &&
+        (initiatorLower.includes(myUnitNameLower) ||
+          (initiatorLower.length >= 4 && myUnitNameLower.includes(initiatorLower)));
+
+      const isConcernedUnitMatch =
+        (Boolean(userProfile.unitId) && Boolean(output.concernedUnitIds?.includes(userProfile.unitId))) ||
+        (Boolean(myUnitNameLower) &&
+          Boolean(
+            output.concernedUnitIds?.some(
+              (id) => (units.find((u) => u.id === id)?.name || id || '').trim().toLowerCase() === myUnitNameLower,
+            ),
+          ));
+
+      return isInitiatorMatch || isConcernedUnitMatch;
     });
-  }, [rawOutputs, userProfile, isAdmin, isAuditor, userRole, myUnit, isUserVpOffice, supervisedUnitIds, vpCategory]);
+  }, [
+    rawOutputs,
+    userProfile,
+    isAdmin,
+    isAuditor,
+    userRole,
+    myUnit,
+    units,
+    isUserVpOffice,
+    supervisedUnitIds,
+    vpCategory,
+  ]);
 
   const mrForm = useForm<z.infer<typeof mrSchema>>({
     resolver: zodResolver(mrSchema),
@@ -1772,10 +1835,11 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                     <div className="space-y-3">
                       {fields.map((field, index) => {
                         const currentCampusId = outputForm.watch(`assignments.${index}.campusId`);
-                        const filteredUnits =
+                        const filteredUnits = (
                           currentCampusId === UNIVERSITY_WIDE_ID
-                            ? []
-                            : units.filter((u) => u.campusIds?.includes(currentCampusId));
+                            ? [...units]
+                            : units.filter((u) => u.campusIds?.includes(currentCampusId))
+                        ).sort((a, b) => a.name.localeCompare(b.name));
 
                         return (
                           <div
