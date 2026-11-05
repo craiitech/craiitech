@@ -15,6 +15,7 @@ import {
   serverTimestamp,
 } from '@/firebase/firestore-wrapper';
 import { useYear } from '@/lib/year-provider';
+import { getEomsPlanDataIds } from '@/lib/eoms-cycle-data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -314,6 +315,11 @@ export function EomsComplianceWizard({
     return `op_${selectedYear}_${selectedCycle}_${selectedUnitId}`;
   }, [selectedYear, selectedCycle, selectedUnitId]);
 
+  const planDataIds = useMemo(
+    () => getEomsPlanDataIds(selectedYear, selectedCycle, selectedUnitId),
+    [selectedYear, selectedCycle, selectedUnitId],
+  );
+
   const planRef = useMemoFirebase(() => {
     if (!firestore || !planDocId) return null;
     return doc(firestore, 'operationalPlans', planDocId);
@@ -322,23 +328,23 @@ export function EomsComplianceWizard({
 
   // 1. SWOT items
   const swotQuery = useMemoFirebase(() => {
-    if (!firestore || !planDocId) return null;
-    return query(collection(firestore, 'swotItems'), where('planId', '==', planDocId));
-  }, [firestore, planDocId]);
+    if (!firestore || planDataIds.length === 0) return null;
+    return query(collection(firestore, 'swotItems'), where('planId', 'in', planDataIds));
+  }, [firestore, planDataIds]);
   const { data: swotItems } = useCollection<SwotAnalysisItem>(swotQuery);
 
   // 2. Interested Parties items
   const ipQuery = useMemoFirebase(() => {
-    if (!firestore || !planDocId) return null;
-    return query(collection(firestore, 'interestedPartyItems'), where('planId', '==', planDocId));
-  }, [firestore, planDocId]);
+    if (!firestore || planDataIds.length === 0) return null;
+    return query(collection(firestore, 'interestedPartyItems'), where('planId', 'in', planDataIds));
+  }, [firestore, planDataIds]);
   const { data: ipItems } = useCollection<InterestedPartyItem>(ipQuery);
 
   // 3. Operational Plan items
   const opItemsQuery = useMemoFirebase(() => {
-    if (!firestore || !planDocId) return null;
-    return query(collection(firestore, 'operationalPlanItems'), where('planId', '==', planDocId));
-  }, [firestore, planDocId]);
+    if (!firestore || planDataIds.length === 0) return null;
+    return query(collection(firestore, 'operationalPlanItems'), where('planId', 'in', planDataIds));
+  }, [firestore, planDataIds]);
   const { data: opItems } = useCollection<OperationalPlanItem>(opItemsQuery);
 
   const sortedOpItems = useMemo(() => {
@@ -407,9 +413,9 @@ export function EomsComplianceWizard({
 
   // 4. Quality Objectives items
   const qomQuery = useMemoFirebase(() => {
-    if (!firestore || !planDocId) return null;
-    return query(collection(firestore, 'qualityObjectives'), where('planId', '==', planDocId));
-  }, [firestore, planDocId]);
+    if (!firestore || planDataIds.length === 0) return null;
+    return query(collection(firestore, 'qualityObjectives'), where('planId', 'in', planDataIds));
+  }, [firestore, planDataIds]);
   const { data: qomItems } = useCollection<QualityObjectiveItem>(qomQuery);
 
   // 5. Risks items
@@ -1228,6 +1234,8 @@ export function EomsComplianceWizard({
               <CardDescription className="text-xs">
                 Context (SWOT) ──&gt; Stakeholders (Interested Parties) ──&gt; Operational Plan ──&gt; Monitoring ──&gt;
                 Risk &amp; ROAP
+                {selectedCycle === 'final' &&
+                  '. First Cycle records are loaded as the baseline for implementation updates and final reporting.'}
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
