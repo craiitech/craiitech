@@ -15,6 +15,7 @@ import {
   serverTimestamp,
 } from '@/firebase/firestore-wrapper';
 import { useYear } from '@/lib/year-provider';
+import { getEomsPlanDataIds } from '@/lib/eoms-cycle-data';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -253,6 +254,15 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
     return `${selectedYear}-${selectedUnitId}-${selectedCycle}`;
   }, [selectedYear, selectedCycle, selectedUnitId]);
 
+  const monitoringPlanIds = useMemo(
+    () => getEomsPlanDataIds(selectedYear, selectedCycle, selectedUnitId),
+    [selectedYear, selectedCycle, selectedUnitId],
+  );
+  const firstCyclePlanIds = useMemo(
+    () => getEomsPlanDataIds(selectedYear, 'first', selectedUnitId),
+    [selectedYear, selectedUnitId],
+  );
+
   const planRef = useMemoFirebase(() => {
     if (!firestore || !planDocId) return null;
     return doc(firestore, 'operationalPlans', planDocId);
@@ -294,35 +304,59 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
 
   // Query Quality Objectives
   const qomQuery = useMemoFirebase(() => {
-    if (!firestore || !planDocId) return null;
-    const planIds = altPlanDocId ? [planDocId, altPlanDocId] : [planDocId];
-    return query(collection(firestore, 'qualityObjectives'), where('planId', 'in', planIds));
-  }, [firestore, planDocId, altPlanDocId]);
+    if (!firestore || monitoringPlanIds.length === 0) return null;
+    return query(collection(firestore, 'qualityObjectives'), where('planId', 'in', monitoringPlanIds));
+  }, [firestore, monitoringPlanIds]);
   const { data: rawQomItems, isLoading: isLoadingQom } = useCollection<QualityObjectiveItem>(qomQuery);
 
   // Query Operational Plan Items
   const opQuery = useMemoFirebase(() => {
-    if (!firestore || !planDocId) return null;
-    const planIds = altPlanDocId ? [planDocId, altPlanDocId] : [planDocId];
-    return query(collection(firestore, 'operationalPlanItems'), where('planId', 'in', planIds));
-  }, [firestore, planDocId, altPlanDocId]);
+    if (!firestore || monitoringPlanIds.length === 0) return null;
+    return query(collection(firestore, 'operationalPlanItems'), where('planId', 'in', monitoringPlanIds));
+  }, [firestore, monitoringPlanIds]);
   const { data: rawOpItems, isLoading: isLoadingOp } = useCollection<OperationalPlanItem>(opQuery);
 
   // Unified items list merging QualityObjectives and OperationalPlanItems
   const unifiedMonitoringItems = useMemo<QualityObjectiveItem[]>(() => {
-    const qoms = rawQomItems ? [...rawQomItems] : [];
-    const ops = rawOpItems ? [...rawOpItems] : [];
+    const isFinalCycle = selectedCycle === 'final';
+    const firstPlanIdSet = new Set(firstCyclePlanIds);
+    const itemKey = (objective: string | undefined, task: string | undefined, fallbackId: string) => {
+      const key = `${objective?.trim().toLowerCase() || ''}|${task?.trim().toLowerCase() || ''}`;
+      return key === '|' ? fallbackId : key;
+    };
+    const allQoms = rawQomItems || [];
+    const allOps = rawOpItems || [];
+    const finalQoms = isFinalCycle ? allQoms.filter((item) => !firstPlanIdSet.has(item.planId || '')) : allQoms;
+    const firstQoms = isFinalCycle ? allQoms.filter((item) => firstPlanIdSet.has(item.planId || '')) : [];
+    const finalOps = isFinalCycle ? allOps.filter((item) => !firstPlanIdSet.has(item.planId || '')) : allOps;
+    const firstOps = isFinalCycle ? allOps.filter((item) => firstPlanIdSet.has(item.planId || '')) : [];
 
-    const result: QualityObjectiveItem[] = [...qoms];
+    const finalQomKeys = new Set(finalQoms.map((item) => itemKey(item.objectiveText, item.taskText, item.id)));
+    const baselineQoms = firstQoms
+      .filter((item) => !finalQomKeys.has(itemKey(item.objectiveText, item.taskText, item.id)))
+      .map((item) => ({
+        ...item,
+        id: `syn_baseline_qom_${item.id}`,
+        planId: planDocId || item.planId,
+        cycleId: 'final' as const,
+        opItemId: undefined,
+      }));
+    const result: QualityObjectiveItem[] = [...finalQoms, ...baselineQoms];
+    const finalOpKeys = new Set(finalOps.map((item) => itemKey(item.objective, item.tasks, item.id)));
+    const ops = [
+      ...finalOps,
+      ...firstOps.filter((item) => !finalOpKeys.has(itemKey(item.objective, item.tasks, item.id))),
+    ];
 
     ops.forEach((op) => {
       const alreadyLinked = result.some(
         (q) =>
-          q.opItemId === op.id ||
-          (q.taskText?.trim() === op.tasks?.trim() && q.objectiveText?.trim() === op.objective?.trim()),
+          (op.planId && q.opItemId === op.id) ||
+          itemKey(q.objectiveText, q.taskText, q.id) === itemKey(op.objective, op.tasks, op.id),
       );
 
       if (!alreadyLinked) {
+        const isFirstCycleBaseline = isFinalCycle && firstPlanIdSet.has(op.planId || '');
         // Synthesize QOM entry for this OP item
         let activeM = [1, 2, 3];
         if (op.timelineStart && op.timelineEnd) {
@@ -338,7 +372,7 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
         }
 
         result.push({
-          id: `syn_${op.id}`,
+          id: `syn_${isFirstCycleBaseline ? 'baseline_' : ''}${op.id}`,
           planId: planDocId || op.planId,
           unitId: selectedUnitId || op.unitId,
           year: selectedYear,
@@ -364,7 +398,7 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
           movLink: op.movDriveLink || '',
           remarks: op.remarks || '',
           attainmentPercentage: op.actualMetricValue ?? op.attainmentPercentage ?? 0,
-          opItemId: op.id,
+          opItemId: isFirstCycleBaseline ? undefined : op.id,
           hasGadComponent: op.hasGadComponent || false,
           gadCategory: op.gadCategory,
           gadPillar: op.gadPillar,
@@ -385,7 +419,7 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
     });
 
     return result;
-  }, [rawQomItems, rawOpItems, planDocId, selectedUnitId, selectedYear, selectedCycle]);
+  }, [rawQomItems, rawOpItems, planDocId, selectedUnitId, selectedYear, selectedCycle, firstCyclePlanIds]);
 
   const isApproved = planDoc?.status === 'Approved';
   const isSubmitted = planDoc?.status === 'Submitted';
