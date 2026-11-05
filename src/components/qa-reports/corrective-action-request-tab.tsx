@@ -1745,7 +1745,6 @@ export function CorrectiveActionRequestTab({
         authorRole: authorRoleDescription,
         createdAt: new Date(),
       });
-      form.setValue('adminFeedback', '');
     }
 
     if (isUnitResponding) {
@@ -1988,6 +1987,42 @@ export function CorrectiveActionRequestTab({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleReturnEvidenceToUnit = async (index: number) => {
+    if (!editingCar || !liveCar || !canManageVerification || isSubmitting) return;
+
+    const step = form.getValues(`actionSteps.${index}`);
+    const link = step?.evidenceLink?.trim() || '';
+    const validation = evidenceLinkValidations[index];
+    if (!link || validation?.url !== link || validation.status !== 'inaccessible') {
+      toast({
+        title: 'Check the Evidence Link First',
+        description: 'Run Check Link and return the response only when the link is reported as inaccessible.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const directive = [
+      `Returned for correction: the Google Drive evidence link for Action Step ${index + 1} (${step.type}) is not accessible or the file could not be found.`,
+      'Please check that the link points to the correct evidence file, set Google Drive General access to "Anyone with the link" with Viewer permission, and test the link in a private/incognito window while signed out.',
+      'Replace the evidence link if needed, then save and resubmit this CAR response for verification.',
+    ].join('\n\n');
+    const existingFeedback = form.getValues('adminFeedback')?.trim();
+    form.setValue('adminFeedback', existingFeedback ? `${existingFeedback}\n\n${directive}` : directive, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    form.setValue('status', 'Awaiting Response/Update', { shouldDirty: true });
+
+    await form.handleSubmit(onSubmit, () => {
+      toast({
+        title: 'Could Not Return CAR',
+        description: 'Review and correct the required CAR fields before returning this response to the unit.',
+        variant: 'destructive',
+      });
+    })();
   };
 
   const handlePrint = (car: CorrectiveActionRequest) => {
@@ -4057,6 +4092,26 @@ export function CorrectiveActionRequestTab({
                                         )}
                                         Check Link
                                       </Button>
+                                      {canManageVerification &&
+                                        (editingCar || liveCar) &&
+                                        linkValidation?.status === 'inaccessible' && (
+                                          <Button
+                                            type="button"
+                                            variant="destructive"
+                                            size="sm"
+                                            className="h-7 shrink-0 gap-1 px-2 text-[9px] font-bold"
+                                            disabled={isSubmitting}
+                                            title="Post a directive and return this CAR to the responsible unit"
+                                            onClick={() => void handleReturnEvidenceToUnit(index)}
+                                          >
+                                            {isSubmitting ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <Undo2 className="h-3 w-3" />
+                                            )}
+                                            Return to Unit
+                                          </Button>
+                                        )}
                                     </div>
                                     <FormMessage />
                                   </FormItem>
