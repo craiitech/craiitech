@@ -37,8 +37,15 @@ import {
   Search,
   ExternalLink,
   Award,
+  Printer,
 } from 'lucide-react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { cn } from '@/lib/utils';
+import { openInstitutionalPrintPreview } from '@/lib/print-preview';
+import {
+  ProcedureManualsMrPrintTemplate,
+  type ProcedureManualReportRow,
+} from '@/components/manuals/procedure-manuals-print-template';
 
 interface ProcedureManualsVisualizationProps {
   manuals: ProcedureManual[] | null | undefined;
@@ -47,6 +54,12 @@ interface ProcedureManualsVisualizationProps {
   revisionRequests?: ProcedureRevisionRequest[] | null | undefined;
   onViewManual?: (unitId: string) => void;
   isLoading?: boolean;
+  signatories?: {
+    qaoDirector?: string;
+    qmsHead?: string;
+    universityPresident?: string;
+  } | null;
+  generatedBy?: string;
 }
 
 const SHARED_ACADEMIC_ID = 'academic-shared';
@@ -79,6 +92,8 @@ export function ProcedureManualsVisualization({
   revisionRequests: _revisionRequests,
   onViewManual,
   isLoading: _isLoading = false,
+  signatories,
+  generatedBy,
 }: ProcedureManualsVisualizationProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -157,7 +172,7 @@ export function ProcedureManualsVisualization({
         processes: manual?.processes || [],
       };
     });
-  }, [units, manualMap, sharedAcademicManual]);
+  }, [units, manualMap, sharedAcademicManual, campusMap]);
 
   // Institutional KPI Metrics
   const metrics = useMemo(() => {
@@ -218,12 +233,16 @@ export function ProcedureManualsVisualization({
       const catUnits = universityRegistry.filter((r) => r.category === cat);
       const unitsCount = catUnits.length;
       const updatedCount = catUnits.filter((r) => r.status === 'Updated').length;
+      const needsRevisionCount = catUnits.filter((r) => r.status === 'Needs Revision').length;
+      const notSubmittedCount = catUnits.filter((r) => r.status === 'Not Submitted').length;
       const totalProcesses = catUnits.reduce((acc, curr) => acc + curr.processCount, 0);
 
       return {
         category: cat,
         unitsCount,
         updatedCount,
+        needsRevisionCount,
+        notSubmittedCount,
         totalProcesses,
         coverage: unitsCount > 0 ? Math.round((updatedCount / unitsCount) * 100) : 0,
       };
@@ -287,6 +306,65 @@ export function ProcedureManualsVisualization({
     });
   }, [universityRegistry, searchTerm, selectedCategory, selectedStatus, selectedCampus]);
 
+  const handlePrintMrStatus = () => {
+    const targetList = filteredRegistry.length > 0 ? filteredRegistry : universityRegistry;
+    if (targetList.length === 0) return;
+
+    const rows: ProcedureManualReportRow[] = targetList
+      .slice()
+      .sort((a, b) => a.unitName.localeCompare(b.unitName))
+      .map((row) => ({
+        unitId: row.unitId,
+        unitName: row.unitName,
+        category: row.category,
+        campusNames: row.campusNames,
+        isShared: row.isUsingShared,
+        procedureNumber: row.manual?.procedureNumber || '',
+        manualTitle: row.manual?.manualTitle || (row.hasData ? row.manualTitle : ''),
+        numberOfProcesses: row.processCount > 0 ? row.processCount : '',
+        revisionNumber: row.manual?.revisionNumber ? `Rev ${row.manual.revisionNumber}` : row.hasData ? 'Rev 00' : '',
+        revisionDate: row.manual?.revisionDate || row.manual?.dateImplemented || '',
+        pageCount: row.pageCount > 0 ? row.pageCount : '',
+        status: row.status,
+        copiedFromUnitName: row.copiedFromUnitName,
+        hasData: row.hasData,
+        hasDriveLink: Boolean(row.googleDriveLink),
+      }));
+
+    const scopeParts = [
+      selectedCategory === 'All' ? 'All Categories' : `${selectedCategory} Units`,
+      selectedStatus === 'All' ? 'All Statuses' : `Status: ${selectedStatus}`,
+      selectedCampus === 'All' ? 'All Campuses' : `Campus: ${campusMap.get(selectedCampus) || selectedCampus}`,
+      searchTerm.trim() ? `Search: "${searchTerm.trim()}"` : null,
+    ].filter(Boolean);
+
+    const contentHtml = renderToStaticMarkup(
+      <ProcedureManualsMrPrintTemplate
+        rows={rows}
+        totalUniversityUnits={universityRegistry.length}
+        categorySummary={categoryBarData}
+        revisionMaturity={revisionMaturityData.map((r) => ({ revision: r.revision, count: r.count }))}
+        topProcessUnits={topProcessUnitsData}
+        filterScopeLabel={scopeParts.join(' • ')}
+        pendingRevisionsCount={_revisionRequests?.length || 0}
+        generatedBy={generatedBy || 'Authorized EOMS User'}
+        qaoDirector={signatories?.qaoDirector || 'Director, Quality Assurance Office'}
+        qmsHead={signatories?.qmsHead || 'Head, Quality Management System Unit'}
+        universityPresident={signatories?.universityPresident || 'University President'}
+      />,
+    );
+
+    openInstitutionalPrintPreview({
+      title: 'Status of Unit Procedure Manuals for Management Review Discussion',
+      contentHtml,
+      pageSize: '13in 8.5in',
+      previewWidth: '13in',
+      toolbarLabel: 'Print Status for Management Review',
+      description:
+        'Review the Unit Procedure Manuals Status Report for Management Review discussion, then print or save as PDF.',
+    });
+  };
+
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       {/* 3D Gradient Definitions for Recharts */}
@@ -323,17 +401,29 @@ export function ProcedureManualsVisualization({
             </p>
           </div>
 
-          <div className="flex flex-col items-start md:items-end justify-center bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 shrink-0 shadow-inner">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              Institutional QMS Status
-            </span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-3xl font-black text-emerald-400">{metrics.coveragePct}%</span>
-              <span className="text-xs font-bold text-slate-300">Registered</span>
+          <div className="flex flex-col items-stretch sm:items-end gap-2.5 shrink-0">
+            <div className="flex flex-col items-start md:items-end justify-center bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-4 shadow-inner">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                Institutional QMS Status
+              </span>
+              <div className="flex items-baseline gap-2 mt-1">
+                <span className="text-3xl font-black text-emerald-400">{metrics.coveragePct}%</span>
+                <span className="text-xs font-bold text-slate-300">Registered</span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                {metrics.registeredCount} of {metrics.totalUnits} Units Codified
+              </p>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">
-              {metrics.registeredCount} of {metrics.totalUnits} Units Codified
-            </p>
+
+            <Button
+              onClick={handlePrintMrStatus}
+              disabled={_isLoading || universityRegistry.length === 0}
+              className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black uppercase text-[10px] tracking-widest h-9 px-4 shadow-lg gap-2 cursor-pointer"
+              title="Print the Status of the Procedures Manual for Management Review Discussion"
+            >
+              <Printer className="h-4 w-4" />
+              Print Status for Management Review
+            </Button>
           </div>
         </div>
       </div>
@@ -816,10 +906,21 @@ export function ProcedureManualsVisualization({
               </CardDescription>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="font-mono text-xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge variant="outline" className="font-mono text-xs h-8 px-2.5 flex items-center">
                 Showing {filteredRegistry.length} of {universityRegistry.length} Units
               </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrintMrStatus}
+                disabled={_isLoading || universityRegistry.length === 0}
+                className="h-8 px-3 font-black uppercase text-[10px] tracking-wider border-primary/30 text-primary hover:bg-primary/5 gap-1.5 shadow-xs cursor-pointer"
+                title="Print the Status of the Procedures Manual for Management Review Discussion"
+              >
+                <Printer className="h-3.5 w-3.5 text-primary" />
+                Print Status for Management Review
+              </Button>
             </div>
           </div>
 

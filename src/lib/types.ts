@@ -1653,6 +1653,7 @@ export type MRAgendaPart = {
   title: string;
   clause: string;
   description: string;
+  discussion?: string;
   assignedReporters: string;
   unitId?: string;
   campusId?: string;

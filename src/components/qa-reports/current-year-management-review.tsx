@@ -218,6 +218,7 @@ export function CurrentYearManagementReview({
     title: string;
     clause: string;
     description: string;
+    discussion: string;
     assignedReporters: string;
     driveFolderLink: string;
     durationMinutes: number;
@@ -226,6 +227,7 @@ export function CurrentYearManagementReview({
     title: '',
     clause: '',
     description: '',
+    discussion: '',
     assignedReporters: '',
     driveFolderLink: '',
     durationMinutes: 30,
@@ -398,6 +400,7 @@ export function CurrentYearManagementReview({
       title: part.title,
       clause: part.clause,
       description: part.description,
+      discussion: part.discussion || '',
       assignedReporters: part.assignedReporters,
       driveFolderLink: part.driveFolderLink || '',
       durationMinutes: part.durationMinutes || 30,
@@ -416,6 +419,7 @@ export function CurrentYearManagementReview({
       title: `Part ${nextNum}: Institutional Assessment & Review`,
       clause: 'ISO 21001:2018 Clause 9.3.2',
       description: 'Educational organization performance and operational review.',
+      discussion: '',
       assignedReporters: '',
       driveFolderLink: '',
       durationMinutes: 30,
@@ -1975,6 +1979,19 @@ export function CurrentYearManagementReview({
                 value={partForm.description}
                 onChange={(e) => setPartForm({ ...partForm, description: e.target.value })}
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold uppercase">Discussion / Findings</Label>
+              <Textarea
+                rows={4}
+                value={partForm.discussion}
+                onChange={(e) => setPartForm({ ...partForm, discussion: e.target.value })}
+                placeholder="Record the actual discussion, findings, and conclusions for this input."
+              />
+              <span className="text-[10px] text-muted-foreground">
+                These notes appear on this input&apos;s presentation slide.
+              </span>
             </div>
 
             <DialogFooter className="pt-2">

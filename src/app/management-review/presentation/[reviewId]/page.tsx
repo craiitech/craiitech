@@ -4,7 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { collection, query, Timestamp, where } from '@/firebase/firestore-wrapper';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import type { CorrectiveActionRequest, ManagementReview, ManagementReviewOutput, QaAuditReport } from '@/lib/types';
+import type {
+  CorrectiveActionRequest,
+  MRAgendaPart,
+  ManagementReview,
+  ManagementReviewOutput,
+  QaAuditReport,
+} from '@/lib/types';
 import { ISO_21001_CLAUSE_INPUTS } from '@/components/qa-reports/iso-21001-template';
 import {
   ArrowLeft,
@@ -51,10 +57,10 @@ function formatDate(value: unknown): string {
 
 function CountCard({ label, value, detail }: { label: string; value: number; detail: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <p className="text-sm font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className="mt-2 text-4xl font-black tabular-nums text-emerald-900">{value}</p>
-      <p className="mt-1 text-sm text-slate-500">{detail}</p>
+    <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+      <p className="truncate text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{label}</p>
+      <p className="mt-1 text-3xl font-black tabular-nums text-emerald-900">{value}</p>
+      <p className="mt-1 truncate text-xs text-slate-500">{detail}</p>
     </div>
   );
 }
@@ -68,8 +74,8 @@ function StatusChart({ counts }: { counts: Record<string, number> }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex h-5 overflow-hidden rounded-full bg-slate-100" aria-label="Status distribution">
+    <div className="space-y-2">
+      <div className="flex h-3 overflow-hidden rounded-full bg-slate-100" aria-label="Status distribution">
         {rows.map(([status, count]) => (
           <div
             key={status}
@@ -78,14 +84,20 @@ function StatusChart({ counts }: { counts: Record<string, number> }) {
           />
         ))}
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2">
         {rows.map(([status, count]) => (
-          <div key={status} className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 px-4 py-3">
-            <span className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-              <span className="h-3 w-3 rounded-full" style={{ backgroundColor: STATUS_COLORS[status] || '#64748b' }} />
+          <div
+            key={status}
+            className="flex min-w-0 items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2"
+          >
+            <span className="flex min-w-0 items-center gap-2 truncate text-xs font-semibold text-slate-700">
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ backgroundColor: STATUS_COLORS[status] || '#64748b' }}
+              />
               {status}
             </span>
-            <span className="text-lg font-black tabular-nums text-slate-900">{count}</span>
+            <span className="text-base font-black tabular-nums text-slate-900">{count}</span>
           </div>
         ))}
       </div>
@@ -94,39 +106,41 @@ function StatusChart({ counts }: { counts: Record<string, number> }) {
 }
 
 function OutputsTable({ outputs }: { outputs: ManagementReviewOutput[] }) {
-  const rows = outputs.slice(0, 5);
+  const rows = outputs.slice(0, 3);
   return (
-    <div className="mt-5">
+    <div className="mt-2">
       <div className="overflow-x-auto rounded-xl border border-slate-200">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
-          <thead className="bg-slate-100 text-xs uppercase tracking-wider text-slate-600">
+        <table className="w-full min-w-[560px] border-collapse text-left text-xs">
+          <thead className="bg-slate-100 text-[10px] uppercase tracking-wider text-slate-600">
             <tr>
-              <th className="p-3">Ref.</th>
-              <th className="p-3">Decision / action</th>
-              <th className="p-3">Responsible unit</th>
-              <th className="p-3">Follow-up</th>
-              <th className="p-3">Status</th>
+              <th className="p-2">Ref.</th>
+              <th className="p-2">Decision / action</th>
+              <th className="p-2">Responsible unit</th>
+              <th className="p-2">Follow-up</th>
+              <th className="p-2">Status</th>
             </tr>
           </thead>
           <tbody>
             {rows.length ? (
               rows.map((output, index) => (
                 <tr key={output.id} className="border-t border-slate-200 align-top">
-                  <td className="p-3 font-bold">{output.lineNumber || index + 1}</td>
-                  <td className="max-w-sm p-3">{output.description}</td>
-                  <td className="p-3">
+                  <td className="p-2 font-bold">{output.lineNumber || index + 1}</td>
+                  <td className="max-w-sm p-2">
+                    <span className="line-clamp-2">{output.description}</span>
+                  </td>
+                  <td className="p-2">
                     {output.assignments
                       ?.map((assignment) => assignment.unitId)
                       .filter(Boolean)
                       .join(', ') || '-'}
                   </td>
-                  <td className="whitespace-nowrap p-3">{formatDate(output.followUpDate)}</td>
-                  <td className="p-3 font-bold">{output.status}</td>
+                  <td className="whitespace-nowrap p-2">{formatDate(output.followUpDate)}</td>
+                  <td className="p-2 font-bold">{output.status}</td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="p-4 text-center text-slate-500">
+                <td colSpan={5} className="p-3 text-center text-slate-500">
                   No action records are available for this review.
                 </td>
               </tr>
@@ -135,7 +149,7 @@ function OutputsTable({ outputs }: { outputs: ManagementReviewOutput[] }) {
         </table>
       </div>
       {outputs.length > rows.length && (
-        <p className="mt-2 text-right text-xs font-semibold text-slate-500">
+        <p className="mt-1 text-right text-[10px] font-semibold text-slate-500">
           Showing {rows.length} of {outputs.length} actions
         </p>
       )}
@@ -144,29 +158,31 @@ function OutputsTable({ outputs }: { outputs: ManagementReviewOutput[] }) {
 }
 
 function AuditReportsTable({ reports }: { reports: QaAuditReport[] }) {
-  const rows = reports.slice(0, 5);
+  const rows = reports.slice(0, 3);
   return (
-    <div className="mt-5">
+    <div className="mt-2">
       <div className="overflow-x-auto rounded-xl border border-slate-200">
-        <table className="w-full min-w-[560px] border-collapse text-left text-sm">
-          <thead className="bg-slate-100 text-xs uppercase tracking-wider text-slate-600">
+        <table className="w-full min-w-[520px] border-collapse text-left text-xs">
+          <thead className="bg-slate-100 text-[10px] uppercase tracking-wider text-slate-600">
             <tr>
-              <th className="p-3">Type</th>
-              <th className="p-3">Report</th>
-              <th className="p-3">Standard / body</th>
-              <th className="p-3">Start date</th>
-              <th className="p-3">Evidence</th>
+              <th className="p-2">Type</th>
+              <th className="p-2">Report</th>
+              <th className="p-2">Standard / body</th>
+              <th className="p-2">Start date</th>
+              <th className="p-2">Evidence</th>
             </tr>
           </thead>
           <tbody>
             {rows.length ? (
               rows.map((report) => (
                 <tr key={report.id} className="border-t border-slate-200 align-top">
-                  <td className="p-3 font-black text-emerald-900">{report.type}</td>
-                  <td className="p-3 font-semibold">{report.title}</td>
-                  <td className="p-3">{report.standard || report.certifyingBody || '-'}</td>
-                  <td className="whitespace-nowrap p-3">{formatDate(report.startDate)}</td>
-                  <td className="p-3">
+                  <td className="p-2 font-black text-emerald-900">{report.type}</td>
+                  <td className="max-w-xs p-2 font-semibold">
+                    <span className="line-clamp-2">{report.title}</span>
+                  </td>
+                  <td className="p-2">{report.standard || report.certifyingBody || '-'}</td>
+                  <td className="whitespace-nowrap p-2">{formatDate(report.startDate)}</td>
+                  <td className="p-2">
                     {report.googleDriveLink ? (
                       <a
                         href={report.googleDriveLink}
@@ -184,7 +200,7 @@ function AuditReportsTable({ reports }: { reports: QaAuditReport[] }) {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="p-4 text-center text-slate-500">
+                <td colSpan={5} className="p-3 text-center text-slate-500">
                   No audit reports are linked to this review cycle.
                 </td>
               </tr>
@@ -193,7 +209,7 @@ function AuditReportsTable({ reports }: { reports: QaAuditReport[] }) {
         </table>
       </div>
       {reports.length > rows.length && (
-        <p className="mt-2 text-right text-xs font-semibold text-slate-500">
+        <p className="mt-1 text-right text-[10px] font-semibold text-slate-500">
           Showing {rows.length} of {reports.length} reports
         </p>
       )}
@@ -207,7 +223,7 @@ function EvidenceLink({ href, label }: { href: string; label: string }) {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900 transition-colors hover:bg-emerald-100"
+      className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-900 transition-colors hover:bg-emerald-100"
     >
       <ExternalLink className="h-4 w-4" />
       {label}
@@ -319,10 +335,11 @@ export default function ManagementReviewPresentationPage() {
     [auditReports, review?.campusId, review?.startDate],
   );
 
-  const agendaParts = useMemo(() => {
+  const agendaParts = useMemo<MRAgendaPart[]>(() => {
     if (!review) return [];
     if (review.agendaParts?.length) return review.agendaParts;
     return ISO_21001_CLAUSE_INPUTS.map((part) => ({
+      id: `template-part-${part.partNumber}`,
       ...part,
       assignedReporters: part.suggestedReporter,
       status: 'Pending' as const,
@@ -478,10 +495,10 @@ export default function ManagementReviewPresentationPage() {
   return (
     <main
       ref={presentationRef}
-      className="flex min-h-screen flex-col bg-slate-50 font-sans text-slate-900"
+      className="flex h-dvh flex-col overflow-hidden bg-slate-50 font-sans text-slate-900"
       style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
     >
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-5 py-3">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-white px-5 py-2">
         <button
           onClick={() => router.push('/qa-reports?tab=mr')}
           className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-slate-600 hover:bg-slate-100"
@@ -503,23 +520,23 @@ export default function ManagementReviewPresentationPage() {
         </div>
       </header>
 
-      <section className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-5 py-6 md:px-10 md:py-10">
-        <div className="mb-6 flex items-center gap-2 text-xs font-black uppercase tracking-[0.2em] text-emerald-800">
+      <section className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col overflow-hidden px-5 py-3 md:px-10">
+        <div className="mb-2 flex shrink-0 items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800">
           <Presentation className="h-4 w-4" /> RSU · Quality Assurance Office
         </div>
 
         {slide?.kind === 'overview' ? (
-          <div className="flex flex-1 flex-col justify-center">
-            <div className="mb-8 border-l-8 border-amber-400 pl-6">
-              <p className="text-sm font-black uppercase tracking-[0.22em] text-emerald-800">
+          <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 overflow-hidden">
+            <div className="shrink-0 border-l-4 border-amber-400 pl-4">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-800">
                 {review.year || toDate(review.startDate)?.getFullYear() || 'Management Review'}
                 {review.academicYear ? ` · ${review.academicYear}` : ''}
               </p>
-              <h1 className="mt-3 max-w-5xl text-4xl font-black leading-tight tracking-tight text-slate-950 md:text-6xl">
+              <h1 className="mt-1 line-clamp-2 max-w-5xl text-3xl font-black leading-tight tracking-tight text-slate-950 md:text-5xl">
                 {review.title}
               </h1>
-              {review.theme && <p className="mt-4 max-w-4xl text-lg text-slate-600">{review.theme}</p>}
-              <p className="mt-5 text-base font-semibold text-slate-600">
+              {review.theme && <p className="mt-1 line-clamp-1 max-w-4xl text-sm text-slate-600">{review.theme}</p>}
+              <p className="mt-2 truncate text-sm font-semibold text-slate-600">
                 {formatDate(review.startDate)}
                 {toDate(review.endDate)?.getTime() !== toDate(review.startDate)?.getTime()
                   ? ` – ${formatDate(review.endDate)}`
@@ -529,7 +546,7 @@ export default function ManagementReviewPresentationPage() {
               </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid shrink-0 grid-cols-2 gap-2 md:grid-cols-4">
               <CountCard
                 label="Agenda inputs"
                 value={agendaParts.length}
@@ -544,64 +561,81 @@ export default function ManagementReviewPresentationPage() {
               <CountCard label="CARs" value={reviewCars.length} detail={`${iqaCount} IQA · ${eqaCount} EQA`} />
             </div>
 
-            <div className="mt-6 grid gap-5 lg:grid-cols-2">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-black text-slate-900">Decision and action status</h2>
+            <div className="grid min-h-0 flex-1 gap-2 lg:grid-cols-2">
+              <div className="min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                <h2 className="mb-2 text-sm font-black text-slate-900">Decision and action status</h2>
                 <StatusChart counts={outputCounts} />
               </div>
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-black text-slate-900">Corrective action status</h2>
+              <div className="min-h-0 overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+                <h2 className="mb-2 text-sm font-black text-slate-900">Corrective action status</h2>
                 <StatusChart counts={carCounts} />
               </div>
             </div>
 
             {review.attendees && review.attendees.length > 0 && (
-              <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 className="mb-3 flex items-center gap-2 text-lg font-black">
-                  <Users className="h-5 w-5 text-emerald-800" /> Participants
+              <div className="shrink-0 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                <h2 className="mb-1 flex items-center gap-2 text-xs font-black">
+                  <Users className="h-4 w-4 text-emerald-800" /> Participants
                 </h2>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {review.attendees.map((attendee) => (
-                    <div key={attendee.id} className="rounded-xl bg-slate-50 px-4 py-3">
-                      <p className="font-bold">{attendee.name}</p>
-                      <p className="text-sm text-slate-500">{attendee.role}</p>
-                    </div>
+                <div className="flex flex-wrap gap-x-4 gap-y-1">
+                  {review.attendees.slice(0, 6).map((attendee) => (
+                    <p key={attendee.id} className="max-w-[12rem] truncate text-xs text-slate-700">
+                      <span className="font-bold">{attendee.name}</span>
+                      {attendee.role ? ` · ${attendee.role}` : ''}
+                    </p>
                   ))}
+                  {review.attendees.length > 6 && (
+                    <p className="text-xs font-semibold text-slate-500">+{review.attendees.length - 6} more</p>
+                  )}
                 </div>
               </div>
             )}
           </div>
         ) : currentPart ? (
-          <div className="flex flex-1 flex-col justify-center">
-            <p className="text-sm font-black uppercase tracking-[0.2em] text-emerald-800">
+          <div className="flex min-h-0 flex-1 flex-col justify-center overflow-hidden">
+            <p className="shrink-0 text-xs font-black uppercase tracking-[0.2em] text-emerald-800">
               Clause 9.3 input · Part {currentPart.partNumber}
             </p>
-            <h1 className="mt-3 max-w-5xl text-4xl font-black leading-tight tracking-tight text-slate-950 md:text-5xl">
+            <h1 className="mt-1 line-clamp-2 max-w-5xl shrink-0 text-3xl font-black leading-tight tracking-tight text-slate-950 md:text-4xl">
               {currentPart.title}
             </h1>
-            <p className="mt-3 text-lg font-bold text-amber-700">{currentPart.clause}</p>
-            <div className="mt-8 grid gap-5 lg:grid-cols-5">
-              <article className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-3">
+            <p className="mt-1 line-clamp-1 shrink-0 text-sm font-bold text-amber-700">{currentPart.clause}</p>
+            <div className="mt-3 grid min-h-0 flex-1 gap-3 overflow-hidden lg:grid-cols-5">
+              <article className="min-h-0 space-y-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-3">
                 <div>
-                  <h2 className="text-sm font-black uppercase tracking-[0.14em] text-slate-500">Review input</h2>
-                  <p className="mt-2 text-xl leading-relaxed text-slate-800">
+                  <h2 className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">Input scope</h2>
+                  <p className="mt-1 line-clamp-3 text-base leading-snug text-slate-800">
                     {currentPart.description || 'No input description has been recorded for this agenda item.'}
                   </p>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl bg-slate-50 p-4">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">Assigned presenter</p>
-                    <p className="mt-2 font-bold">{currentPart.assignedReporters || 'Presenter not assigned'}</p>
+                <div className="min-h-0 rounded-xl bg-emerald-50 p-3">
+                  <h2 className="text-xs font-black uppercase tracking-[0.14em] text-emerald-900">
+                    Discussion and findings
+                  </h2>
+                  <p className="mt-1 line-clamp-4 whitespace-pre-line text-sm leading-snug text-slate-800">
+                    {currentPart.discussion || 'No discussion notes have been recorded for this input yet.'}
+                  </p>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Assigned presenter
+                    </p>
+                    <p className="mt-1 truncate text-sm font-bold">
+                      {currentPart.assignedReporters || 'Presenter not assigned'}
+                    </p>
                   </div>
-                  <div className="rounded-xl bg-slate-50 p-4">
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-500">Preparation status</p>
-                    <p className="mt-2 font-bold">{currentPart.status || 'Pending'}</p>
+                  <div className="rounded-xl bg-slate-50 p-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Preparation status
+                    </p>
+                    <p className="mt-1 truncate text-sm font-bold">{currentPart.status || 'Pending'}</p>
                   </div>
                 </div>
 
                 {currentPart.partNumber === 1 && (
-                  <div className="border-t border-slate-200 pt-5">
-                    <h2 className="mb-4 text-lg font-black">
+                  <div className="border-t border-slate-200 pt-3">
+                    <h2 className="mb-2 line-clamp-1 text-sm font-black">
                       {previousReview ? `Previous cycle · ${previousReview.title}` : 'Previous review actions'}
                     </h2>
                     {previousReview ? (
@@ -616,9 +650,9 @@ export default function ManagementReviewPresentationPage() {
                 )}
 
                 {currentPart.partNumber === 6 && (
-                  <div className="border-t border-slate-200 pt-5">
-                    <h2 className="mb-4 text-lg font-black">Audit and corrective action snapshot</h2>
-                    <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="border-t border-slate-200 pt-3">
+                    <h2 className="mb-2 text-sm font-black">Audit and corrective action snapshot</h2>
+                    <div className="grid gap-2 sm:grid-cols-3">
                       <CountCard label="IQA CARs" value={iqaCount} detail="In the review year" />
                       <CountCard label="EQA CARs" value={eqaCount} detail="In the review year" />
                       <CountCard
@@ -627,7 +661,7 @@ export default function ManagementReviewPresentationPage() {
                         detail="Available for this cycle"
                       />
                     </div>
-                    <div className="mt-4">
+                    <div className="mt-2">
                       <StatusChart counts={carCounts} />
                     </div>
                     <AuditReportsTable reports={reviewAuditReports} />
@@ -635,29 +669,22 @@ export default function ManagementReviewPresentationPage() {
                 )}
 
                 {currentPart.partNumber === 10 && (
-                  <div className="border-t border-slate-200 pt-5">
-                    <h2 className="mb-4 text-lg font-black">Outputs from this Management Review</h2>
+                  <div className="border-t border-slate-200 pt-3">
+                    <h2 className="mb-2 text-sm font-black">Outputs from this Management Review</h2>
                     <StatusChart counts={outputCounts} />
                     <OutputsTable outputs={currentOutputs} />
                   </div>
                 )}
-
-                {![1, 6, 10].includes(currentPart.partNumber) && (
-                  <p className="border-t border-slate-200 pt-5 text-sm text-slate-500">
-                    This topic is presented from its assigned evidence repository. The system does not currently have
-                    structured metrics configured for this input.
-                  </p>
-                )}
               </article>
 
-              <aside className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-                <h2 className="flex items-center gap-2 text-lg font-black">
+              <aside className="hidden min-h-0 space-y-3 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-2 lg:block">
+                <h2 className="flex items-center gap-2 text-sm font-black">
                   <FileText className="h-5 w-5 text-emerald-800" /> Evidence and session details
                 </h2>
                 {currentPart.driveFolderLink ? (
                   <EvidenceLink href={currentPart.driveFolderLink} label="Open agenda evidence folder" />
                 ) : (
-                  <p className="rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500">
+                  <p className="rounded-xl border border-dashed border-slate-300 p-3 text-xs text-slate-500">
                     No evidence folder is linked to this agenda item.
                   </p>
                 )}
@@ -665,9 +692,9 @@ export default function ManagementReviewPresentationPage() {
                 {review.masterDriveLink && (
                   <EvidenceLink href={review.masterDriveLink} label="Open master repository" />
                 )}
-                <div className="rounded-xl bg-slate-50 p-4">
-                  <p className="text-xs font-black uppercase tracking-widest text-slate-500">Management Review</p>
-                  <p className="mt-2 font-bold">{review.title}</p>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Management Review</p>
+                  <p className="mt-1 line-clamp-2 text-sm font-bold">{review.title}</p>
                   <p className="mt-1 flex items-center gap-2 text-sm text-slate-600">
                     <CalendarDays className="h-4 w-4" /> {formatDate(review.startDate)}
                   </p>
@@ -676,7 +703,7 @@ export default function ManagementReviewPresentationPage() {
             </div>
           </div>
         ) : (
-          <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center">
             <div>
               <h1 className="text-2xl font-black">Agenda input unavailable</h1>
               <p className="mt-2 text-slate-600">The selected agenda input could not be loaded.</p>
@@ -685,8 +712,8 @@ export default function ManagementReviewPresentationPage() {
         )}
       </section>
 
-      <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4 md:px-10">
-        <p className="text-xs font-semibold text-slate-500">Use ← / → or Page Up / Page Down to navigate slides</p>
+      <footer className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-white px-5 py-2 md:px-10">
+        <p className="text-[10px] font-semibold text-slate-500">Use ← / → or Page Up / Page Down to navigate slides</p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => goToSlide(slideIndex - 1)}

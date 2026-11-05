@@ -105,20 +105,36 @@ export default function ProcedureManualsPage() {
   const campusMap = useMemo(() => new Map(campuses?.map((c) => [c.id, c.name])), [campuses]);
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
-  const { data: signatories } = useDoc<{ qaoDirector?: string; qmsHead?: string }>(signatoryRef);
+  const { data: signatories } = useDoc<{ qaoDirector?: string; qmsHead?: string; universityPresident?: string }>(
+    signatoryRef,
+  );
+
+  const generatedByName = useMemo(() => {
+    if (!userProfile) return 'Authorized EOMS User';
+    return (
+      `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() ||
+      userProfile.email ||
+      'Authorized EOMS User'
+    );
+  }, [userProfile]);
 
   const universityQuickStats = useMemo(() => {
     if (!allUnits || allUnits.length === 0) {
       return { totalUnits: 0, updatedCount: 0, totalProcesses: 0, coveragePct: 0 };
     }
     const manualMap = new Map((manuals || []).map((m) => [m.id, m]));
+    const sharedAcademicManual = manualMap.get(SHARED_ACADEMIC_ID) || null;
     let updated = 0;
     let processes = 0;
 
     allUnits.forEach((u) => {
-      const m = manualMap.get(u.id);
-      const isUpdated = m?.status === 'Updated' || Boolean(m && (m.procedureNumber || m.googleDriveLink));
-      if (isUpdated) updated++;
+      let m = manualMap.get(u.id);
+      if (!m && u.category === 'Academic' && sharedAcademicManual) {
+        m = sharedAcademicManual;
+      }
+      const hasData = Boolean(m && (m.procedureNumber || m.manualTitle || m.googleDriveLink));
+      const status = m?.status || (hasData ? 'Updated' : 'Not Submitted');
+      if (status === 'Updated' || status === 'Needs Revision') updated++;
       const pCount = m?.processes?.length || (m?.numberOfProcesses ? Number(m.numberOfProcesses) : 0);
       processes += pCount;
     });
@@ -135,21 +151,33 @@ export default function ProcedureManualsPage() {
     if (!allUnits) return;
 
     const manualMap = new Map((manuals || []).map((m) => [m.id, m]));
+    const sharedAcademicManual = manualMap.get(SHARED_ACADEMIC_ID) || null;
 
     const rows: ProcedureManualReportRow[] = allUnits
       .slice()
       .sort((a, b) => a.name.localeCompare(b.name))
       .map((unit) => {
-        const manual = manualMap.get(unit.id);
+        let manual = manualMap.get(unit.id);
+        let isShared = false;
+        if (!manual && unit.category === 'Academic' && sharedAcademicManual) {
+          manual = sharedAcademicManual;
+          isShared = true;
+        }
         const hasData = Boolean(manual && (manual.procedureNumber || manual.manualTitle || manual.googleDriveLink));
+        const processCount =
+          manual?.processes && manual.processes.length > 0
+            ? manual.processes.length
+            : manual?.numberOfProcesses !== undefined && manual?.numberOfProcesses !== 0
+              ? manual.numberOfProcesses
+              : '';
 
         return {
           unitId: unit.id,
           unitName: unit.name,
+          isShared,
           procedureNumber: manual?.procedureNumber || '',
           manualTitle: manual?.manualTitle || '',
-          numberOfProcesses:
-            manual?.numberOfProcesses !== undefined && manual?.numberOfProcesses !== 0 ? manual.numberOfProcesses : '',
+          numberOfProcesses: processCount,
           revisionNumber: manual?.revisionNumber ? `Rev ${manual.revisionNumber}` : '',
           revisionDate: manual?.revisionDate || manual?.dateImplemented || '',
           pageCount: manual?.pageCount !== undefined && manual?.pageCount !== 0 ? manual.pageCount : '',
@@ -228,10 +256,13 @@ export default function ProcedureManualsPage() {
     });
   }, [unitRequests]);
 
-  // Query all revision requests for admin inbox
+  // Query all revision requests for admin inbox or visualization analytics
   const allRevisionRequestsQuery = useMemoFirebase(
-    () => (firestore && isAdmin && isInboxLoaded ? collection(firestore, 'procedureRevisionRequests') : null),
-    [firestore, isAdmin, isInboxLoaded],
+    () =>
+      firestore && (currentTab === 'visualization' || (isAdmin && isInboxLoaded))
+        ? collection(firestore, 'procedureRevisionRequests')
+        : null,
+    [firestore, isAdmin, isInboxLoaded, currentTab],
   );
   const { data: allRequests, isLoading: isLoadingAllRequests } =
     useCollection<ProcedureRevisionRequest>(allRevisionRequestsQuery);
@@ -598,6 +629,8 @@ export default function ProcedureManualsPage() {
                     handleTabChange('view');
                   }}
                   isLoading={isLoadingManuals || isLoadingUnits}
+                  signatories={signatories}
+                  generatedBy={generatedByName}
                 />
               </ScrollArea>
             </TabsContent>
