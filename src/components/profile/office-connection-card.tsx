@@ -231,25 +231,35 @@ export function OfficeConnectionCard() {
         </CardHeader>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">
-            {assignments.map((assignment) => (
-              <div
-                key={assignment.id}
-                className="flex flex-col gap-1 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div>
-                  <p className="text-sm font-bold">{assignment.unitName || 'Unnamed Office'}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {assignment.role}
-                    {assignment.campusName ? ` • ${assignment.campusName}` : ''}
-                  </p>
+            {assignments.map((assignment) => {
+              const resolvedCampusName =
+                assignment.campusName || campuses?.find((c) => c.id === assignment.campusId)?.name || '';
+              const resolvedUnitName =
+                assignment.unitName ||
+                units?.find((u) => u.id === assignment.unitId)?.name ||
+                [resolvedCampusName, assignment.role].filter(Boolean).join(' • ') ||
+                assignment.role ||
+                'Primary Office';
+              return (
+                <div
+                  key={assignment.id}
+                  className="flex flex-col gap-1 rounded-lg border bg-muted/20 p-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div>
+                    <p className="text-sm font-bold">{resolvedUnitName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {assignment.role}
+                      {resolvedCampusName ? ` • ${resolvedCampusName}` : ''}
+                    </p>
+                  </div>
+                  {assignment.isPrimary && (
+                    <Badge variant="secondary" className="w-fit text-[9px] font-black uppercase tracking-wider">
+                      Primary
+                    </Badge>
+                  )}
                 </div>
-                {assignment.isPrimary && (
-                  <Badge variant="secondary" className="w-fit text-[9px] font-black uppercase tracking-wider">
-                    Primary
-                  </Badge>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {pendingRequests.length > 0 && (

@@ -373,29 +373,29 @@ export function CsmReportDashboard({
   const [commentSearch, setCommentSearch] = useState('');
   const [selectedCampusForExport, setSelectedCampusForExport] = useState<string>('Main Campus');
 
-  useMemo(() => {
+  useEffect(() => {
     if (selectedCampusId) {
       setLocalCampusId(selectedCampusId);
     }
   }, [selectedCampusId]);
 
-  // Pre-fill and restrict selectors for unit coordinators/supervisors
-  useMemo(() => {
+  // Pre-fill and restrict selectors for unit designations; allow all units for Admin / Top Management / CSM Manager
+  useEffect(() => {
     if (!hasAccessToAll && userProfile) {
-      if (userProfile.campusId && localCampusId !== userProfile.campusId) {
-        setLocalCampusId(userProfile.campusId);
-      }
       if (userProfile.campusId) {
+        setLocalCampusId(userProfile.campusId);
         const campusObj = campuses.find((c) => c.id === userProfile.campusId);
-        if (campusObj && selectedCampusForExport !== campusObj.name) {
+        if (campusObj) {
           setSelectedCampusForExport(campusObj.name);
         }
       }
-      if (userProfile.unitId && selectedUnitId !== userProfile.unitId) {
+      if (userProfile.unitId) {
         setSelectedUnitId(userProfile.unitId);
       }
+    } else if (hasAccessToAll) {
+      setSelectedUnitId('all');
     }
-  }, [hasAccessToAll, userProfile, campuses, localCampusId, selectedCampusForExport, selectedUnitId]);
+  }, [hasAccessToAll, userProfile?.unitId, userProfile?.campusId, campuses]);
 
   const [isUpdatingApproval, setIsUpdatingApproval] = useState(false);
   const [deployingCycleIds, setDeployingCycleIds] = useState<Record<string, boolean>>({});

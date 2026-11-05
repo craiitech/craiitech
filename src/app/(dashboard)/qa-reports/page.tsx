@@ -6,6 +6,7 @@ import { collection, query, where } from '@/firebase/firestore-wrapper';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { Campus, Unit, CorrectiveActionRequest } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { Loader2, FileText, Users, ClipboardCheck, ShieldCheck, Presentation, BarChart3, ListTodo } from 'lucide-react';
 import { AuditReportsTab } from '@/components/qa-reports/audit-reports-tab';
 import { ManagementReviewTab } from '@/components/qa-reports/management-review-tab';
@@ -17,7 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { EqaReportsContainer } from '@/components/qa-reports/eqa-reports-container';
 
 export default function QaReportsPage() {
-  const { isAdmin, userRole, isUserLoading } = useUser();
+  const { isAdmin, isTopManagement, userRole, userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
@@ -64,11 +65,25 @@ export default function QaReportsPage() {
         {/* Sticky Header and Tabs */}
         <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b space-y-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                <ShieldCheck className="h-8 w-8 text-primary" />
-                Institutional QA Reports
-              </h2>
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                  <ShieldCheck className="h-8 w-8 text-primary" />
+                  Institutional QA Reports
+                </h2>
+                <Badge
+                  variant="outline"
+                  className={
+                    isTopManagement
+                      ? 'bg-blue-50 text-blue-800 border-blue-200 text-[10px] font-black uppercase'
+                      : 'bg-emerald-50 text-emerald-800 border-emerald-200 text-[10px] font-black uppercase'
+                  }
+                >
+                  {isTopManagement
+                    ? `🏛️ Admin / Top Management View (${userRole || 'Admin'})`
+                    : `🏢 Unit View: ${units?.find((u) => u.id === userProfile?.unitId)?.name || userProfile?.unitName || userRole || 'Selected Office'}`}
+                </Badge>
+              </div>
               <p className="text-muted-foreground">
                 Central repository for IQA, EQA, Management Reviews, and Corrective Actions.
               </p>

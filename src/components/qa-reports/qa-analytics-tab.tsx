@@ -48,7 +48,7 @@ import {
   Eye,
   Search,
 } from 'lucide-react';
-import { cn, isVpOffice, getSupervisedUnitIds } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 
 const CAR_STATUS_COLORS: Record<string, string> = {
@@ -74,7 +74,7 @@ type InsightItem = {
 };
 
 export function QaAnalyticsTab() {
-  const { userProfile, isAdmin, userRole } = useUser();
+  const { userProfile, isTopManagement, userRole } = useUser();
   const firestore = useFirestore();
   const [selectedYear, setSelectedYear] = useState<string>('all');
 
@@ -82,46 +82,43 @@ export function QaAnalyticsTab() {
   const { data: units } = useCollection<any>(unitsQuery);
   const unitMap = useMemo(() => new Map((units || []).map((u: any) => [u.id, u.name])), [units]);
 
-  const isUserVpOffice = useMemo(() => {
-    return (
-      (userRole?.toLowerCase().includes('vice president') ?? false) ||
-      isVpOffice(userProfile?.unitId, units || undefined) ||
-      isVpOffice(userProfile?.unitName, units || undefined) ||
-      isVpOffice(userRole, units || undefined)
-    );
-  }, [userRole, userProfile?.unitId, userProfile?.unitName, units]);
+  // Admin and Top Management (President, Vice Presidents, Campus Directors) view Admin/Institutional data;
+  // all other users/designations view data focused strictly on their current selected / active Unit.
+  const isInstitutionalViewer = isTopManagement;
 
-  const supervisedUnitIds = useMemo(() => {
-    if (!isUserVpOffice || !units) return [];
-    return getSupervisedUnitIds(userProfile?.unitId, units || undefined);
-  }, [isUserVpOffice, userProfile?.unitId, units]);
+  const activeUnitId = userProfile?.unitId || '';
+  const activeUnitObj = useMemo(() => (units || []).find((u: any) => u.id === activeUnitId), [units, activeUnitId]);
+  const activeUnitName = activeUnitObj?.name || unitMap.get(activeUnitId) || userProfile?.unitName || 'Selected Unit';
+  const normalizeUnitStr = (val?: string) => (val || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const activeUnitNorm = normalizeUnitStr(activeUnitName);
 
-  const isInstitutionalViewer =
-    isAdmin ||
-    userRole === 'Auditor' ||
-    userRole?.toLowerCase().includes('vice president') ||
-    isUserVpOffice ||
-    userRole?.toLowerCase().includes('president') ||
-    userRole?.toLowerCase().includes('quality management') ||
-    userRole?.toLowerCase().includes('qms');
-
-  // Fix: single-field query only — no composite index needed
+  // Query all CARs and filter in memory so multi-unit CARs (assignedUnits) are accurately included for unit users
   const carQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile) return null;
-    const baseRef = collection(firestore, 'correctiveActionRequests');
-    if (isInstitutionalViewer || isUserVpOffice) return baseRef;
-    if (userProfile.unitId) return query(baseRef, where('unitId', '==', userProfile.unitId));
-    return query(baseRef, where('campusId', '==', userProfile.campusId));
-  }, [firestore, userProfile, isInstitutionalViewer, isUserVpOffice]);
+    return collection(firestore, 'correctiveActionRequests');
+  }, [firestore, userProfile]);
   const { data: rawCars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carQuery);
 
   const cars = useMemo(() => {
     if (!rawCars) return [];
-    if (isUserVpOffice && supervisedUnitIds.length > 0 && !isAdmin && userRole !== 'Auditor') {
-      return rawCars.filter((c) => supervisedUnitIds.includes(c.unitId));
+    if (isInstitutionalViewer) {
+      return rawCars;
     }
-    return rawCars;
-  }, [rawCars, isUserVpOffice, supervisedUnitIds, isAdmin, userRole]);
+    return rawCars.filter((c) => {
+      if (activeUnitId && c.unitId === activeUnitId) return true;
+      if (activeUnitNorm && normalizeUnitStr(unitMap.get(c.unitId) || c.unitId) === activeUnitNorm) return true;
+      if (
+        (c.assignedUnits || []).some(
+          (au: any) =>
+            (activeUnitId && au.unitId === activeUnitId) ||
+            (activeUnitNorm && normalizeUnitStr(au.unitName || unitMap.get(au.unitId) || au.unitId) === activeUnitNorm),
+        )
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }, [rawCars, isInstitutionalViewer, activeUnitId, activeUnitNorm, unitMap]);
 
   const mrQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'managementReviews') : null), [firestore]);
   const { data: mrs } = useCollection<ManagementReview>(mrQuery);
@@ -169,11 +166,35 @@ export function QaAnalyticsTab() {
 
     const filteredCars = yearCars;
 
+    const myUnitCategory = activeUnitObj?.category || 'Administrative';
     const outputs = isInstitutionalViewer
       ? rawMrOutputs
-      : rawMrOutputs.filter((o) =>
-          o.assignments?.some((a: any) => a.unitId === userProfile.unitId || a.campusId === userProfile.campusId),
-        );
+      : rawMrOutputs.filter((o) => {
+          const matchesAssignment = (o.assignments || []).some((a: any) => {
+            if (activeUnitId && a.unitId === activeUnitId) return true;
+            const aNorm = normalizeUnitStr(unitMap.get(a.unitId) || a.unitName || a.unitId);
+            if (activeUnitNorm && aNorm === activeUnitNorm) return true;
+            const isCampusMatch =
+              !a.campusId || a.campusId === 'university-wide' || a.campusId === userProfile.campusId;
+            if (!isCampusMatch) return false;
+            if (a.unitId === 'all_units') return true;
+            if (a.unitId === 'all_academic_units' && myUnitCategory === 'Academic') return true;
+            if (a.unitId === 'all_admin_units' && myUnitCategory === 'Administrative') return true;
+            if (a.unitId === 'all_rde_units' && myUnitCategory === 'Research') return true;
+            return false;
+          });
+          if (matchesAssignment) return true;
+          if (
+            activeUnitId &&
+            (o.concernedUnitIds || []).some(
+              (id: string) => id === activeUnitId || normalizeUnitStr(unitMap.get(id) || id) === activeUnitNorm,
+            )
+          ) {
+            return true;
+          }
+          if (activeUnitNorm && normalizeUnitStr(o.initiator) === activeUnitNorm) return true;
+          return false;
+        });
 
     // --- All 5 statuses ---
     const carStatusCounts: Record<string, number> = {
@@ -223,9 +244,12 @@ export function QaAnalyticsTab() {
     // --- Top Units by Open CARs ---
     const unitCounts: Record<string, { name: string; open: number; nc: number }> = {};
     openCars.forEach((c) => {
-      if (!unitCounts[c.unitId]) unitCounts[c.unitId] = { name: unitMap.get(c.unitId) || c.unitId, open: 0, nc: 0 };
-      unitCounts[c.unitId].open++;
-      if (c.natureOfFinding === 'NC') unitCounts[c.unitId].nc++;
+      const targetUnitId = !isInstitutionalViewer && activeUnitId ? activeUnitId : c.unitId;
+      const targetUnitName =
+        !isInstitutionalViewer && activeUnitName ? activeUnitName : unitMap.get(targetUnitId) || targetUnitId;
+      if (!unitCounts[targetUnitId]) unitCounts[targetUnitId] = { name: targetUnitName, open: 0, nc: 0 };
+      unitCounts[targetUnitId].open++;
+      if (c.natureOfFinding === 'NC') unitCounts[targetUnitId].nc++;
     });
     const topUnits = Object.values(unitCounts)
       .sort((a, b) => b.open - a.open)
@@ -465,6 +489,10 @@ export function QaAnalyticsTab() {
     auditReports,
     userProfile,
     isInstitutionalViewer,
+    activeUnitId,
+    activeUnitName,
+    activeUnitNorm,
+    activeUnitObj?.category,
     selectedYear,
     unitMap,
     campusMap,
@@ -514,10 +542,24 @@ export function QaAnalyticsTab() {
 
       {/* === Year Filter + Executive Summary === */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-primary" />
-          Quality Management Dashboard
-        </h3>
+        <div className="flex flex-wrap items-center gap-2">
+          <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            {isInstitutionalViewer ? 'Quality Management Dashboard' : `Unit Quality Overview: ${activeUnitName}`}
+          </h3>
+          <Badge
+            variant="outline"
+            className={
+              isInstitutionalViewer
+                ? 'bg-blue-50 text-blue-800 border-blue-200 text-[10px] font-black uppercase'
+                : 'bg-emerald-50 text-emerald-800 border-emerald-200 text-[10px] font-black uppercase'
+            }
+          >
+            {isInstitutionalViewer
+              ? `🏛️ Institutional Overview (${userRole || 'Admin'})`
+              : `🏢 Active Designation: ${activeUnitName}`}
+          </Badge>
+        </div>
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-bold uppercase text-muted-foreground">Academic Year:</span>
           <Select value={selectedYear} onValueChange={setSelectedYear}>

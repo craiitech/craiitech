@@ -53,7 +53,7 @@ import { KPI_CATEGORIES } from '@/lib/constants';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function KpiDashboardPage() {
-  const { isAdmin, isSupervisor, userRole, userProfile } = useUser();
+  const { isAdmin, isTopManagement, userProfile } = useUser();
   const firestore = useFirestore();
   const { selectedYear } = useYear();
   const router = useRouter();
@@ -62,21 +62,14 @@ export default function KpiDashboardPage() {
   const [activeTab, setActiveTab] = useState('overview');
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
 
-  const isExecOrAdmin =
-    isAdmin ||
-    isSupervisor ||
-    (userRole
-      ? ['president', 'vice president', 'campus director', 'qms head', 'director'].some((r) =>
-          userRole.toLowerCase().includes(r),
-        )
-      : false);
+  const isExecOrAdmin = isTopManagement;
 
   // Scope selection: 'institution' (University-Wide) vs 'unit' (Unit-Only)
   const initialScopeFromUrl = searchParams.get('scope');
   const [scopeMode, setScopeMode] = useState<'institution' | 'unit'>(() => {
     if (initialScopeFromUrl === 'unit') return 'unit';
-    if (initialScopeFromUrl === 'university') return 'institution';
-    return isExecOrAdmin ? 'institution' : 'unit';
+    if (initialScopeFromUrl === 'university' && isTopManagement) return 'institution';
+    return isTopManagement ? 'institution' : 'unit';
   });
 
   const [selectedUnitId, setSelectedUnitId] = useState<string>(userProfile?.unitId || '');
@@ -165,14 +158,19 @@ export default function KpiDashboardPage() {
   );
   const { data: operationalPlanItems } = useCollection<OperationalPlanItem>(opItemsQuery);
 
-  // Initialize and sync selectedUnitId when active designation changes
+  // Initialize and sync selectedUnitId & scopeMode when active designation changes
   useEffect(() => {
+    if (!isExecOrAdmin) {
+      setScopeMode('unit');
+    } else if (!initialScopeFromUrl) {
+      setScopeMode('institution');
+    }
     if (userProfile?.unitId) {
       setSelectedUnitId(userProfile.unitId);
     } else if (!selectedUnitId && units && units.length > 0) {
       setSelectedUnitId(units[0].id);
     }
-  }, [userProfile?.unitId, userProfile?.campusId, units]);
+  }, [isExecOrAdmin, initialScopeFromUrl, userProfile?.unitId, userProfile?.campusId, units]);
 
   // Current Unit Object
   const currentUnit = useMemo(() => {
@@ -336,15 +334,17 @@ export default function KpiDashboardPage() {
         <div className="flex flex-wrap items-center gap-2">
           {/* View Scope Toggle */}
           <div className="flex items-center bg-muted/80 p-1 rounded-lg border border-border/60">
-            <Button
-              variant={scopeMode === 'institution' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setScopeMode('institution')}
-              className="h-8 text-xs font-bold gap-1.5 px-3 shadow-none"
-            >
-              <Landmark className="h-3.5 w-3.5" />
-              <span>University-Wide</span>
-            </Button>
+            {isExecOrAdmin && (
+              <Button
+                variant={scopeMode === 'institution' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setScopeMode('institution')}
+                className="h-8 text-xs font-bold gap-1.5 px-3 shadow-none"
+              >
+                <Landmark className="h-3.5 w-3.5" />
+                <span>University-Wide</span>
+              </Button>
+            )}
             <Button
               variant={scopeMode === 'unit' ? 'default' : 'ghost'}
               size="sm"
@@ -444,7 +444,7 @@ export default function KpiDashboardPage() {
           </div>
         </div>
 
-        {scopeMode === 'unit' && (
+        {scopeMode === 'unit' && isExecOrAdmin && (
           <Button
             variant="outline"
             size="sm"

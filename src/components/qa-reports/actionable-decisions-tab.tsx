@@ -236,7 +236,7 @@ type SortKey = 'description' | 'responsibility' | 'followUpDate' | 'status';
 type SortConfig = { key: SortKey; direction: 'asc' | 'desc' } | null;
 
 export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsTabProps) {
-  const { userProfile, isAdmin, userRole, isAuditor } = useUser();
+  const { userProfile, isAdmin, isTopManagement, isVp, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const { triggerLocalNotification } = useNotifications();
@@ -396,6 +396,15 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     return getVpCategory(userProfile?.unitId, units);
   }, [isUserVpOffice, userProfile?.unitId, units]);
 
+  const canUpdateDecision = useMemo(() => {
+    const roleLower = (userRole || userProfile?.role || '').toLowerCase();
+    const unitLower = (myUnit?.name || userProfile?.unitName || '').toLowerCase();
+    const isPresident = roleLower.includes('president') || unitLower.includes('president');
+    const isVicePresident =
+      isVp || isUserVpOffice || roleLower.includes('vice president') || unitLower.includes('vice president');
+    return Boolean(isAdmin || isPresident || isVicePresident);
+  }, [isAdmin, isVp, isUserVpOffice, userRole, userProfile?.role, userProfile?.unitName, myUnit?.name]);
+
   /**
    * DATA PROCESSING PIPELINE
    */
@@ -403,26 +412,10 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     if (!rawOutputs || !userProfile) return [];
 
     const roleLower = userRole?.toLowerCase() || '';
-    const isInstitutionalViewer =
-      isAdmin ||
-      isAuditor ||
-      (roleLower.includes('president') && !roleLower.includes('vice president')) ||
-      roleLower.includes('quality management') ||
-      roleLower.includes('qms');
+    const isInstitutionalViewer = isTopManagement && userRole !== 'Campus Director' && !isUserVpOffice;
     const isCampusSupervisor =
-      userRole === 'Campus Director' || userRole === 'Campus ODIMO' || roleLower.includes('vice president');
-    const isUnitLevel =
-      !isInstitutionalViewer &&
-      Boolean(
-        userProfile.unitId ||
-        userProfile.unitName ||
-        userRole === 'Unit Head' ||
-        userRole === 'Unit Coordinator' ||
-        userRole === 'Unit ODIMO' ||
-        roleLower.includes('unit') ||
-        roleLower.includes('head') ||
-        roleLower.includes('coordinator'),
-      );
+      isTopManagement && (userRole === 'Campus Director' || roleLower.includes('vice president'));
+    const isUnitLevel = !isTopManagement;
 
     const myUnitNameLower = (myUnit?.name || userProfile.unitName || '').trim().toLowerCase();
     const myUnitCategory = myUnit?.category || 'Administrative';
@@ -591,7 +584,8 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     rawOutputs,
     userProfile,
     isAdmin,
-    isAuditor,
+    isTopManagement,
+    isUserVpOffice,
     userRole,
     myUnit,
     selectedYear,
@@ -999,7 +993,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         </div>
       </div>
 
-      <Tabs defaultValue={isAdmin || isAuditor ? 'insights' : 'registry'} className="space-y-6">
+      <Tabs defaultValue={isTopManagement ? 'insights' : 'registry'} className="space-y-6">
         <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10">
           <TabsTrigger value="insights" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
             <BarChart3 className="h-3.5 w-3.5" /> Strategic Insights
@@ -1314,14 +1308,16 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                               >
                                 <Plus className="h-3.5 w-3.5 mr-1" /> ACTION
                               </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleOpenUpdate(output)}
-                                className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm"
-                              >
-                                UPDATE
-                              </Button>
+                              {canUpdateDecision && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleOpenUpdate(output)}
+                                  className="h-8 text-[10px] font-black uppercase tracking-widest bg-white shadow-sm"
+                                >
+                                  UPDATE
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1693,16 +1689,18 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     >
                       <Printer className="h-3.5 w-3.5 mr-1.5 text-primary" /> PRINT REPORT
                     </Button>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setPreviewOutput(null);
-                        handleOpenUpdate(previewOutput);
-                      }}
-                      className="shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest px-6"
-                    >
-                      <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> UPDATE STATUS
-                    </Button>
+                    {canUpdateDecision && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setPreviewOutput(null);
+                          handleOpenUpdate(previewOutput);
+                        }}
+                        className="shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest px-6"
+                      >
+                        <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> UPDATE STATUS
+                      </Button>
+                    )}
                   </div>
                 </div>
               </DialogFooter>

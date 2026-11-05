@@ -345,7 +345,7 @@ export function CorrectiveActionRequestTab({
   canManage,
   auditTypeFilter = 'ALL',
 }: CorrectiveActionRequestTabProps) {
-  const { user, userProfile, isAdmin, userRole, isAuditor } = useUser();
+  const { user, userProfile, isAdmin, isTopManagement, userRole, isAuditor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const { triggerLocalNotification } = useNotifications();
@@ -557,17 +557,11 @@ export function CorrectiveActionRequestTab({
     return getSupervisedUnitIds(userProfile?.unitId, units);
   }, [isUserVpOffice, userProfile?.unitId, units]);
 
-  const isInstitutionalViewer =
-    isAdmin ||
-    isAuditor ||
-    userRole?.toLowerCase().includes('president') ||
-    userRole?.toLowerCase().includes('quality management') ||
-    userRole?.toLowerCase().includes('qms');
+  const isInstitutionalViewer = isTopManagement && userRole !== 'Campus Director' && !isUserVpOffice;
 
   const isCampusScopedSupervisor =
-    userRole === 'Campus Director' ||
-    userRole === 'Campus ODIMO' ||
-    (userRole?.toLowerCase().includes('vice president') ?? false);
+    isTopManagement &&
+    (userRole === 'Campus Director' || (userRole?.toLowerCase().includes('vice president') ?? false));
 
   const campusScopeLabel = isInstitutionalViewer
     ? 'Institution-wide view'
@@ -799,24 +793,18 @@ export function CorrectiveActionRequestTab({
       // EQA CARs are institutional and university-wide (accessible by all units).
       // Unit/Campus scoping only restricts internal audit (IQA) CARs.
       if (!isInstitutionalViewer && car.auditType !== 'EQA') {
-        if (isUserVpOffice && supervisedUnitIds.length > 0) {
+        if (isTopManagement && isUserVpOffice && supervisedUnitIds.length > 0) {
           const supervisedOwn = supervisedUnitIds.includes(car.unitId);
           const supervisedInAssignments = (car.assignedUnits || []).some((a) => supervisedUnitIds.includes(a.unitId));
           if (!supervisedOwn && !supervisedInAssignments) return false;
+        } else if (isCampusScopedSupervisor) {
+          const campusAccess = car.campusId === userProfile?.campusId;
+          const campusInAssignments = (car.assignedUnits || []).some((a) => a.campusId === userProfile?.campusId);
+          if (!campusAccess && !campusInAssignments) return false;
         } else {
-          const isCampusSupervisor =
-            userRole === 'Campus Director' ||
-            userRole === 'Campus ODIMO' ||
-            userRole?.toLowerCase().includes('vice president');
-          if (isCampusSupervisor) {
-            const campusAccess = car.campusId === userProfile?.campusId;
-            const campusInAssignments = (car.assignedUnits || []).some((a) => a.campusId === userProfile?.campusId);
-            if (!campusAccess && !campusInAssignments) return false;
-          } else {
-            const unitOwn = car.unitId === userProfile?.unitId;
-            const unitInAssignments = (car.assignedUnits || []).some((a) => a.unitId === userProfile?.unitId);
-            if (!unitOwn && !unitInAssignments) return false;
-          }
+          const unitOwn = car.unitId === userProfile?.unitId;
+          const unitInAssignments = (car.assignedUnits || []).some((a) => a.unitId === userProfile?.unitId);
+          if (!unitOwn && !unitInAssignments) return false;
         }
       }
 
@@ -896,11 +884,11 @@ export function CorrectiveActionRequestTab({
       if (effectiveTypeFilter === 'EQA' && car.auditType !== 'EQA') return;
       if (effectiveTypeFilter === 'IQA' && car.auditType === 'EQA') return;
       if (!isInstitutionalViewer && car.auditType !== 'EQA') {
-        const isCampusSupervisor =
-          userRole === 'Campus Director' ||
-          userRole === 'Campus ODIMO' ||
-          userRole?.toLowerCase().includes('vice president');
-        if (isCampusSupervisor) {
+        if (isTopManagement && isUserVpOffice && supervisedUnitIds.length > 0) {
+          const supervisedOwn = supervisedUnitIds.includes(car.unitId);
+          const supervisedInAssignments = (car.assignedUnits || []).some((a) => supervisedUnitIds.includes(a.unitId));
+          if (!supervisedOwn && !supervisedInAssignments) return;
+        } else if (isCampusScopedSupervisor) {
           const campusAccess = car.campusId === userProfile?.campusId;
           const campusInAssignments = (car.assignedUnits || []).some((a) => a.campusId === userProfile?.campusId);
           if (!campusAccess && !campusInAssignments) return;

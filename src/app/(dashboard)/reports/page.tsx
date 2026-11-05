@@ -79,17 +79,8 @@ import { Badge } from '@/components/ui/badge';
 import { normalizeReportType } from '@/lib/utils';
 
 export default function ReportsPage() {
-  const {
-    userProfile,
-    isAdmin,
-    isUserLoading,
-    isSupervisor,
-    userRole,
-    isVp,
-    isDoi,
-    isMainCampusCoordinator,
-    isMainCampusDOI,
-  } = useUser();
+  const { userProfile, isAdmin, isTopManagement, isUserLoading, userRole, isVp } = useUser();
+  const isCampusDirector = userRole === 'Campus Director';
   const { toast } = useToast();
   const firestore = useFirestore();
 
@@ -108,28 +99,22 @@ export default function ReportsPage() {
     return !!(userProfile?.unitId && csmSettings?.managingUnitId && userProfile.unitId === csmSettings.managingUnitId);
   }, [userProfile, csmSettings]);
 
-  const hasFullReportsAccess = isAdmin || isSupervisor;
+  const hasFullReportsAccess = isTopManagement;
   const hasAllAccess = hasFullReportsAccess || isCsmManager;
   const canViewReports = hasAllAccess || !!userProfile?.unitId;
 
   const isCampusRestricted = useMemo(() => {
-    return (
-      !isAdmin &&
-      !isVp &&
-      !isDoi &&
-      !isMainCampusCoordinator &&
-      !isMainCampusDOI &&
-      !isCsmManager &&
-      !!userProfile?.campusId
-    );
-  }, [isAdmin, isVp, isDoi, isMainCampusCoordinator, isMainCampusDOI, isCsmManager, userProfile]);
+    return (!isTopManagement || isCampusDirector) && !isCsmManager && !!userProfile?.campusId;
+  }, [isTopManagement, isCampusDirector, isCsmManager, userProfile]);
 
-  // Default to user's campus on mount
+  // Default campus scope based on active designation
   useEffect(() => {
-    if (userProfile?.campusId) {
+    if (isTopManagement && !isCampusDirector) {
+      setSelectedCampusId('all');
+    } else if (userProfile?.campusId) {
       setSelectedCampusId(userProfile.campusId);
     }
-  }, [userProfile?.campusId]);
+  }, [isTopManagement, isCampusDirector, userProfile?.campusId]);
 
   // Reactive lock to prevent restricted users from selecting other campuses
   useEffect(() => {
@@ -142,33 +127,33 @@ export default function ReportsPage() {
   const { data: allCampuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   const unitsQuery = useMemoFirebase(() => {
-    if (!firestore || !hasAllAccess) return null;
-    if (isAdmin || isCsmManager) return collection(firestore, 'units');
-    if (isSupervisor && userProfile?.campusId) {
+    if (!firestore || !canViewReports) return null;
+    if ((isTopManagement && !isCampusDirector) || isCsmManager) return collection(firestore, 'units');
+    if (userProfile?.campusId) {
       return query(collection(firestore, 'units'), where('campusIds', 'array-contains', userProfile.campusId));
     }
-    return null;
-  }, [firestore, hasAllAccess, isAdmin, isSupervisor, isCsmManager, userProfile]);
+    return collection(firestore, 'units');
+  }, [firestore, canViewReports, isTopManagement, isCampusDirector, isCsmManager, userProfile]);
   const { data: allUnits, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const submissionsQuery = useMemoFirebase(() => {
     if (!firestore || !hasFullReportsAccess) return null;
-    if (isAdmin) return collection(firestore, 'submissions');
+    if (isTopManagement && !isCampusDirector) return collection(firestore, 'submissions');
     if (userProfile?.campusId) {
       return query(collection(firestore, 'submissions'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, hasFullReportsAccess, isAdmin, userProfile]);
+  }, [firestore, hasFullReportsAccess, isTopManagement, isCampusDirector, userProfile]);
   const { data: rawSubmissions, isLoading: isLoadingSubmissions } = useCollection<Submission>(submissionsQuery);
 
   const risksQuery = useMemoFirebase(() => {
     if (!firestore || !hasFullReportsAccess) return null;
-    if (isAdmin) return collection(firestore, 'risks');
+    if (isTopManagement && !isCampusDirector) return collection(firestore, 'risks');
     if (userProfile?.campusId) {
       return query(collection(firestore, 'risks'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, hasFullReportsAccess, isAdmin, userProfile]);
+  }, [firestore, hasFullReportsAccess, isTopManagement, isCampusDirector, userProfile]);
   const { data: allRisks, isLoading: isLoadingRisks } = useCollection<Risk>(risksQuery);
 
   const compliancesQuery = useMemoFirebase(() => {
@@ -180,12 +165,12 @@ export default function ReportsPage() {
 
   const usersQuery = useMemoFirebase(() => {
     if (!firestore || !hasAllAccess || !userProfile) return null;
-    if (isAdmin || isCsmManager) return collection(firestore, 'users');
-    if (isSupervisor && userProfile.campusId) {
+    if ((isTopManagement && !isCampusDirector) || isCsmManager) return collection(firestore, 'users');
+    if (userProfile.campusId) {
       return query(collection(firestore, 'users'), where('campusId', '==', userProfile.campusId));
     }
     return null;
-  }, [firestore, hasAllAccess, isAdmin, isSupervisor, isCsmManager, userProfile]);
+  }, [firestore, hasAllAccess, isTopManagement, isCampusDirector, isCsmManager, userProfile]);
   const { data: allUsers, isLoading: isLoadingUsers } = useCollection<AppUser>(usersQuery);
 
   const cyclesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'cycles') : null), [firestore]);
@@ -195,27 +180,27 @@ export default function ReportsPage() {
   const csmResponsesQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || !canViewReports) return null;
     const base = collection(firestore, 'csmResponses');
-    if (hasAllAccess) {
+    if ((isTopManagement && !isCampusDirector) || isCsmManager) {
       return base;
     }
-    if (isSupervisor && userProfile.campusId) {
+    if (isTopManagement && isCampusDirector && userProfile.campusId) {
       return query(base, where('campusId', '==', userProfile.campusId));
     }
     return query(base, where('unitId', '==', userProfile.unitId));
-  }, [firestore, hasAllAccess, isSupervisor, userProfile, canViewReports]);
+  }, [firestore, isTopManagement, isCampusDirector, isCsmManager, userProfile, canViewReports]);
   const { data: rawCsmResponses, isLoading: isLoadingCsmResponses } = useCollection<any>(csmResponsesQuery);
 
   const visitorLogsQuery = useMemoFirebase(() => {
     if (!firestore || !userProfile || !canViewReports) return null;
     const base = collection(firestore, 'visitorLogs');
-    if (hasAllAccess) {
+    if ((isTopManagement && !isCampusDirector) || isCsmManager) {
       return base;
     }
-    if (isSupervisor && userProfile.campusId) {
+    if (isTopManagement && isCampusDirector && userProfile.campusId) {
       return query(base, where('campusId', '==', userProfile.campusId));
     }
     return query(base, where('unitId', '==', userProfile.unitId));
-  }, [firestore, hasAllAccess, isSupervisor, userProfile, canViewReports]);
+  }, [firestore, isTopManagement, isCampusDirector, isCsmManager, userProfile, canViewReports]);
   const { data: rawVisitorLogs, isLoading: isLoadingVisitorLogs } = useCollection<any>(visitorLogsQuery);
 
   const csmDeploymentsQuery = useMemoFirebase(() => {
@@ -270,7 +255,7 @@ export default function ReportsPage() {
     );
 
     const relevantCampuses =
-      isSupervisor && !isAdmin && userProfile?.campusId
+      isCampusDirector && userProfile?.campusId
         ? allCampuses.filter((c) => String(c.id).trim() === String(userProfile.campusId).trim())
         : allCampuses;
 
@@ -306,7 +291,7 @@ export default function ReportsPage() {
       })
       .filter((x): x is NonNullable<typeof x> => x !== null)
       .sort((a, b) => a.campusName.localeCompare(b.campusName));
-  }, [submissions, allCampuses, allUnits, selectedYear, isSupervisor, isAdmin, userProfile, isUserLoading]);
+  }, [submissions, allCampuses, allUnits, selectedYear, isCampusDirector, userProfile, isUserLoading]);
 
   const visualAnalytics = useMemo(() => {
     if (!allCampuses || !allUnits) return null;
@@ -1103,7 +1088,7 @@ export default function ReportsPage() {
               selectedYear={selectedYear}
               selectedCampusId={selectedCampusId}
               userProfile={userProfile}
-              isAdmin={isAdmin}
+              isAdmin={isTopManagement}
               isCsmManager={isCsmManager}
               csmDeployments={csmDeployments || []}
               cycles={allCycles || []}

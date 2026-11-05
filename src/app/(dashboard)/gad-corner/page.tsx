@@ -46,7 +46,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 const currentCalendarYear = new Date().getFullYear();
 
 export default function GadCornerPage() {
-  const { userProfile, isAdmin, isUserLoading, isSupervisor } = useUser();
+  const { userProfile, isAdmin, isTopManagement, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const pathname = usePathname();
@@ -120,10 +120,10 @@ export default function GadCornerPage() {
   const { data: gadSettings } = useDoc<GadSettings>(gadSettingsRef);
 
   const isInstitutionalViewer = useMemo(() => {
-    if (isAdmin) return true;
+    if (isTopManagement) return true;
     if (gadSettings?.leadershipUnitId && userProfile?.unitId === gadSettings.leadershipUnitId) return true;
     return false;
-  }, [isAdmin, gadSettings, userProfile]);
+  }, [isTopManagement, gadSettings, userProfile]);
 
   useEffect(() => {
     if (userProfile && !isUserLoading) {
@@ -184,9 +184,8 @@ export default function GadCornerPage() {
   const filteredUnitsList = useMemo(() => {
     if (!units) return [];
     if (isInstitutionalViewer) return units;
-    if (isSupervisor) return units.filter((u) => u.campusIds?.includes(userProfile?.campusId || ''));
     return units.filter((u) => u.id === userProfile?.unitId);
-  }, [units, isInstitutionalViewer, isSupervisor, userProfile]);
+  }, [units, isInstitutionalViewer, userProfile]);
 
   if (isUserLoading) {
     return (
@@ -223,7 +222,7 @@ export default function GadCornerPage() {
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
-              {(isInstitutionalViewer || isSupervisor) && (
+              {isInstitutionalViewer && (
                 <div className="flex flex-col items-start md:items-end w-full sm:w-auto">
                   <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1.5 block">
                     Context Filter
@@ -234,9 +233,9 @@ export default function GadCornerPage() {
                       <SelectValue placeholder="Select Unit" />
                     </SelectTrigger>
                     <SelectContent>
-                      {(isInstitutionalViewer || isSupervisor) && (
+                      {isInstitutionalViewer && (
                         <SelectItem value="all" className="font-black text-primary italic">
-                          {isInstitutionalViewer ? 'All Units (Institutional)' : 'All Units (Site Overview)'}
+                          All Units (Institutional)
                         </SelectItem>
                       )}
                       {filteredUnitsList

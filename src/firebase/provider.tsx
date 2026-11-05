@@ -44,6 +44,7 @@ export interface FirebaseContextState {
   activeAssignment: UserAssignment | null;
   setActiveAssignmentId: (assignmentId: string) => void;
   isAdmin: boolean;
+  isTopManagement: boolean;
   isAdminLoading: boolean;
   userRole: string | null;
   isSupervisor: boolean;
@@ -80,6 +81,7 @@ export interface UseFirebaseResult {
   activeAssignment: UserAssignment | null;
   setActiveAssignmentId: (assignmentId: string) => void;
   isAdmin: boolean;
+  isTopManagement: boolean;
   isAdminLoading: boolean;
   userRole: string | null;
   isSupervisor: boolean;
@@ -111,6 +113,7 @@ export interface UseUserResult {
   activeAssignment: UserAssignment | null;
   setActiveAssignmentId: (assignmentId: string) => void;
   isAdmin: boolean;
+  isTopManagement: boolean;
   isAuditor: boolean;
   userRole: string | null;
   isSupervisor: boolean;
@@ -187,19 +190,52 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
   const { data: userProfile, isLoading: isProfileLoading } = useDoc<AppUser>(userDocRef);
   const [activeAssignmentId, setActiveAssignmentIdState] = useState<string | null>(null);
 
+  const campusesQuery = useMemoFirebase(() => {
+    // Only fetch campuses if user is present to avoid permission errors on public pages
+    if (!firestore || !userAuthState.user) return null;
+    return collection(firestore, 'campuses');
+  }, [firestore, userAuthState.user]);
+  const { data: campuses, isLoading: isLoadingCampuses } = useGetCollection<Campus>(campusesQuery);
+
+  const campusMap = useMemo(() => new Map((campuses || []).map((c) => [c.id, c.name])), [campuses]);
+
+  const primaryUnitDocRef = useMemoFirebase(() => {
+    if (!firestore || !userProfile?.unitId) return null;
+    return doc(firestore, 'units', userProfile.unitId);
+  }, [firestore, userProfile?.unitId]);
+  const { data: primaryUnitDoc } = useDoc<any>(primaryUnitDocRef);
+
   const assignments = useMemo((): UserAssignment[] => {
     if (!userProfile) return [];
 
-    const stored = (userProfile.assignments || []).filter(
-      (assignment) => assignment && assignment.unitId && assignment.role,
-    );
+    const formatOfficeLabel = (unitName?: string, campusName?: string, role?: string): string => {
+      if (unitName && unitName.trim()) return unitName.trim();
+      const cName = (campusName || '').trim();
+      const rName = (role || '').trim();
+      if (cName && rName) return `${cName} • ${rName}`;
+      return cName || rName || '';
+    };
+
+    const stored = (userProfile.assignments || [])
+      .filter((assignment) => assignment && (assignment.unitId || assignment.campusId || assignment.role))
+      .map((assignment) => {
+        const resolvedCampusName = assignment.campusName || campusMap.get(assignment.campusId || '') || '';
+        return {
+          ...assignment,
+          campusName: resolvedCampusName,
+          unitName: formatOfficeLabel(assignment.unitName, resolvedCampusName, assignment.role),
+        };
+      });
+
+    const primaryCampusName = campusMap.get(userProfile.campusId || '') || '';
+    const resolvedPrimaryUnitName = userProfile.unitName || primaryUnitDoc?.name || '';
     const primaryId = `primary:${userProfile.unitId || 'none'}:${userProfile.role || 'none'}`;
     const primaryAssignment: UserAssignment = {
       id: primaryId,
       unitId: userProfile.unitId || '',
-      unitName: userProfile.unitName || '',
+      unitName: formatOfficeLabel(resolvedPrimaryUnitName, primaryCampusName, userProfile.role),
       campusId: userProfile.campusId || '',
-      campusName: '',
+      campusName: primaryCampusName,
       role: userProfile.role || '',
       roleId: userProfile.roleId || '',
       isPrimary: true,
@@ -211,7 +247,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
     );
 
     return hasPrimaryEquivalent ? stored : [primaryAssignment, ...stored];
-  }, [userProfile]);
+  }, [userProfile, campusMap, primaryUnitDoc?.name]);
 
   useEffect(() => {
     if (!userProfile) {
@@ -248,7 +284,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
     [assignments, userProfile?.id],
   );
 
-  const activeUnitId = activeAssignment?.unitId || userProfile?.unitId;
+  const activeUnitId = activeAssignment ? activeAssignment.unitId : userProfile?.unitId;
 
   const unitDocRef = useMemoFirebase(() => {
     if (!firestore || !activeUnitId) return null;
@@ -262,13 +298,13 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
     if (!activeAssignment) return userProfile;
 
     const resolvedUnitName =
-      activeAssignment.unitName ||
       unitDoc?.name ||
+      activeAssignment.unitName ||
       (activeAssignment.unitId === userProfile.unitId ? userProfile.unitName : '');
 
     return {
       ...userProfile,
-      unitId: activeAssignment.unitId || userProfile.unitId,
+      unitId: activeAssignment.unitId ?? userProfile.unitId,
       unitName: resolvedUnitName,
       campusId: activeAssignment.campusId || userProfile.campusId,
       role: activeAssignment.role || userProfile.role,
@@ -298,13 +334,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
 
   const { data: systemSettings } = useDoc<SystemSettings>(systemSettingsRef);
 
-  const campusesQuery = useMemoFirebase(() => {
-    // Only fetch campuses if user is present to avoid permission errors on public pages
-    if (!firestore || !userAuthState.user) return null;
-    return collection(firestore, 'campuses');
-  }, [firestore, userAuthState.user]);
-  const { data: campuses, isLoading: isLoadingCampuses } = useGetCollection<Campus>(campusesQuery);
-
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
@@ -316,7 +345,15 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
     const baseRoleLower = (userProfile?.role || '').toLowerCase();
 
     const isAdmin = !!adminRoleDoc || baseRoleLower.includes('admin');
+    const isActiveAdmin =
+      isAdmin && (!activeAssignment || Boolean(activeAssignment.isPrimary) || roleLower.includes('admin'));
     const isVp = roleLower.includes('vice president');
+    const isTopManagement =
+      isActiveAdmin ||
+      isVp ||
+      roleLower.includes('president') ||
+      roleLower.includes('vice president') ||
+      roleLower.includes('campus director');
     const isAuditor = roleLower.includes('auditor');
 
     const isDOI =
@@ -419,6 +456,7 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
       activeAssignment,
       setActiveAssignmentId,
       isAdmin,
+      isTopManagement,
       isAuditor,
       isAdminLoading: isAdminRoleLoading,
       userRole,
@@ -519,6 +557,7 @@ export const useFirebase = (): UseFirebaseResult | { areServicesAvailable: false
     activeAssignment: context.activeAssignment,
     setActiveAssignmentId: context.setActiveAssignmentId,
     isAdmin: context.isAdmin,
+    isTopManagement: context.isTopManagement,
     isAuditor: context.isAuditor,
     isAdminLoading: context.isAdminLoading,
     userRole: context.userRole,
@@ -585,6 +624,7 @@ export const useUser = (): UseUserResult => {
       activeAssignment: null,
       setActiveAssignmentId: () => {},
       isAdmin: false,
+      isTopManagement: false,
       isAuditor: false,
       userRole: null,
       isSupervisor: false,
@@ -615,6 +655,7 @@ export const useUser = (): UseUserResult => {
     activeAssignment,
     setActiveAssignmentId,
     isAdmin,
+    isTopManagement,
     isAuditor,
     userRole,
     isSupervisor,
@@ -644,6 +685,7 @@ export const useUser = (): UseUserResult => {
     activeAssignment,
     setActiveAssignmentId,
     isAdmin,
+    isTopManagement,
     isAuditor,
     userRole,
     isSupervisor,

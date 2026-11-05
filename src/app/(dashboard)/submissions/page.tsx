@@ -112,6 +112,7 @@ export default function SubmissionsPage() {
     user,
     userProfile,
     isAdmin,
+    isTopManagement,
     isAuditor,
     isSupervisor,
     isVp,
@@ -168,38 +169,23 @@ export default function SubmissionsPage() {
 
   const roleLower = userRole?.toLowerCase() || '';
 
-  // Strictly identify unit-level roles (Unit Coordinator, Unit Head, Unit ODIMO)
-  const isUnitRole =
-    !isAdmin &&
-    !isAuditor &&
-    !isUserVpOffice &&
-    (roleLower.includes('coordinator') ||
-      roleLower.includes('unit') ||
-      roleLower.includes('head') ||
-      userRole === 'Unit ODIMO' ||
-      (!can('submissions.view_all') && !can('submissions.view_supervised')));
+  // Strictly identify unit-level roles (all non-Top-Management designations focus on their active unit)
+  const isUnitRole = !isTopManagement;
 
-  // Institutional viewers are university-wide executives/auditors ONLY (not VPs or coordinators)
-  const isInstitutionalViewer =
-    isAdmin ||
-    isAuditor ||
-    (!isUnitRole &&
-      !isUserVpOffice &&
-      (can('submissions.view_all') ||
-        roleLower.includes('president') ||
-        roleLower.includes('quality management') ||
-        roleLower.includes('qms')));
+  // Institutional viewers are Admin & Top Management (President, Vice Presidents)
+  const isInstitutionalViewer = isTopManagement && userRole !== 'Campus Director' && !isUserVpOffice;
 
   useEffect(() => {
     if (userProfile && !isUserLoading) {
       if (isUnitRole) {
         setCampusFilter(userProfile.campusId || 'all');
         setUnitFilter(userProfile.unitId);
-      } else if (!isInstitutionalViewer && !isUserVpOffice) {
-        setCampusFilter(userProfile.campusId);
-        if (!isSupervisor || userRole === 'Unit ODIMO') {
-          setUnitFilter(userProfile.unitId);
-        }
+      } else if (userRole === 'Campus Director') {
+        setCampusFilter(userProfile.campusId || 'all');
+        setUnitFilter('all');
+      } else {
+        setCampusFilter('all');
+        setUnitFilter('all');
       }
     }
   }, [userProfile, isInstitutionalViewer, isUserVpOffice, isSupervisor, isUnitRole, userRole, isUserLoading]);

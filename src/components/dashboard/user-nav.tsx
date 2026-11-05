@@ -124,7 +124,13 @@ export function UserNav({ user, userProfile, totalNotificationsCount = 0, notifi
             <Button variant="outline" size="sm" className="h-8 gap-1.5 border-primary/20 bg-primary/5 px-2 sm:px-3">
               <Building2 className="h-3.5 w-3.5 text-primary" />
               <span className="max-w-[90px] truncate text-[10px] font-bold sm:max-w-[150px] sm:text-xs">
-                {activeAssignment?.unitName || userProfile.unitName || 'Primary Office'}
+                {activeAssignment?.unitName ||
+                  userProfile.unitName ||
+                  [activeAssignment?.campusName, activeAssignment?.role || userProfile.role]
+                    .filter(Boolean)
+                    .join(' • ') ||
+                  userProfile.role ||
+                  'Primary Office'}
               </span>
               <ChevronDown className="h-3 w-3 text-muted-foreground" />
             </Button>
@@ -134,23 +140,30 @@ export function UserNav({ user, userProfile, totalNotificationsCount = 0, notifi
               Active University Designation
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {assignments.map((assignment) => (
-              <DropdownMenuItem
-                key={assignment.id}
-                onClick={() => setActiveAssignmentId(assignment.id)}
-                className="flex cursor-pointer flex-col items-start gap-0.5"
-              >
-                <div className="flex w-full items-center justify-between gap-2">
-                  <span className="text-xs font-bold">{assignment.unitName || 'Unnamed Office'}</span>
-                  {assignment.id === activeAssignment?.id && <Check className="h-3.5 w-3.5 text-primary" />}
-                </div>
-                <span className="text-[10px] text-muted-foreground">
-                  {assignment.role}
-                  {assignment.campusName ? ` • ${assignment.campusName}` : ''}
-                  {assignment.isPrimary ? ' • Primary' : ''}
-                </span>
-              </DropdownMenuItem>
-            ))}
+            {assignments.map((assignment) => {
+              const primaryLabel =
+                assignment.unitName ||
+                [assignment.campusName, assignment.role].filter(Boolean).join(' • ') ||
+                assignment.role ||
+                'Primary Office';
+              return (
+                <DropdownMenuItem
+                  key={assignment.id}
+                  onClick={() => setActiveAssignmentId(assignment.id)}
+                  className="flex cursor-pointer flex-col items-start gap-0.5"
+                >
+                  <div className="flex w-full items-center justify-between gap-2">
+                    <span className="text-xs font-bold">{primaryLabel}</span>
+                    {assignment.id === activeAssignment?.id && <Check className="h-3.5 w-3.5 text-primary" />}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">
+                    {assignment.role}
+                    {assignment.campusName ? ` • ${assignment.campusName}` : ''}
+                    {assignment.isPrimary ? ' • Primary' : ''}
+                  </span>
+                </DropdownMenuItem>
+              );
+            })}
           </DropdownMenuContent>
         </DropdownMenu>
       )}

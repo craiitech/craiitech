@@ -52,7 +52,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn, isProgramInUnit } from '@/lib/utils';
 
 export default function AcademicProgramsPage() {
-  const { userProfile, isAdmin, userRole, isUserLoading, isVp, isAuditor, isMainCampusDOI, isDoi } = useUser();
+  const { userProfile, isAdmin, isTopManagement, userRole, isUserLoading, isDoi } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const router = useRouter();
@@ -74,21 +74,11 @@ export default function AcademicProgramsPage() {
 
   const roleLower = userRole?.toLowerCase() || '';
 
-  // Institutional Oversight roles see everything.
-  const isGlobalViewer = isAdmin || isVp || isAuditor || isMainCampusDOI;
-  const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isDoi;
-  const isUnitViewer =
-    (userRole === 'Unit Coordinator' ||
-      userRole === 'Unit ODIMO' ||
-      userRole === 'Unit Head' ||
-      userRole === 'Faculty' ||
-      roleLower.includes('coordinator') ||
-      roleLower.includes('head') ||
-      roleLower.includes('dean') ||
-      roleLower.includes('chair')) &&
-    !isDoi &&
-    !isCampusViewer &&
-    !isGlobalViewer;
+  // Admin & Top Management (President, Vice Presidents, Campus Directors) view Admin/Top-Management scope;
+  // all other designations view only their selected / active Unit.
+  const isGlobalViewer = isTopManagement && userRole !== 'Campus Director';
+  const isCampusViewer = isTopManagement && userRole === 'Campus Director';
+  const isUnitViewer = !isTopManagement;
 
   const canManage = !!(
     isAdmin ||
@@ -112,7 +102,8 @@ export default function AcademicProgramsPage() {
   useEffect(() => {
     if (userProfile && !isUserLoading) {
       if (isGlobalViewer) {
-        // Global roles can see everything
+        setCampusFilter('all');
+        setUnitFilter('all');
       } else if (isCampusViewer) {
         setCampusFilter(userProfile.campusId);
         setUnitFilter('all');

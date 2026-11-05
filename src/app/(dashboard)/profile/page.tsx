@@ -441,9 +441,16 @@ export default function ProfilePage() {
   }, [campuses, userProfile]);
 
   const unitName = useMemo(() => {
-    if (!allUnits || !userProfile?.unitId) return '...';
-    return allUnits.find((u) => u.id === userProfile.unitId)?.name || 'N/A';
-  }, [allUnits, userProfile]);
+    if (!allUnits || !campuses || !userProfile) return '...';
+    if (userProfile.unitId) {
+      const found = allUnits.find((u) => u.id === userProfile.unitId)?.name;
+      if (found) return found;
+    }
+    if (userProfile.unitName) return userProfile.unitName;
+    const cName = campuses.find((c) => c.id === userProfile.campusId)?.name;
+    if (cName && userProfile.role) return `${cName} • ${userProfile.role}`;
+    return cName || userProfile.role || 'N/A';
+  }, [allUnits, campuses, userProfile]);
 
   const onSubmit = async (values: z.infer<typeof profileSchema>) => {
     if (!user || !firestore) {

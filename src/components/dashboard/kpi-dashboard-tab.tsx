@@ -72,26 +72,29 @@ export function KpiDashboardTab({
   initialScope,
   unitId,
 }: KpiDashboardTabProps) {
-  const { isAdmin, isSupervisor, userProfile } = useUser();
+  const { isAdmin, isTopManagement, userProfile } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('overview');
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [scopeMode, setScopeMode] = useState<'institution' | 'unit'>(
-    initialScope || (isAdmin || isSupervisor ? 'institution' : 'unit'),
+    initialScope || (isTopManagement ? 'institution' : 'unit'),
   );
   const [selectedUnitId, setSelectedUnitId] = useState<string>(
     unitId || userProfile?.unitId || allUnits?.[0]?.id || '',
   );
 
   useEffect(() => {
+    if (!initialScope) {
+      setScopeMode(isTopManagement ? 'institution' : 'unit');
+    }
     const nextUnitId = unitId || userProfile?.unitId;
     if (nextUnitId) {
       setSelectedUnitId(nextUnitId);
     } else if (!selectedUnitId && allUnits && allUnits.length > 0) {
       setSelectedUnitId(allUnits[0].id);
     }
-  }, [unitId, userProfile?.unitId, userProfile?.campusId, allUnits]);
+  }, [initialScope, isTopManagement, unitId, userProfile?.unitId, userProfile?.campusId, allUnits]);
 
   const canManage = isAdmin;
 
@@ -330,19 +333,21 @@ export function KpiDashboardTab({
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-900/60 rounded-xl border border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center p-0.5 bg-slate-200/80 dark:bg-slate-800 rounded-lg">
-            <Button
-              type="button"
-              variant={scopeMode === 'institution' ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setScopeMode('institution')}
-              className={cn(
-                'h-7 px-3 text-[10px] font-black uppercase tracking-wider rounded-md transition-all gap-1.5',
-                scopeMode === 'institution' && 'bg-primary text-primary-foreground shadow-sm',
-              )}
-            >
-              <Landmark className="h-3 w-3" />
-              University-Wide KPIs
-            </Button>
+            {isTopManagement && (
+              <Button
+                type="button"
+                variant={scopeMode === 'institution' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setScopeMode('institution')}
+                className={cn(
+                  'h-7 px-3 text-[10px] font-black uppercase tracking-wider rounded-md transition-all gap-1.5',
+                  scopeMode === 'institution' && 'bg-primary text-primary-foreground shadow-sm',
+                )}
+              >
+                <Landmark className="h-3 w-3" />
+                University-Wide KPIs
+              </Button>
+            )}
             <Button
               type="button"
               variant={scopeMode === 'unit' ? 'default' : 'ghost'}
@@ -366,9 +371,9 @@ export function KpiDashboardTab({
         {scopeMode === 'unit' && (
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <span className="text-[10px] font-bold uppercase text-muted-foreground whitespace-nowrap">
-              {isAdmin || isSupervisor ? 'Select Unit:' : 'My Unit:'}
+              {isTopManagement ? 'Select Unit:' : 'My Unit:'}
             </span>
-            {isAdmin || isSupervisor ? (
+            {isTopManagement ? (
               <Select value={selectedUnitId} onValueChange={setSelectedUnitId}>
                 <SelectTrigger className="h-7 text-xs font-semibold w-full sm:w-[220px]">
                   <SelectValue placeholder="Choose Unit..." />

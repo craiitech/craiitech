@@ -82,8 +82,8 @@ import { cn } from '@/lib/utils';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export default function RiskRegisterPage() {
-  const { userProfile, isAdmin, isUserLoading, firestore, isSupervisor, userRole } = useUser();
-  const isUnitOdimo = userRole === 'Unit ODIMO';
+  const { userProfile, isAdmin, isTopManagement, isUserLoading, firestore, userRole } = useUser();
+  const isCampusDirector = userRole === 'Campus Director';
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
@@ -118,10 +118,20 @@ export default function RiskRegisterPage() {
 
   useEffect(() => {
     if (userProfile && !isUserLoading) {
-      if (!isAdmin) setCampusFilter(userProfile.campusId);
-      if (!isAdmin && (!isSupervisor || isUnitOdimo)) setUnitFilter(userProfile.unitId);
+      if (isTopManagement) {
+        if (isCampusDirector) {
+          setCampusFilter(userProfile.campusId || 'all');
+          setUnitFilter('all');
+        } else {
+          setCampusFilter('all');
+          setUnitFilter('all');
+        }
+      } else {
+        setCampusFilter(userProfile.campusId || 'all');
+        setUnitFilter(userProfile.unitId || 'all');
+      }
     }
-  }, [userProfile, isAdmin, isSupervisor, isUnitOdimo, isUserLoading]);
+  }, [userProfile, isTopManagement, isCampusDirector, isUserLoading]);
 
   /**
    * ACADEMIC YEAR GENERATION
@@ -176,8 +186,8 @@ export default function RiskRegisterPage() {
     if (!allRisks) return [];
     return allRisks.filter((risk) => {
       if (risk.year !== selectedYear) return false;
-      if (!isAdmin && (!isSupervisor || isUnitOdimo) && risk.unitId !== userProfile?.unitId) return false;
-      if (isSupervisor && !isUnitOdimo && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
+      if (!isTopManagement && risk.unitId !== userProfile?.unitId) return false;
+      if (isTopManagement && isCampusDirector && risk.campusId !== userProfile?.campusId) return false;
       if (searchTerm) {
         const lowerSearch = searchTerm.toLowerCase();
         const matchesSearch =
@@ -200,9 +210,8 @@ export default function RiskRegisterPage() {
     typeFilter,
     ratingFilter,
     searchTerm,
-    isAdmin,
-    isSupervisor,
-    isUnitOdimo,
+    isTopManagement,
+    isCampusDirector,
     userProfile,
   ]);
 
@@ -210,11 +219,11 @@ export default function RiskRegisterPage() {
     if (!allRisks) return [];
     return allRisks.filter((risk) => {
       if (risk.year !== selectedYear) return false;
-      if (!isAdmin && (!isSupervisor || isUnitOdimo) && risk.unitId !== userProfile?.unitId) return false;
-      if (isSupervisor && !isUnitOdimo && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
+      if (!isTopManagement && risk.unitId !== userProfile?.unitId) return false;
+      if (isTopManagement && isCampusDirector && risk.campusId !== userProfile?.campusId) return false;
       return true;
     });
-  }, [allRisks, selectedYear, isAdmin, isSupervisor, isUnitOdimo, userProfile]);
+  }, [allRisks, selectedYear, isTopManagement, isCampusDirector, userProfile]);
 
   const risksOnly = useMemo(() => filteredRisks.filter((r) => r.type === 'Risk'), [filteredRisks]);
   const opportunitiesOnly = useMemo(() => filteredRisks.filter((r) => r.type === 'Opportunity'), [filteredRisks]);
@@ -222,13 +231,13 @@ export default function RiskRegisterPage() {
   const scopeRisks = useMemo(() => {
     if (!allRisks) return [];
     return allRisks.filter((risk) => {
-      if (!isAdmin && (!isSupervisor || isUnitOdimo) && risk.unitId !== userProfile?.unitId) return false;
-      if (isSupervisor && !isUnitOdimo && !isAdmin && risk.campusId !== userProfile?.campusId) return false;
+      if (!isTopManagement && risk.unitId !== userProfile?.unitId) return false;
+      if (isTopManagement && isCampusDirector && risk.campusId !== userProfile?.campusId) return false;
       if (campusFilter !== 'all' && risk.campusId !== campusFilter) return false;
       if (unitFilter !== 'all' && risk.unitId !== unitFilter) return false;
       return true;
     });
-  }, [allRisks, campusFilter, unitFilter, isAdmin, isSupervisor, isUnitOdimo, userProfile]);
+  }, [allRisks, campusFilter, unitFilter, isTopManagement, isCampusDirector, userProfile]);
 
   const yearlySummaries = useMemo(() => {
     if (!scopeRisks || scopeRisks.length === 0) return [];
@@ -471,7 +480,7 @@ export default function RiskRegisterPage() {
                   <Printer className="h-4 w-4 text-primary" />
                   Reports & Decision Support
                 </Button>
-                {(!isSupervisor || isUnitOdimo) && (
+                {!isTopManagement && (
                   <Button
                     onClick={handleNewRisk}
                     className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"
@@ -529,13 +538,13 @@ export default function RiskRegisterPage() {
                     setCampusFilter(val);
                     setUnitFilter('all');
                   }}
-                  disabled={!isAdmin}
+                  disabled={!isTopManagement || isCampusDirector}
                 >
                   <SelectTrigger className="h-9 text-xs bg-white">
                     <SelectValue placeholder="All Campuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    {isAdmin && <SelectItem value="all">All Campuses</SelectItem>}
+                    {isTopManagement && !isCampusDirector && <SelectItem value="all">All Campuses</SelectItem>}
                     {allCampuses?.map((c) => (
                       <SelectItem key={c.id} value={c.id}>
                         {c.name}
@@ -549,16 +558,12 @@ export default function RiskRegisterPage() {
                 <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
                   <Building className="h-2.5 w-2.5" /> Unit / Office
                 </label>
-                <Select
-                  value={unitFilter}
-                  onValueChange={setUnitFilter}
-                  disabled={!isAdmin && (!isSupervisor || isUnitOdimo)}
-                >
+                <Select value={unitFilter} onValueChange={setUnitFilter} disabled={!isTopManagement}>
                   <SelectTrigger className="h-9 text-xs bg-white">
                     <SelectValue placeholder="All Units" />
                   </SelectTrigger>
                   <SelectContent>
-                    {(isAdmin || (isSupervisor && !isUnitOdimo)) && <SelectItem value="all">All Units</SelectItem>}
+                    {isTopManagement && <SelectItem value="all">All Units</SelectItem>}
                     {filteredUnitsList.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.name}
@@ -624,7 +629,7 @@ export default function RiskRegisterPage() {
             campusMap={campusMap}
             selectedUnitId={unitFilter}
             selectedCampusId={campusFilter}
-            isSupervisor={isSupervisor}
+            isSupervisor={isTopManagement}
             userRole={userRole}
             onSelectRisk={handleEditRisk}
           />
@@ -812,7 +817,7 @@ export default function RiskRegisterPage() {
                   onEdit={handleEditRisk}
                   onDelete={setDeletingRisk}
                   isAdmin={isAdmin}
-                  isSupervisor={isSupervisor && !isUnitOdimo}
+                  isSupervisor={isTopManagement}
                   campusMap={campusMap}
                   unitMap={unitMap}
                 />
@@ -825,7 +830,7 @@ export default function RiskRegisterPage() {
                   onEdit={handleEditRisk}
                   onDelete={setDeletingRisk}
                   isAdmin={isAdmin}
-                  isSupervisor={isSupervisor && !isUnitOdimo}
+                  isSupervisor={isTopManagement}
                   campusMap={campusMap}
                   unitMap={unitMap}
                 />
@@ -838,7 +843,7 @@ export default function RiskRegisterPage() {
                   onEdit={handleEditRisk}
                   onDelete={setDeletingRisk}
                   isAdmin={isAdmin}
-                  isSupervisor={isSupervisor && !isUnitOdimo}
+                  isSupervisor={isTopManagement}
                   campusMap={campusMap}
                   unitMap={unitMap}
                 />

@@ -86,11 +86,11 @@ import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pi
 import { Chart3DDefs, RenderBar3DLabel, RenderPie3DLabel } from '@/components/ui/chart-3d-defs';
 
 export default function UnitActivityPage() {
-  const { userProfile, isAdmin, isSupervisor } = useUser();
+  const { userProfile, isAdmin, isTopManagement, isSupervisor } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
-  const hasAccessToAll = isAdmin || isSupervisor;
+  const hasAccessToAll = isTopManagement;
 
   // Active sub-tab state
   const [activeTab, setActiveTab] = useState('activities');
