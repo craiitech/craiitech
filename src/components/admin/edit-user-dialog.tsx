@@ -159,7 +159,9 @@ export function EditUserDialog({ user, isOpen, onOpenChange, roles, campuses, un
       return;
     }
 
-    const selectedRole = roles.find((r) => r.id === values.roleId);
+    const selectedRole =
+      roles.find((r) => r.id === values.roleId) ||
+      (values.roleId === 'admin' ? ({ id: 'admin', name: 'Admin' } as Role) : undefined);
     const roleLower = selectedRole?.name?.toLowerCase() || '';
     const selectedUnit = units.find((u) => u.id === values.unitId);
     const iqaUnit = units.find(
@@ -336,6 +338,9 @@ export function EditUserDialog({ user, isOpen, onOpenChange, roles, campuses, un
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent modal={false}>
+                          {!roles.some((r) => r.name.toLowerCase() === 'admin' || r.id === 'admin') && (
+                            <SelectItem value="admin">Admin</SelectItem>
+                          )}
                           {roles.map((role) => (
                             <SelectItem key={role.id} value={role.id}>
                               {role.name}

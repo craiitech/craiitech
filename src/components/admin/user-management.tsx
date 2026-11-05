@@ -78,7 +78,8 @@ export function UserManagement() {
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: currentSignatories } = useDoc<Signatories>(signatoryRef);
 
-  const getRoleName = (roleId: string) => roles?.find((r) => r.id === roleId)?.name || 'N/A';
+  const getRoleName = (roleId: string, fallbackRole?: string) =>
+    roles?.find((r) => r.id === roleId)?.name || fallbackRole || (roleId?.toLowerCase() === 'admin' ? 'Admin' : 'N/A');
   const getCampusName = (campusId: string) => campuses?.find((c) => c.id === campusId)?.name || 'N/A';
   const getUserUnitName = (user: User) => {
     if (user.unitId) {
@@ -138,7 +139,7 @@ export function UserManagement() {
           user.firstName?.toLowerCase().includes(lowercasedFilter) ||
           user.lastName?.toLowerCase().includes(lowercasedFilter) ||
           user.email?.toLowerCase().includes(lowercasedFilter) ||
-          getRoleName(user.roleId).toLowerCase().includes(lowercasedFilter) ||
+          getRoleName(user.roleId, user.role).toLowerCase().includes(lowercasedFilter) ||
           getCampusName(user.campusId).toLowerCase().includes(lowercasedFilter) ||
           getUserUnitName(user).toLowerCase().includes(lowercasedFilter)
         );
@@ -152,8 +153,8 @@ export function UserManagement() {
 
         switch (sortConfig.key) {
           case 'role':
-            aValue = getRoleName(a.roleId);
-            bValue = getRoleName(b.roleId);
+            aValue = getRoleName(a.roleId, a.role);
+            bValue = getRoleName(b.roleId, b.role);
             break;
           case 'campus':
             aValue = getCampusName(a.campusId);
@@ -395,7 +396,7 @@ export function UserManagement() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">{getRoleName(user.roleId)}</Badge>
+                            <Badge variant="outline">{getRoleName(user.roleId, user.role)}</Badge>
                           </TableCell>
                           <TableCell>{getCampusName(user.campusId)}</TableCell>
                           <TableCell>{getUserUnitName(user)}</TableCell>
