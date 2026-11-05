@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where, orderBy, limit, doc, updateDoc, Timestamp } from '@/firebase/firestore-wrapper';
 import {
@@ -83,6 +83,15 @@ export function KpiDashboardTab({
   const [selectedUnitId, setSelectedUnitId] = useState<string>(
     unitId || userProfile?.unitId || allUnits?.[0]?.id || '',
   );
+
+  useEffect(() => {
+    const nextUnitId = unitId || userProfile?.unitId;
+    if (nextUnitId) {
+      setSelectedUnitId(nextUnitId);
+    } else if (!selectedUnitId && allUnits && allUnits.length > 0) {
+      setSelectedUnitId(allUnits[0].id);
+    }
+  }, [unitId, userProfile?.unitId, userProfile?.campusId, allUnits]);
 
   const canManage = isAdmin;
 

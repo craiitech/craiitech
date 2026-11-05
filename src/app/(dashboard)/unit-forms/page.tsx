@@ -215,8 +215,8 @@ export default function UnitFormsPage() {
     let filtered = allUnits.filter((u) => u.category !== 'Academic');
 
     if (!isAdmin && userRole !== 'Auditor') {
-      filtered = filtered.filter((u) => u.campusIds?.includes(userProfile.campusId));
-      if (!isSupervisor || userRole === 'Unit ODIMO') {
+      filtered = filtered.filter((u) => u.campusIds?.includes(userProfile.campusId) || u.id === userProfile.unitId);
+      if (!isSupervisor || userRole === 'Unit ODIMO' || userRole === 'Unit Head') {
         filtered = filtered.filter((u) => u.id === userProfile.unitId);
       }
     }
@@ -247,19 +247,17 @@ export default function UnitFormsPage() {
   }, [allUnits, userProfile, isAdmin, userRole, isSupervisor, isUserLoading, searchTerm]);
 
   useEffect(() => {
-    if (userProfile && !isUserLoading && !isAdmin && allUnits && allUnits.length > 0) {
+    if (userProfile?.unitId && !isUserLoading && allUnits && allUnits.length > 0) {
       const iUnit = allUnits.find((u) => u.id === userProfile.unitId);
       if (iUnit) {
-        if (!selectedUnitId || selectedUnitId === userProfile.unitId) {
-          if (iUnit.category === 'Academic') {
-            setSelectedUnitId(SHARED_ACADEMIC_ID);
-          } else {
-            setSelectedUnitId(userProfile.unitId);
-          }
+        if (iUnit.category === 'Academic') {
+          setSelectedUnitId(SHARED_ACADEMIC_ID);
+        } else {
+          setSelectedUnitId(userProfile.unitId);
         }
       }
     }
-  }, [userProfile, allUnits, selectedUnitId, isUserLoading, isAdmin]);
+  }, [userProfile?.unitId, userProfile?.campusId, allUnits, isUserLoading]);
 
   const selectedUnit = useMemo(() => {
     if (selectedUnitId === SHARED_ACADEMIC_ID) {
@@ -276,7 +274,18 @@ export default function UnitFormsPage() {
   const canRegister = useMemo(() => {
     if (!userProfile) return false;
     if (isAdmin) return true;
-    if (userRole !== 'Unit Coordinator' && userRole !== 'Unit ODIMO') return false;
+    const roleLower = (userRole || '').toLowerCase();
+    const isUnitOfficial =
+      userRole === 'Unit Coordinator' ||
+      userRole === 'Unit ODIMO' ||
+      userRole === 'Unit Head' ||
+      roleLower.includes('coordinator') ||
+      roleLower.includes('odimo') ||
+      roleLower.includes('head') ||
+      roleLower.includes('director') ||
+      roleLower.includes('chair') ||
+      roleLower.includes('dean');
+    if (!isUnitOfficial) return false;
     if (!selectedUnit) return false;
 
     if (selectedUnitId === userProfile.unitId) return true;

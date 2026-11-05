@@ -182,10 +182,16 @@ export function UnifiedHomeDashboard({
     : units.filter((unit) => unit.id === userProfile?.unitId || reviewableUnitIds.includes(unit.id));
 
   useEffect(() => {
-    if (!canSelectAnyUnit && availableUnitOptions.length === 1 && selectedUnitId !== availableUnitOptions[0].id) {
+    if (userProfile?.unitId) {
+      setSelectedUnitId(userProfile.unitId);
+    } else if (
+      !canSelectAnyUnit &&
+      availableUnitOptions.length === 1 &&
+      selectedUnitId !== availableUnitOptions[0].id
+    ) {
       setSelectedUnitId(availableUnitOptions[0].id);
     }
-  }, [availableUnitOptions, canSelectAnyUnit, selectedUnitId]);
+  }, [userProfile?.unitId, userProfile?.campusId, availableUnitOptions, canSelectAnyUnit]);
 
   // Filter metrics and datasets when in unit scope
   const scopedSubmissions = useMemo(() => {

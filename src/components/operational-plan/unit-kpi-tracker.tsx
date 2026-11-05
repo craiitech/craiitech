@@ -130,12 +130,12 @@ export function UnitKpiTracker() {
   const { data: allCampuses } = useCollection<Campus>(campusesQuery);
 
   useEffect(() => {
-    if (userProfile?.unitId && !selectedUnitId) {
+    if (userProfile?.unitId) {
       setSelectedUnitId(userProfile.unitId);
     } else if (!selectedUnitId && allUnits && allUnits.length > 0) {
       setSelectedUnitId(allUnits[0].id);
     }
-  }, [userProfile?.unitId, allUnits, selectedUnitId]);
+  }, [userProfile?.unitId, userProfile?.campusId, allUnits]);
 
   const currentUnit = useMemo(() => {
     return allUnits?.find((u) => u.id === selectedUnitId) || null;

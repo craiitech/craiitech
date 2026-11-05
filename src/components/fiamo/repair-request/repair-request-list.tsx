@@ -39,7 +39,9 @@ export function RepairRequestList({ onSelect, filterStatus, campusId }: RepairRe
     if (isFiamoStaff && !isAdmin) {
       list = list.filter((r) => r.assignedStaffId === userProfile?.id);
     } else if (isUnitHead && !isAdmin && !isUnitCoordinator && !isUnitOdimo) {
-      list = list.filter((r) => r.requestedBy === userProfile?.id);
+      list = list.filter(
+        (r) => r.requestedBy === userProfile?.id || (userProfile?.unitId && r.unitId === userProfile.unitId),
+      );
     }
     if (filterStatus && filterStatus !== 'all') {
       list = list.filter((r) => r.status === filterStatus);

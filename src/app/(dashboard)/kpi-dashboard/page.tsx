@@ -165,14 +165,14 @@ export default function KpiDashboardPage() {
   );
   const { data: operationalPlanItems } = useCollection<OperationalPlanItem>(opItemsQuery);
 
-  // Initialize selectedUnitId if empty
+  // Initialize and sync selectedUnitId when active designation changes
   useEffect(() => {
-    if (!selectedUnitId && userProfile?.unitId) {
+    if (userProfile?.unitId) {
       setSelectedUnitId(userProfile.unitId);
     } else if (!selectedUnitId && units && units.length > 0) {
       setSelectedUnitId(units[0].id);
     }
-  }, [selectedUnitId, userProfile?.unitId, units]);
+  }, [userProfile?.unitId, userProfile?.campusId, units]);
 
   // Current Unit Object
   const currentUnit = useMemo(() => {

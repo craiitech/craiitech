@@ -330,19 +330,21 @@ export default function ProcedureManualsPage() {
   }, [allUnits, userProfile, isAcademicUser, isUserLoading, searchTerm]);
 
   useEffect(() => {
-    if (userProfile && !selectedUnitId && !isUserLoading && allUnits && allUnits.length > 0) {
+    if (userProfile && !isUserLoading && allUnits && allUnits.length > 0) {
       const unit = allUnits.find((u) => u.id === userProfile.unitId);
       if (unit?.category === 'Academic') {
         setSelectedUnitId(SHARED_ACADEMIC_ID);
       } else if (userProfile.unitId && allUnits.some((u) => u.id === userProfile.unitId)) {
         setSelectedUnitId(userProfile.unitId);
-      } else if (allUnits.some((u) => u.category === 'Academic')) {
-        setSelectedUnitId(SHARED_ACADEMIC_ID);
-      } else {
-        setSelectedUnitId(allUnits[0]?.id || null);
+      } else if (!selectedUnitId) {
+        if (allUnits.some((u) => u.category === 'Academic')) {
+          setSelectedUnitId(SHARED_ACADEMIC_ID);
+        } else {
+          setSelectedUnitId(allUnits[0]?.id || null);
+        }
       }
     }
-  }, [userProfile, allUnits, selectedUnitId, isUserLoading]);
+  }, [userProfile?.unitId, userProfile?.campusId, allUnits, isUserLoading]);
 
   const selectedUnit = useMemo(() => {
     if (selectedUnitId === SHARED_ACADEMIC_ID) {
@@ -363,7 +365,18 @@ export default function ProcedureManualsPage() {
   const canApplyRevision = useMemo(() => {
     if (!userProfile) return false;
     if (isAdmin) return true;
-    if (userRole !== 'Unit Coordinator' && userRole !== 'Unit ODIMO') return false;
+    const roleLower = (userRole || '').toLowerCase();
+    const isUnitOfficial =
+      userRole === 'Unit Coordinator' ||
+      userRole === 'Unit ODIMO' ||
+      userRole === 'Unit Head' ||
+      roleLower.includes('coordinator') ||
+      roleLower.includes('odimo') ||
+      roleLower.includes('head') ||
+      roleLower.includes('director') ||
+      roleLower.includes('chair') ||
+      roleLower.includes('dean');
+    if (!isUnitOfficial) return false;
     if (!selectedUnit) return false;
 
     if (selectedUnitId === userProfile.unitId) return true;

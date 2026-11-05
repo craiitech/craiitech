@@ -216,14 +216,14 @@ export function OperationalPlanWorkspace({ onNavigateToWizard }: OperationalPlan
   const allCampusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: allCampuses } = useCollection<Campus>(allCampusesQuery);
 
-  // Set default selected unit
+  // Set and sync selected unit when active designation changes
   useEffect(() => {
-    if (userProfile?.unitId && !selectedUnitId) {
+    if (userProfile?.unitId) {
       setSelectedUnitId(userProfile.unitId);
     } else if (!selectedUnitId && allUnits && allUnits.length > 0) {
       setSelectedUnitId(allUnits[0].id);
     }
-  }, [userProfile?.unitId, allUnits, selectedUnitId]);
+  }, [userProfile?.unitId, userProfile?.campusId, allUnits]);
 
   const currentUnit = useMemo(() => {
     return allUnits?.find((u) => u.id === selectedUnitId) || null;

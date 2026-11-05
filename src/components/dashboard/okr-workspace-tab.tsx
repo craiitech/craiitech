@@ -13,7 +13,20 @@ import { OkrCreateDialog } from '@/components/okr/okr-create-dialog';
 import { useUserOkrObjectives } from '@/hooks/kpi/use-kpi-data';
 import { Badge } from '@/components/ui/badge';
 import { OkrWizardDialog } from '@/components/okr/okr-wizard-dialog';
-import type { OkrObjective, OkrKeyResult, Submission, Risk, CorrectiveActionRequest, Unit, Cycle, AuditPlan, CsmResponse, AttendanceActivity, ActivityAttendanceLog, ActivityEvaluation } from '@/lib/types';
+import type {
+  OkrObjective,
+  OkrKeyResult,
+  Submission,
+  Risk,
+  CorrectiveActionRequest,
+  Unit,
+  Cycle,
+  AuditPlan,
+  CsmResponse,
+  AttendanceActivity,
+  ActivityAttendanceLog,
+  ActivityEvaluation,
+} from '@/lib/types';
 
 interface OkrWorkspaceTabProps {
   selectedYear: number;
@@ -31,9 +44,16 @@ interface OkrWorkspaceTabProps {
 
 export function OkrWorkspaceTab({
   selectedYear,
-  submissions = null, risks = null, cars = null, units = null,
-  cycles = null, auditPlans = null, csmResponses = null,
-  activities = null, activityLogs = null, evaluations = null,
+  submissions = null,
+  risks = null,
+  cars = null,
+  units = null,
+  cycles = null,
+  auditPlans = null,
+  csmResponses = null,
+  activities = null,
+  activityLogs = null,
+  evaluations = null,
 }: OkrWorkspaceTabProps) {
   const { isAdmin, isSupervisor, userProfile } = useUser();
   const firestore = useFirestore();
@@ -67,22 +87,34 @@ export function OkrWorkspaceTab({
     if (!allObjectives) return [];
     let filtered = allObjectives;
     if (activeTab === 'my-okrs' && userProfile?.id) {
-      filtered = filtered.filter(o => o.ownerId === userProfile.id);
+      filtered = filtered.filter(
+        (o) =>
+          o.ownerId === userProfile.id ||
+          (userProfile.unitId && o.entityType === 'unit' && o.entityId === userProfile.unitId) ||
+          (userProfile.campusId && o.entityType === 'campus' && o.entityId === userProfile.campusId),
+      );
     }
     if (activeTab === 'my-okrs' && entityFilter !== 'all') {
-      filtered = filtered.filter(o => o.entityType === entityFilter);
+      filtered = filtered.filter((o) => o.entityType === entityFilter);
     }
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(o => o.status === statusFilter);
+      filtered = filtered.filter((o) => o.status === statusFilter);
     }
     return filtered;
-  }, [allObjectives, activeTab, userProfile?.id, entityFilter, statusFilter]);
+  }, [
+    allObjectives,
+    activeTab,
+    userProfile?.id,
+    userProfile?.unitId,
+    userProfile?.campusId,
+    entityFilter,
+    statusFilter,
+  ]);
 
   const displayObjectives = useMemo(() => {
     if (!allObjectives && !userObjectives) return [];
-    const source = activeTab === 'my-okrs' && filteredObjectives.length === 0
-      ? (userObjectives || [])
-      : filteredObjectives;
+    const source =
+      activeTab === 'my-okrs' && filteredObjectives.length === 0 ? userObjectives || [] : filteredObjectives;
     return [...source].sort((a, b) => (b.year || 0) - (a.year || 0));
   }, [allObjectives, filteredObjectives, userObjectives, activeTab]);
 
@@ -98,7 +130,7 @@ export function OkrWorkspaceTab({
   }, [allKeyResults]);
 
   const selectedObjective = useMemo(() => {
-    return allObjectives?.find(o => o.id === selectedObjectiveId) || null;
+    return allObjectives?.find((o) => o.id === selectedObjectiveId) || null;
   }, [allObjectives, selectedObjectiveId]);
 
   const selectedKeyResults = useMemo(() => {
@@ -157,7 +189,9 @@ export function OkrWorkspaceTab({
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="my-okrs"><Target className="h-3.5 w-3.5 mr-1.5" /> My OKRs</TabsTrigger>
+          <TabsTrigger value="my-okrs">
+            <Target className="h-3.5 w-3.5 mr-1.5" /> My OKRs
+          </TabsTrigger>
           <TabsTrigger value="all-okrs">All Objectives</TabsTrigger>
         </TabsList>
 
@@ -177,7 +211,7 @@ export function OkrWorkspaceTab({
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {displayObjectives.map(obj => (
+              {displayObjectives.map((obj) => (
                 <OkrObjectiveCard
                   key={obj.id}
                   objective={obj}
@@ -193,7 +227,7 @@ export function OkrWorkspaceTab({
         <TabsContent value="all-okrs" className="mt-4">
           {displayObjectives.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {displayObjectives.map(obj => (
+              {displayObjectives.map((obj) => (
                 <OkrObjectiveCard
                   key={obj.id}
                   objective={obj}
@@ -213,10 +247,7 @@ export function OkrWorkspaceTab({
         </TabsContent>
       </Tabs>
 
-      <OkrCreateDialog
-        open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
-      />
+      <OkrCreateDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
 
       {selectedObjective && (
         <OkrCheckInDialog

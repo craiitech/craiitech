@@ -78,14 +78,28 @@ export default function AcademicProgramsPage() {
   const isGlobalViewer = isAdmin || isVp || isAuditor || isMainCampusDOI;
   const isCampusViewer = userRole === 'Campus Director' || userRole === 'Campus ODIMO' || isDoi;
   const isUnitViewer =
-    (userRole === 'Unit Coordinator' || userRole === 'Unit ODIMO' || userRole === 'Faculty') && !isDoi;
+    (userRole === 'Unit Coordinator' ||
+      userRole === 'Unit ODIMO' ||
+      userRole === 'Unit Head' ||
+      userRole === 'Faculty' ||
+      roleLower.includes('coordinator') ||
+      roleLower.includes('head') ||
+      roleLower.includes('dean') ||
+      roleLower.includes('chair')) &&
+    !isDoi &&
+    !isCampusViewer &&
+    !isGlobalViewer;
 
   const canManage = !!(
     isAdmin ||
     userRole === 'Campus Director' ||
     userRole === 'Campus ODIMO' ||
+    userRole === 'Unit Head' ||
     isDoi ||
-    roleLower.includes('coordinator')
+    roleLower.includes('coordinator') ||
+    roleLower.includes('head') ||
+    roleLower.includes('dean') ||
+    roleLower.includes('chair')
   );
 
   const handleTabChange = (value: string) => {
@@ -94,33 +108,22 @@ export default function AcademicProgramsPage() {
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  // Role-based initial filter setup & strict locking
+  // Role-based initial filter setup & sync when active designation changes
   useEffect(() => {
     if (userProfile && !isUserLoading) {
       if (isGlobalViewer) {
         // Global roles can see everything
       } else if (isCampusViewer) {
         setCampusFilter(userProfile.campusId);
-        if (unitFilter !== 'all' && unitFilter === userProfile.unitId) {
-          setUnitFilter('all');
-        }
+        setUnitFilter('all');
       } else if (isUnitViewer) {
         setCampusFilter(userProfile.campusId);
-        if (unitFilter === 'all') {
+        if (userProfile.unitId) {
           setUnitFilter(userProfile.unitId);
         }
       }
     }
-  }, [
-    userProfile,
-    isGlobalViewer,
-    isCampusViewer,
-    isUnitViewer,
-    userProfile?.campusId,
-    userProfile?.unitId,
-    isUserLoading,
-    unitFilter,
-  ]);
+  }, [isGlobalViewer, isCampusViewer, isUnitViewer, userProfile?.campusId, userProfile?.unitId, isUserLoading]);
 
   /**
    * ACADEMIC YEAR GENERATION

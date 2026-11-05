@@ -41,22 +41,34 @@ export default function OkrWorkspacePage() {
     if (!allObjectives) return [];
     let filtered = allObjectives;
     if (activeTab === 'my-okrs' && userProfile?.id) {
-      filtered = filtered.filter(o => o.ownerId === userProfile.id);
+      filtered = filtered.filter(
+        (o) =>
+          o.ownerId === userProfile.id ||
+          (userProfile.unitId && o.entityType === 'unit' && o.entityId === userProfile.unitId) ||
+          (userProfile.campusId && o.entityType === 'campus' && o.entityId === userProfile.campusId),
+      );
     }
     if (activeTab === 'my-okrs' && entityFilter !== 'all') {
-      filtered = filtered.filter(o => o.entityType === entityFilter);
+      filtered = filtered.filter((o) => o.entityType === entityFilter);
     }
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(o => o.status === statusFilter);
+      filtered = filtered.filter((o) => o.status === statusFilter);
     }
     return filtered;
-  }, [allObjectives, activeTab, userProfile?.id, entityFilter, statusFilter]);
+  }, [
+    allObjectives,
+    activeTab,
+    userProfile?.id,
+    userProfile?.unitId,
+    userProfile?.campusId,
+    entityFilter,
+    statusFilter,
+  ]);
 
   const displayObjectives = useMemo(() => {
     if (!allObjectives && !userObjectives) return [];
-    const source = activeTab === 'my-okrs' && filteredObjectives.length === 0
-      ? (userObjectives || [])
-      : filteredObjectives;
+    const source =
+      activeTab === 'my-okrs' && filteredObjectives.length === 0 ? userObjectives || [] : filteredObjectives;
     return [...source].sort((a, b) => (b.year || 0) - (a.year || 0));
   }, [allObjectives, filteredObjectives, userObjectives, activeTab]);
 
@@ -67,7 +79,7 @@ export default function OkrWorkspacePage() {
   }, [allObjectives]);
 
   const selectedObjective = useMemo(() => {
-    return allObjectives?.find(o => o.id === selectedObjectiveId) || null;
+    return allObjectives?.find((o) => o.id === selectedObjectiveId) || null;
   }, [allObjectives, selectedObjectiveId]);
 
   const selectedKeyResults = useMemo(() => {
@@ -97,9 +109,7 @@ export default function OkrWorkspacePage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">OKR Workspace</h2>
-          <p className="text-muted-foreground">
-            Objectives and Key Results — set, track, and achieve your goals.
-          </p>
+          <p className="text-muted-foreground">Objectives and Key Results — set, track, and achieve your goals.</p>
         </div>
         {canCreate && (
           <Button onClick={() => setIsCreateOpen(true)} className="h-9 text-xs font-bold">
@@ -128,7 +138,9 @@ export default function OkrWorkspacePage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="my-okrs"><Target className="h-3.5 w-3.5 mr-1.5" /> My OKRs</TabsTrigger>
+          <TabsTrigger value="my-okrs">
+            <Target className="h-3.5 w-3.5 mr-1.5" /> My OKRs
+          </TabsTrigger>
           <TabsTrigger value="all-okrs">All Objectives</TabsTrigger>
         </TabsList>
 
@@ -148,7 +160,7 @@ export default function OkrWorkspacePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {displayObjectives.map(obj => (
+              {displayObjectives.map((obj) => (
                 <OkrObjectiveCard
                   key={obj.id}
                   objective={obj}
@@ -164,7 +176,7 @@ export default function OkrWorkspacePage() {
         <TabsContent value="all-okrs" className="mt-4">
           {allObjectives && allObjectives.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-              {allObjectives.map(obj => (
+              {allObjectives.map((obj) => (
                 <OkrObjectiveCard
                   key={obj.id}
                   objective={obj}
@@ -184,10 +196,7 @@ export default function OkrWorkspacePage() {
         </TabsContent>
       </Tabs>
 
-      <OkrCreateDialog
-        open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
-      />
+      <OkrCreateDialog open={isCreateOpen} onOpenChange={setIsCreateOpen} />
 
       {selectedObjective && (
         <OkrCheckInDialog

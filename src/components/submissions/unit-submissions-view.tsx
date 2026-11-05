@@ -149,19 +149,22 @@ export function UnitSubmissionsView({
   }, [isUserVpOffice, userProfile?.unitId, allUnits]);
 
   useEffect(() => {
-    if (userProfile?.unitId && !selectedUnitId) {
+    if (userProfile?.unitId) {
       setSelectedUnitId(userProfile.unitId);
     }
-  }, [userProfile, selectedUnitId]);
+  }, [userProfile?.unitId, userProfile?.campusId]);
 
   const unitsToShow = useMemo(() => {
     if (!allUnits || !userProfile?.campusId) return [];
     let filtered = allUnits;
     if (isUserVpOffice && supervisedUnitIds.length > 0) {
-      filtered = allUnits.filter((u) => supervisedUnitIds.includes(u.id));
+      filtered = allUnits.filter((u) => supervisedUnitIds.includes(u.id) || u.id === userProfile.unitId);
     } else {
-      filtered = allUnits.filter((u) => u.campusIds?.includes(userProfile.campusId));
-      const isUnitLevelOnly = userProfile.role === 'Unit Coordinator' || userProfile.role === 'Unit ODIMO';
+      filtered = allUnits.filter((u) => u.campusIds?.includes(userProfile.campusId) || u.id === userProfile.unitId);
+      const isUnitLevelOnly =
+        userProfile.role === 'Unit Coordinator' ||
+        userProfile.role === 'Unit ODIMO' ||
+        userProfile.role === 'Unit Head';
       if (isUnitLevelOnly && userProfile.unitId) {
         filtered = filtered.filter((u) => u.id === userProfile.unitId);
       }

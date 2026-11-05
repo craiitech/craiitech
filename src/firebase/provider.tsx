@@ -248,26 +248,33 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
     [assignments, userProfile?.id],
   );
 
+  const activeUnitId = activeAssignment?.unitId || userProfile?.unitId;
+
+  const unitDocRef = useMemoFirebase(() => {
+    if (!firestore || !activeUnitId) return null;
+    return doc(firestore, 'units', activeUnitId);
+  }, [firestore, activeUnitId]);
+
+  const { data: unitDoc, isLoading: isUnitDocLoading } = useDoc<any>(unitDocRef);
+
   const userProfileWithContext = useMemo(() => {
     if (!userProfile) return null;
     if (!activeAssignment) return userProfile;
 
+    const resolvedUnitName =
+      activeAssignment.unitName ||
+      unitDoc?.name ||
+      (activeAssignment.unitId === userProfile.unitId ? userProfile.unitName : '');
+
     return {
       ...userProfile,
       unitId: activeAssignment.unitId || userProfile.unitId,
-      unitName: activeAssignment.unitName || userProfile.unitName,
+      unitName: resolvedUnitName,
       campusId: activeAssignment.campusId || userProfile.campusId,
       role: activeAssignment.role || userProfile.role,
       roleId: activeAssignment.roleId || userProfile.roleId,
     };
-  }, [userProfile, activeAssignment]);
-
-  const unitDocRef = useMemoFirebase(() => {
-    if (!firestore || !userProfileWithContext?.unitId) return null;
-    return doc(firestore, 'units', userProfileWithContext.unitId);
-  }, [firestore, userProfileWithContext?.unitId]);
-
-  const { data: unitDoc, isLoading: isUnitDocLoading } = useDoc<any>(unitDocRef);
+  }, [userProfile, activeAssignment, unitDoc?.name]);
 
   const adminRoleDocRef = useMemoFirebase(() => {
     if (!userAuthState.user || !firestore) return null;

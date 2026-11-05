@@ -200,9 +200,16 @@ export default function CommunicationsPage() {
   const { data: rawComms, isLoading: isLoadingComms } = useCollection<Communication>(commsQuery);
 
   // Role permissions
-  // Coordinators and ODIMOs can both receive and log communications
+  // Coordinators, Unit Heads, and ODIMOs can both receive and log communications
   const roleLower = userRole?.toLowerCase() || '';
-  const isOdimo = isAdmin || roleLower.includes('odimo') || roleLower.includes('coordinator');
+  const isOdimo =
+    isAdmin ||
+    roleLower.includes('odimo') ||
+    roleLower.includes('coordinator') ||
+    roleLower.includes('head') ||
+    roleLower.includes('director') ||
+    roleLower.includes('dean') ||
+    roleLower.includes('chair');
   const isCampusOdimo = roleLower === 'campus odimo';
   const isPresident = roleLower.includes('president') || isAdmin;
 
