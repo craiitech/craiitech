@@ -454,13 +454,22 @@ service cloud.firestore {
       );
       // On update:
       // - Admins or the bootstrap admin can update freely.
-      // - Regular users can update their own profile, but CANNOT escalate their role to Admin or alter verification
+      // - Regular users can update their own profile, but CANNOT escalate their role to Admin or alter verification.
+      // - Owners may only REMOVE connected-office assignments (new list must be a subset of the existing list).
       allow update: if isSignedIn() && (
         isAdmin() ||
         (request.auth.uid == userId && (
           request.auth.token.email == 'admin@eoms.com' ||
           (
-            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'assignments', 'assignedUnitIds', 'email']) &&
+            (
+              !request.resource.data.diff(resource.data).affectedKeys().hasAny(['assignments']) ||
+              request.resource.data.get('assignments', []).hasOnly(resource.data.get('assignments', []))
+            ) &&
+            (
+              !request.resource.data.diff(resource.data).affectedKeys().hasAny(['assignedUnitIds']) ||
+              request.resource.data.get('assignedUnitIds', []).hasOnly(resource.data.get('assignedUnitIds', []))
+            ) &&
+            !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isAdmin', 'email']) &&
             (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified']) || resource.data.get('verified', false) == request.resource.data.get('verified', false)) &&
             (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
              (!(request.resource.data.role in ['Admin', 'admin', 'Administrator', 'administrator', 'System Administrator', 'Super Admin']) &&

@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { addDoc, collection, query, serverTimestamp, where } from '@/firebase/firestore-wrapper';
+import { addDoc, collection, doc, query, serverTimestamp, updateDoc, where } from '@/firebase/firestore-wrapper';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
-import type { Campus, OfficeConnectionRequest, Role, Unit } from '@/lib/types';
+import type { Campus, OfficeConnectionRequest, Role, Unit, UserAssignment } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +23,17 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useSessionActivity } from '@/lib/activity-log-provider';
 import { NdaAgreementContent } from '@/components/auth/nda-agreement';
-import { Building2, CheckCircle2, Clock3, Loader2, Plus, ShieldCheck } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Building2, CheckCircle2, Clock3, Loader2, Plus, ShieldCheck, Trash2 } from 'lucide-react';
 
 const RSU_EMAIL_DOMAIN = '@rsu.edu.ph';
 
@@ -39,6 +49,8 @@ export function OfficeConnectionCard() {
   const [selectedRoleId, setSelectedRoleId] = useState('');
   const [message, setMessage] = useState('');
   const [ndaAccepted, setNdaAccepted] = useState(false);
+  const [assignmentToDelete, setAssignmentToDelete] = useState<UserAssignment | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
@@ -215,6 +227,75 @@ export function OfficeConnectionCard() {
     });
   };
 
+  const getStoredAssignment = (target: UserAssignment) => {
+    return (userProfile?.assignments || []).find(
+      (stored) =>
+        (stored.id && stored.id === target.id) ||
+        (stored.unitId === target.unitId &&
+          (stored.campusId || '') === (target.campusId || '') &&
+          stored.role === target.role),
+    );
+  };
+
+  const handleDelete = async () => {
+    if (!firestore || !userProfile || !assignmentToDelete) return;
+
+    const storedAssignment = getStoredAssignment(assignmentToDelete);
+    if (!storedAssignment) {
+      toast({
+        title: 'Unable to delete',
+        description: 'This office is not a removable connected office.',
+        variant: 'destructive',
+      });
+      setAssignmentToDelete(null);
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const remainingAssignments = (userProfile.assignments || []).filter(
+        (assignment) => assignment !== storedAssignment,
+      );
+      const remainingUnitIds = new Set(
+        [userProfile.unitId, ...remainingAssignments.map((assignment) => assignment.unitId)].filter(Boolean),
+      );
+      const assignedUnitIds = (userProfile.assignedUnitIds || []).filter((unitId) => remainingUnitIds.has(unitId));
+
+      await updateDoc(doc(firestore, 'users', userProfile.id), {
+        assignments: remainingAssignments,
+        assignedUnitIds,
+      });
+
+      if (assignmentToDelete.id === activeAssignment?.id && typeof window !== 'undefined') {
+        window.localStorage.removeItem(`rsu_active_assignment_id:${userProfile.id}`);
+      }
+
+      logSessionActivity(`Removed connected office: ${assignmentToDelete.unitName || assignmentToDelete.unitId}`, {
+        action: 'remove_office_connection',
+        details: {
+          unitId: assignmentToDelete.unitId,
+          campusId: assignmentToDelete.campusId,
+          role: assignmentToDelete.role,
+        },
+      });
+
+      toast({
+        title: 'Office disconnected',
+        description: `${assignmentToDelete.unitName || assignmentToDelete.unitId} was removed from your connected offices.`,
+      });
+      setAssignmentToDelete(null);
+    } catch (error) {
+      console.error('Error removing office connection:', error);
+      toast({
+        title: 'Delete failed',
+        description: 'Could not remove this office connection. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <>
       <Card id="connected-offices" className="scroll-mt-20 shadow-md border-primary/10">
@@ -253,6 +334,7 @@ export function OfficeConnectionCard() {
                 [resolvedCampusName, assignment.role].filter(Boolean).join(' • ') ||
                 assignment.role ||
                 'Primary Office';
+              const canDelete = !assignment.isPrimary && Boolean(getStoredAssignment(assignment));
               return (
                 <div
                   key={assignment.id}
@@ -290,6 +372,19 @@ export function OfficeConnectionCard() {
                       >
                         <CheckCircle2 className="mr-1.5 h-3 w-3" />
                         Activate
+                      </Button>
+                    )}
+                    {canDelete && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[9px] font-black uppercase tracking-wider text-destructive hover:bg-destructive/5 hover:text-destructive"
+                        onClick={() => setAssignmentToDelete(assignment)}
+                        disabled={isDeleting}
+                      >
+                        <Trash2 className="mr-1.5 h-3 w-3" />
+                        Delete
                       </Button>
                     )}
                   </div>
@@ -475,6 +570,40 @@ export function OfficeConnectionCard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={Boolean(assignmentToDelete)}
+        onOpenChange={(open) => !open && !isDeleting && setAssignmentToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-destructive" />
+              Remove Connected Office
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to disconnect{' '}
+              <strong>{assignmentToDelete?.unitName || assignmentToDelete?.unitId}</strong>
+              {assignmentToDelete?.campusName ? ` (${assignmentToDelete.campusName})` : ''}? You will lose access to
+              this office until an administrator approves a new connection request.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                handleDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              Delete Office
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
