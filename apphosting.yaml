@@ -2,12 +2,6 @@
 # https://firebase.google.com/docs/app-hosting/configure
 
 runConfig:
-  # Increase this value if you'd like to automatically spin up
-  # more instances in response to increased traffic.
+  # In-memory rate-limit counters are process-local and reset on restarts.
+  # Keep one instance; this is best-effort, not a distributed rate limiter.
   maxInstances: 1
-
-env:
-  - variable: UPSTASH_REDIS_REST_URL
-    secret: UPSTASH_REDIS_REST_URL
-  - variable: UPSTASH_REDIS_REST_TOKEN
-    secret: UPSTASH_REDIS_REST_TOKEN
