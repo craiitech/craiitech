@@ -318,6 +318,35 @@
     animation: sidebar-trigger-blink 0.5s ease-in-out;
   }
 
+  /* Persistent cue while the sidebar/menu is hidden */
+  @keyframes sidebar-trigger-attention {
+    0%,
+    100% {
+      color: hsl(var(--primary));
+      background-color: hsl(var(--primary) / 0.08);
+      box-shadow: 0 0 0 0 hsl(var(--primary) / 0.35);
+      transform: scale(1);
+    }
+    50% {
+      color: hsl(var(--primary));
+      background-color: hsl(var(--primary) / 0.22);
+      box-shadow: 0 0 0 5px hsl(var(--primary) / 0);
+      transform: scale(1.08);
+    }
+  }
+
+  .animate-sidebar-attention {
+    animation: sidebar-trigger-attention 1.8s ease-in-out infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-sidebar-attention {
+      animation: none !important;
+      color: hsl(var(--primary));
+      background-color: hsl(var(--primary) / 0.15);
+    }
+  }
+
   @keyframes gold-green-shimmer {
     0% {
       background-position: 0% 50%;

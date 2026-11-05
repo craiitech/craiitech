@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useFirebase, useUser } from '@/firebase';
 import { UserNav } from '@/components/dashboard/user-nav';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { SidebarTrigger, useSidebar } from '@/components/ui/sidebar';
 import { ContextualHelp } from './contextual-help';
 import { useVoice } from '@/components/voice/voice-provider';
 import { Button } from '@/components/ui/button';
@@ -59,6 +59,8 @@ export function Header({
   const [isForcedOffline, setIsForcedOffline] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { selectedYear, setSelectedYear } = useYear();
+  const { state: sidebarState, isMobile, openMobile } = useSidebar();
+  const isMenuHidden = isMobile ? !openMobile : sidebarState === 'collapsed';
 
   const roleLower = (userRole || userProfile?.role || '').toLowerCase();
   const unitLower = (userProfile?.unitName || '').toLowerCase();
@@ -118,7 +120,11 @@ export function Header({
       )}
     >
       <div className="flex items-center gap-2 min-w-0">
-        <SidebarTrigger className="shrink-0" />
+        <SidebarTrigger
+          className={cn('shrink-0', isMenuHidden && 'animate-sidebar-attention')}
+          title={isMenuHidden ? 'Show menu' : 'Hide menu'}
+          aria-label={isMenuHidden ? 'Show sidebar menu' : 'Hide sidebar menu'}
+        />
         <h1 className="font-black text-lg truncate pr-2 uppercase tracking-tight text-slate-800 dark:text-slate-200">
           {getPageTitle(pathname)}
         </h1>
