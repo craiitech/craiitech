@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import {
   collection,
@@ -62,6 +62,7 @@ import {
   CheckCircle2,
   Send,
   X,
+  XCircle,
   FileWarning,
   ArrowUpRight,
   MessageCircle,
@@ -200,6 +201,12 @@ const carSchema = z.object({
 });
 
 const genCarId = () => Math.random().toString(36).substr(2, 9);
+
+type EvidenceLinkValidation = {
+  url: string;
+  status: 'idle' | 'checking' | 'accessible' | 'inaccessible';
+  message?: string;
+};
 
 /**
  * Returns the next sequential CAR number for the given year and prefix.
@@ -358,6 +365,8 @@ export function CorrectiveActionRequestTab({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCar, setEditingCar] = useState<CorrectiveActionRequest | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [evidenceLinkValidations, setEvidenceLinkValidations] = useState<Record<number, EvidenceLinkValidation>>({});
+  const evidenceValidationRequests = useRef<Record<number, number>>({});
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -1251,6 +1260,55 @@ export function CorrectiveActionRequestTab({
     remove: removeAssignment,
   } = useFieldArray({ control: form.control, name: 'assignedUnits' });
 
+  const validateEvidenceLink = useCallback(
+    async (index: number, link: string): Promise<boolean> => {
+      const url = link.trim();
+      if (!url) {
+        setEvidenceLinkValidations((current) => ({
+          ...current,
+          [index]: { url, status: 'inaccessible', message: 'Add a Google Drive link to check access.' },
+        }));
+        return false;
+      }
+
+      const requestId = (evidenceValidationRequests.current[index] || 0) + 1;
+      evidenceValidationRequests.current[index] = requestId;
+      setEvidenceLinkValidations((current) => ({ ...current, [index]: { url, status: 'checking' } }));
+
+      let isAccessible = false;
+      let message = 'Could not check the link. Please try again.';
+      try {
+        const response = await fetch('/api/validate-drive-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url }),
+        });
+        const result = (await response.json()) as { isAccessible?: boolean; reason?: string };
+        isAccessible = response.ok && result.isAccessible === true;
+        message = result.reason || message;
+      } catch (error) {
+        console.error('Error validating CAR evidence link:', error);
+      }
+
+      const currentLink = form.getValues(`actionSteps.${index}.evidenceLink`)?.trim() || '';
+      if (evidenceValidationRequests.current[index] === requestId && currentLink === url) {
+        setEvidenceLinkValidations((current) => ({
+          ...current,
+          [index]: { url, status: isAccessible ? 'accessible' : 'inaccessible', message },
+        }));
+      }
+      return isAccessible;
+    },
+    [form],
+  );
+
+  useEffect(() => {
+    if (!isDialogOpen) return;
+    (form.getValues('actionSteps') || []).forEach((step, index) => {
+      if (step.evidenceLink?.trim()) void validateEvidenceLink(index, step.evidenceLink);
+    });
+  }, [form, isDialogOpen, validateEvidenceLink]);
+
   // Which assigned unit's response is currently being viewed/edited.
   const [activeUnitIndex, setActiveUnitIndex] = useState(0);
 
@@ -1645,10 +1703,27 @@ export function CorrectiveActionRequestTab({
         });
         return;
       }
+
+      setIsSubmitting(true);
+      const linkResults = await Promise.all(
+        steps.map((step, index) => validateEvidenceLink(index, step.evidenceLink || '')),
+      );
+      const inaccessibleLinks = linkResults
+        .map((isAccessible, index) => (isAccessible ? null : `Step ${index + 1} (${steps[index].type})`))
+        .filter((entry): entry is string => entry !== null);
+      if (inaccessibleLinks.length > 0) {
+        setIsSubmitting(false);
+        toast({
+          title: 'Evidence Link Access Denied',
+          description: `Please fix or update the Google Drive sharing permissions for: ${inaccessibleLinks.join('; ')}.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    } else {
+      setIsSubmitting(true);
     }
     // ────────────────────────────────────────────────────────────────────────
-
-    setIsSubmitting(true);
 
     const authorName = userProfile
       ? `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email
@@ -3745,6 +3820,10 @@ export function CorrectiveActionRequestTab({
                             : 'Describe the permanent process change/preventive measure to stop this from happening again (e.g., updated SOP, scheduled regular audits, added a review step)...';
                           const dateLabel = isImmediate ? 'Date Implemented' : 'Target Completion Date';
                           const evidenceValue = form.watch(`actionSteps.${index}.evidenceLink`) || '';
+                          const linkValidation =
+                            evidenceLinkValidations[index]?.url === evidenceValue.trim()
+                              ? evidenceLinkValidations[index]
+                              : undefined;
                           const isMissingEvidence = !isFieldReadOnly('actionSteps') && !evidenceValue.trim();
 
                           return (
@@ -3899,6 +3978,21 @@ export function CorrectiveActionRequestTab({
                                         <Input
                                           {...iF}
                                           value={iF.value || ''}
+                                          onChange={(event) => {
+                                            iF.onChange(event);
+                                            evidenceValidationRequests.current[index] =
+                                              (evidenceValidationRequests.current[index] || 0) + 1;
+                                            setEvidenceLinkValidations((current) => ({
+                                              ...current,
+                                              [index]: { url: event.target.value.trim(), status: 'idle' },
+                                            }));
+                                          }}
+                                          onBlur={() => {
+                                            iF.onBlur();
+                                            const currentLink =
+                                              form.getValues(`actionSteps.${index}.evidenceLink`) || '';
+                                            if (currentLink.trim()) void validateEvidenceLink(index, currentLink);
+                                          }}
                                           placeholder="https://drive.google.com/... (paste the shared Google Drive link to your evidence)"
                                           className={`h-8 text-[10px] bg-white flex-1 ${
                                             isMissingEvidence ? 'border-rose-300 focus-visible:ring-rose-400' : ''
@@ -3917,6 +4011,52 @@ export function CorrectiveActionRequestTab({
                                           <ExternalLink className="h-3 w-3" />
                                         </Button>
                                       )}
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2 min-h-7">
+                                      <div aria-live="polite" className="flex min-w-0 items-center gap-1.5 text-[10px]">
+                                        {!evidenceValue.trim() && (
+                                          <span className="text-muted-foreground">
+                                            No Google Drive evidence link provided.
+                                          </span>
+                                        )}
+                                        {linkValidation?.status === 'checking' && (
+                                          <>
+                                            <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-500" />
+                                            <span className="text-slate-600">Checking Google Drive access...</span>
+                                          </>
+                                        )}
+                                        {linkValidation?.status === 'accessible' && (
+                                          <>
+                                            <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                                            <span className="font-bold text-emerald-700">ACCESS OK</span>
+                                            <span className="truncate text-emerald-700">{linkValidation.message}</span>
+                                          </>
+                                        )}
+                                        {linkValidation?.status === 'inaccessible' && (
+                                          <>
+                                            <XCircle className="h-3.5 w-3.5 shrink-0 text-rose-600" />
+                                            <span className="shrink-0 font-black text-rose-700">
+                                              NO ACCESS/CAN'T FIND
+                                            </span>
+                                            <span className="truncate text-rose-700">{linkValidation.message}</span>
+                                          </>
+                                        )}
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 shrink-0 gap-1 px-2 text-[9px] font-bold"
+                                        disabled={!evidenceValue.trim() || linkValidation?.status === 'checking'}
+                                        onClick={() => void validateEvidenceLink(index, evidenceValue)}
+                                      >
+                                        {linkValidation?.status === 'checking' ? (
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                        ) : (
+                                          <ShieldCheck className="h-3 w-3" />
+                                        )}
+                                        Check Link
+                                      </Button>
                                     </div>
                                     <FormMessage />
                                   </FormItem>

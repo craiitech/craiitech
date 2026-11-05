@@ -408,7 +408,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
   /**
    * DATA PROCESSING PIPELINE
    */
-  const processedOutputs = useMemo(() => {
+  const yearScopedOutputs = useMemo(() => {
     if (!rawOutputs || !userProfile) return [];
 
     const roleLower = userRole?.toLowerCase() || '';
@@ -421,7 +421,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     const myUnitCategory = myUnit?.category || 'Administrative';
     const isMultiCampusUnit = (myUnit?.campusIds?.length || 0) > 1;
 
-    let result = rawOutputs
+    const result = rawOutputs
       .map((output) => {
         const visibleAssignments = (output.assignments || []).filter((a) => {
           if (isInstitutionalViewer) return true;
@@ -511,7 +511,26 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
       })
       .filter(Boolean as any) as ManagementReviewOutput[];
 
-    // 1. Apply Search
+    return result;
+  }, [
+    rawOutputs,
+    userProfile,
+    isAdmin,
+    isTopManagement,
+    isUserVpOffice,
+    userRole,
+    myUnit,
+    selectedYear,
+    reviewMap,
+    campusMap,
+    unitMap,
+    units,
+  ]);
+
+  const processedOutputs = useMemo(() => {
+    let result = [...yearScopedOutputs];
+
+    // Apply search and table filters after preserving the year/unit scope for summary cards.
     if (searchTerm) {
       const lower = searchTerm.toLowerCase();
       result = result.filter(
@@ -581,15 +600,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
     return result;
   }, [
-    rawOutputs,
-    userProfile,
-    isAdmin,
-    isTopManagement,
-    isUserVpOffice,
-    userRole,
-    myUnit,
-    selectedYear,
-    reviewMap,
+    yearScopedOutputs,
     searchTerm,
     statusFilter,
     unitResponseFilter,
@@ -599,6 +610,38 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     campuses,
     units,
   ]);
+
+  const decisionSummary = useMemo(() => {
+    const total = yearScopedOutputs.length;
+    const countStatus = (status: ManagementReviewOutput['status']) =>
+      yearScopedOutputs.filter((output) => output.status === status).length;
+    const responseCounts = yearScopedOutputs.reduce(
+      (counts, output) => {
+        const roster = computeUnitResponseRoster(output, campuses, units, campusMap, unitMap);
+        counts.responded += roster.respondedCount;
+        counts.total += roster.totalCount;
+        return counts;
+      },
+      { responded: 0, total: 0 },
+    );
+    const actionEntries = yearScopedOutputs.flatMap((output) => output.actionEntries || []);
+    const completedEntries = actionEntries.filter((entry) => entry.actionStatus === 'Completed').length;
+    const percent = (value: number, denominator = total) =>
+      denominator > 0 ? Math.round((value / denominator) * 100) : 0;
+
+    return {
+      total,
+      open: countStatus('Open'),
+      ongoing: countStatus('On-going'),
+      closed: countStatus('Closed'),
+      awaitingVerification: countStatus('Submit for Closure Verification'),
+      totalResponses: responseCounts.total,
+      responded: responseCounts.responded,
+      actionEntries: actionEntries.length,
+      completedEntries,
+      percent,
+    };
+  }, [yearScopedOutputs, campuses, units, campusMap, unitMap]);
 
   const handlePrintManagementReviewBrief = () => {
     const actionEntries = processedOutputs.flatMap((output) => output.actionEntries || []);
@@ -992,6 +1035,97 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
           </div>
         </div>
       </div>
+
+      <section aria-labelledby="decision-summary-heading" className="space-y-3">
+        <div className="space-y-1 text-center">
+          <h4 id="decision-summary-heading" className="text-sm font-black uppercase tracking-wider">
+            Actionable Decisions Snapshot
+          </h4>
+          <p className="text-xs text-muted-foreground">
+            {selectedYear === 'all' ? 'All review years' : `Review Year ${selectedYear}`} ·{' '}
+            {myUnit?.name || userProfile?.unitName || 'Current designation'}
+            {userProfile?.campusId ? ` · ${campusMap.get(userProfile.campusId) || userProfile.campusId}` : ''}
+          </p>
+        </div>
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          {[
+            {
+              title: 'Total Decisions',
+              value: decisionSummary.total,
+              percent: decisionSummary.percent(decisionSummary.total),
+              icon: ListChecks,
+              color: 'text-primary',
+            },
+            {
+              title: 'Open',
+              value: decisionSummary.open,
+              percent: decisionSummary.percent(decisionSummary.open),
+              icon: Clock,
+              color: 'text-rose-600',
+            },
+            {
+              title: 'On-going',
+              value: decisionSummary.ongoing,
+              percent: decisionSummary.percent(decisionSummary.ongoing),
+              icon: History,
+              color: 'text-amber-600',
+            },
+            {
+              title: 'Closed',
+              value: decisionSummary.closed,
+              percent: decisionSummary.percent(decisionSummary.closed),
+              icon: CheckCircle2,
+              color: 'text-emerald-600',
+            },
+            {
+              title: 'Awaiting Verification',
+              value: decisionSummary.awaitingVerification,
+              percent: decisionSummary.percent(decisionSummary.awaitingVerification),
+              icon: ShieldCheck,
+              color: 'text-indigo-600',
+            },
+          ].map((metric) => (
+            <Card key={metric.title} className="border-primary/10 shadow-sm">
+              <CardContent className="flex min-h-32 flex-col items-center justify-center gap-1 p-4 text-center">
+                <metric.icon className={cn('mb-1 h-5 w-5', metric.color)} aria-hidden="true" />
+                <CardTitle className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                  {metric.title}
+                </CardTitle>
+                <span className="text-2xl font-black tabular-nums">{metric.value}</span>
+                <span className="text-[10px] font-semibold text-muted-foreground">{metric.percent}% of decisions</span>
+              </CardContent>
+            </Card>
+          ))}
+          <Card className="border-primary/10 shadow-sm">
+            <CardContent className="flex min-h-32 flex-col items-center justify-center gap-1 p-4 text-center">
+              <Building2 className="mb-1 h-5 w-5 text-sky-600" aria-hidden="true" />
+              <CardTitle className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                Unit Responses
+              </CardTitle>
+              <span className="text-2xl font-black tabular-nums">
+                {decisionSummary.responded}/{decisionSummary.totalResponses}
+              </span>
+              <span className="text-[10px] font-semibold text-muted-foreground">
+                {decisionSummary.percent(decisionSummary.responded, decisionSummary.totalResponses)}% responded
+              </span>
+            </CardContent>
+          </Card>
+          <Card className="border-primary/10 shadow-sm">
+            <CardContent className="flex min-h-32 flex-col items-center justify-center gap-1 p-4 text-center">
+              <Check className="mb-1 h-5 w-5 text-emerald-600" aria-hidden="true" />
+              <CardTitle className="text-[10px] font-black uppercase tracking-wide text-muted-foreground">
+                Completed Action Entries
+              </CardTitle>
+              <span className="text-2xl font-black tabular-nums">
+                {decisionSummary.completedEntries}/{decisionSummary.actionEntries}
+              </span>
+              <span className="text-[10px] font-semibold text-muted-foreground">
+                {decisionSummary.percent(decisionSummary.completedEntries, decisionSummary.actionEntries)}% completed
+              </span>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
       <Tabs defaultValue={isTopManagement ? 'insights' : 'registry'} className="space-y-6">
         <TabsList className="bg-muted p-1 border shadow-sm w-fit h-10">
