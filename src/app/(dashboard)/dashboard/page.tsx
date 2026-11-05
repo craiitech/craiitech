@@ -713,10 +713,11 @@ export default function HomePage() {
 
   const isIqaUser = useMemo(() => {
     return (
+      isAuditor ||
       userRole === 'Auditor' ||
       allUnits?.find((u) => u.id === userProfile?.unitId)?.name?.toLowerCase() === 'internal quality audit'
     );
-  }, [userRole, allUnits, userProfile]);
+  }, [isAuditor, userRole, allUnits, userProfile]);
 
   const nonIqaUnits = useMemo(() => {
     if (!allUnits) return [];
@@ -1178,7 +1179,7 @@ export default function HomePage() {
         stat2: { title: 'Site Submissions', value: yearSubs.length, icon: <FileText /> },
         stat3: { title: 'Site Users', value: allUsersMap.size, icon: <Users /> },
       };
-    } else if (userRole === 'Auditor') {
+    } else if (isAuditor || userRole === 'Auditor') {
       const mySchedules = dashboardSchedules || [];
       const yearSchedules = mySchedules.filter((s) => {
         if (!s.scheduledDate) return false;

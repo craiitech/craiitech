@@ -55,7 +55,7 @@ export function Header({
   const firebaseState = useFirebase();
   const pathname = usePathname();
   const isOnline = useNetworkStatus();
-  const { user, userProfile, userRole, isAdmin, isVp } = useUser();
+  const { user, userProfile, userRole, isAdmin, isAuditor: isAuditorFromContext, isVp } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { selectedYear, setSelectedYear } = useYear();
@@ -77,7 +77,7 @@ export function Header({
     isVicePresident ||
     isCampusDirector;
 
-  const isAuditor = userRole === 'Auditor';
+  const isAuditor = isAuditorFromContext || roleLower.includes('auditor');
   const { enabled: voiceEnabled, setEnabled: setVoiceEnabled } = useVoice();
   const { isAdminOnly, isAiEnabled, status: webLlmStatus, toggleAi } = useWebLlm();
 
@@ -96,7 +96,7 @@ export function Header({
     if (path.startsWith('/eoms-academy')) return 'EOMS ACADEMY';
 
     if (path.startsWith('/audit')) {
-      if (path === '/audit') return 'Internal Quality Audit';
+      if (path === '/audit') return isAuditor ? 'IQA Conduct' : 'Internal Quality Audit';
       return 'IQA Details';
     }
 

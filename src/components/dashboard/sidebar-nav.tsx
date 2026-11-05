@@ -141,7 +141,7 @@ export function SidebarNav({
   const currentScope = searchParams.get('scope');
   const isOnline = useNetworkStatus();
   const { toast } = useToast();
-  const { isAdmin, userRole, isSupervisor, userProfile, isDoi: isDoiUser } = useUser();
+  const { isAdmin, isAuditor, userRole, isSupervisor, userProfile, isDoi: isDoiUser } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
@@ -445,7 +445,7 @@ export function SidebarNav({
 
     {
       href: '/audit',
-      label: userRole === 'Auditor' ? 'IQA Conduct' : 'Internal Quality Audit',
+      label: isAuditor ? 'IQA Conduct' : 'Internal Quality Audit',
       active: pathname.startsWith('/audit'),
       roles: ['Admin', 'Auditor'],
       icon: <ClipboardList />,
@@ -642,6 +642,7 @@ export function SidebarNav({
         unitNameLower.includes('institutional planning and development');
 
       if (route.roles.some((r) => r.toLowerCase() === roleLower)) return true;
+      if (isAuditor && route.roles.includes('Auditor')) return true;
       if (isIpdoUser && route.roles.includes('IPDO')) return true;
       if (isVp && route.roles.some((r) => r.toLowerCase() === 'vice president')) return true;
       if (

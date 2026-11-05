@@ -6,7 +6,7 @@ import { AuditorAuditView } from '@/components/audit/auditor-audit-view';
 import { AuditeeAuditView } from '@/components/audit/auditee-audit-view';
 
 export default function AuditPage() {
-  const { isAdmin, userRole, isUserLoading } = useUser();
+  const { isAdmin, isAuditor, userRole, isUserLoading } = useUser();
 
   if (isUserLoading) {
     return <div>Loading...</div>;
@@ -15,9 +15,9 @@ export default function AuditPage() {
   if (isAdmin) {
     return <AdminAuditView />;
   }
-  
-  if (userRole === 'Auditor') {
-      return <AuditorAuditView />;
+
+  if (isAuditor || userRole === 'Auditor') {
+    return <AuditorAuditView />;
   }
 
   // Any other role is an auditee for this page's purpose

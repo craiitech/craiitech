@@ -183,6 +183,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const {
     user,
     userProfile,
+    assignments,
     isUserLoading,
     isAdmin,
     isAuditor,
@@ -946,7 +947,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return;
     }
 
-    if (isAdmin) return;
+    const hasBaseAdmin =
+      isAdmin ||
+      Boolean(userProfile?.role?.toLowerCase().includes('admin')) ||
+      Boolean(assignments?.some((a) => a.role?.toLowerCase().includes('admin')));
+    if (hasBaseAdmin) return;
 
     if (userProfile) {
       const roleLower = userRole?.toLowerCase() || '';
@@ -994,7 +999,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [userProfile?.accessibility]);
 
   const isAuthorized = useMemo(() => {
-    if (isAdmin) return true;
+    const hasBaseAdmin =
+      isAdmin ||
+      Boolean(userProfile?.role?.toLowerCase().includes('admin')) ||
+      Boolean(assignments?.some((a) => a.role?.toLowerCase().includes('admin')));
+    if (hasBaseAdmin) return true;
     if (!user || !userProfile) return false;
     const roleLower = userRole?.toLowerCase() || '';
     const isUnitOptionalUser =

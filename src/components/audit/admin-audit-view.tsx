@@ -42,6 +42,7 @@ import { AuditPlanCloneDialog } from './audit-plan-clone-dialog';
 import { AuditPlanList } from './audit-plan-list';
 import { AuditAnalytics } from './audit-analytics';
 import { AuditResultsView } from './audit-results-view';
+import { AuditorAuditView } from './auditor-audit-view';
 import { IqaDecisionIntelligence } from './audit-decision-intelligence';
 import { AuditPrintTemplate } from './audit-print-template';
 import { ConsolidatedAuditReportTemplate } from './consolidated-audit-report-template';
@@ -136,7 +137,14 @@ export function AdminAuditView() {
 
   const auditors = useMemo(() => {
     if (!users) return [];
-    return users.filter((u) => u.role?.toLowerCase() === 'auditor' || u.roleId?.toLowerCase() === 'auditor');
+    return users.filter(
+      (u) =>
+        u.role?.toLowerCase().includes('auditor') ||
+        u.roleId?.toLowerCase().includes('auditor') ||
+        u.assignments?.some(
+          (a) => a.role?.toLowerCase().includes('auditor') || a.roleId?.toLowerCase().includes('auditor'),
+        ),
+    );
   }, [users]);
 
   const getAuditorPerformance = (auditorId: string) => {
@@ -532,6 +540,12 @@ export function AdminAuditView() {
                 className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-[#1B6535] data-[state=active]:text-white"
               >
                 <Briefcase className="h-3.5 w-3.5" /> Auditor Portfolios
+              </TabsTrigger>
+              <TabsTrigger
+                value="conduct"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-amber-600 data-[state=active]:text-white"
+              >
+                <LayoutList className="h-3.5 w-3.5" /> Auditor Conduct Workspace
               </TabsTrigger>
             </TabsList>
           </ScrollArea>
@@ -946,6 +960,10 @@ export function AdminAuditView() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="conduct" className="space-y-6 animate-in fade-in duration-500">
+          <AuditorAuditView embedded />
+        </TabsContent>
       </Tabs>
 
       {/* Dialogs */}
@@ -963,7 +981,7 @@ export function AdminAuditView() {
           plan={selectedPlanForScheduling}
           schedule={editingSchedule}
           allSchedules={schedules || []}
-          auditors={users?.filter((u) => u.role === 'Auditor') || []}
+          auditors={auditors}
           allUnits={units || []}
           topManagement={
             users?.filter(

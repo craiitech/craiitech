@@ -1,12 +1,36 @@
-
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useDoc } from '@/firebase';
 import { collection, query, where, doc, updateDoc } from '@/firebase/firestore-wrapper';
-import type { AuditSchedule, Campus, Unit, ISOClause, AuditPlan, AuditFinding, CorrectiveActionRequest, Signatories, ClauseRevisit } from '@/lib/types';
+import type {
+  AuditSchedule,
+  Campus,
+  Unit,
+  ISOClause,
+  AuditPlan,
+  AuditFinding,
+  CorrectiveActionRequest,
+  Signatories,
+  ClauseRevisit,
+} from '@/lib/types';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, CalendarCheck, CalendarSearch, Search, Building, LayoutList, ShieldAlert, ClipboardCheck, Lock, WifiOff, School, CalendarClock, CheckCircle2, Clock } from 'lucide-react';
+import {
+  Loader2,
+  CalendarCheck,
+  CalendarSearch,
+  Search,
+  Building,
+  LayoutList,
+  ShieldAlert,
+  ClipboardCheck,
+  Lock,
+  WifiOff,
+  School,
+  CalendarClock,
+  CheckCircle2,
+  Clock,
+} from 'lucide-react';
 import { AuditorScheduleList } from './auditor-schedule-list';
 import { AuditResultsView } from './audit-results-view';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
@@ -23,12 +47,16 @@ import { useRouter } from 'next/navigation';
 import { Button } from '../ui/button';
 import { ArrowRight } from 'lucide-react';
 
+interface AuditorAuditViewProps {
+  embedded?: boolean;
+}
+
 /**
  * AUDITOR AUDIT VIEW v13.0
  * The primary workspace for internal auditors.
  * Hardened: Implements Selective Site Locking during offline conduct.
  */
-export function AuditorAuditView() {
+export function AuditorAuditView({ embedded = false }: AuditorAuditViewProps = {}) {
   const router = useRouter();
   const { user, userProfile, isUserLoading } = useUser();
   const firestore = useFirestore();
@@ -42,9 +70,9 @@ export function AuditorAuditView() {
 
   useEffect(() => {
     const checkState = () => {
-        setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
-        const lock = localStorage.getItem('rsu_offline_site_lock');
-        setSiteLock(lock === 'university-wide' ? null : lock);
+      setIsForcedOffline(localStorage.getItem('rsu_eoms_net_disabled') === 'true');
+      const lock = localStorage.getItem('rsu_offline_site_lock');
+      setSiteLock(lock === 'university-wide' ? null : lock);
     };
     checkState();
     window.addEventListener('storage', checkState);
@@ -57,7 +85,7 @@ export function AuditorAuditView() {
     if (!firestore) return null;
     return query(collection(firestore, 'auditSchedules'));
   }, [firestore]);
-  
+
   const { data: allSchedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(allSchedulesQuery);
 
   const findingsQuery = useMemoFirebase(() => {
@@ -75,10 +103,13 @@ export function AuditorAuditView() {
   const plansQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditPlans') : null), [firestore]);
   const { data: plans } = useCollection<AuditPlan>(plansQuery);
 
-  const campusesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'campuses')) : null, [firestore]);
+  const campusesQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'campuses')) : null),
+    [firestore],
+  );
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
-  
-  const unitsQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'units')) : null, [firestore]);
+
+  const unitsQuery = useMemoFirebase(() => (firestore ? query(collection(firestore, 'units')) : null), [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
 
   const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
@@ -98,344 +129,454 @@ export function AuditorAuditView() {
    * When offline and a site-lock is present, restrict visibility to that specific campus.
    */
   const filterSchedules = (list: AuditSchedule[]) => {
-    return list.filter(s => {
-        // Enforce Site Lock
-        if (isActuallyOffline && siteLock && s.campusId !== siteLock) return false;
+    return list.filter((s) => {
+      // Enforce Site Lock
+      if (isActuallyOffline && siteLock && s.campusId !== siteLock) return false;
 
-        const matchesSearch = 
-            s.targetName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-            (s.procedureDescription || '').toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCampus = campusFilter === 'all' || s.campusId === campusFilter;
-        return matchesSearch && matchesCampus;
+      const matchesSearch =
+        s.targetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (s.procedureDescription || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCampus = campusFilter === 'all' || s.campusId === campusFilter;
+      return matchesSearch && matchesCampus;
     });
   };
 
-  const mySchedulesRaw = useMemo(() => allSchedules?.filter(s => s.auditorId === user?.uid) || [], [allSchedules, user?.uid]);
-  const availableSchedulesRaw = useMemo(() => allSchedules?.filter(s => s.auditorId === null) || [], [allSchedules]);
+  const mySchedulesRaw = useMemo(
+    () => allSchedules?.filter((s) => s.auditorId === user?.uid) || [],
+    [allSchedules, user?.uid],
+  );
+  const availableSchedulesRaw = useMemo(() => allSchedules?.filter((s) => s.auditorId === null) || [], [allSchedules]);
 
-  const mySchedulesFiltered = useMemo(() => filterSchedules(mySchedulesRaw), [mySchedulesRaw, searchTerm, campusFilter, isActuallyOffline, siteLock]);
-  const availableSchedulesFiltered = useMemo(() => filterSchedules(availableSchedulesRaw), [availableSchedulesRaw, searchTerm, campusFilter, isActuallyOffline, siteLock]);
+  const mySchedulesFiltered = useMemo(
+    () => filterSchedules(mySchedulesRaw),
+    [mySchedulesRaw, searchTerm, campusFilter, isActuallyOffline, siteLock],
+  );
+  const availableSchedulesFiltered = useMemo(
+    () => filterSchedules(availableSchedulesRaw),
+    [availableSchedulesRaw, searchTerm, campusFilter, isActuallyOffline, siteLock],
+  );
 
-  const upcomingMySchedules = useMemo(() => mySchedulesFiltered.filter(s => s.status !== 'Completed'), [mySchedulesFiltered]);
-  const completedMySchedules = useMemo(() => mySchedulesFiltered.filter(s => s.status === 'Completed'), [mySchedulesFiltered]);
+  const upcomingMySchedules = useMemo(
+    () => mySchedulesFiltered.filter((s) => s.status !== 'Completed'),
+    [mySchedulesFiltered],
+  );
+  const completedMySchedules = useMemo(
+    () => mySchedulesFiltered.filter((s) => s.status === 'Completed'),
+    [mySchedulesFiltered],
+  );
 
   const handleClaimAudit = async (scheduleId: string) => {
     if (!firestore || !user || !userProfile) return;
     const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
     try {
-        await updateDoc(scheduleRef, {
-            auditorId: user.uid,
-            auditorName: `${userProfile.firstName} ${userProfile.lastName}`,
-            status: 'In Progress'
-        });
-        toast({ title: 'Success', description: isActuallyOffline ? 'Audit claimed locally. Syncing when online.' : 'Audit claimed successfully.' });
-    } catch(error) {
-        console.error("Error claiming audit:", error);
-        toast({ title: 'Error', description: 'Could not claim the audit.', variant: 'destructive'});
+      await updateDoc(scheduleRef, {
+        auditorId: user.uid,
+        auditorName: `${userProfile.firstName} ${userProfile.lastName}`,
+        status: 'In Progress',
+      });
+      toast({
+        title: 'Success',
+        description: isActuallyOffline ? 'Audit claimed locally. Syncing when online.' : 'Audit claimed successfully.',
+      });
+    } catch (error) {
+      console.error('Error claiming audit:', error);
+      toast({ title: 'Error', description: 'Could not claim the audit.', variant: 'destructive' });
     }
   };
 
   const handleUnclaimAudit = async (scheduleId: string) => {
-      if (!firestore) return;
-      const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
-      try {
-          await updateDoc(scheduleRef, {
-              auditorId: null,
-              auditorName: null,
-              status: 'Scheduled'
-          });
-          toast({ title: 'Unit Removed', description: isActuallyOffline ? 'Removed locally. Sync pending.' : 'Audit has been released back to the available pool.' });
-      } catch (error) {
-          toast({ title: 'Error', description: 'Could not remove audit.', variant: 'destructive' });
-      }
+    if (!firestore) return;
+    const scheduleRef = doc(firestore, 'auditSchedules', scheduleId);
+    try {
+      await updateDoc(scheduleRef, {
+        auditorId: null,
+        auditorName: null,
+        status: 'Scheduled',
+      });
+      toast({
+        title: 'Unit Removed',
+        description: isActuallyOffline
+          ? 'Removed locally. Sync pending.'
+          : 'Audit has been released back to the available pool.',
+      });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Could not remove audit.', variant: 'destructive' });
+    }
   };
 
-  const isLoading = isUserLoading || isLoadingSchedules || isLoadingCampuses || isLoadingUnits || isLoadingClauses || isLoadingFindings || isLoadingCars || isLoadingRevisits;
+  const isLoading =
+    isUserLoading ||
+    isLoadingSchedules ||
+    isLoadingCampuses ||
+    isLoadingUnits ||
+    isLoadingClauses ||
+    isLoadingFindings ||
+    isLoadingCars ||
+    isLoadingRevisits;
 
   return (
     <div className="space-y-4">
       <Tabs defaultValue="my-audits" className="space-y-6">
-        {/* Sticky Header with Filters and Tabs */}
-        <div className="sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b space-y-4">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                    <LayoutList className="h-6 w-6 text-primary" />
-                    IQA Conduct Workspace
-                  </h2>
-                  <div className="flex items-center gap-2">
-                      <p className="text-muted-foreground text-sm font-medium">Manage your assignments and record on-site evidence logs.</p>
-                      {isActuallyOffline && siteLock && (
-                          <Badge variant="outline" className="h-5 text-[8px] font-black uppercase border-primary/30 text-primary bg-primary/5">
-                            <School className="h-2 w-2 mr-1" />
-                            Site Lock: {campuses?.find(c => c.id === siteLock)?.name || 'Local Cache'}
-                          </Badge>
-                      )}
-                  </div>
-                </div>
-                {isActuallyOffline && (
-                    <Badge variant="destructive" className="h-9 px-4 font-black uppercase text-[9px] gap-2 animate-in zoom-in">
-                        <WifiOff className="h-3.5 w-3.5" />
-                        Conduct Mode: Offline Recording & Claiming Active
-                    </Badge>
+        {/* Header with Filters and Tabs */}
+        <div
+          className={cn(
+            'space-y-4',
+            embedded
+              ? 'rounded-xl border border-primary/10 bg-muted/20 p-4'
+              : 'sticky top-0 z-30 bg-background/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 border-b',
+          )}
+        >
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+                <LayoutList className="h-6 w-6 text-primary" />
+                IQA Conduct Workspace
+              </h2>
+              <div className="flex items-center gap-2">
+                <p className="text-muted-foreground text-sm font-medium">
+                  Manage your assignments and record on-site evidence logs.
+                </p>
+                {isActuallyOffline && siteLock && (
+                  <Badge
+                    variant="outline"
+                    className="h-5 text-[8px] font-black uppercase border-primary/30 text-primary bg-primary/5"
+                  >
+                    <School className="h-2 w-2 mr-1" />
+                    Site Lock: {campuses?.find((c) => c.id === siteLock)?.name || 'Local Cache'}
+                  </Badge>
                 )}
+              </div>
             </div>
+            {isActuallyOffline && (
+              <Badge
+                variant="destructive"
+                className="h-9 px-4 font-black uppercase text-[9px] gap-2 animate-in zoom-in"
+              >
+                <WifiOff className="h-3.5 w-3.5" />
+                Conduct Mode: Offline Recording & Claiming Active
+              </Badge>
+            )}
+          </div>
 
-            <ScrollArea className="w-full">
-                <TabsList className="bg-muted p-1 border shadow-sm w-full md:auto h-auto flex animate-tab-highlight rounded-md">
-                    <TabsTrigger value="my-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <CalendarCheck className="h-4 w-4"/> My Audits ({mySchedulesRaw.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="available-audits" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <CalendarSearch className="h-4 w-4"/> Available Pool ({availableSchedulesRaw.length})
-                    </TabsTrigger>
-                    <TabsTrigger 
-                        value="results" 
-                        disabled={isActuallyOffline}
-                        className={cn(
-                            "gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-indigo-600 data-[state=active]:text-white",
-                            isActuallyOffline && "opacity-30 grayscale cursor-not-allowed"
-                        )}
-                    >
-                        <ClipboardCheck className="h-4 w-4" /> 
-                        {isActuallyOffline ? <Lock className="h-3 w-3 mr-1" /> : null}
-                        Audit Results Hub
-                    </TabsTrigger>
-                    <TabsTrigger value="revisit-schedule" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-amber-600 data-[state=active]:text-white">
-                        <CalendarClock className="h-4 w-4" /> 
-                        IQA Revisit Schedule ({clauseRevisits?.filter(r => r.status === 'Pending').length || 0})
-                    </TabsTrigger>
-                </TabsList>
-            </ScrollArea>
+          <ScrollArea className="w-full">
+            <TabsList className="bg-muted p-1 border shadow-sm w-full md:auto h-auto flex animate-tab-highlight rounded-md">
+              <TabsTrigger
+                value="my-audits"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+              >
+                <CalendarCheck className="h-4 w-4" /> My Audits ({mySchedulesRaw.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="available-audits"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8"
+              >
+                <CalendarSearch className="h-4 w-4" /> Available Pool ({availableSchedulesRaw.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="results"
+                disabled={isActuallyOffline}
+                className={cn(
+                  'gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-indigo-600 data-[state=active]:text-white',
+                  isActuallyOffline && 'opacity-30 grayscale cursor-not-allowed',
+                )}
+              >
+                <ClipboardCheck className="h-4 w-4" />
+                {isActuallyOffline ? <Lock className="h-3 w-3 mr-1" /> : null}
+                Audit Results Hub
+              </TabsTrigger>
+              <TabsTrigger
+                value="revisit-schedule"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8 data-[state=active]:bg-amber-600 data-[state=active]:text-white"
+              >
+                <CalendarClock className="h-4 w-4" />
+                IQA Revisit Schedule ({clauseRevisits?.filter((r) => r.status === 'Pending').length || 0})
+              </TabsTrigger>
+            </TabsList>
+          </ScrollArea>
         </div>
 
         <Card className="border-primary/10 shadow-md">
           <CardContent className="pt-6">
-              {isLoading ? (
-                  <div className="flex flex-col justify-center items-center h-48 gap-3 opacity-20">
-                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      <p className="text-xs font-black uppercase tracking-widest">Synchronizing Registry...</p>
-                  </div>
-              ) : (
-                  <>
-                    <TabsContent value="my-audits" className="animate-in fade-in slide-in-from-left-2 duration-300 m-0 space-y-6">
-                        <Card className="border-primary/10 bg-muted/10">
-                            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                        <Search className="h-2.5 w-2.5" /> Search My Itinerary
-                                    </label>
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            placeholder="Search by auditee or focus..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="pl-9 h-10 shadow-sm bg-white"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                        <Building className="h-2.5 w-2.5" /> Site Location
-                                    </label>
-                                    <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!!siteLock && isActuallyOffline}>
-                                        <SelectTrigger className="h-10 bg-white shadow-sm font-bold">
-                                            <SelectValue placeholder="All Campuses" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Institutional View</SelectItem>
-                                            {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <Tabs defaultValue="upcoming" className="space-y-4">
-                            <TabsList className="bg-muted p-0.5 border shadow-xs w-max min-w-max h-9 rounded-md flex">
-                                <TabsTrigger value="upcoming" className="text-[10px] font-black uppercase tracking-wider h-8 px-4">
-                                    Next Scheduled ({upcomingMySchedules.length})
-                                </TabsTrigger>
-                                <TabsTrigger value="completed" className="text-[10px] font-black uppercase tracking-wider h-8 px-4">
-                                    Completed Audits ({completedMySchedules.length})
-                                </TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="upcoming" className="m-0 mt-0 pt-2">
-                                <AuditorScheduleList 
-                                    schedules={upcomingMySchedules}
-                                    plans={plans || []}
-                                    campuses={campuses || []}
-                                    units={units || []}
-                                    isoClauses={isoClauses || []}
-                                    findings={findings || []}
-                                    signatories={signatories || undefined}
-                                    isClaimView={false}
-                                    onUnclaimAudit={handleUnclaimAudit}
-                                />
-                            </TabsContent>
-                            <TabsContent value="completed" className="m-0 mt-0 pt-2">
-                                <AuditorScheduleList 
-                                    schedules={completedMySchedules}
-                                    plans={plans || []}
-                                    campuses={campuses || []}
-                                    units={units || []}
-                                    isoClauses={isoClauses || []}
-                                    findings={findings || []}
-                                    signatories={signatories || undefined}
-                                    isClaimView={false}
-                                    onUnclaimAudit={handleUnclaimAudit}
-                                />
-                            </TabsContent>
-                        </Tabs>
+            {isLoading ? (
+              <div className="flex flex-col justify-center items-center h-48 gap-3 opacity-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-xs font-black uppercase tracking-widest">Synchronizing Registry...</p>
+              </div>
+            ) : (
+              <>
+                <TabsContent
+                  value="my-audits"
+                  className="animate-in fade-in slide-in-from-left-2 duration-300 m-0 space-y-6"
+                >
+                  <Card className="border-primary/10 bg-muted/10">
+                    <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                          <Search className="h-2.5 w-2.5" /> Search My Itinerary
+                        </label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search by auditee or focus..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 h-10 shadow-sm bg-white"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                          <Building className="h-2.5 w-2.5" /> Site Location
+                        </label>
+                        <Select
+                          value={campusFilter}
+                          onValueChange={setCampusFilter}
+                          disabled={!!siteLock && isActuallyOffline}
+                        >
+                          <SelectTrigger className="h-10 bg-white shadow-sm font-bold">
+                            <SelectValue placeholder="All Campuses" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Institutional View</SelectItem>
+                            {campuses?.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Tabs defaultValue="upcoming" className="space-y-4">
+                    <TabsList className="bg-muted p-0.5 border shadow-xs w-max min-w-max h-9 rounded-md flex">
+                      <TabsTrigger
+                        value="upcoming"
+                        className="text-[10px] font-black uppercase tracking-wider h-8 px-4"
+                      >
+                        Next Scheduled ({upcomingMySchedules.length})
+                      </TabsTrigger>
+                      <TabsTrigger
+                        value="completed"
+                        className="text-[10px] font-black uppercase tracking-wider h-8 px-4"
+                      >
+                        Completed Audits ({completedMySchedules.length})
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="upcoming" className="m-0 mt-0 pt-2">
+                      <AuditorScheduleList
+                        schedules={upcomingMySchedules}
+                        plans={plans || []}
+                        campuses={campuses || []}
+                        units={units || []}
+                        isoClauses={isoClauses || []}
+                        findings={findings || []}
+                        signatories={signatories || undefined}
+                        isClaimView={false}
+                        onUnclaimAudit={handleUnclaimAudit}
+                      />
                     </TabsContent>
-
-                    <TabsContent value="available-audits" className="animate-in fade-in slide-in-from-right-2 duration-300 m-0 space-y-6">
-                         <Card className="border-primary/10 bg-muted/10">
-                            <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                        <Search className="h-2.5 w-2.5" /> Search Pool
-                                    </label>
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                        <Input
-                                            placeholder="Search available units..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="pl-9 h-10 shadow-sm bg-white"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
-                                        <Building className="h-2.5 w-2.5" /> Campus Selection
-                                    </label>
-                                    <Select value={campusFilter} onValueChange={setCampusFilter} disabled={!!siteLock && isActuallyOffline}>
-                                        <SelectTrigger className="h-10 bg-white shadow-sm font-bold">
-                                            <SelectValue placeholder="All Campuses" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Institutional View</SelectItem>
-                                            {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </CardContent>
-                        </Card>
-                        <AuditorScheduleList 
-                            schedules={availableSchedulesFiltered}
-                            plans={plans || []}
-                            campuses={campuses || []}
-                            units={units || []}
-                            isoClauses={isoClauses || []}
-                            findings={findings || []}
-                            signatories={signatories || undefined}
-                            isClaimView={true}
-                            onClaimAudit={handleClaimAudit}
-                        />
+                    <TabsContent value="completed" className="m-0 mt-0 pt-2">
+                      <AuditorScheduleList
+                        schedules={completedMySchedules}
+                        plans={plans || []}
+                        campuses={campuses || []}
+                        units={units || []}
+                        isoClauses={isoClauses || []}
+                        findings={findings || []}
+                        signatories={signatories || undefined}
+                        isClaimView={false}
+                        onUnclaimAudit={handleUnclaimAudit}
+                      />
                     </TabsContent>
+                  </Tabs>
+                </TabsContent>
 
-                    <TabsContent value="results" className="animate-in fade-in slide-in-from-bottom-2 duration-300 m-0">
-                         <AuditResultsView 
-                            selectedYear={new Date().getFullYear()} 
-                            plans={plans || []}
-                            schedules={allSchedules || []}
-                            findings={findings || []}
-                            units={units || []}
-                            campuses={campuses || []}
-                            cars={cars || []}
-                            isLoading={isLoading}
-                         />
-                    </TabsContent>
+                <TabsContent
+                  value="available-audits"
+                  className="animate-in fade-in slide-in-from-right-2 duration-300 m-0 space-y-6"
+                >
+                  <Card className="border-primary/10 bg-muted/10">
+                    <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                          <Search className="h-2.5 w-2.5" /> Search Pool
+                        </label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search available units..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-9 h-10 shadow-sm bg-white"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold uppercase text-muted-foreground ml-1 flex items-center gap-1.5">
+                          <Building className="h-2.5 w-2.5" /> Campus Selection
+                        </label>
+                        <Select
+                          value={campusFilter}
+                          onValueChange={setCampusFilter}
+                          disabled={!!siteLock && isActuallyOffline}
+                        >
+                          <SelectTrigger className="h-10 bg-white shadow-sm font-bold">
+                            <SelectValue placeholder="All Campuses" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Institutional View</SelectItem>
+                            {campuses?.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <AuditorScheduleList
+                    schedules={availableSchedulesFiltered}
+                    plans={plans || []}
+                    campuses={campuses || []}
+                    units={units || []}
+                    isoClauses={isoClauses || []}
+                    findings={findings || []}
+                    signatories={signatories || undefined}
+                    isClaimView={true}
+                    onClaimAudit={handleClaimAudit}
+                  />
+                </TabsContent>
 
-                    <TabsContent value="revisit-schedule" className="animate-in fade-in slide-in-from-bottom-2 duration-300 m-0">
-                      <Card className="border-amber-200/50 shadow-sm">
-                        <CardContent className="p-6">
-                          {isLoadingRevisits ? (
-                            <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" /></div>
-                          ) : !clauseRevisits || clauseRevisits.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-12 text-center">
-                              <CalendarClock className="h-12 w-12 text-amber-300 mb-4" />
-                              <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">No Revisits Scheduled</p>
-                              <p className="text-xs text-muted-foreground mt-1">Schedule clause revisits from the evidence log sheet.</p>
-                            </div>
-                          ) : (
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                  {clauseRevisits.filter(r => r.status === 'Pending').length} Pending &bull; {clauseRevisits.filter(r => r.status === 'Completed').length} Completed
-                                </p>
-                              </div>
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="text-[10px] font-black uppercase">Unit</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase">Clause</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase">Reason</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase">Revisit Schedule</TableHead>
-                                    <TableHead className="text-[10px] font-black uppercase text-right">Action</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {clauseRevisits
-                                    .sort((a, b) => {
-                                      if (a.status === 'Pending' && b.status !== 'Pending') return -1;
-                                      if (a.status !== 'Pending' && b.status === 'Pending') return 1;
-                                      return 0;
-                                    })
-                                    .map((revisit) => (
-                                    <TableRow key={revisit.id} className={cn(revisit.status === 'Completed' && "opacity-50")}>
-                                      <TableCell className="font-bold text-xs">{revisit.unitName}</TableCell>
-                                      <TableCell>
-                                        <Badge variant="outline" className="font-mono text-[10px] border-primary/20">
-                                          Clause {revisit.clauseId}
-                                        </Badge>
-                                      </TableCell>
-                                      <TableCell className="text-xs text-muted-foreground italic max-w-[200px] truncate">
-                                        {revisit.reason}
-                                      </TableCell>
-                                      <TableCell>
-                                        <Badge className={cn(
-                                          "h-5 text-[8px] font-black uppercase border-none",
-                                          revisit.status === 'Pending' ? "bg-amber-600 text-white" : "bg-emerald-600 text-white"
-                                        )}>
-                                          {revisit.status === 'Pending' ? (
-                                            <><Clock className="h-2.5 w-2.5 mr-1" /> Pending</>
-                                          ) : (
-                                            <><CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Completed</>
-                                          )}
-                                        </Badge>
-                                      </TableCell>
-                                      <TableCell className="text-xs text-muted-foreground">
-                                        {revisit.scheduledDate?.toDate ? format(revisit.scheduledDate.toDate(), 'MMM dd, yyyy hh:mm a') : '--'}
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        {revisit.status === 'Pending' ? (
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => router.push(`/audit/${revisit.auditScheduleId}?revisitClause=${revisit.clauseId}`)}
-                                            className="h-8 text-[9px] font-black uppercase tracking-widest border-indigo-200 text-indigo-700 hover:bg-indigo-50/50 hover:text-indigo-800 gap-1.5"
-                                          >
-                                            Perform Audit
-                                            <ArrowRight className="h-3.5 w-3.5" />
-                                          </Button>
-                                        ) : (
-                                          <span className="text-xs text-muted-foreground">-</span>
+                <TabsContent value="results" className="animate-in fade-in slide-in-from-bottom-2 duration-300 m-0">
+                  <AuditResultsView
+                    selectedYear={new Date().getFullYear()}
+                    plans={plans || []}
+                    schedules={allSchedules || []}
+                    findings={findings || []}
+                    units={units || []}
+                    campuses={campuses || []}
+                    cars={cars || []}
+                    isLoading={isLoading}
+                  />
+                </TabsContent>
+
+                <TabsContent
+                  value="revisit-schedule"
+                  className="animate-in fade-in slide-in-from-bottom-2 duration-300 m-0"
+                >
+                  <Card className="border-amber-200/50 shadow-sm">
+                    <CardContent className="p-6">
+                      {isLoadingRevisits ? (
+                        <div className="flex justify-center py-12">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary opacity-20" />
+                        </div>
+                      ) : !clauseRevisits || clauseRevisits.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-center">
+                          <CalendarClock className="h-12 w-12 text-amber-300 mb-4" />
+                          <p className="text-sm font-black uppercase text-muted-foreground tracking-widest">
+                            No Revisits Scheduled
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Schedule clause revisits from the evidence log sheet.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                              {clauseRevisits.filter((r) => r.status === 'Pending').length} Pending &bull;{' '}
+                              {clauseRevisits.filter((r) => r.status === 'Completed').length} Completed
+                            </p>
+                          </div>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="text-[10px] font-black uppercase">Unit</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Clause</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Reason</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Status</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase">Revisit Schedule</TableHead>
+                                <TableHead className="text-[10px] font-black uppercase text-right">Action</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {clauseRevisits
+                                .sort((a, b) => {
+                                  if (a.status === 'Pending' && b.status !== 'Pending') return -1;
+                                  if (a.status !== 'Pending' && b.status === 'Pending') return 1;
+                                  return 0;
+                                })
+                                .map((revisit) => (
+                                  <TableRow
+                                    key={revisit.id}
+                                    className={cn(revisit.status === 'Completed' && 'opacity-50')}
+                                  >
+                                    <TableCell className="font-bold text-xs">{revisit.unitName}</TableCell>
+                                    <TableCell>
+                                      <Badge variant="outline" className="font-mono text-[10px] border-primary/20">
+                                        Clause {revisit.clauseId}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground italic max-w-[200px] truncate">
+                                      {revisit.reason}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge
+                                        className={cn(
+                                          'h-5 text-[8px] font-black uppercase border-none',
+                                          revisit.status === 'Pending'
+                                            ? 'bg-amber-600 text-white'
+                                            : 'bg-emerald-600 text-white',
                                         )}
-                                      </TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    </TabsContent>
-                  </>
-              )}
+                                      >
+                                        {revisit.status === 'Pending' ? (
+                                          <>
+                                            <Clock className="h-2.5 w-2.5 mr-1" /> Pending
+                                          </>
+                                        ) : (
+                                          <>
+                                            <CheckCircle2 className="h-2.5 w-2.5 mr-1" /> Completed
+                                          </>
+                                        )}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-xs text-muted-foreground">
+                                      {revisit.scheduledDate?.toDate
+                                        ? format(revisit.scheduledDate.toDate(), 'MMM dd, yyyy hh:mm a')
+                                        : '--'}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      {revisit.status === 'Pending' ? (
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          onClick={() =>
+                                            router.push(
+                                              `/audit/${revisit.auditScheduleId}?revisitClause=${revisit.clauseId}`,
+                                            )
+                                          }
+                                          className="h-8 text-[9px] font-black uppercase tracking-widest border-indigo-200 text-indigo-700 hover:bg-indigo-50/50 hover:text-indigo-800 gap-1.5"
+                                        >
+                                          Perform Audit
+                                          <ArrowRight className="h-3.5 w-3.5" />
+                                        </Button>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground">-</span>
+                                      )}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </>
+            )}
           </CardContent>
         </Card>
       </Tabs>

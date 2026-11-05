@@ -218,10 +218,12 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
 
     const stored = (userProfile.assignments || [])
       .filter((assignment) => assignment && (assignment.unitId || assignment.campusId || assignment.role))
-      .map((assignment) => {
+      .map((assignment, index) => {
         const resolvedCampusName = assignment.campusName || campusMap.get(assignment.campusId || '') || '';
+        const fallbackId = `asgn:${assignment.unitId || 'none'}:${assignment.campusId || 'none'}:${assignment.role || assignment.roleId || index}`;
         return {
           ...assignment,
+          id: assignment.id || fallbackId,
           campusName: resolvedCampusName,
           unitName: formatOfficeLabel(assignment.unitName, resolvedCampusName, assignment.role),
         };
@@ -246,7 +248,18 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
       (assignment) => assignment.unitId === primaryAssignment.unitId && assignment.role === primaryAssignment.role,
     );
 
-    return hasPrimaryEquivalent ? stored : [primaryAssignment, ...stored];
+    return hasPrimaryEquivalent
+      ? stored.map((assignment) => ({
+          ...assignment,
+          isPrimary: assignment.unitId === primaryAssignment.unitId && assignment.role === primaryAssignment.role,
+        }))
+      : [
+          primaryAssignment,
+          ...stored.map((assignment) => ({
+            ...assignment,
+            isPrimary: false,
+          })),
+        ];
   }, [userProfile, campusMap, primaryUnitDoc?.name]);
 
   useEffect(() => {
@@ -337,16 +350,33 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
   // Memoize the context value
   const contextValue = useMemo((): FirebaseContextState => {
     const servicesAvailable = !!(firebaseApp && firestore && auth);
-    const userRole = userProfileWithContext?.role || null;
+    const rawUserRole = userProfileWithContext?.role || roleDoc?.name || null;
     const unitLower = (unitDoc?.name || userProfileWithContext?.unitName || '').toLowerCase();
 
-    // Robust Role Detection
-    const roleLower = userRole?.toLowerCase() || '';
+    // Robust Role Detection (scoped to Active University Designation when switched)
+    const rawRoleLower = rawUserRole?.toLowerCase() || '';
+    const activeRoleIdLower = (activeAssignment?.roleId || userProfileWithContext?.roleId || '').toLowerCase();
+    const roleDocNameLower = (roleDoc?.name || '').toLowerCase();
     const baseRoleLower = (userProfile?.role || '').toLowerCase();
 
-    const isAdmin = !!adminRoleDoc || baseRoleLower.includes('admin');
+    const hasBaseAdminPrivilege = !!adminRoleDoc || baseRoleLower.includes('admin');
+    const isActiveAssignmentAuditor =
+      rawRoleLower.includes('auditor') ||
+      activeRoleIdLower.includes('auditor') ||
+      roleDocNameLower.includes('auditor') ||
+      unitLower === 'internal quality audit' ||
+      unitLower === 'iqa' ||
+      unitLower.includes('auditor');
     const isActiveAdmin =
-      isAdmin && (!activeAssignment || Boolean(activeAssignment.isPrimary) || roleLower.includes('admin'));
+      hasBaseAdminPrivilege &&
+      !isActiveAssignmentAuditor &&
+      (!activeAssignment ||
+        (Boolean(activeAssignment.isPrimary) && (!rawUserRole || rawRoleLower.includes('admin'))) ||
+        rawRoleLower.includes('admin'));
+    const isAdmin = isActiveAdmin;
+    const isAuditor = isActiveAssignmentAuditor;
+    const userRole = !isActiveAdmin && isAuditor && !rawRoleLower.includes('auditor') ? 'Auditor' : rawUserRole;
+    const roleLower = userRole?.toLowerCase() || '';
     const isVp = roleLower.includes('vice president');
     const isTopManagement =
       isActiveAdmin ||
@@ -354,7 +384,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({ children, fi
       roleLower.includes('president') ||
       roleLower.includes('vice president') ||
       roleLower.includes('campus director');
-    const isAuditor = roleLower.includes('auditor');
 
     const isDOI =
       roleLower.includes('dean of instruction') ||
