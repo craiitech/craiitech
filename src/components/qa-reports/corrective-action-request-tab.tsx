@@ -2541,7 +2541,7 @@ export function CorrectiveActionRequestTab({
               {yearFilter !== 'all' ? ` Filtered to ${yearFilter}.` : ''}
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <CardContent className="space-y-6">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-muted/50">
@@ -2594,33 +2594,60 @@ export function CorrectiveActionRequestTab({
                 )}
               </Table>
             </div>
-            <ChartContainer config={iqaCampusFindingChartConfig} className="h-[340px] w-full">
+            <ChartContainer config={iqaCampusFindingChartConfig} className="h-[540px] w-full">
               <ResponsiveContainer>
-                <BarChart data={iqaCampusFindingStats} margin={{ top: 8, right: 12, left: -16, bottom: 48 }}>
+                <BarChart data={iqaCampusFindingStats} margin={{ top: 42, right: 20, left: 0, bottom: 130 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
                   <XAxis
                     dataKey="campus"
-                    angle={-30}
+                    angle={-50}
                     textAnchor="end"
                     interval={0}
-                    height={64}
-                    tick={{ fontSize: 9, fontWeight: 700 }}
+                    height={130}
+                    tick={{ fontSize: 10, fontWeight: 700 }}
                   />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10 }} />
                   <RechartsTooltip content={<ChartTooltipContent />} />
                   <Legend
+                    verticalAlign="top"
+                    align="center"
+                    height={36}
                     wrapperStyle={{
                       fontSize: '9px',
                       fontWeight: 700,
                       textTransform: 'uppercase',
                     }}
                   />
-                  <Bar dataKey="NC" fill="#ef4444" />
-                  <Bar dataKey="OFI" fill="#f59e0b" />
-                  <Bar dataKey="Compliant" fill="#16a34a" />
-                  <Bar dataKey="Open" fill="#be123c" />
-                  <Bar dataKey="Ongoing" fill="#2563eb" />
-                  <Bar dataKey="Closed" fill="#0f766e" />
+                  <Bar dataKey="NC" fill="#ef4444">
+                    <LabelList dataKey="NC" position="top" formatter={(value: number) => (value > 0 ? value : '')} />
+                  </Bar>
+                  <Bar dataKey="OFI" fill="#f59e0b">
+                    <LabelList dataKey="OFI" position="top" formatter={(value: number) => (value > 0 ? value : '')} />
+                  </Bar>
+                  <Bar dataKey="Compliant" fill="#16a34a">
+                    <LabelList
+                      dataKey="Compliant"
+                      position="top"
+                      formatter={(value: number) => (value > 0 ? value : '')}
+                    />
+                  </Bar>
+                  <Bar dataKey="Open" fill="#be123c">
+                    <LabelList dataKey="Open" position="top" formatter={(value: number) => (value > 0 ? value : '')} />
+                  </Bar>
+                  <Bar dataKey="Ongoing" fill="#2563eb">
+                    <LabelList
+                      dataKey="Ongoing"
+                      position="top"
+                      formatter={(value: number) => (value > 0 ? value : '')}
+                    />
+                  </Bar>
+                  <Bar dataKey="Closed" fill="#0f766e">
+                    <LabelList
+                      dataKey="Closed"
+                      position="top"
+                      formatter={(value: number) => (value > 0 ? value : '')}
+                    />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
