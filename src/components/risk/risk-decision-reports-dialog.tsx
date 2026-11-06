@@ -54,6 +54,7 @@ import { openInstitutionalPrintPreview } from '@/lib/print-preview';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { submissionTypes } from '@/lib/constants';
 import { useUser } from '@/firebase/provider';
+import { analyzeRiskDecisionRecords } from '@/lib/risk-decision-analysis';
 
 export type DecisionReportType =
   | 'non-submission-audit'
@@ -167,10 +168,10 @@ export const REPORT_OPTIONS: DecisionReportOption[] = [
     id: 'university-risk-analysis',
     title: 'University Risk Analysis & Mitigation Report',
     category: 'Management Review Input',
-    badge: 'ISO 21001:2025 · 9.3',
+    badge: 'ISO 21001:2025',
     badgeColor: 'bg-rose-100 text-rose-800 border-rose-200',
     description:
-      'University-wide analysis of logged risks and opportunities, mitigation ownership, target dates, residual ratings, and evidence gaps for Management Review.',
+      'Management Review brief covering repeated risk themes, High/Critical exposures, overdue or incomplete actions, residual-effectiveness evidence, and Low-rated opportunities flagged for decision review.',
     icon: AlertTriangle,
     pageSize: '13in 8.5in',
     orientation: 'landscape',
@@ -456,80 +457,185 @@ export function RiskDecisionReportsDialog({
         const risks = targetUnitGroups.flatMap((group) =>
           group.risks.map((risk) => ({ risk, unitName: group.unitName, campusName: group.campusName })),
         );
-        const riskEntries = risks.filter(({ risk }) => risk.type === 'Risk');
-        const opportunityEntries = risks.filter(({ risk }) => risk.type === 'Opportunity');
-        const overdueEntries = risks.filter(({ risk }) => {
-          if (risk.status === 'Closed' || !risk.targetDate) return false;
-          const targetDate = parseDateSafe(risk.targetDate);
-          return targetDate ? targetDate < new Date() : false;
-        });
-        const missingMitigation = riskEntries.filter(({ risk }) => !risk.treatmentAction?.trim());
-        const unassessedResidual = riskEntries.filter(({ risk }) => !risk.postTreatment);
-        const highPriority = riskEntries.filter(({ risk }) => /critical|high/i.test(risk.preTreatment?.rating || ''));
+        const analysis = analyzeRiskDecisionRecords(risks);
+        const { risks: riskEntries, opportunities: opportunityEntries } = analysis;
         const scope =
           selectedUnitScope !== 'all'
             ? allUnits?.find((unit) => unit.id === selectedUnitScope)?.name || 'Selected unit'
             : selectedCampusScope !== 'all'
               ? campusMap.get(selectedCampusScope) || 'Selected campus'
               : 'All campuses and units';
-        const recordRows = risks.map(({ risk, unitName, campusName }) => ({
-          title: `${risk.type}: ${risk.description || 'Untitled entry'}`,
-          status: risk.status,
-          details: [
-            `Objective: ${risk.objective || 'Not recorded'}`,
-            `Campus / unit: ${campusName} / ${unitName}`,
-            `Initial assessment: ${risk.preTreatment?.rating || 'Not recorded'} (magnitude ${
-              risk.preTreatment?.magnitude ?? 'N/A'
-            })`,
-            `Current controls: ${risk.currentControls || 'Not recorded'}`,
-            `Mitigation / treatment: ${risk.treatmentAction || 'Not recorded'}`,
-            `Owner: ${risk.responsiblePersonName || 'Not assigned'}`,
-            `Target date: ${parseDateSafe(risk.targetDate)?.toLocaleDateString() || 'Not set'}`,
-            `Residual assessment: ${risk.postTreatment?.rating || 'Not assessed'} (magnitude ${
-              risk.postTreatment?.magnitude ?? 'N/A'
-            })`,
-            `Treatment evidence: ${risk.postTreatment?.evidence || 'Not recorded'}`,
-            `Resources requested: ${risk.resourcesNeeded || 'None recorded'}`,
-          ],
-        }));
+        const recordRows = risks.map(({ risk, unitName, campusName }) => {
+          const action = analysis.actionRequired.find((entry) => entry.record.risk.id === risk.id);
+          const priorityLabel =
+            risk.type === 'Risk' && analysis.highPriorityRisks.some((entry) => entry.risk.id === risk.id)
+              ? 'HIGH RISK PRIORITY'
+              : risk.type === 'Opportunity' && analysis.lowRatedOpportunities.some((entry) => entry.risk.id === risk.id)
+                ? 'PRIORITY REVIEW · LOW-RATED OPPORTUNITY'
+                : risk.type.toUpperCase();
+
+          return {
+            title: `[${priorityLabel}] ${risk.objective || risk.description || 'Untitled entry'}`,
+            status: risk.status,
+            details: [
+              `Type: ${risk.type}`,
+              `Campus / unit: ${campusName} / ${unitName}`,
+              `Description: ${risk.description || 'Not recorded'}`,
+              `Objective: ${risk.objective || 'Not recorded'}`,
+              `Initial assessment: ${risk.preTreatment?.rating || 'Not recorded'} (likelihood ${
+                risk.preTreatment?.likelihood ?? 'N/A'
+              } × impact ${risk.preTreatment?.consequence ?? 'N/A'} = magnitude ${risk.preTreatment?.magnitude ?? 'N/A'})`,
+              `Current controls: ${risk.currentControls || 'Not recorded'}`,
+              `Mitigation / treatment: ${risk.treatmentAction || 'Not recorded'}`,
+              `Owner: ${risk.responsiblePersonName || 'Not assigned'}`,
+              `Target date: ${parseDateSafe(risk.targetDate)?.toLocaleDateString() || 'Not set'}`,
+              `Residual assessment: ${risk.postTreatment?.rating || 'Not assessed'} (likelihood ${
+                risk.postTreatment?.likelihood ?? 'N/A'
+              } × impact ${risk.postTreatment?.consequence ?? 'N/A'} = magnitude ${risk.postTreatment?.magnitude ?? 'N/A'})`,
+              `Magnitude change (initial minus residual): ${
+                typeof risk.postTreatment?.magnitude === 'number' && typeof risk.preTreatment?.magnitude === 'number'
+                  ? risk.preTreatment.magnitude - risk.postTreatment.magnitude
+                  : 'Not available'
+              }`,
+              `Implementation evidence: ${risk.postTreatment?.evidence || 'Not recorded'}`,
+              `Effectiveness evidence: ${risk.monitoringScore || 'Not recorded'}`,
+              `Cycle: ${risk.cycleId || 'Not recorded'}`,
+              `Resources requested: ${risk.resourcesNeeded || 'None recorded'}`,
+              `Monitoring/review cycle: ${risk.reviewCycle || 'Not recorded'}`,
+              `Next review due: ${parseDateSafe(risk.nextReviewDue)?.toLocaleDateString() || 'Not recorded'}`,
+              `Verification: ${risk.verification?.status || 'Not recorded'}`,
+              ...(action ? [`Action flags: ${action.reasons.join('; ')}`] : []),
+            ],
+          };
+        });
+        const describeRecords = (records: typeof risks) =>
+          records.map(
+            ({ risk, unitName, campusName }) =>
+              `${campusName} / ${unitName}: ${risk.objective || risk.description || 'Untitled'} [${risk.preTreatment?.rating || 'unrated'}, ${risk.status}]`,
+          );
+        const duplicateItems = analysis.potentialDuplicateGroups.map((group, index) => {
+          const example = group.records[0].risk;
+          const locations = group.records.map(
+            ({ unitName, campusName, risk }) =>
+              `${campusName} / ${unitName}${risk.cycleId ? ` (${risk.cycleId} cycle)` : ''}`,
+          );
+          return `Potential exact match ${index + 1} (${group.records.length} records): "${example.objective}" — "${example.description}". Recorded at: ${locations.join('; ')}. Verify whether these are genuinely duplicates or intentionally repeated/carry-forward entries.`;
+        });
+        const recurringObjectiveItems = analysis.recurringObjectiveGroups.map((group, index) => {
+          const objective = group.records[0].risk.objective;
+          const descriptions = Array.from(new Set(group.records.map(({ risk }) => risk.description).filter(Boolean)));
+          const locations = group.records.map(({ unitName, campusName }) => `${campusName} / ${unitName}`);
+          return `Recurring theme ${index + 1} (${group.records.length} records): "${objective}". Descriptions: ${descriptions.join(' | ')}. Units: ${locations.join('; ')}. Review for a shared cause, coordinated response, or common control.`;
+        });
+        const highRiskItems = describeRecords(analysis.highPriorityRisks);
+        const actionItems = analysis.actionRequired.map(({ record, reasons }) => {
+          const { risk, unitName, campusName } = record;
+          return `${risk.type} · ${campusName} / ${unitName} · ${risk.objective || risk.description || 'Untitled'}: ${reasons.join('; ')}.`;
+        });
+        const lowOpportunityItems = describeRecords(analysis.lowRatedOpportunities);
+        const missingEvidence = riskEntries.filter(
+          ({ risk }) =>
+            risk.status === 'Closed' &&
+            ['critical', 'high', 'medium'].includes(risk.preTreatment?.rating?.toLowerCase() || '') &&
+            !risk.postTreatment?.evidence?.trim(),
+        );
 
         printManagementReviewEvidenceReport({
           title: reportTitle,
           source: 'Risk & Opportunity Register (ROR)',
-          period: `Calendar year ${activeYear}`,
+          period: `Calendar year ${activeYear} · ${
+            selectedStatusScope === 'all' ? 'all statuses' : selectedStatusScope.replace('-', ' ')
+          }`,
           scope,
           summary: [
             { label: 'Total entries', value: String(risks.length) },
             { label: 'Risks / opportunities', value: `${riskEntries.length} / ${opportunityEntries.length}` },
-            { label: 'High or critical risks', value: String(highPriority.length) },
-            { label: 'Overdue open items', value: String(overdueEntries.length) },
+            { label: 'High / critical risks', value: String(analysis.highPriorityRisks.length) },
+            {
+              label: 'Risk actions requiring follow-up',
+              value: String(analysis.actionRequired.filter(({ record }) => record.risk.type === 'Risk').length),
+            },
+            { label: 'Low-rated opportunities to review', value: String(analysis.lowRatedOpportunities.length) },
+            { label: 'Overdue open items', value: String(analysis.overdueItems.length) },
           ],
           sections: [
             {
-              title: 'Risk and opportunity performance evidence',
+              title: '1. Risk portfolio and treatment implementation',
               items: [
                 `${riskEntries.filter(({ risk }) => risk.status === 'Open').length} risks are Open; ${
                   riskEntries.filter(({ risk }) => risk.status === 'In Progress').length
                 } are In Progress; ${riskEntries.filter(({ risk }) => risk.status === 'Closed').length} are Closed.`,
-                `${missingMitigation.length} risk record(s) have no treatment action recorded; ${unassessedResidual.length} have no post-treatment assessment.`,
-                `${overdueEntries.length} non-closed record(s) have a past target date based on available dates.`,
-                'Magnitude and rating values are reproduced from the register; the report does not independently validate the risk methodology or treatment effectiveness.',
+                `${opportunityEntries.filter(({ risk }) => risk.status === 'Open').length} opportunities are Open; ${
+                  opportunityEntries.filter(({ risk }) => risk.status === 'In Progress').length
+                } are In Progress; ${opportunityEntries.filter(({ risk }) => risk.status === 'Closed').length} are Closed.`,
+                `All ${risks.length} entries in the selected year and scope are included in the source-record inventory.`,
+                `${analysis.highPriorityRisks.length} risk(s) are rated High/Critical before treatment; ${analysis.highPriorityRisks.filter(({ risk }) => risk.status !== 'Closed').length} remain active and require management attention.`,
+                `${analysis.actionRequired.filter(({ record }) => record.risk.type === 'Risk').length} risk record(s) are in the action queue; ${analysis.overdueItems.length} open risk/opportunity item(s) have a past target date.`,
+                `${analysis.missingTreatmentItems.length} non-low record(s) have no treatment action; ${analysis.unassessedRiskItems.length} active non-low risk(s) have no residual assessment; ${analysis.unassessedOpportunityItems.length} non-low opportunity item(s) have no outcome assessment.`,
+                `${missingEvidence.length} closed Medium/High/Critical risk(s) have no recorded implementation evidence.`,
+                'Priority labels and scoring cutoffs in this report reflect the portal register and local decision rules; they are not presented as ISO-prescribed rating thresholds.',
+                'Completion status is not proof of effectiveness: confirm the action was implemented, review the evidence and measure, and determine whether residual exposure is acceptable.',
               ],
             },
             {
-              title: 'Management review decisions to consider',
+              title: '2. Potential duplicate records and recurring risk themes',
               items: [
-                'Confirm whether the current controls and proposed treatments adequately address the recorded risks and opportunities.',
-                'Assign accountable owners and due dates for missing, overdue, or unassessed mitigation actions.',
-                'Decide whether additional people, funding, facilities, information systems, or external support are needed.',
-                'Record accepted residual risks, required escalation, and the next monitoring interval in the official Management Review minutes.',
+                `Potential exact text matches: ${analysis.potentialDuplicateGroups.length} group(s). Matching uses normalized objective and description text; it is a screening aid, not automatic deduplication.`,
+                ...(duplicateItems.length
+                  ? duplicateItems
+                  : ['No repeated normalized objective-and-description pairs were found in this report scope.']),
+                `Recurring objective themes with different descriptions: ${analysis.recurringObjectiveGroups.length} group(s).`,
+                ...(recurringObjectiveItems.length
+                  ? recurringObjectiveItems
+                  : ['No repeated objective themes with differing descriptions were found.']),
+              ],
+            },
+            {
+              title: '3. High-priority risk decision queue',
+              items: [
+                `${analysis.highResidualRisks.length} risk(s) still have a High/Critical residual rating after treatment, including any items marked Closed; these require an explicit further-treatment or acceptance decision.`,
+                ...(highRiskItems.length
+                  ? highRiskItems
+                  : ['No High/Critical inherent risks are recorded in the selected scope and period.']),
+                ...describeRecords(analysis.highResidualRisks).map((item) => `High residual exposure: ${item}`),
+              ],
+            },
+            {
+              title: '4. Opportunities flagged for priority review',
+              items: [
+                `${analysis.lowRatedOpportunities.length} Low-rated opportunity item(s) are flagged for decision review, following the requested local reporting rule.`,
+                'Important interpretation: the form scores opportunities using likelihood of success and expected effect. A Low score can indicate lower expected benefit, so this label means “review and decide first,” not “highest opportunity value” or an ISO-mandated priority. Confirm or revise this local rule with the QMS owner.',
+                ...(lowOpportunityItems.length
+                  ? lowOpportunityItems
+                  : ['No Low-rated opportunities are recorded in the selected scope and period.']),
+              ],
+            },
+            {
+              title: '5. Actions requiring assignment or escalation',
+              items: actionItems.length
+                ? actionItems
+                : [
+                    'No records currently meet the report action-queue rules. Continue scheduled monitoring and review.',
+                  ],
+            },
+            {
+              title: '6. Management decisions and follow-up to record',
+              items: [
+                'Confirm the risk/opportunity evaluation criteria and whether repeated entries represent a systemic cause, separate local exposures, or intentional carry-forward records; do not delete or merge records based on text match alone.',
+                'For significant items, identify the affected EOMS process or educational service, relevant learner/other-beneficiary needs or requirements, and the EOMS objective exposed or advanced; these links are not currently separate structured fields in every register entry.',
+                'For each High/Critical active risk, approve the treatment decision, accountable owner, due date, required resources, progress measure, and escalation route.',
+                'Review overdue and missing-action/evidence items; decide whether to assign, revise, expedite, or escalate each action.',
+                'For each Low-rated opportunity, record whether to validate, pursue, redesign, defer, or close it; document expected educational benefit, feasibility, owner, resources, and a success measure.',
+                'Review completed actions against implementation evidence and an effectiveness measure; explicitly document residual risk acceptance, further action, review date, or reopening where needed.',
+                'Record decisions, owners, resources, due dates, and follow-up dates in the official Management Review minutes. This evidence report is an input, not a substitute for the complete review record.',
               ],
             },
           ],
           records: recordRows,
           references: [
-            'ISO 21001:2025, clause 9.3 (management review): use effectiveness of actions taken to address risks and opportunities as a review input.',
-            'ISO 21001:2025 is the current published edition; ISO 21001:2018 has been withdrawn. Confirm institutional transition and certification scope with the responsible QMS authority.',
+            'This report is framed exclusively for the Educational Organizations Management System under ISO 21001. The ISO catalogue lists ISO 21001:2025 as the current published edition; confirm the applicable edition, clauses, and RSU certification/transition scope against the controlled licensed copy before approval: https://www.iso.org/standard/21001',
+            'The ISO catalogue lists ISO 21001:2018 as withdrawn. Do not mix its clause mapping with the 2025 edition; confirm the institutional transition basis with the QMS authority: https://www.iso.org/standard/66266.html',
+            'The portal rating thresholds, action-queue rules, and low-rated-opportunity review rule are local decision-support conventions, not universal ISO 21001 scoring thresholds. Review and approve these rules with the QMS owner.',
           ],
         });
         return;

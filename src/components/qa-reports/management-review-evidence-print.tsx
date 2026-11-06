@@ -51,7 +51,7 @@ function ManagementReviewEvidencePrint({ report }: { report: ManagementReviewEvi
         </p>
         <h1 className="mt-3 text-2xl font-black uppercase tracking-tight">{report.title}</h1>
         <p className="mt-2 text-sm font-semibold text-slate-600">
-          Management Review evidence brief · ISO 21001:2025, clause 9.3
+          Management Review evidence brief · verify applicable edition and clause mapping
         </p>
         <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
           <p>
@@ -68,7 +68,7 @@ function ManagementReviewEvidencePrint({ report }: { report: ManagementReviewEvi
 
       <section className="mt-5">
         <h2 className="text-sm font-black uppercase tracking-wide">Performance snapshot</h2>
-        <div className="mt-2 grid grid-cols-4 gap-2">
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4 xl:grid-cols-6">
           {report.summary.map((metric) => (
             <div key={metric.label} className="rounded border border-slate-300 p-2">
               <p className="text-[9px] font-bold uppercase text-slate-500">{metric.label}</p>
@@ -79,7 +79,7 @@ function ManagementReviewEvidencePrint({ report }: { report: ManagementReviewEvi
       </section>
 
       {report.sections.map((section) => (
-        <section key={section.title} className="mt-5 break-inside-avoid">
+        <section key={section.title} className="mt-5">
           <h2 className="border-b border-slate-300 pb-1 text-sm font-black uppercase tracking-wide">{section.title}</h2>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed">
             {section.items.map((item, index) => (

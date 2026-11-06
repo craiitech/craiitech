@@ -224,7 +224,7 @@ The Android project is available under `android/` and uses Capacitor.
 npm run electron:build
 ```
 
-The installer is generated in `dist/`. See `INSTALL_WINDOWS.md` for step-by-step Windows installation instructions.
+The installer is generated in `dist/`. See [Windows installation](./docs/INSTALL_WINDOWS.md) for step-by-step instructions.
 
 ## Security and Data Protection
 
@@ -235,7 +235,7 @@ The installer is generated in `dist/`. See `INSTALL_WINDOWS.md` for step-by-step
 - Audit logging for sensitive administrative and quality actions
 - Signed attendance and offline activity payloads
 
-See `DATA_HANDLING_REQUIREMENTS.md` for data handling requirements.
+See [data handling requirements](./docs/DATA_HANDLING_REQUIREMENTS.md).
 
 ## Project Structure
 
@@ -254,12 +254,14 @@ docs/                   Architecture and implementation documentation
 
 ## Documentation
 
-- `TESTING.md` — testing guide and scenarios
-- `DATA_HANDLING_REQUIREMENTS.md` — data handling and privacy requirements
-- `INSTALL_WINDOWS.md` — Windows desktop installation
+- [`docs/TESTING.md`](./docs/TESTING.md) — testing guide and scenarios
+- [`docs/DATA_HANDLING_REQUIREMENTS.md`](./docs/DATA_HANDLING_REQUIREMENTS.md) — data handling and privacy requirements
+- [`docs/INSTALL_WINDOWS.md`](./docs/INSTALL_WINDOWS.md) — Windows desktop installation
 - `docs/` — architecture, KPI specification, SUC levelling, GAD monograph, and related references
-- `MULTI_DESIGNATION_CONTEXT_SWITCHING.md` — multi-designation workspace behavior
-- `OPERATIONAL_PLAN_IMPLEMENTATION_PLAN.md` — operational plan implementation notes
+- [`docs/MULTI_DESIGNATION_CONTEXT_SWITCHING.md`](./docs/MULTI_DESIGNATION_CONTEXT_SWITCHING.md) — multi-designation workspace behavior
+- [`docs/OPERATIONAL_PLAN_IMPLEMENTATION_PLAN.md`](./docs/OPERATIONAL_PLAN_IMPLEMENTATION_PLAN.md) — operational plan implementation notes
+- [`docs/FIREBASE_USAGE_AND_APPWRITE_MIGRATION_PLAN.md`](./docs/FIREBASE_USAGE_AND_APPWRITE_MIGRATION_PLAN.md) — static Firebase usage analysis and evidence-first Appwrite evaluation plan
+- [`docs/FIAMO_IMPLEMENTATION_PLAN.md`](./docs/FIAMO_IMPLEMENTATION_PLAN.md) — FIAMO implementation plan
 
 ## Deployment
 
