@@ -70,6 +70,7 @@ import type {
   AcademicProgram,
   CsmResponse,
 } from '@/lib/types';
+import { getChedCopcCategory } from '@/lib/ched-monitoring';
 import { normalizeReportType } from '@/lib/utils';
 import { Timestamp } from 'firebase/firestore';
 import Link from 'next/link';
@@ -1393,7 +1394,14 @@ function ViewAccred({
             sub={`${withCopc} of ${totalPrograms} Programs`}
           />
           <KpiTile label="COPC In Progress" value={inProg} suffix="" icon={Activity} color={P.gold} />
-          <KpiTile label="No COPC / Pending" value={noCopc} suffix="" icon={AlertTriangle} color={P.rose} />
+          <KpiTile
+            label="No COPC Issued"
+            value={inProg + noCopc}
+            suffix=""
+            icon={AlertTriangle}
+            color={P.rose}
+            sub={`${inProg} in progress · ${noCopc} explicitly No COPC`}
+          />
         </div>
         <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col min-h-0">
           <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-1">CHED COPC Status</p>
@@ -1577,12 +1585,12 @@ function ViewVpaaProgramsAndChed({
           />
           <KpiTile label="Board Exam Programs" value={boardExamCount} suffix="" icon={Award} color={P.gold} />
           <KpiTile
-            label="COPC In Progress / Pending"
+            label="No COPC Issued"
             value={inProg + noCopc}
             suffix=""
             icon={AlertTriangle}
             color={P.rose}
-            sub={`${inProg} In Prog · ${noCopc} Uncertified`}
+            sub={`${inProg} in progress · ${noCopc} explicitly No COPC`}
           />
         </div>
 
@@ -2564,7 +2572,14 @@ function ViewCampusDirectorAcademic({
             sub={`${withCopc} of ${totalPrograms} Programs With COPC`}
           />
           <KpiTile label="COPC In Progress" value={inProg} suffix="" icon={Activity} color={P.gold} />
-          <KpiTile label="No COPC / Pending" value={noCopc} suffix="" icon={AlertTriangle} color={P.rose} />
+          <KpiTile
+            label="No COPC Issued"
+            value={inProg + noCopc}
+            suffix=""
+            icon={AlertTriangle}
+            color={P.rose}
+            sub={`${inProg} in progress · ${noCopc} explicitly No COPC`}
+          />
         </div>
         <div className="col-span-4 rounded-xl border border-white/15 bg-green-950/85 backdrop-blur-md p-3 shadow-xl flex flex-col min-h-0">
           <p className="text-xs font-black uppercase tracking-[0.15em] text-white/80 mb-1">CHED COPC Certification</p>
@@ -2604,8 +2619,21 @@ function ViewCampusDirectorAcademic({
                           ? `${P.green}25`
                           : p.copcStatus === 'In Progress'
                             ? `${P.gold}25`
-                            : `${P.rose}25`,
-                      color: p.copcStatus === 'With COPC' ? P.green : p.copcStatus === 'In Progress' ? P.gold : P.rose,
+                            : p.copcStatus === 'No COPC'
+                              ? `${P.rose}25`
+                              : p.copcStatus === 'Status Unknown'
+                                ? '#8b5cf625'
+                                : '#94a3b825',
+                      color:
+                        p.copcStatus === 'With COPC'
+                          ? P.green
+                          : p.copcStatus === 'In Progress'
+                            ? P.gold
+                            : p.copcStatus === 'No COPC'
+                              ? P.rose
+                              : p.copcStatus === 'Status Unknown'
+                                ? '#8b5cf6'
+                                : '#94a3b8',
                     }}
                   >
                     {p.copcStatus}
@@ -3386,9 +3414,10 @@ export default function ExecutiveDisplayPage() {
         if (!c) return;
         c.programsTotal++;
         const comp = (rawCompliances || []).find((co) => co.programId === p.id);
-        if (comp?.ched?.copcStatus === 'With COPC') c.programsWithCopc++;
-        else if (comp?.ched?.copcStatus === 'In Progress') c.programsInProg++;
-        else c.programsNoCopc++;
+        const copcCategory = getChedCopcCategory(comp);
+        if (copcCategory === 'With COPC') c.programsWithCopc++;
+        else if (copcCategory === 'In Progress') c.programsInProg++;
+        else if (copcCategory === 'No COPC') c.programsNoCopc++;
       });
 
     (rawCsm || []).forEach((r) => {
@@ -3555,15 +3584,18 @@ export default function ExecutiveDisplayPage() {
       const comp = (rawCompliances || []).find((c) => c.programId === p.id);
       return comp?.ched?.copcStatus === 'With COPC';
     }).length;
-    const inProg = active.filter((p) => {
+    const categoryCounts = { 'In Progress': 0, 'No COPC': 0, 'No Record': 0, 'Status Unknown': 0 };
+    active.forEach((p) => {
       const comp = (rawCompliances || []).find((c) => c.programId === p.id);
-      return comp?.ched?.copcStatus === 'In Progress';
-    }).length;
-    const none = active.length - withCopc - inProg;
+      const category = getChedCopcCategory(comp);
+      if (category !== 'With COPC') categoryCounts[category]++;
+    });
     return [
       { name: 'With COPC', value: withCopc, color: P.green },
-      { name: 'In Progress', value: inProg, color: P.gold },
-      { name: 'No COPC', value: none, color: P.rose },
+      { name: 'In Progress', value: categoryCounts['In Progress'], color: P.gold },
+      { name: 'No COPC', value: categoryCounts['No COPC'], color: P.rose },
+      { name: 'No AY Record', value: categoryCounts['No Record'], color: '#94a3b8' },
+      { name: 'Status Unknown', value: categoryCounts['Status Unknown'], color: '#8b5cf6' },
     ].filter((d) => d.value > 0);
   }, [rawPrograms, rawCompliances, programInScope]);
 
@@ -3901,10 +3933,10 @@ export default function ExecutiveDisplayPage() {
       noCopc = 0;
     const programsList = cPrograms.map((p) => {
       const comp = (rawCompliances || []).find((c) => c.programId === p.id);
-      const copcStatus = comp?.ched?.copcStatus || 'No COPC';
+      const copcStatus = getChedCopcCategory(comp);
       if (copcStatus === 'With COPC') withCopc++;
       else if (copcStatus === 'In Progress') inProg++;
-      else noCopc++;
+      else if (copcStatus === 'No COPC') noCopc++;
       const records = comp?.accreditationRecords || [];
       const cur = records.find((r) => r.lifecycleStatus === 'Current') || records[records.length - 1];
       return {
@@ -3919,6 +3951,16 @@ export default function ExecutiveDisplayPage() {
       { name: 'With COPC', value: withCopc, color: P.green },
       { name: 'In Progress', value: inProg, color: P.gold },
       { name: 'No COPC', value: noCopc, color: P.rose },
+      {
+        name: 'No AY Record',
+        value: programsList.filter((program) => program.copcStatus === 'No Record').length,
+        color: '#94a3b8',
+      },
+      {
+        name: 'Status Unknown',
+        value: programsList.filter((program) => program.copcStatus === 'Status Unknown').length,
+        color: '#8b5cf6',
+      },
     ].filter((d) => d.value > 0);
 
     // Units in this campus

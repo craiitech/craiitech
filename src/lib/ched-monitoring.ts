@@ -8,6 +8,7 @@ export type ChedYearSummary = {
   withCopc: number;
   inProgress: number;
   noCopc: number;
+  withoutIssuedCopc: number;
   noRecord: number;
   unknown: number;
   hasRqat: number;
@@ -20,6 +21,7 @@ export type ChedPortfolioSnapshot = {
   withCopc: number;
   inProgress: number;
   noCopc: number;
+  withoutIssuedCopc: number;
   noRecord: number;
   unknown: number;
   withCopcEvidence: number;
@@ -72,6 +74,7 @@ export function getChedPortfolioSnapshot(
     withCopc: 0,
     inProgress: 0,
     noCopc: 0,
+    withoutIssuedCopc: 0,
     noRecord: 0,
     unknown: 0,
     withCopcEvidence: 0,
@@ -97,6 +100,7 @@ export function getChedPortfolioSnapshot(
     }
   });
 
+  snapshot.withoutIssuedCopc = snapshot.inProgress + snapshot.noCopc;
   snapshot.rate = snapshot.total > 0 ? Math.round((snapshot.withCopc / snapshot.total) * 100) : 0;
   return snapshot;
 }
@@ -133,6 +137,7 @@ export function getChedYearSummaries(
         withCopc: 0,
         inProgress: 0,
         noCopc: 0,
+        withoutIssuedCopc: 0,
         noRecord: 0,
         unknown: 0,
         hasRqat: 0,
@@ -153,6 +158,7 @@ export function getChedYearSummaries(
         if (record?.ched?.programCmoLink) summary.hasCmo++;
       });
 
+      summary.withoutIssuedCopc = summary.inProgress + summary.noCopc;
       summary.copcRate = summary.total > 0 ? Math.round((summary.withCopc / summary.total) * 100) : 0;
       return summary;
     })

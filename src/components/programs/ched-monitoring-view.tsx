@@ -194,6 +194,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
     const reportWithCopc = programDetailData.filter((program) => program.copcStatus === 'With COPC').length;
     const reportInProgress = programDetailData.filter((program) => program.copcStatus === 'In Progress').length;
     const reportNoCopc = programDetailData.filter((program) => program.copcStatus === 'No COPC').length;
+    const reportWithoutIssuedCopc = reportInProgress + reportNoCopc;
     const reportNoRecord = programDetailData.filter((program) => program.copcStatus === 'No Record').length;
     const reportUnknown = programDetailData.filter((program) => program.copcStatus === 'Status Unknown').length;
     const reportMissingEvidence = programDetailData.filter(
@@ -216,14 +217,19 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
       summary: [
         { label: 'Active programs in report', value: String(reportTotal) },
         { label: 'With COPC', value: `${reportWithCopc} (${reportCopcRate}%)` },
+        { label: 'No COPC issued (includes in progress)', value: String(reportWithoutIssuedCopc) },
         { label: 'In progress', value: String(reportInProgress) },
-        { label: 'No COPC / no record / unknown', value: `${reportNoCopc} / ${reportNoRecord} / ${reportUnknown}` },
+        {
+          label: 'Explicitly No COPC / no record / unknown',
+          value: `${reportNoCopc} / ${reportNoRecord} / ${reportUnknown}`,
+        },
       ],
       sections: [
         {
           title: 'Regulatory monitoring evidence',
           items: [
             `${reportCopcRate}% of the programs included in this report are marked With COPC for AY ${selectedYear}.`,
+            `${reportWithoutIssuedCopc} program(s) have no issued COPC: ${reportInProgress} in progress and ${reportNoCopc} explicitly marked No COPC.`,
             `Separate data-quality indicators: ${reportNoRecord} missing academic-year records; ${reportUnknown} unknown COPC statuses.`,
             `${reportMissingEvidence} program(s) marked With COPC are missing an evidence link; ${programDetailData.filter((program) => !program.cmoLink || !program.boardApprovalLink).length} have a missing CMO or Board approval link.`,
           ],
@@ -322,7 +328,8 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
             <td style="padding: 10px 16px; font-weight: 900; font-size: 14px; border-bottom: 1px solid #e2e8f0;">AY ${row.year}</td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.total}</td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #059669; font-weight: 700;">${row.withCopc}</span></td>
-            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #d97706; font-weight: 700;">${row.inProgress}</span></td>
+              <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.withoutIssuedCopc}</td>
+              <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #d97706; font-weight: 700;">${row.inProgress}</span></td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #dc2626; font-weight: 700;">${row.noCopc}</span></td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #64748b; font-weight: 700;">${row.noRecord}</span></td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #7c3aed; font-weight: 700;">${row.unknown}</span></td>
@@ -362,8 +369,9 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
                 <th style="text-align:left;">Academic Year</th>
                 <th>Current Portfolio</th>
                 <th>With COPC</th>
+                <th>No COPC Issued</th>
                 <th>In Progress</th>
-                <th>No COPC</th>
+                <th>Explicitly No COPC</th>
                 <th>No AY Record</th>
                 <th>Status Unknown</th>
                 <th>COPC Rate</th>
@@ -522,9 +530,11 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
         <Card className="border-rose-200 shadow-sm bg-gradient-to-br from-rose-50/50 to-white">
           <CardContent className="p-3.5 flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase text-rose-800 tracking-wider">Explicitly No COPC</p>
-              <h3 className="text-2xl font-black text-rose-700 mt-1">{currentYearStats.noCopc}</h3>
-              <p className="text-[9px] font-semibold text-rose-600 mt-0.5">Status recorded</p>
+              <p className="text-[10px] font-black uppercase text-rose-800 tracking-wider">No COPC Issued</p>
+              <h3 className="text-2xl font-black text-rose-700 mt-1">{currentYearStats.withoutIssuedCopc}</h3>
+              <p className="text-[9px] font-semibold text-rose-600 mt-0.5">
+                Includes {currentYearStats.inProgress} in progress; {currentYearStats.noCopc} explicitly No COPC
+              </p>
             </div>
             <div className="p-2.5 bg-rose-100 text-rose-700 rounded-xl">
               <AlertTriangle className="h-5 w-5" />

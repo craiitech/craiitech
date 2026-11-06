@@ -11,9 +11,9 @@ export const metadata: Metadata = {
   title: 'UAQA Portal',
   description: 'Unified Archipelagic Quality Assurance Portal',
   icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon.ico',
-    apple: '/favicon.ico',
+    icon: '/rsu-pwa-192.png',
+    shortcut: '/rsu-pwa-192.png',
+    apple: '/rsu-pwa-180.png',
   },
   manifest: '/manifest.json',
 };

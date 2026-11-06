@@ -78,6 +78,7 @@ describe('CHED monitoring summaries', () => {
       withCopc: 2,
       inProgress: 1,
       noCopc: 1,
+      withoutIssuedCopc: 2,
       noRecord: 1,
       unknown: 1,
       withCopcEvidence: 1,
@@ -97,6 +98,7 @@ describe('CHED monitoring summaries', () => {
         withCopc: 1,
         inProgress: 0,
         noCopc: 0,
+        withoutIssuedCopc: 0,
         noRecord: 1,
         unknown: 0,
         hasRqat: 0,
@@ -104,6 +106,28 @@ describe('CHED monitoring summaries', () => {
         copcRate: 50,
       },
     ]);
+  });
+
+  it('counts in-progress applications as programs without an issued COPC while retaining separate status counts', () => {
+    const programs = [makeProgram('with'), makeProgram('progress'), makeProgram('no-copc')];
+    const records = [
+      makeCompliance('with', 2025, 'With COPC'),
+      makeCompliance('progress', 2025, 'In Progress'),
+      makeCompliance('no-copc', 2025, 'No COPC'),
+    ];
+
+    expect(getChedPortfolioSnapshot(programs, records, 2025)).toMatchObject({
+      withCopc: 1,
+      inProgress: 1,
+      noCopc: 1,
+      withoutIssuedCopc: 2,
+    });
+    expect(getChedYearSummaries(programs, records, 2025)[0]).toMatchObject({
+      withCopc: 1,
+      inProgress: 1,
+      noCopc: 1,
+      withoutIssuedCopc: 2,
+    });
   });
 
   it('includes the selected year even when it has no compliance records', () => {
@@ -114,6 +138,7 @@ describe('CHED monitoring summaries', () => {
         withCopc: 0,
         inProgress: 0,
         noCopc: 0,
+        withoutIssuedCopc: 0,
         noRecord: 1,
         unknown: 0,
         hasRqat: 0,

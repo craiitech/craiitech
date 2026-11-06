@@ -41,6 +41,15 @@ describe('CHED compliance warnings', () => {
     expect(summary.warnings.map((warning) => warning.code)).not.toContain('NO_COPC');
   });
 
+  it('reports an in-progress application as having no issued COPC', () => {
+    const summary = getProgramChedWarnings(program, compliance({ copcStatus: 'In Progress' }), 2026);
+    const codes = summary.warnings.map((warning) => warning.code);
+
+    expect(codes).toContain('COPC_NOT_ISSUED_IN_PROGRESS');
+    expect(codes).toContain('NO_COPC_PROOF_LINK');
+    expect(summary.missingOtherChed).toBe(true);
+  });
+
   it('counts missing regulatory evidence separately from other warning categories', () => {
     const record = compliance({
       copcStatus: 'With COPC',

@@ -105,6 +105,7 @@ export function VoiceAnnouncements() {
         let copcCount = 0;
         let noCopcCount = 0;
         let inProgressCopcCount = 0;
+        let noIssuedCopcCount = 0;
         let accreditedCount = 0;
         let nonAccreditedCount = 0;
         let totalOpenRecommendations = 0;
@@ -117,8 +118,11 @@ export function VoiceAnnouncements() {
 
           compliances.forEach((c) => {
             if (c.ched?.copcStatus === 'With COPC') copcCount++;
-            else if (c.ched?.copcStatus === 'No COPC') noCopcCount++;
-            else if (c.ched?.copcStatus === 'In Progress') inProgressCopcCount++;
+            else if (c.ched?.copcStatus === 'No COPC' || c.ched?.copcStatus === 'In Progress') {
+              noIssuedCopcCount++;
+              if (c.ched?.copcStatus === 'No COPC') noCopcCount++;
+              else if (c.ched?.copcStatus === 'In Progress') inProgressCopcCount++;
+            }
 
             const milestones = c.accreditationRecords || [];
             const latest = milestones.find((m) => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
@@ -145,7 +149,7 @@ export function VoiceAnnouncements() {
         }
 
         listItems.push(
-          `Second, regarding CHED compliance, there are ${copcCount} programs with active COPC certification, ${noCopcCount} programs lacking COPC, and ${inProgressCopcCount} in progress.`,
+          `Second, regarding CHED compliance, ${copcCount} programs have an issued COPC and ${noIssuedCopcCount} do not; that includes ${inProgressCopcCount} in progress and ${noCopcCount} explicitly marked No COPC.`,
         );
 
         if (accreditedCount > 0 || nonAccreditedCount > 0) {
@@ -220,6 +224,7 @@ export function VoiceAnnouncements() {
         let copcCount = 0;
         let noCopcCount = 0;
         let inProgressCopcCount = 0;
+        let noIssuedCopcCount = 0;
         let accreditedCount = 0;
         let nonAccreditedCount = 0;
         let totalOpenRecommendations = 0;
@@ -234,8 +239,11 @@ export function VoiceAnnouncements() {
 
           compliances.forEach((c) => {
             if (c.ched?.copcStatus === 'With COPC') copcCount++;
-            else if (c.ched?.copcStatus === 'No COPC') noCopcCount++;
-            else if (c.ched?.copcStatus === 'In Progress') inProgressCopcCount++;
+            else if (c.ched?.copcStatus === 'No COPC' || c.ched?.copcStatus === 'In Progress') {
+              noIssuedCopcCount++;
+              if (c.ched?.copcStatus === 'No COPC') noCopcCount++;
+              else if (c.ched?.copcStatus === 'In Progress') inProgressCopcCount++;
+            }
 
             const milestones = c.accreditationRecords || [];
             const latest = milestones.find((m) => m.lifecycleStatus === 'Current') || milestones[milestones.length - 1];
@@ -262,7 +270,7 @@ export function VoiceAnnouncements() {
         }
 
         listItems.push(
-          `Second, regarding CHED compliance on your campus, there are ${copcCount} programs with active COPC certification, ${noCopcCount} programs lacking COPC, and ${inProgressCopcCount} in progress.`,
+          `Second, regarding CHED compliance on your campus, ${copcCount} programs have an issued COPC and ${noIssuedCopcCount} do not; that includes ${inProgressCopcCount} in progress and ${noCopcCount} explicitly marked No COPC.`,
         );
 
         if (accreditedCount > 0 || nonAccreditedCount > 0) {

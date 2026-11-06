@@ -242,7 +242,7 @@ export function useNotifications() {
         try {
           const notif = new Notification(title, {
             body: options.body,
-            icon: options.icon || '/favicon.ico',
+            icon: options.icon || '/rsu-pwa-192.png',
             tag: options.tag || 'rsu-local',
           });
 
@@ -307,8 +307,8 @@ export function useNotifications() {
           if (Notification.permission === 'granted') {
             await reg.showNotification(title, {
               body: options.body,
-              icon: options.icon || '/favicon.ico',
-              badge: options.badge || '/favicon.ico',
+              icon: options.icon || '/rsu-pwa-192.png',
+              badge: options.badge || '/rsu-pwa-192.png',
               vibrate: [100, 50, 100],
               data: { url: options.link || '/dashboard' },
             } as any);

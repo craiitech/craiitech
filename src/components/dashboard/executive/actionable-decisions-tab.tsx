@@ -11,6 +11,7 @@ import type {
   Campus,
   Unit,
 } from '@/lib/types';
+import { getChedCopcCategory } from '@/lib/ched-monitoring';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -137,7 +138,8 @@ export function ActionableDecisionsTab({
         .filter((p) => p.isActive)
         .filter((p) => {
           const comp = allCompliances.find((c) => c.programId === p.id);
-          return !comp || comp.ched?.copcStatus === 'No COPC';
+          const category = getChedCopcCategory(comp);
+          return category === 'No COPC' || category === 'In Progress';
         }),
     [academicPrograms, allCompliances],
   );
@@ -358,18 +360,18 @@ export function ActionableDecisionsTab({
       {
         id: 'no-copc',
         severity: noCopcPrograms.length > 3 ? 'critical' : noCopcPrograms.length > 0 ? 'warning' : 'good',
-        title: 'Programs Without CHED COPC',
+        title: 'Programs Without Issued CHED COPC',
         value: noCopcPrograms.length,
         description:
           noCopcPrograms.length > 0
-            ? `${noCopcPrograms.length} active program(s) lack a CHED Certificate of Program Compliance — CHED regulatory exposure risk.`
-            : 'All active programs have secured CHED COPC.',
+            ? `${noCopcPrograms.length} active program(s) have no issued CHED Certificate of Program Compliance, including applications in progress.`
+            : 'All programs with recorded COPC statuses have secured a CHED COPC.',
         icon: <GraduationCap className="h-5 w-5" />,
         quadrant: 'not-urgent-high',
-        breakdownLabel: `${noCopcPrograms.length} without COPC out of ${totalActiveProgs} active programs`,
+        breakdownLabel: `${noCopcPrograms.length} without issued COPC out of ${totalActiveProgs} active programs`,
         recommendation:
           noCopcPrograms.length > 0
-            ? 'Mobilize Deans/Directors to fast-track COPC applications with the CHED regional office.'
+            ? 'Fast-track in-progress applications and agree corrective plans for programs explicitly marked No COPC.'
             : 'Maintain current compliance documentation and monitor renewals.',
         sourceInfo: 'CHED COPC Registry',
       },

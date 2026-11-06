@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
-import { toArray } from '@/lib/ched-monitoring';
+import { getChedCopcCategory, getChedYearSummaries, toArray } from '@/lib/ched-monitoring';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   BarChart3,
@@ -107,10 +107,10 @@ export function ChedProgramMonitoringTable({
         entry.totalWithRecord++;
         if (p.isNewProgram) entry.newProgram++;
 
-        const copc = c.ched?.copcStatus || 'No COPC';
+        const copc = getChedCopcCategory(c);
         if (copc === 'With COPC') entry.withCopc++;
         else if (copc === 'In Progress') entry.inProgress++;
-        else entry.noCopc++;
+        else if (copc === 'No COPC') entry.noCopc++;
 
         const accRecords = toArray(c.accreditationRecords);
         const current = accRecords.find((r) => r.lifecycleStatus === 'Current') || accRecords[accRecords.length - 1];
@@ -132,20 +132,45 @@ export function ChedProgramMonitoringTable({
       });
     });
 
-    return Array.from(yearMap.entries())
-      .map(([year, data]) => {
-        const accreditable = data.total - data.newProgram;
+    const copcSummaries = getChedYearSummaries(activePrograms, compliances, selectedYear);
+
+    return copcSummaries
+      .map((copcSummary) => {
+        const year = copcSummary.year;
+        const data = yearMap.get(year) ?? {
+          total: 0,
+          newProgram: 0,
+          withCopc: 0,
+          inProgress: 0,
+          noCopc: 0,
+          accredited: 0,
+          nonAccredited: 0,
+          levelIV: 0,
+          levelIII: 0,
+          levelII: 0,
+          levelI: 0,
+          candidate: 0,
+          totalWithRecord: 0,
+        };
+        const accreditable = copcSummary.total - data.newProgram;
         return {
           year,
           ...data,
+          total: copcSummary.total,
+          withCopc: copcSummary.withCopc,
+          inProgress: copcSummary.inProgress,
+          noCopc: copcSummary.noCopc,
+          withoutIssuedCopc: copcSummary.withoutIssuedCopc,
+          noRecord: copcSummary.noRecord,
+          unknown: copcSummary.unknown,
           accreditable,
-          copcRate: data.total > 0 ? Math.round((data.withCopc / data.total) * 100) : 0,
+          copcRate: copcSummary.copcRate,
           accreditationRate: accreditable > 0 ? Math.round((data.accredited / accreditable) * 100) : 0,
-          withoutRecord: data.total - data.totalWithRecord,
+          withoutRecord: copcSummary.noRecord,
         };
       })
       .sort((a, b) => b.year - a.year);
-  }, [activePrograms, compliances]);
+  }, [activePrograms, compliances, selectedYear]);
 
   const programDetailData = useMemo(() => {
     const currentYearCompliances = compliances.filter((c) => c.academicYear === selectedYear);
@@ -167,7 +192,7 @@ export function ChedProgramMonitoringTable({
               0)
           );
         }, 0);
-        const copcStatus = c?.ched?.copcStatus || 'No COPC';
+        const copcStatus = getChedCopcCategory(c);
         const campusName = campusMap.get(p.campusId) || 'Unknown';
         const unitName = unitMap.get(p.collegeId) || 'Unknown';
         const copcAwardDate = c?.ched?.copcAwardDate || '—';
@@ -292,10 +317,20 @@ export function ChedProgramMonitoringTable({
             <Clock className="h-3 w-3 mr-1" /> In Progress
           </Badge>
         );
-      default:
+      case 'No COPC':
         return (
           <Badge className="bg-red-100 text-red-800 border-red-200 text-[9px] font-black">
             <XCircle className="h-3 w-3 mr-1" /> No COPC
+          </Badge>
+        );
+      case 'No Record':
+        return (
+          <Badge className="bg-slate-100 text-slate-600 border-slate-200 text-[9px] font-black">No AY Record</Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-violet-100 text-violet-800 border-violet-200 text-[9px] font-black">
+            Status Unknown
           </Badge>
         );
     }
@@ -327,6 +362,9 @@ export function ChedProgramMonitoringTable({
             <td style="padding: 10px 16px; font-weight: 900; font-size: 14px; border-bottom: 1px solid #e2e8f0;">AY ${row.year}</td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.total}</td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #059669; font-weight: 700;">${row.withCopc}</span> / <span style="color: #d97706; font-weight: 700;">${row.inProgress}</span> / <span style="color: #dc2626; font-weight: 700;">${row.noCopc}</span></td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.withoutIssuedCopc}</td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.noRecord}</td>
+            <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.unknown}</td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.copcRate}%</td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0;"><span style="color: #4f46e5; font-weight: 700;">${row.accredited}</span> / <span style="color: #64748b; font-weight: 700;">${row.nonAccredited}</span></td>
             <td style="padding: 10px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; font-weight: 700;">${row.accreditationRate}%</td>
@@ -372,7 +410,10 @@ export function ChedProgramMonitoringTable({
               <tr>
                 <th style="text-align:left;">Academic Year</th>
                 <th>Programs</th>
-                <th>COPC (W/I/N)</th>
+                <th>COPC (With / In Progress / Explicit No)</th>
+                <th>No COPC Issued (In Progress + Explicit No)</th>
+                <th>No AY Record</th>
+                <th>Status Unknown</th>
                 <th>COPC Rate</th>
                 <th>Accred. (A/NA)</th>
                 <th>Accred. Rate</th>
@@ -571,6 +612,16 @@ export function ChedProgramMonitoringTable({
                             <ShieldCheck className="h-3 w-3" /> COPC Status
                           </div>
                         </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-rose-700 tracking-wider text-center">
+                          No COPC Issued
+                          <span className="block text-[7px] font-medium">In Progress + Explicit No</span>
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-slate-600 tracking-wider text-center">
+                          No AY Record
+                        </TableHead>
+                        <TableHead className="text-[9px] font-black uppercase text-violet-700 tracking-wider text-center">
+                          Status Unknown
+                        </TableHead>
                         <TableHead className="text-[9px] font-black uppercase text-slate-500 tracking-wider text-center">
                           COPC Rate
                         </TableHead>
@@ -634,9 +685,23 @@ export function ChedProgramMonitoringTable({
                               <div className="flex flex-col items-center">
                                 <span className="font-black text-red-600 text-sm">{row.noCopc}</span>
                                 <span className="text-[7px] font-bold text-red-500 uppercase tracking-wider">
-                                  NO COPC
+                                  EXPLICIT NO
                                 </span>
                               </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex flex-col items-center">
+                                <span className="font-black text-rose-700 text-sm">{row.withoutIssuedCopc}</span>
+                                <span className="text-[7px] font-bold text-rose-600 uppercase tracking-wider">
+                                  NO ISSUED COPC
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-black text-slate-600 text-sm">{row.noRecord}</span>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className="font-black text-violet-600 text-sm">{row.unknown}</span>
                             </TableCell>
                             <TableCell className="text-center">
                               <div className="flex flex-col items-center gap-0.5">

@@ -192,6 +192,15 @@ export function getProgramChedWarnings(
       description: 'Program is operating without a valid CHED Certificate of Program Compliance (COPC).',
     });
     missingOtherChed = true;
+  } else if (compliance && copcStatus === 'In Progress') {
+    warnings.push({
+      type: 'ched_copc',
+      severity: 'critical',
+      code: 'COPC_NOT_ISSUED_IN_PROGRESS',
+      title: 'COPC Not Issued (Application in Progress)',
+      description: 'The application is in progress, but the program does not yet hold an issued CHED COPC.',
+    });
+    missingOtherChed = true;
   } else if (compliance && !hasKnownCopcStatus) {
     warnings.push({
       type: 'ched_copc',
@@ -201,7 +210,9 @@ export function getProgramChedWarnings(
       description: 'A CHED monitoring record exists, but its COPC status is missing.',
     });
     missingOtherChed = true;
-  } else if ((copcStatus === 'With COPC' || copcStatus === 'In Progress') && !hasCopcEvidence(compliance)) {
+  }
+
+  if ((copcStatus === 'With COPC' || copcStatus === 'In Progress') && !hasCopcEvidence(compliance)) {
     warnings.push({
       type: 'ched_copc',
       severity: 'warning',

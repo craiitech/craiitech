@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord, Campus, Unit } from '@/lib/types';
+import { getChedCopcCategory } from '@/lib/ched-monitoring';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -175,15 +176,19 @@ export function ChedFourTierAnalytics({
     let copcCompliantCount = 0;
     let copcInProgressCount = 0;
     let copcNoCount = 0;
+    let copcNoRecordCount = 0;
+    let copcUnknownCount = 0;
     let borApprovedCount = 0;
     let curriculumNotedCount = 0;
 
     activePrograms.forEach((p) => {
       const rec = currentCompliances.find((c) => c.programId === p.id);
-      const status = rec?.ched?.copcStatus || 'No COPC';
+      const status = getChedCopcCategory(rec);
       if (status === 'With COPC') copcCompliantCount++;
       else if (status === 'In Progress') copcInProgressCount++;
-      else copcNoCount++;
+      else if (status === 'No COPC') copcNoCount++;
+      else if (status === 'No Record') copcNoRecordCount++;
+      else copcUnknownCount++;
 
       const majorApprovals = safeArray(rec?.ched?.majorBoardApprovals);
       if (rec?.ched?.boardApprovalLink || majorApprovals.length > 0) {
@@ -202,6 +207,8 @@ export function ChedFourTierAnalytics({
       { name: 'With COPC', value: copcCompliantCount, fill: '#0284c7' },
       { name: 'In Progress', value: copcInProgressCount, fill: '#f59e0b' },
       { name: 'No COPC', value: copcNoCount, fill: '#ef4444' },
+      { name: 'No AY Record', value: copcNoRecordCount, fill: '#94a3b8' },
+      { name: 'Status Unknown', value: copcUnknownCount, fill: '#8b5cf6' },
     ];
 
     // 1.2 Accreditation Breakdown (AACCUP Levels)
@@ -398,6 +405,8 @@ export function ChedFourTierAnalytics({
       copcCompliantCount,
       copcInProgressCount,
       copcNoCount,
+      copcNoRecordCount,
+      copcUnknownCount,
       copcRate,
       borApprovalRate,
       curriculumNotedRate,
@@ -621,7 +630,7 @@ export function ChedFourTierAnalytics({
     const programRisks: ProgramRiskItem[] = activePrograms.map((p) => {
       const rec = currentCompliances.find((c) => c.programId === p.id);
       const campusName = campusMap.get(p.campusId) || p.campusId;
-      const copcStatus = rec?.ched?.copcStatus || 'No COPC';
+      const copcStatus = getChedCopcCategory(rec);
       const hasCurriculumNoted = Boolean(safeArray(rec?.curriculumRecords).some((cr) => cr?.isNotedByChed));
 
       const facultyMembers = safeArray(rec?.faculty?.members);
@@ -657,6 +666,9 @@ export function ChedFourTierAnalytics({
       } else if (copcStatus === 'In Progress') {
         riskScore += 25;
         primaryDriver = 'COPC Application Pending Regional Evaluation';
+      } else if (copcStatus === 'No Record' || copcStatus === 'Status Unknown') {
+        riskScore += 25;
+        primaryDriver = 'COPC status not recorded; verify certificate and monitoring record';
       }
 
       if (!hasCurriculumNoted) {
@@ -1387,7 +1399,7 @@ export function ChedFourTierAnalytics({
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="grid grid-cols-3 gap-2 text-center pt-3 border-t text-xs">
+              <div className="grid grid-cols-5 gap-2 text-center pt-3 border-t text-xs">
                 <div>
                   <span className="text-slate-400 block text-[10px] uppercase font-bold">With COPC</span>
                   <span className="font-black text-[#0284c7] text-sm">{descriptiveMetrics.copcCompliantCount}</span>
@@ -1397,8 +1409,16 @@ export function ChedFourTierAnalytics({
                   <span className="font-black text-amber-500 text-sm">{descriptiveMetrics.copcInProgressCount}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px] uppercase font-bold">No COPC</span>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Explicit No</span>
                   <span className="font-black text-rose-500 text-sm">{descriptiveMetrics.copcNoCount}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">No AY Record</span>
+                  <span className="font-black text-slate-500 text-sm">{descriptiveMetrics.copcNoRecordCount}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-bold">Status Unknown</span>
+                  <span className="font-black text-violet-500 text-sm">{descriptiveMetrics.copcUnknownCount}</span>
                 </div>
               </div>
               <CardFooter className="bg-muted/5 border-t py-3 px-6 flex items-start gap-2.5 -mx-5 -mb-5 mt-4 rounded-b-2xl">
@@ -1698,14 +1718,14 @@ export function ChedFourTierAnalytics({
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h4 className="text-sm font-black uppercase tracking-wider flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-rose-500" /> Root Causes of Non-COPC Regulatory Gaps
+                    <AlertTriangle className="h-4 w-4 text-rose-500" /> Programs Without Issued COPC
                   </h4>
                   <p className="text-xs text-muted-foreground">
-                    Why do active programs lack official CHED COPC certification?
+                    Includes programs with applications in progress and programs explicitly marked No COPC.
                   </p>
                 </div>
                 <Badge variant="destructive" className="font-mono text-xs">
-                  {diagnosticMetrics.programsMissingCopc} Non-Compliant
+                  {diagnosticMetrics.programsMissingCopc} Without Issued COPC
                 </Badge>
               </div>
               <div className="h-64 w-full">

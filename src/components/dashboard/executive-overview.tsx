@@ -35,6 +35,7 @@ import type {
   Campus,
   Cycle,
 } from '@/lib/types';
+import { getChedCopcCategory } from '@/lib/ched-monitoring';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn, isCycleActive, isProgramInUnit, UNIT_CODES } from '@/lib/utils';
 import { TOTAL_REPORTS_PER_CYCLE } from '@/lib/constants';
@@ -843,12 +844,14 @@ export function ExecutiveOverview({
     const nonCopc =
       scopedPrograms.filter((ap) => {
         const comp = scopedCompliances.find((c) => c.programId === ap.id);
-        return !comp || comp.ched?.copcStatus === 'No COPC';
+        const category = getChedCopcCategory(comp);
+        return category === 'No COPC' || category === 'In Progress';
       }) || [];
     if (nonCopc.length > 0) {
       alerts.push({
-        title: `${nonCopc.length} Programs Lacking COPC Certificate`,
-        subtitle: 'CHED Quality compliance review needed for degree courses.',
+        title: `${nonCopc.length} Programs Without Issued COPC`,
+        subtitle:
+          'Includes programs with COPC applications in progress; missing or unknown statuses are tracked separately.',
         severity: 'high',
         icon: GraduationCap,
         section: 'CHED Programs',

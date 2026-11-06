@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 import type { AcademicProgram, ProgramComplianceRecord, Campus } from '@/lib/types';
+import { getChedCopcCategory, type ChedCopcCategory } from '@/lib/ched-monitoring';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -43,12 +44,16 @@ const COPC_COLORS: Record<string, string> = {
   'With COPC': '#10b981',
   'In Progress': '#f59e0b',
   'No COPC': '#ef4444',
+  'No Record': '#94a3b8',
+  'Status Unknown': '#8b5cf6',
 };
 
 const COPC_GRADIENTS: Record<string, string> = {
   'With COPC': 'url(#ched3d-grad-emerald)',
   'In Progress': 'url(#ched3d-grad-amber)',
   'No COPC': 'url(#ched3d-grad-rose)',
+  'No Record': '#94a3b8',
+  'Status Unknown': '#8b5cf6',
 };
 
 const LEVEL_COLORS = ['#6366f1', '#f59e0b', '#10b981'];
@@ -72,11 +77,16 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
 
   // COPC Status breakdown
   const copcStats = useMemo(() => {
-    const counts = { 'With COPC': 0, 'In Progress': 0, 'No COPC': 0 };
+    const counts: Record<ChedCopcCategory, number> = {
+      'With COPC': 0,
+      'In Progress': 0,
+      'No COPC': 0,
+      'No Record': 0,
+      'Status Unknown': 0,
+    };
     activePrograms.forEach((p) => {
       const comp = complianceMap.get(p.id);
-      const status = comp?.ched?.copcStatus || 'No COPC';
-      counts[status as keyof typeof counts] = (counts[status as keyof typeof counts] || 0) + 1;
+      counts[getChedCopcCategory(comp)]++;
     });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [activePrograms, complianceMap]);
@@ -87,37 +97,41 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
     return levels
       .map((level) => {
         const progs = activePrograms.filter((p) => p.level === level);
-        const withCopc = progs.filter((p) => complianceMap.get(p.id)?.ched?.copcStatus === 'With COPC').length;
-        const inProgress = progs.filter((p) => complianceMap.get(p.id)?.ched?.copcStatus === 'In Progress').length;
-        const noCopc = progs.filter((p) => {
-          const s = complianceMap.get(p.id)?.ched?.copcStatus;
-          return !s || s === 'No COPC';
-        }).length;
-        return { level, 'With COPC': withCopc, 'In Progress': inProgress, 'No COPC': noCopc, total: progs.length };
+        const statusCounts: Record<ChedCopcCategory, number> = {
+          'With COPC': 0,
+          'In Progress': 0,
+          'No COPC': 0,
+          'No Record': 0,
+          'Status Unknown': 0,
+        };
+        progs.forEach((p) => statusCounts[getChedCopcCategory(complianceMap.get(p.id))]++);
+        return { level, ...statusCounts, total: progs.length };
       })
       .filter((d) => d.total > 0);
   }, [activePrograms, complianceMap]);
 
   // Programs by Campus × COPC status
   const byCampus = useMemo(() => {
-    const campusData: Record<string, { withCopc: number; inProgress: number; noCopc: number }> = {};
+    const campusData: Record<string, Record<ChedCopcCategory, number>> = {};
     activePrograms.forEach((p) => {
       const campusName = campusMap.get(p.campusId) || 'Unknown';
-      if (!campusData[campusName]) campusData[campusName] = { withCopc: 0, inProgress: 0, noCopc: 0 };
-      const status = complianceMap.get(p.id)?.ched?.copcStatus || 'No COPC';
-      if (status === 'With COPC') campusData[campusName].withCopc++;
-      else if (status === 'In Progress') campusData[campusName].inProgress++;
-      else campusData[campusName].noCopc++;
+      if (!campusData[campusName]) {
+        campusData[campusName] = {
+          'With COPC': 0,
+          'In Progress': 0,
+          'No COPC': 0,
+          'No Record': 0,
+          'Status Unknown': 0,
+        };
+      }
+      campusData[campusName][getChedCopcCategory(complianceMap.get(p.id))]++;
     });
     return Object.entries(campusData)
       .map(([campus, d]) => ({
         campus: campus.replace('Campus', '').trim(),
         ...d,
-        'With COPC': d.withCopc,
-        'In Progress': d.inProgress,
-        'No COPC': d.noCopc,
       }))
-      .sort((a, b) => b['No COPC'] - a['No COPC']);
+      .sort((a, b) => b['No COPC'] + b['In Progress'] - a['No COPC'] - a['In Progress']);
   }, [activePrograms, complianceMap, campusMap]);
 
   // RQAT visit analysis
@@ -140,7 +154,7 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
           yearsAgo,
           ncCount,
           isOverdue: !lastDate || yearsAgo! > 3,
-          copcStatus: comp?.ched?.copcStatus || 'No COPC',
+          copcStatus: getChedCopcCategory(comp),
         };
       })
       .sort((a, b) => (b.yearsAgo ?? 999) - (a.yearsAgo ?? 999));
@@ -167,7 +181,9 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
   // KPI cards
   const totalActive = activePrograms.length;
   const withCopcCount = copcStats.find((s) => s.name === 'With COPC')?.value || 0;
-  const noCopcCount = copcStats.find((s) => s.name === 'No COPC')?.value || 0;
+  const noCopcCount =
+    (copcStats.find((s) => s.name === 'No COPC')?.value || 0) +
+    (copcStats.find((s) => s.name === 'In Progress')?.value || 0);
   const boardCount = activePrograms.filter((p) => p.isBoardProgram).length;
   const overdueRqat = rqatData.filter((d) => d.isOverdue).length;
 
@@ -208,7 +224,7 @@ export function ChedProgramsTab({ academicPrograms, allCompliances, campuses, se
             bg: 'bg-emerald-50',
           },
           {
-            label: 'No COPC / At Risk',
+            label: 'No COPC Issued / In Progress',
             value: noCopcCount,
             icon: <AlertTriangle className="h-5 w-5" />,
             color: 'text-red-600',
