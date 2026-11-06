@@ -1,6 +1,6 @@
-const CACHE_NAME = 'rsu-eoms-cache-v3';
-const DYNAMIC_CACHE_NAME = 'rsu-eoms-dynamic-v3';
-const STATIC_CHUNKS_CACHE = 'rsu-eoms-chunks-v3';
+const CACHE_NAME = 'rsu-eoms-cache-v4';
+const DYNAMIC_CACHE_NAME = 'rsu-eoms-dynamic-v4';
+const STATIC_CHUNKS_CACHE = 'rsu-eoms-chunks-v4';
 
 // Core assets to pre-cache on install
 const urlsToCache = [
@@ -9,6 +9,8 @@ const urlsToCache = [
   '/audit',
   '/globals.css',
   '/favicon.ico',
+  '/rsu-pwa-192.png',
+  '/rsu-pwa-512.png',
 ];
 
 self.addEventListener('install', (event) => {
@@ -151,8 +153,8 @@ self.addEventListener('push', (event) => {
   let data = {
     title: 'UAQA Portal Notification',
     body: 'You have a new institutional update.',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/rsu-pwa-192.png',
+    badge: '/rsu-pwa-192.png',
     data: { url: '/dashboard' },
   };
 
@@ -169,8 +171,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: data.icon || '/favicon.ico',
-    badge: data.badge || '/favicon.ico',
+    icon: data.icon || '/rsu-pwa-192.png',
+    badge: data.badge || '/rsu-pwa-192.png',
     vibrate: [100, 50, 100],
     data: data.data || { url: '/dashboard' },
     actions: data.actions || [
@@ -224,4 +226,3 @@ self.addEventListener('message', (event) => {
     );
   }
 });
-
