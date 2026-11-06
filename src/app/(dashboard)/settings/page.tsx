@@ -151,7 +151,7 @@ export default function SettingsPage() {
                   value="eoms-policy-manual"
                   className="text-[10px] font-black uppercase tracking-widest px-6 h-8"
                 >
-                  UAQA Portal Manual
+                  RSU EDUCATIONAL ORGANIZATIONS MANAGEMENT SYSTEM MANUAL (ISO 21001:2018 STANDARD)
                 </TabsTrigger>
                 <TabsTrigger value="cycles" className="text-[10px] font-black uppercase tracking-widest px-6 h-8">
                   Cycles & Deadlines
