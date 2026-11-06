@@ -33,6 +33,7 @@ import {
   Link as LinkIcon,
   Plus,
   X,
+  Printer,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
@@ -52,6 +53,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { cn } from '@/lib/utils';
+import { formatManagementReviewDate, printManagementReviewEvidenceReport } from './management-review-evidence-print';
 
 interface EqaOfiMonitoringTabProps {
   campuses: Campus[];
@@ -356,6 +358,97 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
     setIsDialogOpen(true);
   };
 
+  const getPrintRows = () =>
+    filteredRows.map(({ ofi, target }) => ({
+      title: `${target.unitName || unitMap.get(target.unitId) || 'Unit'} — ${ofi.certifyingBody || 'External Auditor'}`,
+      status: target.status || 'Pending Action',
+      details: [
+        `Campus: ${campusMap.get(target.campusId) || 'Not recorded'}`,
+        `Audit date: ${formatManagementReviewDate(ofi.auditDate)}`,
+        `Standard: ${ofi.standard || 'Not recorded'}`,
+        `External auditor OFI: ${ofi.ofiStatement || 'Not recorded'}`,
+        `Unit action taken / action plan: ${target.actionTaken?.trim() || 'No action logged yet.'}`,
+        `Target date: ${formatManagementReviewDate(target.targetDate)}`,
+        ...(target.evidenceLink ? [`Action evidence: ${target.evidenceLink}`] : []),
+        ...(ofi.remarks?.trim() ? [`Monitoring remarks: ${ofi.remarks.trim()}`] : []),
+      ],
+    }));
+
+  const handlePrintManagementReview = () => {
+    const printRows = getPrintRows();
+    const statusCounts = new Map<string, number>();
+    printRows.forEach((row) => statusCounts.set(row.status, (statusCounts.get(row.status) || 0) + 1));
+
+    printManagementReviewEvidenceReport({
+      title: 'External Audit OFI Actions — Management Review Brief',
+      source: 'External Audit OFI Actions Taken Monitoring',
+      period: 'All audit dates represented in the current monitoring results',
+      scope:
+        campusFilter !== 'all'
+          ? campusMap.get(campusFilter) || 'Selected campus'
+          : isInstitutionalViewer
+            ? 'All campuses visible under current filters'
+            : userProfile?.unitName || 'Current user unit',
+      summary: [
+        { label: 'Assigned unit actions', value: String(printRows.length) },
+        { label: 'Pending action', value: String(statusCounts.get('Pending Action') || 0) },
+        { label: 'In progress', value: String(statusCounts.get('In Progress') || 0) },
+        { label: 'Completed', value: String(statusCounts.get('Completed') || 0) },
+        { label: 'Verified by QAO', value: String(statusCounts.get('Verified by QAO') || 0) },
+      ],
+      sections: [
+        {
+          title: 'Management review notes',
+          items: [
+            `${printRows.length} assigned unit action(s) are included based on the current access scope, search, campus, and status filters.`,
+            `${statusCounts.get('Pending Action') || 0} assigned action(s) remain pending; confirm action owners and target dates.`,
+            `${statusCounts.get('In Progress') || 0} assigned action(s) are in progress and should be reviewed for adequate evidence and resources.`,
+            `${(statusCounts.get('Completed') || 0) + (statusCounts.get('Verified by QAO') || 0)} assigned action(s) are completed or verified; check evidence and effectiveness before closure.`,
+          ],
+        },
+      ],
+      records: printRows,
+      references: [
+        'This report summarizes the current External Audit OFI monitoring records; it does not replace approved Management Review minutes.',
+        'Action status and evidence are reported as entered by the assigned unit or reviewer.',
+      ],
+    });
+  };
+
+  const handlePrintUnitActions = () => {
+    const printRows = getPrintRows();
+    const statusCounts = new Map<string, number>();
+    printRows.forEach((row) => statusCounts.set(row.status, (statusCounts.get(row.status) || 0) + 1));
+
+    printManagementReviewEvidenceReport({
+      title: 'External Audit OFI — Unit Actions Taken Register',
+      source: 'External Audit OFI Actions Taken Monitoring',
+      period: 'All audit dates represented in the current monitoring results',
+      scope:
+        campusFilter !== 'all'
+          ? campusMap.get(campusFilter) || 'Selected campus'
+          : isInstitutionalViewer
+            ? 'Unit responses visible under current filters'
+            : userProfile?.unitName || 'Current user unit',
+      summary: [
+        { label: 'Unit action records', value: String(printRows.length) },
+        { label: 'Pending action', value: String(statusCounts.get('Pending Action') || 0) },
+        { label: 'In progress', value: String(statusCounts.get('In Progress') || 0) },
+        { label: 'Completed', value: String(statusCounts.get('Completed') || 0) },
+        { label: 'Verified by QAO', value: String(statusCounts.get('Verified by QAO') || 0) },
+      ],
+      sections: [
+        {
+          title: 'Report scope',
+          items: [
+            `Includes ${printRows.length} unit action record(s) matching the current search, campus, status, and access scope.`,
+          ],
+        },
+      ],
+      records: printRows,
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
@@ -369,15 +462,35 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
             Systematic tracking of corrective actions and improvements for External Quality Audit (EQA) observations.
           </p>
         </div>
-        {canManage && (
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
-            onClick={openCreate}
+            onClick={handlePrintManagementReview}
             size="sm"
-            className="shadow-lg shadow-primary/20 shrink-0 font-black uppercase text-[10px] tracking-widest"
+            variant="outline"
+            disabled={isLoading || filteredRows.length === 0}
+            className="shrink-0 font-black uppercase text-[10px] tracking-widest"
           >
-            <PlusCircle className="mr-2 h-4 w-4" /> Log External OFI
+            <Printer className="mr-2 h-4 w-4" /> Print Management Review
           </Button>
-        )}
+          <Button
+            onClick={handlePrintUnitActions}
+            size="sm"
+            variant="outline"
+            disabled={isLoading || filteredRows.length === 0}
+            className="shrink-0 font-black uppercase text-[10px] tracking-widest"
+          >
+            <Printer className="mr-2 h-4 w-4" /> Print Unit Actions
+          </Button>
+          {canManage && (
+            <Button
+              onClick={openCreate}
+              size="sm"
+              className="shadow-lg shadow-primary/20 shrink-0 font-black uppercase text-[10px] tracking-widest"
+            >
+              <PlusCircle className="mr-2 h-4 w-4" /> Log External OFI
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Summary KPI Cards */}

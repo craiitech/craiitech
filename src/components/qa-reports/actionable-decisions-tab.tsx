@@ -14,6 +14,8 @@ import {
   addDoc,
 } from '@/firebase/firestore-wrapper';
 import type { ManagementReviewOutput, Campus, Unit, ManagementReview, ActionEntry, Signatories } from '@/lib/types';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
+import { TrackingHistoryDialog } from '@/components/common/tracking-history-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -769,10 +771,20 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
     setIsSubmitting(true);
     try {
       const docRef = doc(firestore, 'managementReviewOutputs', selectedOutput.id);
+      const historyEvent = createTrackingHistoryEntry({
+        action: 'Actionable decision progress updated',
+        fromStatus: selectedOutput.status,
+        toStatus: values.status,
+        remarks: values.followUpRemarks,
+        actorId: userProfile?.id,
+        actorName: `${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`.trim() || userProfile?.email,
+        actorRole: userRole || 'Unit User',
+      });
       const updateData: any = {
         ...values,
         actionDate: Timestamp.fromDate(new Date(values.actionDate)),
         updatedAt: serverTimestamp(),
+        trackingHistory: arrayUnion(historyEvent),
       };
 
       if (isAdmin && values.status === 'Closed') {
@@ -781,6 +793,14 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
       }
 
       await updateDoc(docRef, updateData);
+      if (previewOutput?.id === selectedOutput.id) {
+        setPreviewOutput({
+          ...previewOutput,
+          ...values,
+          actionDate: Timestamp.fromDate(new Date(values.actionDate)),
+          trackingHistory: [...(previewOutput.trackingHistory || []), historyEvent],
+        });
+      }
       toast({ title: 'Update Recorded', description: 'Your action update has been successfully logged.' });
       setIsUpdateDialogOpen(false);
     } catch (error) {
@@ -848,11 +868,23 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
 
       const existingActions = selectedOutput.actionEntries || [];
       const updatedActions = [...existingActions, newAction];
+      const nextStatus = selectedOutput.status === 'Open' ? 'On-going' : selectedOutput.status;
+      const historyEvent = createTrackingHistoryEntry({
+        action: 'Unit action submitted',
+        fromStatus: selectedOutput.status,
+        toStatus: nextStatus,
+        remarks: values.description,
+        actorId: userProfile.id,
+        actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim(),
+        actorRole: userRole || 'Unit User',
+        unitId: values.unitId,
+      });
 
       await updateDoc(docRef, {
         actionEntries: arrayUnion(newAction),
         updatedAt: serverTimestamp(),
-        status: selectedOutput.status === 'Open' ? 'On-going' : selectedOutput.status,
+        status: nextStatus,
+        trackingHistory: arrayUnion(historyEvent),
       });
 
       // Synchronize previewOutput if currently viewed in preview modal
@@ -860,7 +892,8 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
         setPreviewOutput({
           ...previewOutput,
           actionEntries: updatedActions,
-          status: previewOutput.status === 'Open' ? 'On-going' : previewOutput.status,
+          status: nextStatus,
+          trackingHistory: [...(previewOutput.trackingHistory || []), historyEvent],
         });
       }
 
@@ -933,16 +966,29 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
             }
           : a,
       );
+      const historyEvent = createTrackingHistoryEntry({
+        action: 'Unit action verified',
+        status: selectedOutput.status,
+        remarks:
+          confirmationFeedback ||
+          `Action from ${selectedActionEntry.unitName || selectedActionEntry.submittedBy} confirmed.`,
+        actorId: userProfile.id,
+        actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim(),
+        actorRole: userRole || 'Administrator',
+        unitId: selectedActionEntry.unitId,
+      });
 
       await updateDoc(docRef, {
         actionEntries: updatedActions,
         updatedAt: serverTimestamp(),
+        trackingHistory: arrayUnion(historyEvent),
       });
 
       if (previewOutput && previewOutput.id === selectedOutput.id) {
         setPreviewOutput({
           ...previewOutput,
           actionEntries: updatedActions,
+          trackingHistory: [...(previewOutput.trackingHistory || []), historyEvent],
         });
       }
 
@@ -1542,20 +1588,51 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                       <div className="space-y-3">
                         <div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase">Current Status</p>
-                          <Badge
-                            className={cn(
-                              'text-[9px] font-black uppercase border-none h-5 px-2 mt-1',
-                              previewOutput.status === 'Open'
-                                ? 'bg-rose-600 text-white'
-                                : previewOutput.status === 'On-going'
-                                  ? 'bg-amber-500 text-amber-950'
-                                  : previewOutput.status === 'Submit for Closure Verification'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-emerald-600 text-white',
-                            )}
-                          >
-                            {previewOutput.status}
-                          </Badge>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <Badge
+                              className={cn(
+                                'text-[9px] font-black uppercase border-none h-5 px-2 mt-1',
+                                previewOutput.status === 'Open'
+                                  ? 'bg-rose-600 text-white'
+                                  : previewOutput.status === 'On-going'
+                                    ? 'bg-amber-500 text-amber-950'
+                                    : previewOutput.status === 'Submit for Closure Verification'
+                                      ? 'bg-blue-600 text-white'
+                                      : 'bg-emerald-600 text-white',
+                              )}
+                            >
+                              {previewOutput.status}
+                            </Badge>
+                            <TrackingHistoryDialog
+                              title={`Actionable Decision — ${previewOutput.description}`}
+                              status={previewOutput.status}
+                              events={
+                                previewOutput.trackingHistory?.length
+                                  ? previewOutput.trackingHistory.filter(
+                                      (event) =>
+                                        !['Unit Coordinator', 'Unit ODIMO', 'Unit Head'].includes(userRole || '') ||
+                                        !event.unitId ||
+                                        event.unitId === userProfile?.unitId,
+                                    )
+                                  : previewOutput.actionEntries?.map((entry) => ({
+                                      action: entry.isConfirmed ? 'Unit action confirmed' : 'Unit action submitted',
+                                      status: entry.actionStatus,
+                                      remarks: entry.confirmationRemarks
+                                        ? `${entry.description}\n${entry.confirmationRemarks}`
+                                        : entry.description,
+                                      actorId: entry.confirmedById || entry.submittedById,
+                                      actorName: entry.confirmedBy || entry.submittedBy,
+                                      unitId: entry.unitId,
+                                      createdAt: entry.confirmationDate || entry.submittedAt,
+                                    }))
+                              }
+                              createdAt={previewOutput.createdAt}
+                              submittedBy={previewOutput.initiator}
+                              processOwner={previewOutput.verifiedBy}
+                              size="sm"
+                              className="h-7 px-2 text-[9px]"
+                            />
+                          </div>
                         </div>
                         <div>
                           <p className="text-[9px] font-bold text-slate-400 uppercase">Follow-up Deadline</p>

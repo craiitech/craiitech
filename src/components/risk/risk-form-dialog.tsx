@@ -30,6 +30,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useState, useEffect, useMemo } from 'react';
 import type { Risk, User as AppUser, Unit, Campus } from '@/lib/types';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
 import {
   Loader2,
   Sparkles,
@@ -246,7 +247,7 @@ export function RiskFormDialog({
   defaultCampusId,
   defaultCycleId,
 }: RiskFormDialogProps) {
-  const { user, userProfile, isAdmin } = useUser();
+  const { user, userProfile, isAdmin, userRole } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
   const searchParams = useSearchParams();
@@ -542,6 +543,24 @@ export function RiskFormDialog({
         isFinalAssessmentNA: values.cycleId === 'first' ? true : values.isFinalAssessmentNA || false,
         cycleId: values.cycleId,
         updatedAt: serverTimestamp(),
+        trackingHistory: [
+          ...(activeRisk?.trackingHistory || []),
+          createTrackingHistoryEntry({
+            action: activeRisk ? 'Digital risk/opportunity updated' : 'Digital risk/opportunity recorded',
+            fromStatus: activeRisk?.status,
+            toStatus: values.status || 'Open',
+            remarks:
+              activeRisk?.status !== (values.status || 'Open')
+                ? `Status changed from ${activeRisk?.status || 'Not recorded'} to ${values.status || 'Open'}.`
+                : values.updates?.trim() ||
+                  values.treatmentAction?.trim() ||
+                  `${values.type || 'Risk'} assessment details updated.`,
+            actorId: user.uid,
+            actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+            actorRole: userRole || 'Unit User',
+            unitId: targetUnitId,
+          }),
+        ],
       };
 
       if (values.cycleId === 'final') {

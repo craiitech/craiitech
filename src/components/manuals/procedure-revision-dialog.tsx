@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from '@/firebase/firestore-wrapper';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import {
   Loader2,
@@ -48,6 +48,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { getOfficialServerTime } from '@/lib/actions';
 import { format } from 'date-fns';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -211,6 +212,18 @@ export function ProcedureRevisionDialog({
           revisedParts: sanitizedParts,
           status: 'Submitted' as ProcedureRevisionRequestStatus,
           updatedAt: serverTimestamp(),
+          trackingHistory: arrayUnion(
+            createTrackingHistoryEntry({
+              action: 'Procedure application resubmitted',
+              fromStatus: request.status,
+              toStatus: 'Submitted',
+              remarks: 'Corrected application resubmitted for review.',
+              actorId: userProfile.id,
+              actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+              actorRole: userRole || 'Unit User',
+              unitId: unit.isShared ? 'academic-shared' : unit.id,
+            }),
+          ),
         });
         toast({ title: 'Application Resubmitted', description: 'Your corrections have been logged.' });
       } else {
@@ -227,6 +240,17 @@ export function ProcedureRevisionDialog({
           status: 'Submitted' as ProcedureRevisionRequestStatus,
           controlNumber,
           comments: [],
+          trackingHistory: [
+            createTrackingHistoryEntry({
+              action: 'Procedure application submitted',
+              toStatus: 'Submitted',
+              remarks: `Application for ${values.requestType.toLowerCase()} procedure registration/revision submitted.`,
+              actorId: userProfile.id,
+              actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+              actorRole: userRole || 'Unit User',
+              unitId: unit.isShared ? 'academic-shared' : unit.id,
+            }),
+          ],
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };

@@ -53,6 +53,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
 
 interface ProcedureRevisionReviewDialogProps {
   requestId: string;
@@ -167,6 +168,17 @@ export function ProcedureRevisionReviewDialog({
           authorRole: userRole || 'Member',
           createdAt: new Date(),
         }),
+        trackingHistory: arrayUnion(
+          createTrackingHistoryEntry({
+            action: 'Discussion comment added',
+            status: request.status,
+            remarks: discussionComment.trim(),
+            actorId: userProfile.id,
+            actorName: `${userProfile.firstName} ${userProfile.lastName}`,
+            actorRole: userRole || 'Member',
+            unitId: request.unitId,
+          }),
+        ),
         updatedAt: serverTimestamp(),
       });
       setDiscussionComment('');
@@ -215,6 +227,18 @@ export function ProcedureRevisionReviewDialog({
       const updateData: any = {
         status: newStatus,
         updatedAt: serverTimestamp(),
+        trackingHistory: arrayUnion(
+          createTrackingHistoryEntry({
+            action: 'Procedure application status updated',
+            fromStatus: request.status,
+            toStatus: newStatus,
+            remarks: commentText || `Application status changed to ${newStatus}.`,
+            actorId: userProfile.id,
+            actorName: `${userProfile.firstName} ${userProfile.lastName}`,
+            actorRole: userRole || 'Administrator',
+            unitId: request.unitId,
+          }),
+        ),
       };
 
       if (commentText) {

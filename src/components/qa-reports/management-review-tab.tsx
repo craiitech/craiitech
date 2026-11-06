@@ -13,8 +13,10 @@ import {
   Timestamp,
   updateDoc,
   deleteDoc,
+  arrayUnion,
 } from '@/firebase/firestore-wrapper';
 import type { ManagementReview, ManagementReviewOutput, Campus, Unit, MRAttendee } from '@/lib/types';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -549,11 +551,34 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
       };
 
       if (editingOutput) {
-        await updateDoc(doc(firestore, 'managementReviewOutputs', editingOutput.id), dataToSave);
+        await updateDoc(doc(firestore, 'managementReviewOutputs', editingOutput.id), {
+          ...dataToSave,
+          trackingHistory: arrayUnion(
+            createTrackingHistoryEntry({
+              action: 'Actionable decision updated',
+              fromStatus: editingOutput.status,
+              toStatus: values.status,
+              remarks: `Decision details updated${editingOutput.status !== values.status ? `; status changed to ${values.status}` : ''}.`,
+              actorId: userProfile?.id,
+              actorName: `${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`.trim() || userProfile?.email,
+              actorRole: userRole || 'Administrator',
+            }),
+          ),
+        });
         toast({ title: 'Success', description: 'Decision updated.' });
       } else {
         await addDoc(collection(firestore, 'managementReviewOutputs'), {
           ...dataToSave,
+          trackingHistory: [
+            createTrackingHistoryEntry({
+              action: 'Actionable decision issued',
+              toStatus: values.status,
+              remarks: 'Decision assigned for unit action and follow-up.',
+              actorId: userProfile?.id,
+              actorName: `${userProfile?.firstName || ''} ${userProfile?.lastName || ''}`.trim() || userProfile?.email,
+              actorRole: userRole || 'Administrator',
+            }),
+          ],
           createdAt: serverTimestamp(),
         });
         toast({ title: 'Success', description: 'Decision logged.' });

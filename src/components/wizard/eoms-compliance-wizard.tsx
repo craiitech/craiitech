@@ -16,6 +16,7 @@ import {
 } from '@/firebase/firestore-wrapper';
 import { useYear } from '@/lib/year-provider';
 import { getEomsPlanDataIds } from '@/lib/eoms-cycle-data';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -1152,6 +1153,17 @@ export function EomsComplianceWizard({
         responsiblePersonName: riskResponsible.trim() || `${userProfile.firstName} ${userProfile.lastName}`,
         targetDate: riskTargetDate.trim() || 'Q4',
         status: 'Open',
+        trackingHistory: [
+          createTrackingHistoryEntry({
+            action: 'Digital risk/opportunity recorded',
+            toStatus: 'Open',
+            remarks: `${riskType} entry added to the unit digital register.`,
+            actorId: userProfile.id,
+            actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+            actorRole: userRole || 'Unit User',
+            unitId: selectedUnitId,
+          }),
+        ],
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       });

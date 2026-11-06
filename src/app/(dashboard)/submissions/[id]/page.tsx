@@ -15,6 +15,8 @@ import {
 } from '@/firebase/firestore-wrapper';
 import { useParams, useRouter } from 'next/navigation';
 import type { Submission, User as AppUser, Campus, Unit, Comment, Risk, Signatories } from '@/lib/types';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
+import { TrackingHistoryDialog } from '@/components/common/tracking-history-dialog';
 import { syncDigitalSubmissionStatusToPlan } from '@/lib/digital-submission-sync';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -310,7 +312,21 @@ export default function SubmissionDetailPage() {
     if (!firestore || !submissionDocRef || !user || !userProfile) return;
     setIsSubmitting(true);
 
-    const updateData: any = { statusId: 'approved' };
+    const updateData: any = {
+      statusId: 'approved',
+      trackingHistory: arrayUnion(
+        createTrackingHistoryEntry({
+          action: submission?.isDraft ? 'Draft clearance' : 'Submission approved',
+          fromStatus: submission?.statusId,
+          toStatus: submission?.isDraft ? 'Draft cleared' : 'Approved',
+          remarks:
+            feedback.trim() || (submission?.isDraft ? 'Draft cleared for final submission.' : 'Submission approved.'),
+          actorId: user.uid,
+          actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim(),
+          actorRole: userRole || 'Approver',
+        }),
+      ),
+    };
 
     if (feedback) {
       const newComment: Comment = {
@@ -409,7 +425,21 @@ export default function SubmissionDetailPage() {
       createdAt: new Date(),
       authorRole: userRole || 'User',
     };
-    const updateData = { statusId: 'rejected', comments: arrayUnion(newComment) };
+    const updateData = {
+      statusId: 'rejected',
+      comments: arrayUnion(newComment),
+      trackingHistory: arrayUnion(
+        createTrackingHistoryEntry({
+          action: 'Submission returned for correction',
+          fromStatus: submission?.statusId,
+          toStatus: 'Rejected',
+          remarks: rejectionComment,
+          actorId: user.uid,
+          actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim(),
+          actorRole: userRole || 'Approver',
+        }),
+      ),
+    };
     updateDoc(submissionDocRef, updateData)
       .then(async () => {
         if (submission) {
@@ -471,6 +501,17 @@ export default function SubmissionDetailPage() {
         revision: nextRevision,
         controlNumber: nextControlNumber,
         isDraft: finalDraftStatus,
+        trackingHistory: arrayUnion(
+          createTrackingHistoryEntry({
+            action: 'EOMS revision resubmitted',
+            fromStatus: submission.statusId,
+            toStatus: finalDraftStatus ? 'Draft submitted' : 'Submitted',
+            remarks: `Revision ${nextRevision} submitted for review.`,
+            actorId: user.uid,
+            actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+            actorRole: userRole || 'Unit User',
+          }),
+        ),
       };
       if (newComment) {
         const comment: Comment = {
@@ -504,6 +545,17 @@ export default function SubmissionDetailPage() {
           verifiedBy: `${userProfile.firstName} ${userProfile.lastName}`,
           verifiedAt: serverTimestamp(),
         },
+        trackingHistory: arrayUnion(
+          createTrackingHistoryEntry({
+            action: 'Digital risk/opportunity verification recorded',
+            status: existingRisks?.find((risk) => risk.id === riskId)?.status,
+            remarks: `QA marked this digital entry as ${status}.`,
+            actorId: userProfile.id,
+            actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+            actorRole: userRole || 'Approver',
+            unitId: existingRisks?.find((risk) => risk.id === riskId)?.unitId,
+          }),
+        ),
       });
       toast({ title: 'Verification Recorded', description: `Digital entry marked as ${status}.` });
     } catch (e) {
@@ -560,6 +612,17 @@ export default function SubmissionDetailPage() {
         dataEntryCompletedBy: userProfile.id || user?.uid || '',
         dataEntryCompletedByName:
           `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email || 'Admin',
+        trackingHistory: arrayUnion(
+          createTrackingHistoryEntry({
+            action: 'Hard-copy data entry completed',
+            status: submission?.statusId,
+            remarks: 'Hard-copy submission data was encoded into the system database.',
+            actorId: userProfile.id,
+            actorName:
+              `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email || 'Admin',
+            actorRole: userRole || 'Administrator',
+          }),
+        ),
       });
       toast({
         title: 'Data Entry Completed',
@@ -648,6 +711,28 @@ export default function SubmissionDetailPage() {
           )}
           {isHistoryVisible ? 'Hide History' : 'Show History'}
         </Button>
+        <TrackingHistoryDialog
+          title={`${submission.reportType} — ${submission.unitName} (${submission.controlNumber})`}
+          status={getStatusText(submission)}
+          events={
+            submission.trackingHistory?.length
+              ? submission.trackingHistory
+              : submission.comments?.map((comment) =>
+                  createTrackingHistoryEntry({
+                    action: 'Submission comment',
+                    remarks: comment.text,
+                    actorId: comment.authorId,
+                    actorName: comment.authorName,
+                    actorRole: comment.authorRole,
+                    createdAt: comment.createdAt,
+                  }),
+                )
+          }
+          createdAt={submission.submissionDate}
+          processOwner={submission.dataEntryCompletedByName}
+          size="sm"
+          className="shrink-0"
+        />
       </div>
 
       <div

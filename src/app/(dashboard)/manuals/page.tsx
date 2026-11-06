@@ -48,6 +48,7 @@ import { format } from 'date-fns';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ProcedureRevisionDialog } from '@/components/manuals/procedure-revision-dialog';
 import { ProcedureRevisionReviewDialog } from '@/components/manuals/procedure-revision-review-dialog';
+import { TrackingHistoryDialog } from '@/components/common/tracking-history-dialog';
 import { ProcedureManualProcessSlider } from '@/components/manuals/procedure-manual-process-slider';
 import { ProcedureManualsVisualization } from '@/components/manuals/procedure-manuals-visualization';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -987,6 +988,26 @@ export default function ProcedureManualsPage() {
                                               <Edit className="h-4 w-4" />
                                             </Button>
                                           )}
+                                          <TrackingHistoryDialog
+                                            title={`Procedure ${req.requestType === 'New' ? 'Registration' : 'Revision'} — ${req.controlNumber || req.unitName}`}
+                                            status={req.status}
+                                            events={
+                                              req.trackingHistory?.length
+                                                ? req.trackingHistory
+                                                : req.comments?.map((comment) => ({
+                                                    action: 'Review comment',
+                                                    remarks: comment.text,
+                                                    actorId: comment.authorId,
+                                                    actorName: comment.authorName,
+                                                    actorRole: comment.authorRole,
+                                                    createdAt: comment.createdAt,
+                                                  }))
+                                            }
+                                            createdAt={req.createdAt}
+                                            submittedBy={req.submitterName}
+                                            size="sm"
+                                            className="h-8 w-8 px-0"
+                                          />
                                           <Button
                                             variant="ghost"
                                             size="icon"

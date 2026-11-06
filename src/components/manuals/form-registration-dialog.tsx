@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useUser, useFirestore } from '@/firebase';
-import { collection, addDoc, serverTimestamp, doc, updateDoc } from '@/firebase/firestore-wrapper';
+import { collection, addDoc, serverTimestamp, doc, updateDoc, arrayUnion } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
 import {
   Loader2,
@@ -48,6 +48,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Label } from '../ui/label';
 import { getOfficialServerTime } from '@/lib/actions';
 import { format } from 'date-fns';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -229,6 +230,18 @@ export function FormRegistrationDialog({
           requestedForms: sanitizedForms,
           status: 'QA Review' as UnitFormRequestStatus,
           updatedAt: serverTimestamp(),
+          trackingHistory: arrayUnion(
+            createTrackingHistoryEntry({
+              action: 'Unit form application resubmitted',
+              fromStatus: request.status,
+              toStatus: 'QA Review',
+              remarks: 'Corrected application resubmitted for QA review.',
+              actorId: userProfile.id,
+              actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+              actorRole: userRole || 'Unit User',
+              unitId: unit.isShared ? 'academic-shared' : unit.id,
+            }),
+          ),
         });
         toast({ title: 'Request Resubmitted', description: 'Your corrections have been logged.' });
       } else {
@@ -244,6 +257,17 @@ export function FormRegistrationDialog({
           status: 'QA Review' as UnitFormRequestStatus,
           controlNumber,
           comments: [],
+          trackingHistory: [
+            createTrackingHistoryEntry({
+              action: 'Unit form application submitted',
+              toStatus: 'QA Review',
+              remarks: 'Application submitted for registration and review.',
+              actorId: userProfile.id,
+              actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+              actorRole: userRole || 'Unit User',
+              unitId: unit.isShared ? 'academic-shared' : unit.id,
+            }),
+          ],
           createdAt: serverTimestamp(),
           updatedAt: serverTimestamp(),
         };

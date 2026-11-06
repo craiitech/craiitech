@@ -31,6 +31,7 @@ import {
 import { format, differenceInDays } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 import { cn, parseDateSafe } from '@/lib/utils';
+import { TrackingHistoryDialog } from '@/components/common/tracking-history-dialog';
 
 interface RiskTableProps {
   risks: Risk[];
@@ -427,40 +428,69 @@ export function RiskTable({
               {formatDate(risk.updatedAt)}
             </TableCell>
             <TableCell className="text-right pr-6 whitespace-nowrap">
-              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Button
-                  variant="outline"
+              <div className="flex items-center justify-end gap-2">
+                <TrackingHistoryDialog
+                  title={`${risk.type} — ${risk.description}`}
+                  status={risk.status}
+                  events={
+                    risk.trackingHistory?.length
+                      ? risk.trackingHistory
+                      : risk.updates || risk.auditorRemarks
+                        ? [
+                            {
+                              action: 'Existing monitoring update',
+                              remarks: [risk.updates, risk.auditorRemarks].filter(Boolean).join('\n'),
+                              actorName: risk.auditorRemarksBy || risk.responsiblePersonName,
+                              createdAt: risk.auditorRemarksAt || risk.updatedAt,
+                            },
+                          ]
+                        : []
+                  }
+                  createdAt={risk.createdAt}
+                  submittedBy={
+                    [usersMap.get(risk.userId)?.firstName, usersMap.get(risk.userId)?.lastName]
+                      .filter(Boolean)
+                      .join(' ') || undefined
+                  }
+                  processOwner={risk.responsiblePersonName}
                   size="sm"
-                  className="h-7 text-[9px] font-black uppercase tracking-widest bg-white shadow-sm"
-                  onClick={() => onEdit(risk)}
-                >
-                  Edit | Update
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel className="text-[10px] uppercase font-black">Controls</DropdownMenuLabel>
-                    <DropdownMenuItem onClick={() => onEdit(risk)} className="text-xs font-bold">
-                      <Edit className="h-3.5 w-3.5 mr-2" /> Modify Entry
-                    </DropdownMenuItem>
-                    {onViewForm && (
-                      <DropdownMenuItem onClick={() => onViewForm(risk)} className="text-xs font-bold text-primary">
-                        <FileSearch className="h-3.5 w-3.5 mr-2" /> View Submitted Form
+                  className="h-7 px-2 text-[9px]"
+                />
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-[9px] font-black uppercase tracking-widest bg-white shadow-sm"
+                    onClick={() => onEdit(risk)}
+                  >
+                    Edit | Update
+                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel className="text-[10px] uppercase font-black">Controls</DropdownMenuLabel>
+                      <DropdownMenuItem onClick={() => onEdit(risk)} className="text-xs font-bold">
+                        <Edit className="h-3.5 w-3.5 mr-2" /> Modify Entry
                       </DropdownMenuItem>
-                    )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => onDelete(risk)}
-                      className="text-xs font-bold text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Entry
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                      {onViewForm && (
+                        <DropdownMenuItem onClick={() => onViewForm(risk)} className="text-xs font-bold text-primary">
+                          <FileSearch className="h-3.5 w-3.5 mr-2" /> View Submitted Form
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => onDelete(risk)}
+                        className="text-xs font-bold text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete Entry
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </TableCell>
           </TableRow>

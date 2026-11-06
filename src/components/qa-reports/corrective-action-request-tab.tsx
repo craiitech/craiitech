@@ -24,6 +24,8 @@ import type {
   AuditFinding,
   AuditSchedule,
 } from '@/lib/types';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
+import { TrackingHistoryDialog } from '@/components/common/tracking-history-dialog';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -452,6 +454,19 @@ export function CorrectiveActionRequestTab({
         lastUpdatedBy: userProfile?.id || 'admin',
         lastUpdatedByName: authorName,
         lastUpdatedByRole: userRole || 'Administrator',
+        trackingHistory: arrayUnion(
+          createTrackingHistoryEntry({
+            action: nextActionType ? 'Next CAR action scheduled' : 'CAR verification date updated',
+            status: targetCar.status,
+            remarks: nextActionType
+              ? `Scheduled next action: ${nextActionType}`
+              : `Next verification scheduled for ${format(new Date(newDateStr), 'PPP')}.`,
+            actorId: userProfile?.id,
+            actorName: authorName,
+            actorRole: userRole || 'Administrator',
+            unitId: targetCar.unitId,
+          }),
+        ),
       };
 
       if (nextActionType) {
@@ -1634,6 +1649,11 @@ export function CorrectiveActionRequestTab({
     userRole === 'Campus Director' || userRole === 'Campus ODIMO' || userRole?.toLowerCase().includes('vice president');
 
   const canManageVerification = isAdmin || isAuditor || canManage;
+  const isUnitRespondingViewer =
+    !!userProfile?.unitId &&
+    !isAdmin &&
+    (liveCar?.unitId === userProfile.unitId ||
+      !!liveCar?.assignedUnits?.some((assignment) => assignment.unitId === userProfile.unitId));
 
   const isFieldReadOnly = (fieldName: string) => {
     if (isAdmin) return false;
@@ -1949,6 +1969,25 @@ export function CorrectiveActionRequestTab({
       status: nextStatus,
       needsVerification,
       comments: updatedComments,
+      trackingHistory: [
+        ...(liveCar?.trackingHistory || []),
+        createTrackingHistoryEntry({
+          action: !editingCar
+            ? 'Corrective Action Request issued'
+            : isUnitResponding
+              ? 'Unit response submitted'
+              : 'CAR record updated',
+          fromStatus: editingCar?.status,
+          toStatus: nextStatus,
+          remarks:
+            updatedComments[updatedComments.length - 1]?.text ||
+            (isUnitResponding ? 'Unit response submitted for QA verification.' : `CAR status is ${nextStatus}.`),
+          actorId: userProfile.id,
+          actorName: authorName,
+          actorRole: authorRoleDescription,
+          unitId: activeAssignment?.unitId || primaryUnit.unitId,
+        }),
+      ],
       lastUpdatedBy: userProfile.id,
       lastUpdatedByName: authorName,
       lastUpdatedByRole: authorRoleDescription,
@@ -3431,9 +3470,41 @@ export function CorrectiveActionRequestTab({
                       : 'Issue CAR'}
                   </DialogTitle>
                   {liveCar && (
-                    <Badge className="h-6 px-4 font-black uppercase text-[10px] bg-primary text-white">
-                      {liveCar.status}
-                    </Badge>
+                    <>
+                      <Badge className="h-6 px-4 font-black uppercase text-[10px] bg-primary text-white">
+                        {liveCar.status}
+                      </Badge>
+                      <TrackingHistoryDialog
+                        title={`CAR ${liveCar.carNumber} — ${unitMap.get(liveCar.unitId) || 'Assigned Unit'}`}
+                        status={
+                          isUnitRespondingViewer
+                            ? liveCar.assignedUnits?.find((assignment) => assignment.unitId === userProfile?.unitId)
+                                ?.status || liveCar.status
+                            : liveCar.status
+                        }
+                        events={
+                          liveCar.trackingHistory?.length
+                            ? liveCar.trackingHistory.filter(
+                                (event) =>
+                                  !isUnitRespondingViewer || !event.unitId || event.unitId === userProfile?.unitId,
+                              )
+                            : liveCar.comments?.map((comment) => ({
+                                action: 'CAR discussion / update',
+                                remarks: comment.text,
+                                actorId: comment.authorId,
+                                actorName: comment.authorName,
+                                actorRole: comment.authorRole,
+                                unitId: isUnitRespondingViewer ? userProfile?.unitId : undefined,
+                                createdAt: comment.createdAt,
+                              }))
+                        }
+                        createdAt={liveCar.createdAt}
+                        submittedBy={liveCar.initiator}
+                        processOwner={liveCar.lastUpdatedByName}
+                        size="sm"
+                        className="h-6 px-2 text-[9px]"
+                      />
+                    </>
                   )}
                 </div>
                 {liveCar && (liveCar.lastUpdatedByName || liveCar.updatedAt) && (

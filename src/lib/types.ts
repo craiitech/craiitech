@@ -96,6 +96,21 @@ export type Comment = {
   createdAt: any; // serverTimestamp()
 };
 
+export type TrackingHistoryEntry = {
+  id?: string;
+  action?: string;
+  status?: string;
+  fromStatus?: string;
+  toStatus?: string;
+  remarks?: string;
+  actorId?: string;
+  actorName?: string;
+  actorRole?: string;
+  processOwner?: string;
+  unitId?: string;
+  createdAt: any;
+};
+
 export type Submission = {
   id: string;
   userId: string;
@@ -109,6 +124,7 @@ export type Submission = {
   campusId: string;
   unitId: string;
   comments?: Comment[];
+  trackingHistory?: TrackingHistoryEntry[];
   riskRating?: 'low' | 'medium-high';
   revision: number;
   controlNumber: string;
@@ -148,6 +164,7 @@ export type Risk = {
   responsiblePersonName?: string; // Denormalized
   targetDate?: any; // Can be Timestamp
   status: 'Open' | 'In Progress' | 'Closed';
+  trackingHistory?: TrackingHistoryEntry[];
   postTreatment?: {
     likelihood: number;
     consequence: number;
@@ -933,6 +950,7 @@ export type CorrectiveActionRequest = {
   followUpLogs?: CARFollowUpLog[];
   effectivenessAudits?: CAREffectivenessAudit[];
   comments?: Comment[];
+  trackingHistory?: TrackingHistoryEntry[];
 
   status: 'Open' | 'In Progress' | 'Awaiting Response/Update' | 'For Final Verification' | 'Closed';
   needsVerification?: boolean; // New flag for tracking unit updates
@@ -1027,6 +1045,7 @@ export type UnitFormRequest = {
   }[];
   status: UnitFormRequestStatus;
   comments: UnitFormRequestComment[];
+  trackingHistory?: TrackingHistoryEntry[];
   createdAt: any;
   updatedAt: any;
 };
@@ -1742,6 +1761,7 @@ export type ManagementReviewOutput = {
 
   // New: Multiple action entries for follow-up tracking
   actionEntries?: ActionEntry[];
+  trackingHistory?: TrackingHistoryEntry[];
 };
 
 export type EvaluationCycle = {
@@ -1805,6 +1825,7 @@ export type ProcedureRevisionRequest = {
   revisedParts: RevisedPart[];
   status: ProcedureRevisionRequestStatus;
   comments: ProcedureRevisionRequestComment[];
+  trackingHistory?: TrackingHistoryEntry[];
   createdAt: any;
   updatedAt: any;
 };

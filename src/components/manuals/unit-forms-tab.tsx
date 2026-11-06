@@ -38,6 +38,7 @@ import { FormRegistrationDialog } from './form-registration-dialog';
 import { FormRequestReviewDialog } from './form-request-review-dialog';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { TrackingHistoryDialog } from '@/components/common/tracking-history-dialog';
 
 interface UnitFormsTabProps {
   unit: Unit;
@@ -322,6 +323,28 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
                                   {req.comments.length}
                                 </span>
                               )}
+                              <span onClick={(event) => event.stopPropagation()}>
+                                <TrackingHistoryDialog
+                                  title={`Unit Forms & Records — ${req.controlNumber || req.unitName}`}
+                                  status={req.status}
+                                  events={
+                                    req.trackingHistory?.length
+                                      ? req.trackingHistory
+                                      : req.comments?.map((comment) => ({
+                                          action: 'Review comment',
+                                          remarks: comment.text,
+                                          actorId: comment.authorId,
+                                          actorName: comment.authorName,
+                                          actorRole: comment.authorRole,
+                                          createdAt: comment.createdAt,
+                                        }))
+                                  }
+                                  createdAt={req.createdAt}
+                                  submittedBy={req.submitterName}
+                                  size="sm"
+                                  className="h-6 px-2 text-[9px]"
+                                />
+                              </span>
                               {req.status === 'Returned for Correction' && (
                                 <Button
                                   size="icon"

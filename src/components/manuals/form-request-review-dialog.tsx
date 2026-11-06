@@ -55,6 +55,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
 
 interface FormRequestReviewDialogProps {
   requestId: string;
@@ -185,6 +186,17 @@ export function FormRequestReviewDialog({
           authorRole: authorRoleLabel,
           createdAt: new Date(),
         }),
+        trackingHistory: arrayUnion(
+          createTrackingHistoryEntry({
+            action: 'Discussion comment added',
+            status: request.status,
+            remarks: discussionComment.trim(),
+            actorId: userProfile.id,
+            actorName: authorFullName,
+            actorRole: authorRoleLabel,
+            unitId: request.unitId,
+          }),
+        ),
         updatedAt: serverTimestamp(),
       });
       setDiscussionComment('');
@@ -238,6 +250,18 @@ export function FormRequestReviewDialog({
       const updateData: any = {
         status: newStatus,
         updatedAt: serverTimestamp(),
+        trackingHistory: arrayUnion(
+          createTrackingHistoryEntry({
+            action: 'Unit form application status updated',
+            fromStatus: request.status,
+            toStatus: newStatus,
+            remarks: commentText?.trim() || `Application status changed to ${newStatus}.`,
+            actorId: userProfile.id,
+            actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+            actorRole: userRole || 'Administrator',
+            unitId: request.unitId,
+          }),
+        ),
       };
 
       if (commentText) {

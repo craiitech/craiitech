@@ -72,6 +72,7 @@ import { getOfficialServerTime } from '@/lib/actions';
 import Link from 'next/link';
 import { ScrollArea } from '../ui/scroll-area';
 import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible';
+import { createTrackingHistoryEntry } from '@/lib/tracking-history';
 
 const submissionSchema = z.object({
   googleDriveLink: z
@@ -707,6 +708,17 @@ export function SubmissionForm({ reportType, year, cycleId, onSuccess }: Submiss
           isHardCopySubmission: isInteractiveEomsEnabled ? isHardCopySubmission : false,
           submissionNeedsEntry: isInteractiveEomsEnabled ? isHardCopySubmission : false,
           dataEntryCompleted: false,
+          trackingHistory: arrayUnion(
+            createTrackingHistoryEntry({
+              action: 'EOMS revision submitted',
+              fromStatus: existingSubmission.statusId,
+              toStatus: values.isDraft ? 'Draft submitted' : 'Submitted',
+              remarks: `Revision ${newRevision} submitted for ${reportType} (${cycleId} cycle, AY ${year}).`,
+              actorId: user.uid,
+              actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+              actorRole: userRole || 'Unit User',
+            }),
+          ),
         };
 
         if (isRorForm) {
@@ -780,6 +792,16 @@ export function SubmissionForm({ reportType, year, cycleId, onSuccess }: Submiss
           isHardCopySubmission: isInteractiveEomsEnabled ? isHardCopySubmission : false,
           submissionNeedsEntry: isInteractiveEomsEnabled ? isHardCopySubmission : false,
           dataEntryCompleted: false,
+          trackingHistory: [
+            createTrackingHistoryEntry({
+              action: 'EOMS submission created',
+              toStatus: values.isDraft ? 'Draft submitted' : 'Submitted',
+              remarks: `${reportType} submitted for the ${cycleId} cycle of AY ${year}.`,
+              actorId: user.uid,
+              actorName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`.trim() || userProfile.email,
+              actorRole: userRole || 'Unit User',
+            }),
+          ],
         };
 
         if (isRorForm) {
