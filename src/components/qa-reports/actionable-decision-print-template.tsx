@@ -13,6 +13,7 @@ interface ActionableDecisionPrintTemplateProps {
   unitMap: Map<string, string>;
   campusMap: Map<string, string>;
   signatories?: Signatories;
+  includeGeneralProgramSummary?: boolean;
 }
 
 export function ActionableDecisionPrintTemplate({
@@ -22,6 +23,7 @@ export function ActionableDecisionPrintTemplate({
   unitMap,
   campusMap,
   signatories,
+  includeGeneralProgramSummary = true,
 }: ActionableDecisionPrintTemplateProps) {
   const safeDate = (d: any) => {
     if (!d) return '--';
@@ -215,30 +217,31 @@ export function ActionableDecisionPrintTemplate({
           {output.actionPlan ? '4.' : '3.'} Unit Implementation Progress &amp; Action Log
         </div>
         <div className="p-3 space-y-3">
-          {output.followUpRemarks ? (
-            <div className="border border-gray-300 rounded p-2.5 bg-gray-50/50">
-              <div className="flex justify-between items-center border-b border-gray-200 pb-1 mb-1.5">
-                <span className="font-bold text-[8.5pt] uppercase text-gray-700">Latest Progress Summary</span>
-                <div className="text-[8pt] text-gray-600">
-                  <span className="font-bold">Date:</span> {safeDate(output.actionDate)}{' '}
-                  {output.actionTakenBy && (
-                    <span className="ml-2">
-                      <span className="font-bold">By:</span> {output.actionTakenBy}
-                    </span>
-                  )}
+          {includeGeneralProgramSummary &&
+            (output.followUpRemarks ? (
+              <div className="border border-gray-300 rounded p-2.5 bg-gray-50/50">
+                <div className="flex justify-between items-center border-b border-gray-200 pb-1 mb-1.5">
+                  <span className="font-bold text-[8.5pt] uppercase text-gray-700">General Program Summary</span>
+                  <div className="text-[8pt] text-gray-600">
+                    <span className="font-bold">Date:</span> {safeDate(output.actionDate)}{' '}
+                    {output.actionTakenBy && (
+                      <span className="ml-2">
+                        <span className="font-bold">By:</span> {output.actionTakenBy}
+                      </span>
+                    )}
+                  </div>
                 </div>
+                <p className="text-[9.5pt] leading-relaxed whitespace-pre-wrap">{output.followUpRemarks}</p>
               </div>
-              <p className="text-[9.5pt] leading-relaxed whitespace-pre-wrap">{output.followUpRemarks}</p>
-            </div>
-          ) : (
-            <p className="text-gray-500 italic text-[9pt] py-1">No overall unit progress summary logged yet.</p>
-          )}
+            ) : (
+              <p className="text-gray-500 italic text-[9pt] py-1">No general program summary logged yet.</p>
+            ))}
 
           {/* Action Entries Log */}
           {output.actionEntries && output.actionEntries.length > 0 && (
             <div className="mt-3">
               <p className="text-[8.5pt] font-black uppercase tracking-wider text-gray-800 mb-1.5">
-                Itemized Action Submissions ({output.actionEntries.length} Record
+                Assigned Unit Responses ({output.actionEntries.length} Record
                 {output.actionEntries.length > 1 ? 's' : ''})
               </p>
               <table className="w-full border-collapse text-[8.5pt]">
@@ -322,6 +325,9 @@ export function ActionableDecisionPrintTemplate({
               </table>
             </div>
           )}
+          {!includeGeneralProgramSummary && !output.actionEntries?.length && (
+            <p className="text-gray-500 italic text-[9pt] py-1">No assigned unit response logged yet.</p>
+          )}
         </div>
       </div>
 
@@ -401,6 +407,7 @@ interface ActionableDecisionsRegisterPrintTemplateProps {
   unitMap: Map<string, string>;
   campusMap: Map<string, string>;
   signatories?: Signatories;
+  includeGeneralProgramSummary?: boolean;
 }
 
 export function ActionableDecisionsRegisterPrintTemplate({
@@ -410,6 +417,7 @@ export function ActionableDecisionsRegisterPrintTemplate({
   unitMap,
   campusMap,
   signatories,
+  includeGeneralProgramSummary = true,
 }: ActionableDecisionsRegisterPrintTemplateProps) {
   const safeDate = (d: any) => {
     if (!d) return '--';
@@ -500,7 +508,9 @@ export function ActionableDecisionsRegisterPrintTemplate({
             <th className="p-1.5 border-r border-black">Assigned Responsibility</th>
             <th className="p-1.5 border-r border-black">Initiator</th>
             <th className="p-1.5 border-r border-black text-center">Deadline</th>
-            <th className="p-1.5 border-r border-black">Unit Actions Taken / Latest Progress</th>
+            <th className="p-1.5 border-r border-black">
+              {includeGeneralProgramSummary ? 'Unit Actions Taken / Latest Progress' : 'Assigned Unit Responses'}
+            </th>
             <th className="p-1.5 border-r border-black">Google Drive Link / Evidence</th>
             <th className="p-1.5 border-r border-black text-center">Status</th>
             <th className="p-1.5">Verification</th>
@@ -536,9 +546,9 @@ export function ActionableDecisionsRegisterPrintTemplate({
                   {safeDate(item.followUpDate)}
                 </td>
                 <td className="p-1.5 border-r border-black">
-                  {item.followUpRemarks ? (
+                  {includeGeneralProgramSummary && item.followUpRemarks ? (
                     <div className="mb-1.5">
-                      <p className="text-[6.5pt] font-bold uppercase text-gray-600">General Progress Summary</p>
+                      <p className="text-[6.5pt] font-bold uppercase text-gray-600">General Program Summary</p>
                       <p className="leading-snug">{item.followUpRemarks}</p>
                       {item.actionTakenBy && (
                         <p className="text-[7pt] text-gray-500 mt-0.5">
@@ -575,8 +585,8 @@ export function ActionableDecisionsRegisterPrintTemplate({
                         );
                       })}
                     </div>
-                  ) : item.followUpRemarks ? null : (
-                    <span className="text-gray-400 italic">No progress logged</span>
+                  ) : includeGeneralProgramSummary && item.followUpRemarks ? null : (
+                    <span className="text-gray-400 italic">No assigned unit response logged</span>
                   )}
                 </td>
                 <td className="p-1.5 border-r border-black">

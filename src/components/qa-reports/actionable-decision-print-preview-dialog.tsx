@@ -60,6 +60,7 @@ export function ActionableDecisionPrintPreviewDialog({
   const [reportMode, setReportMode] = useState<'single' | 'register'>(output ? 'single' : 'register');
   const [selectedOutputId, setSelectedOutputId] = useState<string>(output?.id || outputs[0]?.id || '');
   const [zoomScale, setZoomScale] = useState<number>(100);
+  const [includeGeneralProgramSummary, setIncludeGeneralProgramSummary] = useState(true);
 
   // If output prop changes or dialog opens, sync
   React.useEffect(() => {
@@ -98,6 +99,7 @@ export function ActionableDecisionPrintPreviewDialog({
             unitMap={unitMap}
             campusMap={campusMap}
             signatories={signatories}
+            includeGeneralProgramSummary={includeGeneralProgramSummary}
           />,
         );
       } else {
@@ -111,6 +113,7 @@ export function ActionableDecisionPrintPreviewDialog({
             unitMap={unitMap}
             campusMap={campusMap}
             signatories={signatories}
+            includeGeneralProgramSummary={includeGeneralProgramSummary}
           />,
         );
       }
@@ -233,6 +236,36 @@ export function ActionableDecisionPrintPreviewDialog({
                 </Button>
               </div>
 
+              <div className="flex items-center gap-1 rounded-lg border border-slate-700 bg-slate-800 p-0.5">
+                <span className="px-2 text-[9px] font-black uppercase text-slate-400">Report content</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={includeGeneralProgramSummary ? 'default' : 'ghost'}
+                  aria-pressed={includeGeneralProgramSummary}
+                  onClick={() => setIncludeGeneralProgramSummary(true)}
+                  className={cn(
+                    'h-7 px-2 text-[9px] font-black uppercase',
+                    includeGeneralProgramSummary ? 'bg-primary text-primary-foreground' : 'text-slate-300',
+                  )}
+                >
+                  General Program Summary
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={!includeGeneralProgramSummary ? 'default' : 'ghost'}
+                  aria-pressed={!includeGeneralProgramSummary}
+                  onClick={() => setIncludeGeneralProgramSummary(false)}
+                  className={cn(
+                    'h-7 px-2 text-[9px] font-black uppercase',
+                    !includeGeneralProgramSummary ? 'bg-primary text-primary-foreground' : 'text-slate-300',
+                  )}
+                >
+                  Assigned Unit Response Only
+                </Button>
+              </div>
+
               {/* Zoom Controls */}
               <div className="flex items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
                 <Button
@@ -310,6 +343,7 @@ export function ActionableDecisionPrintPreviewDialog({
                     unitMap={unitMap}
                     campusMap={campusMap}
                     signatories={signatories}
+                    includeGeneralProgramSummary={includeGeneralProgramSummary}
                   />
                 ) : (
                   <div className="p-12 text-center text-gray-500">
@@ -325,6 +359,7 @@ export function ActionableDecisionPrintPreviewDialog({
                   unitMap={unitMap}
                   campusMap={campusMap}
                   signatories={signatories}
+                  includeGeneralProgramSummary={includeGeneralProgramSummary}
                 />
               )}
             </div>
