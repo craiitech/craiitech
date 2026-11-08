@@ -479,19 +479,31 @@ export function ActionableDecisionsRegisterPrintTemplate({
       </div>
 
       {/* Register Table */}
-      <table className="w-full border-collapse border-2 border-black text-[8pt]">
+      <table className="w-full table-fixed border-collapse border-2 border-black text-[8pt]">
+        <colgroup>
+          <col style={{ width: '3%' }} />
+          <col style={{ width: '5%' }} />
+          <col style={{ width: '20%' }} />
+          <col style={{ width: '12%' }} />
+          <col style={{ width: '7%' }} />
+          <col style={{ width: '7%' }} />
+          <col style={{ width: '26%' }} />
+          <col style={{ width: '9%' }} />
+          <col style={{ width: '5%' }} />
+          <col style={{ width: '6%' }} />
+        </colgroup>
         <thead>
           <tr className="bg-gray-100 border-b-2 border-black text-left font-bold uppercase text-[7.5pt]">
-            <th className="p-1.5 border-r border-black text-center w-8">#</th>
-            <th className="p-1.5 border-r border-black w-14 text-center">Line No.</th>
-            <th className="p-1.5 border-r border-black w-[240px]">Management Directive / Decision</th>
-            <th className="p-1.5 border-r border-black w-[150px]">Assigned Responsibility</th>
-            <th className="p-1.5 border-r border-black w-24">Initiator</th>
-            <th className="p-1.5 border-r border-black w-20 text-center">Deadline</th>
-            <th className="p-1.5 border-r border-black w-[220px]">Unit Actions Taken / Latest Progress</th>
-            <th className="p-1.5 border-r border-black w-[140px]">Google Drive Link / Evidence</th>
-            <th className="p-1.5 border-r border-black w-24 text-center">Status</th>
-            <th className="p-1.5 w-24">Verification</th>
+            <th className="p-1.5 border-r border-black text-center">#</th>
+            <th className="p-1.5 border-r border-black text-center">Line No.</th>
+            <th className="p-1.5 border-r border-black">Management Directive / Decision</th>
+            <th className="p-1.5 border-r border-black">Assigned Responsibility</th>
+            <th className="p-1.5 border-r border-black">Initiator</th>
+            <th className="p-1.5 border-r border-black text-center">Deadline</th>
+            <th className="p-1.5 border-r border-black">Unit Actions Taken / Latest Progress</th>
+            <th className="p-1.5 border-r border-black">Google Drive Link / Evidence</th>
+            <th className="p-1.5 border-r border-black text-center">Status</th>
+            <th className="p-1.5">Verification</th>
           </tr>
         </thead>
         <tbody>
@@ -590,7 +602,7 @@ export function ActionableDecisionsRegisterPrintTemplate({
                 <td className="p-1.5 border-r border-black text-center font-bold uppercase text-[7.5pt]">
                   <span
                     className={cn(
-                      'px-1.5 py-0.5 rounded text-[7pt] block whitespace-nowrap',
+                      'px-1.5 py-0.5 rounded text-[7pt] block whitespace-normal break-words',
                       item.status === 'Open'
                         ? 'bg-rose-100 text-rose-800'
                         : item.status === 'On-going'
