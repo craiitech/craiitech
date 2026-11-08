@@ -104,7 +104,7 @@ import { CARPrintTemplate } from './car-print-template';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { getNextCarActionInfo, parseCarDate, type CarNextActionInfo } from '@/lib/car-utils';
 import { CARControlRegisterTemplate } from './car-control-register-template';
-import { CARRegistryReportPrintTemplate, type CarCampusFindingRow } from './car-registry-report-print-template';
+import { CARRegistryReportPrintTemplate } from './car-registry-report-print-template';
 import { CAROverdueMemorandumDialog } from './car-overdue-memorandum-dialog';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import {
@@ -1184,52 +1184,6 @@ export function CorrectiveActionRequestTab({
       ),
     [iqaCampusFindingStats],
   );
-  const eqaCampusFindingStats = useMemo(() => {
-    const statsByCampus = new Map<string, CarCampusFindingRow>();
-
-    filteredCars.forEach((car) => {
-      if (car.auditType !== 'EQA' || !car.campusId) return;
-
-      let campusStats = statsByCampus.get(car.campusId);
-      if (!campusStats) {
-        campusStats = {
-          campusId: car.campusId,
-          campus: campusMap.get(car.campusId) || car.campusId,
-          NC: 0,
-          OFI: 0,
-          Compliant: 0,
-          Open: 0,
-          Ongoing: 0,
-          Closed: 0,
-        };
-        statsByCampus.set(car.campusId, campusStats);
-      }
-
-      if (car.natureOfFinding === 'NC') campusStats.NC += 1;
-      else if (car.natureOfFinding === 'OFI') campusStats.OFI += 1;
-
-      if (car.status === 'Open') campusStats.Open += 1;
-      else if (car.status === 'Closed') campusStats.Closed += 1;
-      else campusStats.Ongoing += 1;
-    });
-
-    return Array.from(statsByCampus.values()).sort((a, b) => a.campus.localeCompare(b.campus));
-  }, [filteredCars, campusMap]);
-  const eqaCampusFindingTotals = useMemo(
-    () =>
-      eqaCampusFindingStats.reduce(
-        (totals, campus) => ({
-          NC: totals.NC + campus.NC,
-          OFI: totals.OFI + campus.OFI,
-          Compliant: totals.Compliant + campus.Compliant,
-          Open: totals.Open + campus.Open,
-          Ongoing: totals.Ongoing + campus.Ongoing,
-          Closed: totals.Closed + campus.Closed,
-        }),
-        { NC: 0, OFI: 0, Compliant: 0, Open: 0, Ongoing: 0, Closed: 0 },
-      ),
-    [eqaCampusFindingStats],
-  );
   const iqaCampusFindingChartConfig = {
     NC: { label: 'NC', color: 'hsl(0 84% 60%)' },
     OFI: { label: 'OFI', color: 'hsl(38 92% 50%)' },
@@ -2273,8 +2227,8 @@ export function CorrectiveActionRequestTab({
           cars={filteredCars}
           yearlyPerformance={yearlyPerformance}
           yearlyPerformanceTotals={yearlyPerformanceTotals}
-          campusFindings={effectiveTypeFilter === 'EQA' ? eqaCampusFindingStats : iqaCampusFindingStats}
-          campusFindingTotals={effectiveTypeFilter === 'EQA' ? eqaCampusFindingTotals : iqaCampusFindingTotals}
+          campusFindings={iqaCampusFindingStats}
+          campusFindingTotals={iqaCampusFindingTotals}
           unitMap={unitMap}
           campusMap={campusMap}
           yearFilter={yearFilter}

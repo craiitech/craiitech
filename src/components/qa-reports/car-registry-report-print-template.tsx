@@ -6,6 +6,7 @@ import { UniversityHeading } from '@/components/common/university-heading';
 import { format } from 'date-fns';
 import { Timestamp } from '@/firebase/firestore-wrapper';
 import { getNextCarActionInfo, parseCarDate } from '@/lib/car-utils';
+import { buildEqaCampusFindingRows, type CarCampusFindingRow } from './car-registry-report-data';
 
 export interface CarYearlyPerformanceRow {
   year: number;
@@ -15,17 +16,6 @@ export interface CarYearlyPerformanceRow {
   Closed: number;
   iqaCount: number;
   eqaCount: number;
-}
-
-export interface CarCampusFindingRow {
-  campusId: string;
-  campus: string;
-  NC: number;
-  OFI: number;
-  Compliant: number;
-  Open: number;
-  Ongoing: number;
-  Closed: number;
 }
 
 interface CARRegistryReportPrintTemplateProps {
@@ -271,6 +261,27 @@ export function CARRegistryReportPrintTemplate({
     () => [...cars].sort((a, b) => (a.carNumber || '').localeCompare(b.carNumber || '')),
     [cars],
   );
+
+  const reportCampusData = useMemo(() => {
+    if (auditTypeFilter !== 'EQA') {
+      return { rows: campusFindings, totals: campusFindingTotals };
+    }
+
+    const rows = buildEqaCampusFindingRows(sortedCars, campusMap);
+    const totals = rows.reduce(
+      (result, row) => ({
+        NC: result.NC + row.NC,
+        OFI: result.OFI + row.OFI,
+        Compliant: result.Compliant + row.Compliant,
+        Open: result.Open + row.Open,
+        Ongoing: result.Ongoing + row.Ongoing,
+        Closed: result.Closed + row.Closed,
+      }),
+      { NC: 0, OFI: 0, Compliant: 0, Open: 0, Ongoing: 0, Closed: 0 },
+    );
+
+    return { rows, totals };
+  }, [auditTypeFilter, campusFindings, campusFindingTotals, campusMap, sortedCars]);
 
   const now = new Date();
   const refNo = `RSU-QAO-CAR-${now.getFullYear()}-${format(now, 'MMdd')}`;
@@ -518,14 +529,16 @@ export function CARRegistryReportPrintTemplate({
               </tr>
             </thead>
             <tbody>
-              {campusFindings.length === 0 ? (
+              {reportCampusData.rows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="border border-black p-2 text-center italic text-slate-500">
-                    No campus records available.
+                    {auditTypeFilter === 'EQA'
+                      ? 'No EQA CAR campus records available.'
+                      : 'No campus records available.'}
                   </td>
                 </tr>
               ) : (
-                campusFindings.map((row) => (
+                reportCampusData.rows.map((row) => (
                   <tr key={row.campusId}>
                     <td className="border border-black p-1 font-bold">{row.campus}</td>
                     <td className="border border-black p-1 text-right">{row.NC}</td>
@@ -541,12 +554,12 @@ export function CARRegistryReportPrintTemplate({
             <tfoot>
               <tr className="bg-slate-100 font-black">
                 <td className="border border-black p-1 uppercase">Total</td>
-                <td className="border border-black p-1 text-right">{campusFindingTotals.NC}</td>
-                <td className="border border-black p-1 text-right">{campusFindingTotals.OFI}</td>
-                <td className="border border-black p-1 text-right">{campusFindingTotals.Compliant}</td>
-                <td className="border border-black p-1 text-right">{campusFindingTotals.Open}</td>
-                <td className="border border-black p-1 text-right">{campusFindingTotals.Ongoing}</td>
-                <td className="border border-black p-1 text-right">{campusFindingTotals.Closed}</td>
+                <td className="border border-black p-1 text-right">{reportCampusData.totals.NC}</td>
+                <td className="border border-black p-1 text-right">{reportCampusData.totals.OFI}</td>
+                <td className="border border-black p-1 text-right">{reportCampusData.totals.Compliant}</td>
+                <td className="border border-black p-1 text-right">{reportCampusData.totals.Open}</td>
+                <td className="border border-black p-1 text-right">{reportCampusData.totals.Ongoing}</td>
+                <td className="border border-black p-1 text-right">{reportCampusData.totals.Closed}</td>
               </tr>
             </tfoot>
           </table>
@@ -554,7 +567,7 @@ export function CARRegistryReportPrintTemplate({
             <p className="font-black uppercase text-slate-600 mb-2" style={{ fontSize: '7pt' }}>
               Comparative Findings &amp; CAR Status Graph
             </p>
-            <CampusFindingsChart rows={campusFindings} />
+            <CampusFindingsChart rows={reportCampusData.rows} />
           </div>
         </div>
       </div>
