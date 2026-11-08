@@ -1,6 +1,5 @@
 'use client';
 
-import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from '@/firebase/firestore-wrapper';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
@@ -8,7 +7,7 @@ import type { Campus, Unit, CorrectiveActionRequest } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, FileText, Users, ClipboardCheck, ShieldCheck, Presentation, BarChart3, ListTodo } from 'lucide-react';
-import { AuditReportsTab } from '@/components/qa-reports/audit-reports-tab';
+import { IqaReportsContainer } from '@/components/qa-reports/iqa-reports-container';
 import { ManagementReviewTab } from '@/components/qa-reports/management-review-tab';
 import { CorrectiveActionRequestTab } from '@/components/qa-reports/corrective-action-request-tab';
 import { QaAnalyticsTab } from '@/components/qa-reports/qa-analytics-tab';
@@ -136,7 +135,7 @@ export default function QaReportsPage() {
         </TabsContent>
 
         <TabsContent value="iqa" className="animate-in fade-in duration-500">
-          <AuditReportsTab type="IQA" campuses={campuses || []} canManage={canManage} />
+          <IqaReportsContainer campuses={campuses || []} canManage={canManage} />
         </TabsContent>
 
         <TabsContent value="eqa" className="animate-in fade-in duration-500">
