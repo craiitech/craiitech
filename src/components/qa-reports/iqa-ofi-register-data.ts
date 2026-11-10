@@ -5,7 +5,10 @@ export interface IqaOfiRegisterRow {
   id: string;
   year: number;
   statement: string;
+  campusId: string;
   campus: string;
+  unitId: string;
+  unit: string;
   status: string;
   remarks: string;
 }
@@ -59,7 +62,10 @@ export function buildIqaOfiRegisterRows({
           id: finding.id,
           year,
           statement: finding.description || finding.evidence || 'No OFI statement recorded',
+          campusId: schedule.campusId || '',
           campus: campusMap.get(schedule.campusId) || schedule.campusId || 'Not recorded',
+          unitId: schedule.targetId || '',
+          unit: schedule.targetName || schedule.targetId || 'Not recorded',
           status: latestCar?.status || finding.verification?.status || 'No action recorded',
           remarks:
             latestFollowUp?.remarks ||
