@@ -414,8 +414,8 @@ export function EomsPolicyManualManagement() {
                       <Input placeholder="https://docs.google.com/document/d/..." {...field} />
                     </FormControl>
                     <FormDescription className="text-[10px]">
-                      Admin-only link used to open and edit the actual Word file / Google Doc when processing revision
-                      requests. Grant edit access to the Quality Assurance Office.
+                      Link used to display and edit the actual Word file / Google Doc while processing revision
+                      requests. Grant edit access to the Quality Assurance Office and authorized unit personnel.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

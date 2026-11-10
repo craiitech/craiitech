@@ -791,7 +791,7 @@ export type EomsPolicyManual = {
   sectionNumber: number;
   title: string;
   googleDriveLink: string;
-  editableDocLink?: string; // Admin-only Google Docs / Word file link used for editing revisions
+  editableDocLink?: string; // Google Docs / Word file link used to view and edit revisions
   revisionNumber: string;
   pageCount: number;
   executionDate: string;
