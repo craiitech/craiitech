@@ -75,6 +75,7 @@ import { MaturityRadar } from '@/components/dashboard/strategic/maturity-radar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { UnitAuditSchedule } from '@/components/dashboard/unit-audit-schedule';
 import { UnitActionCenter } from '@/components/dashboard/unit-action-center';
+import { UnitOfiActionWarnings } from '@/components/dashboard/unit-ofi-action-warnings';
 import { ExecutiveOverview } from '@/components/dashboard/executive-overview';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { TOTAL_REQUIRED_SUBMISSIONS_PER_UNIT, TOTAL_REPORTS_PER_CYCLE, submissionTypes } from '@/lib/constants';
@@ -1343,6 +1344,13 @@ export default function HomePage() {
           {!isIqaUser && (
             <OverdueWarning allCycles={allCycles} submissions={submissions} isLoading={isLoadingSubmissions} />
           )}
+
+          <UnitOfiActionWarnings
+            schedules={dashboardSchedules}
+            findings={allAuditFindings}
+            plans={allAuditPlans}
+            isLoading={isLoadingSchedules}
+          />
 
           <ExecutiveOverview
             submissions={submissions}

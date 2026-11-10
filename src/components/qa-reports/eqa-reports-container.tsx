@@ -13,10 +13,13 @@ interface EqaReportsContainerProps {
   campuses: Campus[];
   units: Unit[];
   canManage: boolean;
+  initialSubTab?: string;
 }
 
-export function EqaReportsContainer({ campuses, units, canManage }: EqaReportsContainerProps) {
-  const [activeTab, setActiveTab] = useState('vault');
+export function EqaReportsContainer({ campuses, units, canManage, initialSubTab }: EqaReportsContainerProps) {
+  const [activeTab, setActiveTab] = useState(
+    initialSubTab === 'ofi' || initialSubTab === 'car' ? initialSubTab : 'vault',
+  );
 
   return (
     <div className="space-y-6">

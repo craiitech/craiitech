@@ -135,11 +135,20 @@ export default function QaReportsPage() {
         </TabsContent>
 
         <TabsContent value="iqa" className="animate-in fade-in duration-500">
-          <IqaReportsContainer campuses={campuses || []} canManage={canManage} />
+          <IqaReportsContainer
+            campuses={campuses || []}
+            canManage={canManage}
+            initialSubTab={searchParams.get('subtab') || undefined}
+          />
         </TabsContent>
 
         <TabsContent value="eqa" className="animate-in fade-in duration-500">
-          <EqaReportsContainer campuses={campuses || []} units={units || []} canManage={canManage} />
+          <EqaReportsContainer
+            campuses={campuses || []}
+            units={units || []}
+            canManage={canManage}
+            initialSubTab={searchParams.get('subtab') || undefined}
+          />
         </TabsContent>
 
         <TabsContent value="mr" className="animate-in fade-in duration-500">

@@ -11,10 +11,11 @@ import { IqaOfiRegisterTab } from './iqa-ofi-register-tab';
 interface IqaReportsContainerProps {
   campuses: Campus[];
   canManage: boolean;
+  initialSubTab?: string;
 }
 
-export function IqaReportsContainer({ campuses, canManage }: IqaReportsContainerProps) {
-  const [activeTab, setActiveTab] = useState('vault');
+export function IqaReportsContainer({ campuses, canManage, initialSubTab }: IqaReportsContainerProps) {
+  const [activeTab, setActiveTab] = useState(initialSubTab === 'ofi' ? 'ofi' : 'vault');
 
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
