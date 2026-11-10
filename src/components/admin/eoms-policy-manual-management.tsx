@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge';
 const manualSchema = z.object({
   title: z.string().min(1, 'Title is required.'),
   googleDriveLink: z.string().url('Please enter a valid Google Drive link.'),
+  editableDocLink: z.string().url('Please enter a valid Google Docs / Word link.').optional().or(z.literal('')),
   revisionNumber: z.string().min(1, 'Revision number is required.'),
   pageCount: z.coerce.number().min(1, 'Number of pages is required.'),
   executionDate: z.string().min(1, 'Execution Date is required.'),
@@ -80,6 +81,7 @@ export function EomsPolicyManualManagement() {
     defaultValues: {
       title: '',
       googleDriveLink: '',
+      editableDocLink: '',
       revisionNumber: '',
       pageCount: 0,
       executionDate: '',
@@ -92,6 +94,7 @@ export function EomsPolicyManualManagement() {
     form.reset({
       title: existingManual?.title || `Section ${section.number}`,
       googleDriveLink: existingManual?.googleDriveLink || '',
+      editableDocLink: existingManual?.editableDocLink || '',
       revisionNumber: existingManual?.revisionNumber || '00',
       pageCount: existingManual?.pageCount || 0,
       executionDate: existingManual?.executionDate || '',
@@ -110,6 +113,7 @@ export function EomsPolicyManualManagement() {
     const manualRef = doc(firestore, 'eomsPolicyManuals', selectedSection.id);
     const manualData = {
       ...values,
+      editableDocLink: values.editableDocLink?.trim() || '',
       id: selectedSection.id,
       sectionNumber: selectedSection.number,
       updatedAt: serverTimestamp(),
@@ -294,9 +298,26 @@ export function EomsPolicyManualManagement() {
                           )}
                         </TableCell>
                         <TableCell className="py-3.5">
-                          <Badge variant="secondary" className="text-[10px] font-mono">
-                            Rev {manual?.revisionNumber || '--'}
-                          </Badge>
+                          <div className="flex flex-col items-start gap-1">
+                            <Badge variant="secondary" className="text-[10px] font-mono">
+                              Rev {manual?.revisionNumber || '--'}
+                            </Badge>
+                            {manual?.editableDocLink ? (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] border-emerald-200 bg-emerald-50 text-emerald-700"
+                              >
+                                Editor Link Ready
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="text-[9px] border-amber-200 bg-amber-50 text-amber-700"
+                              >
+                                No Editor Link
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right pr-6 py-3.5">
                           <Button
@@ -378,6 +399,23 @@ export function EomsPolicyManualManagement() {
                     </FormControl>
                     <FormDescription className="text-[10px]">
                       Ensure the sharing is set to &apos;Anyone with the link can view&apos;.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="editableDocLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Editable Word / Google Docs Link</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://docs.google.com/document/d/..." {...field} />
+                    </FormControl>
+                    <FormDescription className="text-[10px]">
+                      Admin-only link used to open and edit the actual Word file / Google Doc when processing revision
+                      requests. Grant edit access to the Quality Assurance Office.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

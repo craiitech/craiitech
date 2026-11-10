@@ -791,10 +791,38 @@ export type EomsPolicyManual = {
   sectionNumber: number;
   title: string;
   googleDriveLink: string;
+  editableDocLink?: string; // Admin-only Google Docs / Word file link used for editing revisions
   revisionNumber: string;
   pageCount: number;
   executionDate: string;
   updatedAt: any; // serverTimestamp()
+};
+
+export type EomsRevisionRequestStatus =
+  'Submitted' | 'Returned for Revision' | 'Rejected' | 'In Revision' | 'Approved & Published';
+
+export type EomsPolicyRevisionRequest = {
+  id: string;
+  controlNumber?: string;
+  sectionId: string;
+  sectionNumber: number;
+  sectionTitle: string;
+  contextOfChanges: string;
+  revisedDocLink?: string;
+  requestedBy: string;
+  requestedByName: string;
+  requestedByRole?: string;
+  unitId?: string;
+  unitName?: string;
+  campusId?: string;
+  status: EomsRevisionRequestStatus;
+  adminChangeContext?: string;
+  publishedRevisionNumber?: string;
+  publishedExecutionDate?: string;
+  comments: ProcedureRevisionRequestComment[];
+  trackingHistory?: TrackingHistoryEntry[];
+  createdAt: any;
+  updatedAt: any;
 };
 
 export type EomsAcademyTopic = {
