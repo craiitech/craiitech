@@ -3,16 +3,37 @@
 import { useMemo, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { collection } from '@/firebase/firestore-wrapper';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import type { AuditFinding, AuditPlan, AuditSchedule, Campus, CorrectiveActionRequest } from '@/lib/types';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import type {
+  AuditFinding,
+  AuditPlan,
+  AuditSchedule,
+  Campus,
+  CorrectiveActionRequest,
+  IqaOfiActionStatus,
+  IqaOfiActionUpdate,
+} from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Building2, CheckCircle2, Clock, Layers, ListChecks, Loader2, Printer, X } from 'lucide-react';
+import {
+  Building2,
+  CheckCircle2,
+  Clock,
+  Eye,
+  FileCheck2,
+  Layers,
+  ListChecks,
+  Loader2,
+  Pencil,
+  Printer,
+  X,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { buildIqaOfiRegisterRows, type IqaOfiRegisterRow } from './iqa-ofi-register-data';
+import { IqaOfiActionDialog } from './iqa-ofi-action-dialog';
 
 type PrintScope = 'current' | 'campus' | 'unit';
 
@@ -179,12 +200,24 @@ interface IqaOfiRegisterTabProps {
   campuses: Campus[];
 }
 
+const actionStatusClasses: Record<IqaOfiActionStatus, string> = {
+  'Awaiting Unit Update': 'border-slate-200 bg-slate-50 text-slate-600',
+  'For Campus Verification': 'border-amber-200 bg-amber-50 text-amber-700',
+  'For QAO Verification': 'border-blue-200 bg-blue-50 text-blue-700',
+  'For Admin Approval': 'border-indigo-200 bg-indigo-50 text-indigo-700',
+  Verified: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+  'Returned for Revision': 'border-rose-200 bg-rose-50 text-rose-700',
+};
+
 export function IqaOfiRegisterTab({ campuses }: IqaOfiRegisterTabProps) {
   const firestore = useFirestore();
+  const { userProfile, isAdmin } = useUser();
   const [selectedYear, setSelectedYear] = useState('all');
   const [campusFilter, setCampusFilter] = useState('all');
   const [unitFilter, setUnitFilter] = useState('all');
   const [printScope, setPrintScope] = useState<PrintScope>('current');
+  const [selectedRow, setSelectedRow] = useState<IqaOfiRegisterRow | null>(null);
+  const [isActionDialogOpen, setIsActionDialogOpen] = useState(false);
 
   const findingsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'auditFindings') : null), [firestore]);
   const schedulesQuery = useMemoFirebase(
@@ -196,11 +229,17 @@ export function IqaOfiRegisterTab({ campuses }: IqaOfiRegisterTabProps) {
     () => (firestore ? collection(firestore, 'correctiveActionRequests') : null),
     [firestore],
   );
+  const actionsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'iqaOfiActions') : null), [firestore]);
 
   const { data: findings, isLoading: isLoadingFindings } = useCollection<AuditFinding>(findingsQuery);
   const { data: schedules, isLoading: isLoadingSchedules } = useCollection<AuditSchedule>(schedulesQuery);
   const { data: plans, isLoading: isLoadingPlans } = useCollection<AuditPlan>(plansQuery);
   const { data: cars, isLoading: isLoadingCars } = useCollection<CorrectiveActionRequest>(carsQuery);
+  const { data: actionUpdates, isLoading: isLoadingActions } = useCollection<IqaOfiActionUpdate>(actionsQuery);
+
+  const actionsByFindingId = useMemo(() => {
+    return new Map((actionUpdates || []).map((action) => [action.findingId, action]));
+  }, [actionUpdates]);
 
   const campusMap = useMemo(() => new Map(campuses.map((campus) => [campus.id, campus.name])), [campuses]);
   const rows = useMemo(() => {
@@ -245,7 +284,7 @@ export function IqaOfiRegisterTab({ campuses }: IqaOfiRegisterTabProps) {
     };
   }, [filteredRows]);
 
-  const isLoading = isLoadingFindings || isLoadingSchedules || isLoadingPlans || isLoadingCars;
+  const isLoading = isLoadingFindings || isLoadingSchedules || isLoadingPlans || isLoadingCars || isLoadingActions;
   const hasActiveFilters = selectedYear !== 'all' || campusFilter !== 'all' || unitFilter !== 'all';
   const campusLabel = campusFilter === 'all' ? 'All Campuses / Sites' : campusMap.get(campusFilter) || campusFilter;
   const unitLabel = unitFilter === 'all' ? 'All Units' : unitFilter;
@@ -483,27 +522,73 @@ export function IqaOfiRegisterTab({ campuses }: IqaOfiRegisterTabProps) {
                     <TableHead>Unit</TableHead>
                     <TableHead>Status of Action</TableHead>
                     <TableHead>Remarks</TableHead>
+                    <TableHead>Action &amp; MOV</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredRows.length ? (
-                    filteredRows.map((row) => (
-                      <TableRow key={row.id}>
-                        <TableCell className="whitespace-nowrap">{row.year}</TableCell>
-                        <TableCell className="min-w-[280px] whitespace-pre-wrap">{row.statement}</TableCell>
-                        <TableCell className="min-w-[140px]">{row.campus}</TableCell>
-                        <TableCell className="min-w-[160px]">{row.unit}</TableCell>
-                        <TableCell className="min-w-[160px]">
-                          <Badge variant="outline" className={cn('text-[10px] font-bold', getStatusClass(row.status))}>
-                            {row.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="min-w-[220px] whitespace-pre-wrap">{row.remarks}</TableCell>
-                      </TableRow>
-                    ))
+                    filteredRows.map((row) => {
+                      const actionUpdate = actionsByFindingId.get(row.id);
+                      const canProvideAction = isAdmin || (!!userProfile?.unitId && userProfile.unitId === row.unitId);
+                      const canOpen = Boolean(actionUpdate) || canProvideAction;
+                      return (
+                        <TableRow key={row.id}>
+                          <TableCell className="whitespace-nowrap">{row.year}</TableCell>
+                          <TableCell className="min-w-[280px] whitespace-pre-wrap">{row.statement}</TableCell>
+                          <TableCell className="min-w-[140px]">{row.campus}</TableCell>
+                          <TableCell className="min-w-[160px]">{row.unit}</TableCell>
+                          <TableCell className="min-w-[160px]">
+                            <Badge
+                              variant="outline"
+                              className={cn('text-[10px] font-bold', getStatusClass(row.status))}
+                            >
+                              {row.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="min-w-[220px] whitespace-pre-wrap">{row.remarks}</TableCell>
+                          <TableCell className="min-w-[220px]">
+                            <div className="flex flex-col items-start gap-1.5">
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  'text-[9px] font-bold uppercase',
+                                  actionStatusClasses[actionUpdate?.status || 'Awaiting Unit Update'],
+                                )}
+                              >
+                                {actionUpdate?.status || 'Awaiting Unit Update'}
+                              </Badge>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-[10px] font-black uppercase tracking-wider"
+                                disabled={!canOpen}
+                                onClick={() => {
+                                  setSelectedRow(row);
+                                  setIsActionDialogOpen(true);
+                                }}
+                              >
+                                {actionUpdate ? (
+                                  <>
+                                    <Eye className="mr-1.5 h-3.5 w-3.5" /> View Action / MOV
+                                  </>
+                                ) : canProvideAction ? (
+                                  <>
+                                    <Pencil className="mr-1.5 h-3.5 w-3.5" /> Provide Action / MOV
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileCheck2 className="mr-1.5 h-3.5 w-3.5" /> Awaiting Update
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={7} className="h-24 text-center text-sm text-muted-foreground">
                         {isLoading ? 'Loading IQA OFI records…' : 'No IQA OFI records found for this selection.'}
                       </TableCell>
                     </TableRow>
@@ -514,6 +599,15 @@ export function IqaOfiRegisterTab({ campuses }: IqaOfiRegisterTabProps) {
           )}
         </CardContent>
       </Card>
+
+      <IqaOfiActionDialog
+        row={selectedRow}
+        isOpen={isActionDialogOpen}
+        onOpenChange={(open) => {
+          setIsActionDialogOpen(open);
+          if (!open) setSelectedRow(null);
+        }}
+      />
     </div>
   );
 }

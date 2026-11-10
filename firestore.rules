@@ -403,6 +403,10 @@ service cloud.firestore {
       allow get, list, write: if isSignedIn();
     }
 
+    match /iqaOfiActions/{id} {
+      allow get, list, write: if isSignedIn();
+    }
+
     match /eqaOfiMonitoring/{id} {
       allow get, list, write: if isSignedIn();
     }

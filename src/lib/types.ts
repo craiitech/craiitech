@@ -1020,6 +1020,52 @@ export type EqaOfiMonitoring = {
   updatedAt: any;
 };
 
+export type IqaOfiActionStatus =
+  | 'Awaiting Unit Update'
+  | 'For Campus Verification'
+  | 'For QAO Verification'
+  | 'For Admin Approval'
+  | 'Verified'
+  | 'Returned for Revision';
+
+export type IqaOfiVerificationRole = 'Campus Director / ODIMO' | 'Quality Assurance Office' | 'Administrator';
+
+export type IqaOfiMovLink = {
+  title: string;
+  url: string;
+};
+
+export type IqaOfiActionVerification = {
+  role: IqaOfiVerificationRole;
+  decision: 'Verified' | 'Returned';
+  verifiedBy: string;
+  verifiedByName: string;
+  verifiedAt: any;
+  remarks?: string;
+};
+
+export type IqaOfiActionUpdate = {
+  id: string; // Same as the auditFinding id
+  findingId: string;
+  auditScheduleId?: string;
+  year?: number;
+  campusId: string;
+  campusName: string;
+  unitId: string;
+  unitName: string;
+  actionTaken: string;
+  movLinks: IqaOfiMovLink[];
+  status: IqaOfiActionStatus;
+  verifications: IqaOfiActionVerification[];
+  submittedBy?: string;
+  submittedByName?: string;
+  submittedAt?: any;
+  updatedBy?: string;
+  updatedByName?: string;
+  createdAt: any;
+  updatedAt: any;
+};
+
 export type Signatories = {
   qaoDirector: string;
   qmsHead: string;
