@@ -591,11 +591,15 @@ export function CorrectiveActionRequestTab({
     return getSupervisedUnitIds(userProfile?.unitId, units);
   }, [isUserVpOffice, userProfile?.unitId, units]);
 
-  const isInstitutionalViewer = isTopManagement && userRole !== 'Campus Director' && !isUserVpOffice;
+  const roleLower = userRole?.toLowerCase() ?? '';
+  const isCampusDesignation =
+    userRole === 'Campus Director' ||
+    userRole === 'Campus ODIMO' ||
+    (roleLower.includes('campus') && roleLower.includes('odimo'));
 
-  const isCampusScopedSupervisor =
-    isTopManagement &&
-    (userRole === 'Campus Director' || (userRole?.toLowerCase().includes('vice president') ?? false));
+  const isInstitutionalViewer = isTopManagement && !isCampusDesignation && !isUserVpOffice;
+
+  const isCampusScopedSupervisor = isCampusDesignation || (isTopManagement && roleLower.includes('vice president'));
 
   const campusScopeLabel = isInstitutionalViewer
     ? 'Institution-wide view'
