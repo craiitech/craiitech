@@ -11,10 +11,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
-import { Info, ArrowRight, Sparkles, FileSpreadsheet, Target, School } from 'lucide-react';
+import { Info, ArrowRight, Sparkles, FileSpreadsheet, Target, School, Loader2 } from 'lucide-react';
 
 export default function OperationalPlanPage() {
-  const { systemSettings } = useUser();
+  const { systemSettings, activeAssignment, isAdmin, isVp, isUserLoading } = useUser();
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'grid';
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -31,6 +31,38 @@ export default function OperationalPlanPage() {
   };
 
   const isLegacyMode = systemSettings?.operationalPlanMode === 'legacy_link';
+  const hasActiveUnitDesignation = Boolean(activeAssignment?.unitId);
+  const canAccessOperationalPlan = isAdmin || isVp || hasActiveUnitDesignation;
+
+  if (isUserLoading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!canAccessOperationalPlan) {
+    return (
+      <div className="space-y-6">
+        <Alert className="border-amber-300 bg-amber-50/70 text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
+          <Info className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="font-bold">Active University Designation Required</AlertTitle>
+          <AlertDescription className="text-xs mt-1 space-y-3">
+            <p>
+              Select an active unit or campus designation from your account menu before opening the Unit EOMS Digital
+              Document.
+            </p>
+            <Button asChild size="sm" variant="outline" className="h-8 text-xs">
+              <Link href="/profile">
+                Manage Designations <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

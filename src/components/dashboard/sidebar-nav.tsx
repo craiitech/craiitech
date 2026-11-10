@@ -141,7 +141,16 @@ export function SidebarNav({
   const currentScope = searchParams.get('scope');
   const isOnline = useNetworkStatus();
   const { toast } = useToast();
-  const { isAdmin, isAuditor, userRole, isSupervisor, userProfile, isDoi: isDoiUser } = useUser();
+  const {
+    isAdmin,
+    isAuditor,
+    isVp,
+    activeAssignment,
+    userRole,
+    isSupervisor,
+    userProfile,
+    isDoi: isDoiUser,
+  } = useUser();
   const [isForcedOffline, setIsForcedOffline] = useState(false);
   const { theme, toggleTheme } = useTheme();
 
@@ -627,7 +636,11 @@ export function SidebarNav({
     },
   ];
 
+  const hasActiveUnitDesignation = Boolean(activeAssignment?.unitId);
+  const canAccessOperationalPlan = isAdmin || isVp || hasActiveUnitDesignation;
+
   const visibleRoutes = allRoutes.filter((route) => {
+    if (route.href === '/operational-plan' && !canAccessOperationalPlan) return false;
     if (!route.roles) return true;
     if (isAdmin && route.roles.includes('Admin')) return true;
     if (userRole) {
