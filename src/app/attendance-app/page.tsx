@@ -24,6 +24,7 @@ import {
   signOut,
 } from 'firebase/auth';
 import { getApp } from 'firebase/app';
+import { InlinePrivacyNotice } from '@/components/common/inline-privacy-notice';
 import type { Campus, Unit, DeviceBinding, AttendanceActivity, ActivityAttendanceLog } from '@/lib/types';
 import {
   generatePayloadSignature,
@@ -2286,6 +2287,11 @@ export default function RsuAttendanceApp() {
               </CardContent>
 
               <CardFooter className="pt-2 pb-6 flex flex-col gap-2">
+                <InlinePrivacyNotice
+                  purpose="university activity attendance verification and device-binding integrity"
+                  className="bg-slate-900/60 border-slate-700 text-slate-300"
+                  compact
+                />
                 <Button
                   type="submit"
                   disabled={isRegistering || !deviceFingerprint}

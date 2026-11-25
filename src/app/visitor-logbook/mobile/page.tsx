@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import { InlinePrivacyNotice } from '@/components/common/inline-privacy-notice';
 
 // Inner component to access search params securely in Suspense
 function MobileVisitorLogbookContent() {
@@ -1263,6 +1264,11 @@ function MobileVisitorLogbookContent() {
                     )}
                   </div>
                 </div>
+
+                <InlinePrivacyNotice
+                  purpose="campus visitor logging, security, and ARTA Client Satisfaction Measurement"
+                  compact
+                />
 
                 <div className="pt-2">
                   <Button

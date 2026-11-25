@@ -439,7 +439,9 @@ service cloud.firestore {
     }
 
     match /visitorLogs/{id} {
-      allow read, write: if isSignedIn();
+      allow create: if isSignedIn();
+      allow get, list, update: if isSignedIn() && (isAdmin() || isSupervisor() || hasUnitAccess(resource.data.unitId));
+      allow delete: if isAdmin();
     }
 
     match /qaAdvisories/{id} {
@@ -532,6 +534,16 @@ service cloud.firestore {
     match /cycles/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
     match /isoClauses/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin(); }
     match /procedureManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
+    match /campusProcedureAudits/{id} {
+      allow get, list: if isSignedIn();
+      allow create, update: if isSignedIn() && (
+        isAdmin() ||
+        (hasProfile() &&
+         profile().get('role', '').matches('(?i).*(campus odimo|campus director|odimo).*') &&
+         request.resource.data.campusId == profile().get('campusId', ''))
+      );
+      allow delete: if isAdmin();
+    }
     match /eomsPolicyManuals/{id} { allow get, list: if isSignedIn(); allow write: if isAdmin() || isSupervisor(); }
     match /universityDocuments/{id} { 
       allow get, list: if isSignedIn(); 
@@ -564,7 +576,9 @@ service cloud.firestore {
     }
 
     match /csmResponses/{id} {
-      allow read, write: if isSignedIn();
+      allow create: if isSignedIn();
+      allow get, list, update: if isSignedIn() && (isAdmin() || isSupervisor() || hasUnitAccess(resource.data.unitId));
+      allow delete: if isAdmin();
     }
 
     match /campusSettings/{id} {
@@ -682,20 +696,21 @@ service cloud.firestore {
     }
 
     // Device bindings are immutable once created — prevents unbinding another user's device.
-    // Required fields enforced to prevent garbage data.
+    // Public `get` allows single-document lookup by exact deviceFingerprint; `list` requires authentication.
     match /attendanceDeviceBindings/{id} {
       allow create: if true
         && request.resource.data.keys().hasAll(['userId', 'deviceFingerprint', 'userName', 'boundAt'])
         && request.resource.data.userId is string
         && request.resource.data.deviceFingerprint is string;
-      allow read: if true;
+      allow get: if true;
+      allow list: if isSignedIn();
       allow update, delete: if false;
     }
 
-    // Attendance logs are immutable records. Once written, they cannot be modified or deleted.
-    // Field validation ensures data integrity. Status must be one of the valid states.
+    // Attendance logs: public `get` for single-log verification, `list` and `update` restricted to signed-in users.
     match /unitActivityAttendanceLogs/{id} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if isSignedIn();
       allow create: if true
         && request.resource.data.keys().hasAll(['activityId', 'userId', 'status', 'scannedAt', 'deviceFingerprint'])
         && request.resource.data.activityId is string
@@ -703,8 +718,8 @@ service cloud.firestore {
         && request.resource.data.deviceFingerprint is string
         && request.resource.data.status in ['ON_TIME', 'LATE', 'OUTSIDE_WINDOW', 'REJECTED']
         && (request.resource.data.scannedAt is timestamp || request.resource.data.scannedAt is number);
-      allow update: if true;
-      allow delete: if false;
+      allow update: if isSignedIn() && (isAdmin() || isSupervisor() || hasUnitAccess(resource.data.unitId));
+      allow delete: if isAdmin();
     }
 
     // Evaluations are submitted once — no editing after submission prevents tampering.

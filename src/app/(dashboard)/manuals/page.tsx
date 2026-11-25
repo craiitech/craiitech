@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useDoc, useMemoFirebase } from '@/firebase';
 import { collection, query, where, doc, serverTimestamp } from '@/firebase/firestore-wrapper';
-import type { ProcedureManual, Unit, ProcedureRevisionRequest, Campus } from '@/lib/types';
+import type { ProcedureManual, Unit, ProcedureRevisionRequest, Campus, CampusProcedureAudit } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,6 +37,7 @@ import {
   UserCheck,
   BarChart3,
   ArrowUpRight,
+  ClipboardCheck,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +52,7 @@ import { ProcedureRevisionReviewDialog } from '@/components/manuals/procedure-re
 import { TrackingHistoryDialog } from '@/components/common/tracking-history-dialog';
 import { ProcedureManualProcessSlider } from '@/components/manuals/procedure-manual-process-slider';
 import { ProcedureManualsVisualization } from '@/components/manuals/procedure-manuals-visualization';
+import { CampusProcedureAuditTab } from '@/components/manuals/campus-procedure-audit-tab';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Printer } from 'lucide-react';
 import {
@@ -104,6 +106,13 @@ export default function ProcedureManualsPage() {
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
   const campusMap = useMemo(() => new Map(campuses?.map((c) => [c.id, c.name])), [campuses]);
+
+  const campusAuditsQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'campusProcedureAudits') : null),
+    [firestore],
+  );
+  const { data: campusAudits, isLoading: isLoadingCampusAudits } =
+    useCollection<CampusProcedureAudit>(campusAuditsQuery);
 
   const signatoryRef = useMemoFirebase(() => (firestore ? doc(firestore, 'system', 'signatories') : null), [firestore]);
   const { data: signatories } = useDoc<{ qaoDirector?: string; qmsHead?: string; universityPresident?: string }>(
@@ -467,6 +476,13 @@ export default function ProcedureManualsPage() {
               >
                 <BarChart3 className="h-3.5 w-3.5 text-primary" /> University Manuals Visualization
               </TabsTrigger>
+              <TabsTrigger
+                onClick={() => handleTabChange('campus-audit')}
+                value="campus-audit"
+                className="gap-2 text-[10px] font-black uppercase tracking-widest px-5 h-8"
+              >
+                <ClipboardCheck className="h-3.5 w-3.5" /> Campus Procedure Audit
+              </TabsTrigger>
               {isAdmin && (
                 <TabsTrigger
                   onClick={() => handleTabChange('inbox')}
@@ -648,6 +664,28 @@ export default function ProcedureManualsPage() {
                 />
               </ScrollArea>
             </TabsContent>
+          ) : currentTab === 'campus-audit' ? (
+            <TabsContent
+              value="campus-audit"
+              className="flex-1 min-h-0 m-0 animate-in fade-in duration-300 flex flex-col"
+            >
+              <ScrollArea className="h-full pr-1">
+                <CampusProcedureAuditTab
+                  units={allUnits}
+                  manuals={manuals}
+                  campuses={campuses}
+                  audits={campusAudits}
+                  userProfile={userProfile}
+                  isAdmin={isAdmin}
+                  userRole={userRole}
+                  isLoading={isLoadingManuals || isLoadingUnits || isLoadingCampusAudits}
+                  onViewManual={(unitId) => {
+                    setSelectedUnitId(unitId);
+                    handleTabChange('view');
+                  }}
+                />
+              </ScrollArea>
+            </TabsContent>
           ) : selectedUnit ? (
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center justify-between border-b pb-2 shrink-0 px-1">
@@ -761,6 +799,13 @@ export default function ProcedureManualsPage() {
                             numberOfProcesses={selectedManual.numberOfProcesses}
                             procedureNumber={selectedManual.procedureNumber}
                             unitName={selectedManual.unitName || selectedUnit.name}
+                            campusAudit={
+                              campusAudits?.find(
+                                (a) => a.unitId === selectedUnit.id && a.campusId === userProfile?.campusId,
+                              ) || null
+                            }
+                            campusName={userProfile?.campusId ? campusMap.get(userProfile.campusId) : undefined}
+                            onOpenCampusAudit={() => handleTabChange('campus-audit')}
                             className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60"
                           />
                         )}

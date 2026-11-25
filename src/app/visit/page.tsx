@@ -3,24 +3,29 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Smartphone, Download, ArrowRight, ShieldCheck } from 'lucide-react';
+import QRCode from 'qrcode';
 
 function VisitContent() {
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') || '/visitor-logbook/mobile';
   const [origin, setOrigin] = useState('');
+  const [qrSrc, setQrSrc] = useState('');
   const [copied, setCopied] = useState(false);
   const [showContinue, setShowContinue] = useState(false);
 
   useEffect(() => {
-    setOrigin(window.location.origin);
+    const currentOrigin = window.location.origin;
+    setOrigin(currentOrigin);
+    const targetUrl = `${currentOrigin}/visit?redirect=${encodeURIComponent(redirect)}`;
+    QRCode.toDataURL(targetUrl, { width: 400, margin: 2 })
+      .then((url) => setQrSrc(url))
+      .catch(() => setQrSrc(''));
     // Show the "Continue" option after a brief moment
     const timer = setTimeout(() => setShowContinue(true), 3000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [redirect]);
 
   const downloadUrl = `${origin}/downloads/rsu-eoms-portal.apk`;
-  const pageUrl = `${origin}/visit?redirect=${encodeURIComponent(redirect)}`;
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(pageUrl)}`;
 
   const handleCopy = async () => {
     try {
@@ -51,7 +56,7 @@ function VisitContent() {
 
         <div className="bg-white rounded-2xl border shadow-xl p-6 space-y-5">
           <div className="flex justify-center">
-            {origin && (
+            {qrSrc && (
               <img
                 src={qrSrc}
                 alt="QR code to download the UAQA Portal Android app"

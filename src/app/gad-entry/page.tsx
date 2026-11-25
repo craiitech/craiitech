@@ -33,6 +33,7 @@ import { z } from 'zod';
 import type { Campus, Unit, GadSettings, GADSector } from '@/lib/types';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
+import { InlinePrivacyNotice } from '@/components/common/inline-privacy-notice';
 
 const sectors: GADSector[] = [
   'Solo Parent',
@@ -497,6 +498,8 @@ export default function PublicGadEntryPage() {
                     </p>
                   </div>
                 </div>
+
+                <InlinePrivacyNotice purpose="Gender and Development (GAD) Sex-Disaggregated Data reporting under RA 9710" />
 
                 <Button
                   type="submit"

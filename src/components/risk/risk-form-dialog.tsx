@@ -60,7 +60,7 @@ import { useSessionActivity } from '@/lib/activity-log-provider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { suggestRiskTreatment } from '@/ai/flows/suggest-treatment-flow';
+import { generateWebLlmDiscussion } from '@/lib/web-llm-service';
 import { Separator } from '../ui/separator';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { useSearchParams } from 'next/navigation';
@@ -459,15 +459,13 @@ export function RiskFormDialog({
     if (!descriptionValue || !objectiveValue) return;
     setIsSuggesting(true);
     try {
-      const result = await suggestRiskTreatment({
-        type: riskTypeValue,
-        description: descriptionValue,
-        objective: objectiveValue,
-      });
+      const suggestions = await generateWebLlmDiscussion(
+        `Suggest 3-5 concise ISO 21001:2018 risk treatment actions for this ${riskTypeValue}.\nProcess Objective: ${objectiveValue}\nDescription: ${descriptionValue}`,
+      );
       const currentAction = form.getValues('treatmentAction') || '';
       form.setValue(
         'treatmentAction',
-        currentAction + (currentAction ? '\n\n' : '') + '**AI Suggestions:**\n' + result.suggestions,
+        currentAction + (currentAction ? '\n\n' : '') + '**AI Suggestions:**\n' + suggestions,
       );
     } catch (e) {
       toast({ title: 'AI Error', description: 'Could not generate suggestions.', variant: 'destructive' });

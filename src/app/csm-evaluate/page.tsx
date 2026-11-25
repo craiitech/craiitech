@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Sparkles, User, HelpCircle, Users2, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
+import { InlinePrivacyNotice } from '@/components/common/inline-privacy-notice';
 
 function CsmEvaluateContent() {
   const firebaseState = useFirebase();
@@ -210,7 +211,6 @@ function CsmEvaluateContent() {
   };
 
   const getBlinkingField = () => {
-    if (!visitorName.trim()) return 'name';
     if (!sex) return 'sex';
     if (!csmAgeGroup) return 'ageGroup';
     if (!csmClientType) return 'clientType';
@@ -224,7 +224,7 @@ function CsmEvaluateContent() {
     if (!firebaseState.areServicesAvailable) return;
     const { firestore } = firebaseState;
 
-    if (!visitorName.trim() || !sex || !csmAgeGroup || !csmClientType || csmCC1 === null) {
+    if (!sex || !csmAgeGroup || !csmClientType || csmCC1 === null) {
       toast({
         title: t[csmLanguage].incompleteTitle,
         description: t[csmLanguage].incompleteDesc,
@@ -237,7 +237,7 @@ function CsmEvaluateContent() {
     try {
       const csmPayload = {
         visitorLogId: 'online',
-        visitorName: visitorName.trim().toUpperCase(),
+        visitorName: visitorName.trim() ? visitorName.trim().toUpperCase() : 'ANONYMOUS CLIENT',
         sex: sex,
         ageGroup: csmAgeGroup,
         clientType: csmClientType,
@@ -747,6 +747,11 @@ function CsmEvaluateContent() {
 
           {/* Submit */}
           <div className="border-t pt-4">
+            <InlinePrivacyNotice
+              purpose="ARTA Client Satisfaction Measurement (RA 11032) and service quality improvement"
+              compact
+            />
+
             <Button
               type="button"
               disabled={isSubmittingCsm}

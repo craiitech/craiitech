@@ -43,50 +43,63 @@ export function DataPrivacyDialog({ isOpen, onOpenChange, onAccept }: DataPrivac
           <div className="p-4 text-sm space-y-4">
             <h3 className="font-semibold">1. Data We Collect</h3>
             <p>
-              To create and manage your account for the RSU EOMS Submission Portal, we collect the following personal
-              information:
+              To create and manage your account for the RSU EOMS Submission Portal (UAQA Portal), we collect the
+              following personal and sensitive personal information:
             </p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                <strong>Full Name:</strong> To identify you within the system.
+                <strong>Full Name &amp; RSU Email Address:</strong> To identify you, authenticate your account, and send
+                official notifications.
               </li>
               <li>
-                <strong>RSU Email Address:</strong> For login, account verification, and official notifications.
+                <strong>Role, Campus, and Unit:</strong> To assign appropriate Role-Based Access Control (RBAC)
+                permissions and organizational scope.
               </li>
               <li>
-                <strong>Role, Campus, and Unit:</strong> To assign appropriate permissions and access levels within the
-                portal.
+                <strong>Sex Identification (GAD Standard):</strong> Used for mandated Gender and Development (GAD)
+                Sex-Disaggregated Data reporting under RA 9710.
+              </li>
+              <li>
+                <strong>Activity, Attendance &amp; Device Binding Data:</strong> When using attendance or WFH/daily
+                activity modules, the system records timestamps, activity logs, and a device fingerprint to prevent
+                duplicate check-ins.
               </li>
             </ul>
 
-            <h3 className="font-semibold">2. How We Use Your Data</h3>
-            <p>Your personal data is used exclusively for the following purposes:</p>
+            <h3 className="font-semibold">2. How We Use Your Data &amp; Third-Party Processors</h3>
+            <p>Your personal data is used exclusively for institutional quality assurance and governance:</p>
             <ul className="list-disc pl-5 space-y-1">
-              <li>To authenticate your identity and grant you access to the portal.</li>
-              <li>To manage the EOMS documentation workflow, including submissions, reviews, and approvals.</li>
-              <li>To send notifications related to your account and submission statuses.</li>
-              <li>To ensure data integrity and enforce role-based access control.</li>
+              <li>To authenticate your identity, enforce RBAC, and maintain a permanent system audit trail.</li>
+              <li>To manage EOMS submissions, audits, risks, CHED/GAD reporting, and FIAMO repair workflows.</li>
+              <li>
+                <strong>Cloud &amp; Cross-Border Processing:</strong> Data is hosted on Google Cloud / Firebase
+                (including Cloud Functions in <code>asia-southeast1</code> Singapore), Google Drive / Apps Script, and
+                Upstash Redis (rate limiting). Optional AI summaries run locally in your browser via WebLLM.
+              </li>
             </ul>
-            <p>We will not use your personal information for any other purpose without your explicit consent.</p>
+            <p>
+              We will not use your personal information for any other purpose without your explicit consent or legal
+              mandate.
+            </p>
 
-            <h3 className="font-semibold">3. Data Protection and Cryptographic Security</h3>
-            <p>We are committed to protecting your data through multi-tier institutional encryption:</p>
+            <h3 className="font-semibold">3. Data Protection, Retention &amp; Cryptographic Security</h3>
+            <p>We protect your data through multi-tier institutional safeguards:</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>
-                <strong>At-Rest Encryption:</strong> All uploaded documents and database records are encrypted with FIPS
-                140-2 validated AES-256.
+                <strong>At-Rest &amp; In-Transit Encryption:</strong> Database records and Google Drive documents are
+                encrypted at rest (AES-256) and transmitted over HTTPS/TLS.
               </li>
               <li>
-                <strong>In-Transit Security:</strong> Encrypted communication over TLS 1.3 with 256-bit AES-GCM ciphers
-                under Let's Encrypt SSL.
+                <strong>Digital Verification:</strong> QR attendance codes and offline logs are signed via HMAC-SHA-256
+                to detect tampering.
               </li>
               <li>
-                <strong>Digital Verification:</strong> QR attendance codes and synchronization logs are signed via
-                HMAC-SHA-256 to ensure zero tampering.
+                <strong>Credential Protection:</strong> Firebase Authentication protects credentials using salted scrypt
+                key derivation.
               </li>
               <li>
-                <strong>Credential Protection:</strong> Multi-round salted scrypt key derivation protects accounts
-                against unauthorized access.
+                <strong>Retention:</strong> Records are retained only as long as necessary per University Records
+                Disposition Schedules (RDS) and NAP guidelines.
               </li>
             </ul>
 

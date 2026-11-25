@@ -1,5 +1,7 @@
 import * as admin from 'firebase-admin';
 import { onDocumentWritten } from 'firebase-functions/v2/firestore';
+import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 
 admin.initializeApp();
@@ -28,13 +30,14 @@ async function updateCollectionField(
   field: string,
   value: unknown,
   userId: string,
-  userIdField: string = 'userId'
+  userIdField: string = 'userId',
 ): Promise<void> {
   let lastDoc: FirebaseFirestore.DocumentSnapshot | null = null;
   let hasMore = true;
 
   while (hasMore) {
-    let query: FirebaseFirestore.Query = db.collection(collectionName)
+    let query: FirebaseFirestore.Query = db
+      .collection(collectionName)
       .where(userIdField, '==', userId)
       .limit(BATCH_LIMIT);
 
@@ -104,7 +107,9 @@ export const syncUserProfileChanges = onDocumentWritten(
         case 'lastName': {
           promises.push(updateCollectionField('activityLogs', 'userName', newDisplayName, userId));
           promises.push(updateCollectionField('risks', 'responsiblePersonName', newDisplayName, userId));
-          promises.push(updateCollectionField('correctiveActionPlans', 'responsiblePersonName', newDisplayName, userId));
+          promises.push(
+            updateCollectionField('correctiveActionPlans', 'responsiblePersonName', newDisplayName, userId),
+          );
           promises.push(updateCollectionField('softwareEvaluations', 'userName', newDisplayName, userId));
           promises.push(updateCollectionField('activityAttendanceLogs', 'userName', newDisplayName, userId));
           promises.push(updateCollectionField('deviceBindings', 'userName', newDisplayName, userId));
@@ -118,5 +123,167 @@ export const syncUserProfileChanges = onDocumentWritten(
     await Promise.all(promises);
 
     return;
-  }
+  },
 );
+
+async function deleteExpiredDocs(collectionName: string, timestampField: string, cutoff: Timestamp): Promise<number> {
+  let deleted = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const snap = await db.collection(collectionName).where(timestampField, '<', cutoff).limit(BATCH_LIMIT).get();
+
+    if (snap.empty) {
+      hasMore = false;
+      break;
+    }
+
+    const batch = db.batch();
+    snap.docs.forEach((docSnap) => batch.delete(docSnap.ref));
+    await batch.commit();
+    deleted += snap.size;
+  }
+
+  return deleted;
+}
+
+/**
+ * Scheduled Data Retention & Disposal (RA 10173 Sec. 11(e))
+ * - Anonymizes visitorLogs older than 365 days.
+ * - Deletes unitActivityAttendanceLogs, errorReports, and activityLogs older than 730 days (2 years).
+ */
+export const enforceDataRetentionPolicy = onSchedule(
+  { schedule: 'every sunday 02:00', timeZone: 'Asia/Manila', region: 'asia-southeast1' },
+  async () => {
+    const nowMs = Date.now();
+    const oneYearCutoff = Timestamp.fromMillis(nowMs - 365 * 24 * 60 * 60 * 1000);
+    const twoYearCutoff = Timestamp.fromMillis(nowMs - 730 * 24 * 60 * 60 * 1000);
+
+    // 1. Anonymize visitorLogs older than 1 year
+    let hasMoreVisitors = true;
+    while (hasMoreVisitors) {
+      const snap = await db.collection('visitorLogs').where('createdAt', '<', oneYearCutoff).limit(BATCH_LIMIT).get();
+
+      if (snap.empty) {
+        hasMoreVisitors = false;
+        break;
+      }
+
+      const batch = db.batch();
+      let updatedInBatch = 0;
+      snap.docs.forEach((docSnap) => {
+        if (!docSnap.data().isAnonymized) {
+          batch.update(docSnap.ref, {
+            visitorName: 'ANONYMIZED',
+            sex: 'REDACTED',
+            isAnonymized: true,
+            anonymizedAt: FieldValue.serverTimestamp(),
+          });
+          updatedInBatch++;
+        }
+      });
+
+      if (updatedInBatch > 0) {
+        await batch.commit();
+      } else {
+        hasMoreVisitors = false;
+      }
+    }
+
+    // 2. Purge logs older than 2 years
+    await Promise.all([
+      deleteExpiredDocs('unitActivityAttendanceLogs', 'scannedAt', twoYearCutoff),
+      deleteExpiredDocs('errorReports', 'createdAt', twoYearCutoff),
+      deleteExpiredDocs('activityLogs', 'timestamp', twoYearCutoff),
+    ]);
+  },
+);
+
+async function isCallerAdmin(uid: string): Promise<boolean> {
+  const adminRoleDoc = await db.collection('roles_admin').doc(uid).get();
+  if (adminRoleDoc.exists) return true;
+  const userDoc = await db.collection('users').doc(uid).get();
+  const role = userDoc.data()?.role;
+  return ['Admin', 'admin', 'Administrator', 'administrator', 'System Administrator', 'Super Admin'].includes(
+    String(role || ''),
+  );
+}
+
+/**
+ * Right to Access & Data Portability (RA 10173 Sec. 16 & 18)
+ * Exports a user's personal profile and associated records in machine-readable JSON.
+ */
+export const exportUserData = onCall({ region: 'asia-southeast1' }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Authentication required.');
+  }
+
+  const targetUid = (request.data?.targetUid as string | undefined) || request.auth.uid;
+  if (targetUid !== request.auth.uid && !(await isCallerAdmin(request.auth.uid))) {
+    throw new HttpsError('permission-denied', 'Only admins can export another user’s data.');
+  }
+
+  const [userSnap, submissionsSnap, risksSnap, empActSnap, wfhSnap] = await Promise.all([
+    db.collection('users').doc(targetUid).get(),
+    db.collection('submissions').where('userId', '==', targetUid).get(),
+    db.collection('risks').where('responsiblePersonId', '==', targetUid).get(),
+    db.collection('employeeActivities').where('userId', '==', targetUid).get(),
+    db.collection('wfhActivities').where('userId', '==', targetUid).get(),
+  ]);
+
+  return {
+    exportedAt: new Date().toISOString(),
+    uid: targetUid,
+    profile: userSnap.exists ? userSnap.data() : null,
+    submissions: submissionsSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+    risks: risksSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+    employeeActivities: empActSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+    wfhActivities: wfhSnap.docs.map((d) => ({ id: d.id, ...d.data() })),
+  };
+});
+
+/**
+ * Right to Erasure / Blocking (RA 10173 Sec. 16)
+ * Admin-only callable to anonymize/erase a user profile and scrub denormalized names.
+ */
+export const eraseUserData = onCall({ region: 'asia-southeast1' }, async (request) => {
+  if (!request.auth) {
+    throw new HttpsError('unauthenticated', 'Authentication required.');
+  }
+  if (!(await isCallerAdmin(request.auth.uid))) {
+    throw new HttpsError('permission-denied', 'Admin privileges required.');
+  }
+
+  const targetUid = request.data?.targetUid as string | undefined;
+  if (!targetUid) {
+    throw new HttpsError('invalid-argument', 'targetUid is required.');
+  }
+
+  await db
+    .collection('users')
+    .doc(targetUid)
+    .set(
+      {
+        firstName: 'ERASED',
+        lastName: 'USER',
+        email: `erased-${targetUid}@redacted.local`,
+        sex: 'REDACTED',
+        avatar: null,
+        portfolios: [],
+        verified: false,
+        erasedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+  await Promise.all([
+    updateCollectionField('activityLogs', 'userName', 'ERASED USER', targetUid),
+    updateCollectionField('risks', 'responsiblePersonName', 'ERASED USER', targetUid, 'responsiblePersonId'),
+    updateCollectionField('softwareEvaluations', 'userName', 'ERASED USER', targetUid),
+    updateCollectionField('unitActivityAttendanceLogs', 'userName', 'ERASED USER', targetUid),
+    updateCollectionField('unitFormRequests', 'submitterName', 'ERASED USER', targetUid),
+    updateCollectionField('unitMonitoringRecords', 'monitorName', 'ERASED USER', targetUid),
+  ]);
+
+  return { status: 'erased', targetUid };
+});

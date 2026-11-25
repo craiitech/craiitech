@@ -1,10 +1,20 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
-import type { ManualProcess } from '@/lib/types';
+import type { CampusProcedureAudit, ManualProcess } from '@/lib/types';
+import { getManualProcessKey } from '@/components/manuals/campus-procedure-audit-tab';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, ListChecks, Info, CheckCircle2, Maximize2, Sparkles, Layers } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ListChecks,
+  CheckCircle2,
+  Maximize2,
+  Sparkles,
+  ClipboardCheck,
+  AlertCircle,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
@@ -13,6 +23,9 @@ interface ProcedureManualProcessSliderProps {
   numberOfProcesses?: number;
   procedureNumber?: string;
   unitName?: string;
+  campusAudit?: CampusProcedureAudit | null;
+  campusName?: string;
+  onOpenCampusAudit?: () => void;
   className?: string;
 }
 
@@ -21,6 +34,9 @@ export function ProcedureManualProcessSlider({
   numberOfProcesses = 0,
   procedureNumber,
   unitName,
+  campusAudit,
+  campusName,
+  onOpenCampusAudit,
   className,
 }: ProcedureManualProcessSliderProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -120,9 +136,29 @@ export function ProcedureManualProcessSlider({
               {procedureNumber}
             </Badge>
           )}
+          {campusAudit && (
+            <Badge
+              variant="outline"
+              className="h-5 px-2 text-[9px] font-black uppercase border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 shrink-0 hidden md:inline-flex"
+            >
+              {campusName || campusAudit.campusName}: {campusAudit.implementedCount}/{processList.length} Implemented
+            </Badge>
+          )}
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {onOpenCampusAudit && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 px-2 text-[10px] font-bold uppercase tracking-wider border-primary/25 text-primary hover:bg-primary/5 gap-1"
+              onClick={onOpenCampusAudit}
+              title="Open Campus Procedure Audit"
+            >
+              <ClipboardCheck className="h-3 w-3" />
+              <span className="hidden md:inline">Campus Audit</span>
+            </Button>
+          )}
           {processList.length > 3 && (
             <Button
               variant="ghost"
@@ -274,24 +310,50 @@ export function ProcedureManualProcessSlider({
 
           <div className="flex-1 overflow-y-auto py-4 pr-1">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {processList.map((proc, pIdx) => (
-                <div
-                  key={`modal-${pIdx}`}
-                  className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-primary/40 transition-all flex items-start gap-3"
-                >
-                  <Badge className="font-mono text-xs font-black bg-primary/10 text-primary border border-primary/20 shrink-0 mt-0.5">
-                    {proc.processNumber || `#${pIdx + 1}`}
-                  </Badge>
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
-                      {proc.processTitle}
-                    </p>
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                      Process Sequence #{pIdx + 1}
-                    </span>
+              {processList.map((proc, pIdx) => {
+                const key = getManualProcessKey(proc, pIdx);
+                const hasAudit = Boolean(campusAudit);
+                const isImplemented = hasAudit ? campusAudit!.implementedProcessKeys.includes(key) : true;
+                const reason = campusAudit?.notImplementedReasons?.[key];
+                return (
+                  <div
+                    key={`modal-${pIdx}`}
+                    className={cn(
+                      'p-3 rounded-xl border transition-all flex items-start gap-3',
+                      hasAudit && !isImplemented
+                        ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-300/60 dark:border-amber-800/50'
+                        : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-primary/40',
+                    )}
+                  >
+                    <Badge className="font-mono text-xs font-black bg-primary/10 text-primary border border-primary/20 shrink-0 mt-0.5">
+                      {proc.processNumber || `#${pIdx + 1}`}
+                    </Badge>
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
+                        {proc.processTitle}
+                      </p>
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                          Process Sequence #{pIdx + 1}
+                        </span>
+                        {hasAudit &&
+                          (isImplemented ? (
+                            <span className="text-[9px] font-bold text-emerald-600 flex items-center gap-0.5">
+                              <CheckCircle2 className="h-2.5 w-2.5" /> Implemented
+                            </span>
+                          ) : (
+                            <span className="text-[9px] font-bold text-amber-600 flex items-center gap-0.5">
+                              <AlertCircle className="h-2.5 w-2.5" /> Not in Campus
+                            </span>
+                          ))}
+                      </div>
+                      {hasAudit && !isImplemented && reason && (
+                        <p className="text-[10px] text-amber-700 dark:text-amber-300 italic">{reason}</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </DialogContent>

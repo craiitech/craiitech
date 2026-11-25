@@ -8,10 +8,10 @@ const config: CapacitorConfig = {
     // Production URL — the Android WebView loads the app from this address.
     // For local development, swap this to http://localhost:9002 and run `npm run dev`.
     url: 'https://eoms.rsu.edu.ph',
-    cleartext: true,
+    cleartext: false,
   },
   android: {
-    allowMixedContent: true,
+    allowMixedContent: false,
   },
 };
 

@@ -8,6 +8,7 @@ import { collection, addDoc, Timestamp, doc, query, where, onSnapshot, updateDoc
 import { useToast } from '@/hooks/use-toast';
 import type { Campus, Unit, SystemSettings, Employee } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { InlinePrivacyNotice } from '@/components/common/inline-privacy-notice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -1421,6 +1422,11 @@ export default function VisitorLogbookPage() {
                       )}
                     </div>
                   </div>
+
+                  <InlinePrivacyNotice
+                    purpose="campus visitor logging, security, and ARTA Client Satisfaction Measurement"
+                    compact
+                  />
 
                   {/* Submit Button */}
                   <Button

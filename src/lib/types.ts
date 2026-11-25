@@ -768,6 +768,25 @@ export type ManualProcess = {
   processTitle: string; // e.g., "Curriculum Review & Revision"
 };
 
+export type CampusProcedureAudit = {
+  id: string; // `${campusId}_${unitId}`
+  campusId: string;
+  campusName: string;
+  unitId: string;
+  unitName: string;
+  manualId: string;
+  procedureNumber?: string;
+  totalProcessCount: number;
+  implementedProcessKeys: string[];
+  implementedCount: number;
+  notImplementedReasons?: Record<string, string>;
+  generalRemarks?: string;
+  auditedBy: string;
+  auditedByName: string;
+  auditedByRole: string;
+  updatedAt?: any;
+};
+
 export type ProcedureManual = {
   id: string; // Same as unitId
   unitName: string;

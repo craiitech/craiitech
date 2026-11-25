@@ -7,6 +7,7 @@ import { MonitorCheck, ShieldCheck, Home, ArrowRight } from 'lucide-react';
 import { Iso25010Form } from '@/components/evaluation/iso-25010-form';
 import Image from 'next/image';
 import Link from 'next/link';
+import { InlinePrivacyNotice } from '@/components/common/inline-privacy-notice';
 
 /**
  * PUBLIC STAKEHOLDER EVALUATION PAGE
@@ -53,6 +54,11 @@ export default function PublicSoftwareEvaluationPage() {
               </div>
             ))}
           </div>
+          <InlinePrivacyNotice
+            purpose="ISO/IEC 25010 software quality evaluation and system improvement"
+            className="text-left"
+            compact
+          />
         </CardContent>
         <CardFooter className="flex flex-col gap-4 pb-10 pt-4">
           <Button
