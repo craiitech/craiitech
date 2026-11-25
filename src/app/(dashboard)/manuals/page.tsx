@@ -614,14 +614,31 @@ export default function ProcedureManualsPage() {
                             {item.name}
                           </span>
                         </div>
-                        {item.isOwnUnit && (
-                          <Badge
-                            variant="outline"
-                            className="text-[8px] font-black uppercase px-1.5 py-0 h-4 border-amber-400/70 bg-amber-100/80 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 shrink-0"
-                          >
-                            Your Unit
-                          </Badge>
-                        )}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {(isAdmin || isSupervisor) &&
+                            !item.isShared &&
+                            campusAudits?.some(
+                              (a) =>
+                                a.unitId === item.id &&
+                                (!userProfile?.campusId || isAdmin || a.campusId === userProfile.campusId),
+                            ) && (
+                              <Badge
+                                variant="outline"
+                                className="text-[8px] font-black uppercase px-1.5 py-0 h-4 border-emerald-500/50 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shrink-0"
+                                title="Campus Procedure Audit conducted"
+                              >
+                                Audited
+                              </Badge>
+                            )}
+                          {item.isOwnUnit && (
+                            <Badge
+                              variant="outline"
+                              className="text-[8px] font-black uppercase px-1.5 py-0 h-4 border-amber-400/70 bg-amber-100/80 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 shrink-0"
+                            >
+                              Your Unit
+                            </Badge>
+                          )}
+                        </div>
                       </button>
                     ))}
                   </div>

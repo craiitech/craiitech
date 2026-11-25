@@ -539,8 +539,12 @@ service cloud.firestore {
       allow create, update: if isSignedIn() && (
         isAdmin() ||
         (hasProfile() &&
-         profile().get('role', '').matches('(?i).*(campus odimo|campus director|odimo).*') &&
-         request.resource.data.campusId == profile().get('campusId', ''))
+         request.resource.data.campusId == profile().get('campusId', '') &&
+         (
+           profile().get('role', '').matches('(?i).*(campus odimo|campus director|odimo).*') ||
+           (profile().get('role', '').matches('(?i).*(unit coordinator|coordinator|unit head).*') &&
+            hasUnitAccess(request.resource.data.unitId))
+         ))
       );
       allow delete: if isAdmin();
     }

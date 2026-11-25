@@ -89,10 +89,19 @@ export function CampusProcedureAuditTab({
   const { toast } = useToast();
 
   const isCampusOdimo = Boolean(
-    userRole && (userRole === 'Campus ODIMO' || userRole.toLowerCase().includes('campus odimo')),
+    userRole &&
+    (userRole === 'Campus ODIMO' ||
+      userRole.toLowerCase().includes('campus odimo') ||
+      userRole.toLowerCase().includes('campus director')),
+  );
+  const isUnitCoordinator = Boolean(
+    userRole &&
+    (userRole.toLowerCase().includes('coordinator') ||
+      userRole.toLowerCase().includes('unit head') ||
+      userRole.toLowerCase().includes('unit odimo')),
   );
   const canEditAnyCampus = isAdmin;
-  const canLockToOwnCampus = !isAdmin && isCampusOdimo && Boolean(userProfile?.campusId);
+  const canLockToOwnCampus = !isAdmin && (isCampusOdimo || isUnitCoordinator) && Boolean(userProfile?.campusId);
 
   const [selectedCampusId, setSelectedCampusId] = useState<string>(userProfile?.campusId || '');
   const [searchTerm, setSearchTerm] = useState('');
@@ -117,11 +126,20 @@ export function CampusProcedureAuditTab({
     return campuses?.find((c) => c.id === effectiveCampusId)?.name || 'Selected Campus';
   }, [campuses, effectiveCampusId]);
 
-  const canEditSelectedCampus = useMemo(() => {
+  const isOwnUnit = (unitId: string) => {
+    if (!userProfile) return false;
+    return userProfile.unitId === unitId || Boolean(userProfile.assignedUnitIds?.includes(unitId));
+  };
+
+  const canEditUnitRow = (unitId: string) => {
     if (canEditAnyCampus) return true;
-    if (isCampusOdimo && userProfile?.campusId && effectiveCampusId === userProfile.campusId) return true;
+    if (!userProfile?.campusId || effectiveCampusId !== userProfile.campusId) return false;
+    if (isCampusOdimo) return true;
+    if (isUnitCoordinator && isOwnUnit(unitId)) return true;
     return false;
-  }, [canEditAnyCampus, isCampusOdimo, userProfile?.campusId, effectiveCampusId]);
+  };
+
+  const canEditDialogUnit = editingUnit ? canEditUnitRow(editingUnit.id) : false;
 
   const manualMap = useMemo(() => new Map((manuals || []).map((m) => [m.id, m])), [manuals]);
   const sharedAcademicManual = useMemo(() => manualMap.get(SHARED_ACADEMIC_ID) || null, [manualMap]);
@@ -375,12 +393,13 @@ export function CampusProcedureAuditTab({
                 <ClipboardCheck className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg font-black uppercase tracking-tight">Campus Procedure Audit</CardTitle>
                 <Badge variant="outline" className="text-[10px] font-black uppercase border-primary/30 text-primary">
-                  Campus ODIMO Workspace
+                  Campus ODIMO &amp; Unit Coordinator Workspace
                 </Badge>
               </div>
               <CardDescription className="text-xs">
                 Identify which processes from each unit&apos;s Operating Processes Directory are actively implemented in{' '}
-                <strong className="text-slate-900 dark:text-slate-100">{effectiveCampusName}</strong>.
+                <strong className="text-slate-900 dark:text-slate-100">{effectiveCampusName}</strong>. Campus ODIMOs can
+                audit all units in their campus; Unit Coordinators can set processes for their own unit.
               </CardDescription>
             </div>
 
@@ -501,10 +520,15 @@ export function CampusProcedureAuditTab({
                 </TableRow>
               ) : (
                 filteredRows.map((row) => (
-                  <TableRow key={row.unit.id}>
+                  <TableRow key={row.unit.id} className={cn(isOwnUnit(row.unit.id) && 'bg-amber-500/5')}>
                     <TableCell className="font-bold text-xs">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span>{row.unit.name}</span>
+                        {isOwnUnit(row.unit.id) && (
+                          <Badge className="bg-amber-500 text-white text-[9px] px-1.5 py-0 border-none">
+                            Your Unit
+                          </Badge>
+                        )}
                         {row.isShared && (
                           <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
                             Shared Academic
@@ -535,9 +559,15 @@ export function CampusProcedureAuditTab({
                           No Manual
                         </Badge>
                       ) : row.auditStatus === 'full' ? (
-                        <Badge className="bg-emerald-600 text-white text-[9px] uppercase">100% Implemented</Badge>
+                        <Badge className="bg-emerald-600 text-white text-[9px] uppercase gap-1">
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          Audited &bull; 100%
+                        </Badge>
                       ) : row.auditStatus === 'partial' ? (
-                        <Badge className="bg-amber-500 text-white text-[9px] uppercase">Partial</Badge>
+                        <Badge className="bg-blue-600 text-white text-[9px] uppercase gap-1">
+                          <CheckCircle2 className="h-2.5 w-2.5" />
+                          Audited &bull; Partial
+                        </Badge>
                       ) : (
                         <Badge variant="outline" className="text-[9px] uppercase text-amber-700 border-amber-300">
                           Pending Audit
@@ -546,8 +576,17 @@ export function CampusProcedureAuditTab({
                     </TableCell>
                     <TableCell className="text-[11px] text-muted-foreground">
                       {row.audit ? (
-                        <div>
-                          <p className="font-semibold text-slate-700 dark:text-slate-300">{row.audit.auditedByName}</p>
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-semibold text-slate-700 dark:text-slate-300">
+                              {row.audit.auditedByName}
+                            </p>
+                            {row.audit.auditedByRole && (
+                              <Badge variant="outline" className="text-[8px] px-1 py-0 uppercase">
+                                {row.audit.auditedByRole}
+                              </Badge>
+                            )}
+                          </div>
                           {row.audit.updatedAt?.seconds && (
                             <p className="text-[10px]">
                               {format(new Date(row.audit.updatedAt.seconds * 1000), 'MMM d, yyyy')}
@@ -571,13 +610,13 @@ export function CampusProcedureAuditTab({
                           </Button>
                         )}
                         <Button
-                          variant={canEditSelectedCampus ? 'default' : 'outline'}
+                          variant={canEditUnitRow(row.unit.id) ? 'default' : 'outline'}
                           size="sm"
                           disabled={row.totalProcesses === 0}
                           className="h-7 px-2.5 text-[10px] font-bold gap-1"
                           onClick={() => openAuditDialog(row)}
                         >
-                          {canEditSelectedCampus ? (
+                          {canEditUnitRow(row.unit.id) ? (
                             <>
                               <Edit3 className="h-3 w-3" />
                               {row.audit ? 'Update Audit' : 'Audit Processes'}
@@ -632,7 +671,7 @@ export function CampusProcedureAuditTab({
                 {selectedKeys.length} of {dialogProcesses.length} Processes Implemented
               </Badge>
             </div>
-            {canEditSelectedCampus && (
+            {canEditDialogUnit && (
               <div className="flex items-center gap-2">
                 <Button
                   type="button"
@@ -674,7 +713,7 @@ export function CampusProcedureAuditTab({
                     <Checkbox
                       id={`proc-${idx}`}
                       checked={isChecked}
-                      disabled={!canEditSelectedCampus}
+                      disabled={!canEditDialogUnit}
                       onCheckedChange={() => toggleProcessKey(key)}
                       className="mt-0.5"
                     />
@@ -704,7 +743,7 @@ export function CampusProcedureAuditTab({
                       <Input
                         placeholder="Optional reason / remark (e.g., Handled by Main Campus, No facility on site)..."
                         value={notImplementedReasons[key] || ''}
-                        disabled={!canEditSelectedCampus}
+                        disabled={!canEditDialogUnit}
                         onChange={(e) =>
                           setNotImplementedReasons((prev) => ({
                             ...prev,
@@ -726,7 +765,7 @@ export function CampusProcedureAuditTab({
               <Textarea
                 placeholder="Additional notes regarding campus implementation of this procedure..."
                 value={generalRemarks}
-                disabled={!canEditSelectedCampus}
+                disabled={!canEditDialogUnit}
                 onChange={(e) => setGeneralRemarks(e.target.value)}
                 rows={2}
                 className="text-xs"
@@ -745,7 +784,7 @@ export function CampusProcedureAuditTab({
             >
               Close
             </Button>
-            {canEditSelectedCampus && (
+            {canEditDialogUnit && (
               <Button type="button" onClick={handleSaveAudit} disabled={isSaving} className="gap-1.5 font-bold">
                 {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
                 Save Campus Procedure Audit
