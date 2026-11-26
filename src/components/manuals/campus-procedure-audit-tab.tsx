@@ -143,6 +143,7 @@ export function CampusProcedureAuditTab({
 
   const manualMap = useMemo(() => new Map((manuals || []).map((m) => [m.id, m])), [manuals]);
   const sharedAcademicManual = useMemo(() => manualMap.get(SHARED_ACADEMIC_ID) || null, [manualMap]);
+  const campusNameMap = useMemo(() => new Map((campuses || []).map((c) => [c.id, c.name])), [campuses]);
 
   const auditMap = useMemo(() => {
     const map = new Map<string, CampusProcedureAudit>();
@@ -153,6 +154,24 @@ export function CampusProcedureAuditTab({
     });
     return map;
   }, [audits, effectiveCampusId]);
+
+  const allAuditsByUnitMap = useMemo(() => {
+    const map = new Map<string, CampusProcedureAudit[]>();
+    (audits || []).forEach((a) => {
+      const existing = map.get(a.unitId) || [];
+      existing.push(a);
+      map.set(a.unitId, existing);
+    });
+    map.forEach((list, key) => {
+      list.sort((a, b) => {
+        const nameA = campusNameMap.get(a.campusId) || a.campusName || a.campusId;
+        const nameB = campusNameMap.get(b.campusId) || b.campusName || b.campusId;
+        return nameA.localeCompare(nameB);
+      });
+      map.set(key, list);
+    });
+    return map;
+  }, [audits, campusNameMap]);
 
   const rows = useMemo(() => {
     if (!units) return [];
@@ -541,16 +560,60 @@ export function CampusProcedureAuditTab({
                     <TableCell>
                       {row.totalProcesses === 0 ? (
                         <span className="text-[11px] text-muted-foreground italic">No processes registered</span>
-                      ) : row.audit ? (
-                        <div className="flex items-center gap-2 min-w-[140px]">
-                          <span className="text-xs font-black">
-                            {row.implementedCount}/{row.totalProcesses}
-                          </span>
-                          <Progress value={row.pct} className="h-1.5 w-20" />
-                          <span className="text-[10px] font-bold text-muted-foreground">{row.pct}%</span>
-                        </div>
                       ) : (
-                        <span className="text-[11px] text-muted-foreground">Not yet audited</span>
+                        <div className="space-y-1.5">
+                          {row.audit ? (
+                            <div className="flex items-center gap-2 min-w-[140px]">
+                              <span className="text-xs font-black">
+                                {row.implementedCount}/{row.totalProcesses}
+                              </span>
+                              <Progress value={row.pct} className="h-1.5 w-20" />
+                              <span className="text-[10px] font-bold text-muted-foreground">{row.pct}%</span>
+                            </div>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground">
+                              Not yet audited ({effectiveCampusName})
+                            </span>
+                          )}
+
+                          {isAdmin && (
+                            <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                              {(allAuditsByUnitMap.get(row.unit.id) || []).length > 0 ? (
+                                (allAuditsByUnitMap.get(row.unit.id) || []).map((campusAudit) => {
+                                  const cName =
+                                    campusNameMap.get(campusAudit.campusId) ||
+                                    campusAudit.campusName ||
+                                    campusAudit.campusId;
+                                  const isSelected = campusAudit.campusId === effectiveCampusId;
+                                  return (
+                                    <button
+                                      key={campusAudit.id}
+                                      type="button"
+                                      onClick={() => setSelectedCampusId(campusAudit.campusId)}
+                                      title={`Switch to ${cName} (${campusAudit.implementedCount}/${row.totalProcesses} implemented)`}
+                                      className={cn(
+                                        'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[9px] font-bold transition-colors cursor-pointer',
+                                        isSelected
+                                          ? 'border-emerald-600 bg-emerald-600 text-white'
+                                          : 'border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/50',
+                                      )}
+                                    >
+                                      <CheckCircle2 className="h-2.5 w-2.5 shrink-0" />
+                                      <span>{cName}</span>
+                                      <span className="opacity-80">
+                                        ({campusAudit.implementedCount}/{row.totalProcesses})
+                                      </span>
+                                    </button>
+                                  );
+                                })
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground italic">
+                                  No campus has conducted audit yet
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </TableCell>
                     <TableCell>
