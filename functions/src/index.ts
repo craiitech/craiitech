@@ -287,3 +287,46 @@ export const eraseUserData = onCall({ region: 'asia-southeast1' }, async (reques
 
   return { status: 'erased', targetUid };
 });
+
+/**
+ * Scheduled Auto-Logout for Previous-Day Visitors
+ * Runs daily at 00:05 Asia/Manila to automatically close any visitorLogs
+ * left open from prior calendar days.
+ */
+export const autoLogoutPreviousDayVisitors = onSchedule(
+  { schedule: 'every day 00:05', timeZone: 'Asia/Manila', region: 'asia-southeast1' },
+  async () => {
+    // Compute start of today in Asia/Manila (UTC+8)
+    const nowUtcMs = Date.now();
+    const manilaOffsetMs = 8 * 60 * 60 * 1000;
+    const manilaNow = new Date(nowUtcMs + manilaOffsetMs);
+    const startOfTodayManilaUtcMs =
+      Date.UTC(manilaNow.getUTCFullYear(), manilaNow.getUTCMonth(), manilaNow.getUTCDate()) - manilaOffsetMs;
+    const cutoff = Timestamp.fromMillis(startOfTodayManilaUtcMs);
+
+    let hasMore = true;
+    while (hasMore) {
+      const snap = await db
+        .collection('visitorLogs')
+        .where('isLoggedOut', '==', false)
+        .where('createdAt', '<', cutoff)
+        .limit(BATCH_LIMIT)
+        .get();
+
+      if (snap.empty) {
+        hasMore = false;
+        break;
+      }
+
+      const batch = db.batch();
+      snap.docs.forEach((docSnap) => {
+        batch.update(docSnap.ref, {
+          isLoggedOut: true,
+          loggedOutAt: FieldValue.serverTimestamp(),
+          autoLoggedOut: true,
+        });
+      });
+      await batch.commit();
+    }
+  },
+);

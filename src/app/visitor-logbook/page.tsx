@@ -559,13 +559,21 @@ export default function VisitorLogbookPage() {
     }
   }, [submitSuccess]);
 
-  // Real-time active visitors subscriber
+  // Real-time active visitors subscriber (auto-closes stale previous-day visitors)
   useEffect(() => {
     if (!firestore || (!userProfile?.unitId && !userProfile?.campusId)) {
       setActiveVisitors([]);
       setActiveVisitorsLoading(false);
       return;
     }
+
+    const getVisitDate = (createdAt: any): Date | null => {
+      if (!createdAt) return null;
+      if (typeof createdAt?.toDate === 'function') return createdAt.toDate();
+      if (typeof createdAt === 'number') return new Date(createdAt);
+      if (typeof createdAt?.seconds === 'number') return new Date(createdAt.seconds * 1000);
+      return null;
+    };
 
     setActiveVisitorsLoading(true);
     const q =
@@ -581,13 +589,40 @@ export default function VisitorLogbookPage() {
             where('isLoggedOut', '==', false),
           );
 
+    const autoClosedIds = new Set<string>();
+
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
+        const todayKey = format(new Date(), 'yyyy-MM-dd');
         const list: any[] = [];
-        snapshot.forEach((doc) => {
-          list.push({ id: doc.id, ...doc.data() });
+        const staleIds: string[] = [];
+
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          const visitDate = getVisitDate(data.createdAt);
+          if (visitDate && format(visitDate, 'yyyy-MM-dd') !== todayKey) {
+            if (!autoClosedIds.has(docSnap.id)) {
+              autoClosedIds.add(docSnap.id);
+              staleIds.push(docSnap.id);
+            }
+          } else {
+            list.push({ id: docSnap.id, ...data });
+          }
         });
+
+        if (staleIds.length > 0) {
+          Promise.all(
+            staleIds.map((id) =>
+              updateDoc(doc(firestore, 'visitorLogs', id), {
+                isLoggedOut: true,
+                loggedOutAt: Timestamp.now(),
+                autoLoggedOut: true,
+              }).catch((err) => console.warn('Auto-logout stale visitor failed:', err)),
+            ),
+          );
+        }
+
         // Sort in-memory by arrival time (createdAt) ascending
         list.sort((a, b) => {
           const timeA = a.createdAt?.seconds || 0;
@@ -604,10 +639,46 @@ export default function VisitorLogbookPage() {
     );
 
     return () => unsubscribe();
-  }, [firestore, userProfile?.unitId]);
+  }, [firestore, userProfile?.unitId, userProfile?.campusId, isCampusOdimoOrDirector]);
 
-  // Merge Firestore active visitors with local offline pending ones
+  const todayDateKey = currentTime ? format(currentTime, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd');
+
+  // Auto-close previous-day offline visitor logs in localStorage if day changed
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const raw = localStorage.getItem('rsu_offline_visitor_logs');
+    if (!raw) return;
+    try {
+      const logs: any[] = JSON.parse(raw);
+      let changed = false;
+      const updated = logs.map((log) => {
+        if (!log.isLoggedOut && typeof log.createdAt === 'number') {
+          if (format(new Date(log.createdAt), 'yyyy-MM-dd') !== todayDateKey) {
+            changed = true;
+            return { ...log, isLoggedOut: true, loggedOutAt: Date.now(), autoLoggedOut: true };
+          }
+        }
+        return log;
+      });
+      if (changed) {
+        localStorage.setItem('rsu_offline_visitor_logs', JSON.stringify(updated));
+        setLocalUpdateTrigger((prev) => prev + 1);
+      }
+    } catch {
+      /* ignore malformed localStorage */
+    }
+  }, [todayDateKey]);
+
+  // Merge Firestore active visitors with local offline pending ones (current day only)
   const displayedActiveVisitors = useMemo(() => {
+    const isTodayVisit = (createdAt: any): boolean => {
+      let d: Date | null = null;
+      if (typeof createdAt?.toDate === 'function') d = createdAt.toDate();
+      else if (typeof createdAt === 'number') d = new Date(createdAt);
+      else if (typeof createdAt?.seconds === 'number') d = new Date(createdAt.seconds * 1000);
+      return !d || format(d, 'yyyy-MM-dd') === todayDateKey;
+    };
+
     const localLogs =
       typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('rsu_offline_visitor_logs') || '[]') : [];
 
@@ -616,8 +687,8 @@ export default function VisitorLogbookPage() {
 
     const loggedOutIds = new Set(localLogouts.map((l: any) => l.visitorId));
 
-    const filteredOnlineActive = activeVisitors.filter((v) => !loggedOutIds.has(v.id));
-    const localActive = localLogs.filter((log: any) => !log.isLoggedOut);
+    const filteredOnlineActive = activeVisitors.filter((v) => !loggedOutIds.has(v.id) && isTodayVisit(v.createdAt));
+    const localActive = localLogs.filter((log: any) => !log.isLoggedOut && isTodayVisit(log.createdAt));
 
     const merged = [...filteredOnlineActive];
     localActive.forEach((localLog: any) => {
@@ -631,7 +702,7 @@ export default function VisitorLogbookPage() {
       const timeB = b.createdAt?.seconds || (typeof b.createdAt === 'number' ? b.createdAt / 1000 : 0);
       return timeA - timeB;
     });
-  }, [activeVisitors, localUpdateTrigger]);
+  }, [activeVisitors, localUpdateTrigger, todayDateKey]);
 
   const offlineLogoutsList = useMemo(() => {
     if (typeof window === 'undefined') return [];
@@ -1668,9 +1739,9 @@ export default function VisitorLogbookPage() {
                 <div className="space-y-3">
                   {displayedActiveVisitors.map((visitor) => {
                     const timeInStr = visitor.createdAt?.toDate
-                      ? format(visitor.createdAt.toDate(), 'hh:mm a')
+                      ? format(visitor.createdAt.toDate(), 'EEE, MMM d, yyyy • hh:mm a')
                       : typeof visitor.createdAt === 'number'
-                        ? format(new Date(visitor.createdAt), 'hh:mm a')
+                        ? format(new Date(visitor.createdAt), 'EEE, MMM d, yyyy • hh:mm a')
                         : 'N/A';
                     const isMobilePending = visitor.csmMode === 'mobile' && visitor.csmStatus === 'pending';
                     return (
