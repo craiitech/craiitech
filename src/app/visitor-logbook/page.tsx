@@ -211,6 +211,8 @@ export default function VisitorLogbookPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [activeVisitors, setActiveVisitors] = useState<any[]>([]);
   const [activeVisitorsLoading, setActiveVisitorsLoading] = useState(true);
   const [logoutSuccessVisitorName, setLogoutSuccessVisitorName] = useState<string | null>(null);
@@ -362,14 +364,92 @@ export default function VisitorLogbookPage() {
     return null;
   };
 
-  // Monitor fullscreen changes
+  // Monitor fullscreen changes and PWA standalone mode (iPad/tablet Home Screen mode)
   useEffect(() => {
+    const checkStandalone = () =>
+      typeof window !== 'undefined' &&
+      (window.matchMedia?.('(display-mode: standalone)').matches || (window.navigator as any).standalone === true);
+
+    const standalone = checkStandalone();
+    setIsStandalone(standalone);
+    if (standalone) {
+      setIsFullscreen(true);
+    }
+
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(!!document.fullscreenElement || checkStandalone());
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
+
+  // Keep kiosk usable when tablet/iPad on-screen keyboard forces fullscreen exit
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let blurTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const isEditableTarget = (el: EventTarget | null): boolean => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName;
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
+    };
+
+    const handleFocusIn = (e: FocusEvent) => {
+      if (blurTimer) {
+        clearTimeout(blurTimer);
+        blurTimer = null;
+      }
+      if (isEditableTarget(e.target)) {
+        setIsKeyboardOpen(true);
+      }
+    };
+
+    const handleFocusOut = () => {
+      if (blurTimer) clearTimeout(blurTimer);
+      blurTimer = setTimeout(() => {
+        if (!isEditableTarget(document.activeElement)) {
+          setIsKeyboardOpen(false);
+        }
+      }, 200);
+    };
+
+    const handleViewportResize = () => {
+      if (window.visualViewport) {
+        const heightDiff = window.innerHeight - window.visualViewport.height;
+        if (heightDiff > 150) {
+          setIsKeyboardOpen(true);
+        } else if (!isEditableTarget(document.activeElement)) {
+          setIsKeyboardOpen(false);
+        }
+      }
+    };
+
+    window.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('focusout', handleFocusOut);
+    window.visualViewport?.addEventListener('resize', handleViewportResize);
+
+    return () => {
+      if (blurTimer) clearTimeout(blurTimer);
+      window.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('focusout', handleFocusOut);
+      window.visualViewport?.removeEventListener('resize', handleViewportResize);
+    };
+  }, []);
+
+  // Auto-resume fullscreen on next tap after keyboard closes in kiosk mode
+  useEffect(() => {
+    if (!isKioskMode || isStandalone || isKeyboardOpen || isFullscreen) return;
+
+    const resumeOnTap = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => undefined);
+      }
+      window.removeEventListener('pointerdown', resumeOnTap);
+    };
+
+    window.addEventListener('pointerdown', resumeOnTap, { once: true });
+    return () => window.removeEventListener('pointerdown', resumeOnTap);
+  }, [isKioskMode, isStandalone, isKeyboardOpen, isFullscreen]);
 
   // Intercept and prevent Escape key from exiting fullscreen (e.g. in Electron/supported wrappers)
   useEffect(() => {
@@ -1073,15 +1153,17 @@ export default function VisitorLogbookPage() {
         </Link>
 
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={toggleFullscreen}
-            className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#D4AF37]/70 hover:text-[#D4AF37] transition-all bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-[#D4AF37]/20 shadow-lg active:scale-95"
-            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-          >
-            {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-            <span className="hidden sm:inline">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
-          </button>
+          {!isStandalone && (
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#D4AF37]/70 hover:text-[#D4AF37] transition-all bg-white/5 hover:bg-white/10 px-4 py-2 rounded-full border border-[#D4AF37]/20 shadow-lg active:scale-95"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            >
+              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+              <span className="hidden sm:inline">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+            </button>
+          )}
 
           {pendingSyncCount > 0 && (
             <div className="flex items-center gap-2 bg-amber-500 text-slate-950 dark:text-white px-4 py-1.5 rounded-full shadow-lg border border-amber-400 animate-pulse">
@@ -2293,8 +2375,8 @@ export default function VisitorLogbookPage() {
         </div>
       )}
 
-      {/* Kiosk Mode Paused Overlay */}
-      {isKioskMode && !isFullscreen && (
+      {/* Kiosk Mode Paused Overlay (suppressed in PWA standalone mode or while tablet keyboard is open) */}
+      {isKioskMode && !isFullscreen && !isStandalone && !isKeyboardOpen && (
         <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 text-center space-y-6 animate-in fade-in duration-300">
           <div className="relative flex items-center justify-center h-20 w-20 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-500 animate-pulse">
             <Maximize2 className="h-10 w-10" />
