@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, addDoc, Timestamp, doc } from '@/firebase/firestore-wrapper';
-import type { Employee } from '@/lib/types';
+import type { Employee, Unit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,12 +19,38 @@ function CsmEvaluateContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const unitId = searchParams.get('unitId') || 'N/A';
+  const initialUnitId = searchParams.get('unitId') || 'N/A';
   const campusId = searchParams.get('campusId') || 'N/A';
-  const unitName = searchParams.get('unitName') || 'Office';
+  const initialUnitName = searchParams.get('unitName') || 'Office';
+  const campusMode = searchParams.get('campusMode') === '1';
 
   const firestore = firebaseState.areServicesAvailable ? firebaseState.firestore : null;
   const currentUser = firebaseState.areServicesAvailable ? firebaseState.user : null;
+
+  const [selectedUnitId, setSelectedUnitId] = useState<string>(initialUnitId);
+
+  const allUnitsQuery = useMemoFirebase(() => {
+    if (!firestore || !campusMode) return null;
+    return collection(firestore, 'units');
+  }, [firestore, campusMode]);
+  const { data: allUnitsList } = useCollection<Unit>(allUnitsQuery);
+
+  const campusUnits = useMemo(() => {
+    if (!allUnitsList || !campusId || campusId === 'N/A') return [];
+    return allUnitsList
+      .filter((u) => !u.campusIds || u.campusIds.length === 0 || u.campusIds.includes(campusId))
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allUnitsList, campusId]);
+
+  const unitId = campusMode ? selectedUnitId || initialUnitId : initialUnitId;
+  const unitName = useMemo(() => {
+    if (campusMode && campusUnits.length > 0) {
+      const found = campusUnits.find((u) => u.id === unitId);
+      if (found) return found.name;
+    }
+    return initialUnitName;
+  }, [campusMode, campusUnits, unitId, initialUnitName]);
 
   const unitCsmSettingsRef = useMemoFirebase(() => {
     if (!firestore || !unitId || unitId === 'N/A' || !currentUser) return null;
@@ -377,6 +403,32 @@ function CsmEvaluateContent() {
             <h3 className="text-sm font-black uppercase text-[#D4AF37] tracking-wider border-b pb-1">
               Visitor Information
             </h3>
+            {campusMode && campusUnits.length > 0 && (
+              <div className="space-y-2">
+                <Label
+                  htmlFor="csmTargetUnitSelect"
+                  className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                >
+                  Unit / Office Evaluated
+                </Label>
+                <select
+                  id="csmTargetUnitSelect"
+                  value={unitId}
+                  onChange={(e) => {
+                    setSelectedUnitId(e.target.value);
+                    setSelectedService('');
+                    setPurpose('');
+                  }}
+                  className="w-full h-12 px-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 font-bold text-xs uppercase"
+                >
+                  {campusUnits.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.name.toUpperCase()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">

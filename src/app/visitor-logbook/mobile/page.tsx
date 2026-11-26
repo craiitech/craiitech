@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { useFirebase, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { signInAnonymously } from 'firebase/auth';
 import { collection, addDoc, Timestamp, doc, updateDoc, query, where, onSnapshot } from '@/firebase/firestore-wrapper';
-import type { Employee } from '@/lib/types';
+import type { Employee, Unit } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,12 +34,38 @@ function MobileVisitorLogbookContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const unitId = searchParams.get('unitId') || 'N/A';
+  const initialUnitId = searchParams.get('unitId') || 'N/A';
   const campusId = searchParams.get('campusId') || 'N/A';
-  const unitName = searchParams.get('unitName') || 'Office';
+  const initialUnitName = searchParams.get('unitName') || 'Office';
+  const campusMode = searchParams.get('campusMode') === '1';
 
   const firestore = firebaseState.areServicesAvailable ? firebaseState.firestore : null;
   const currentUser = firebaseState.areServicesAvailable ? firebaseState.user : null;
+
+  const [selectedUnitId, setSelectedUnitId] = useState<string>(initialUnitId);
+
+  const allUnitsQuery = useMemoFirebase(() => {
+    if (!firestore || !campusMode) return null;
+    return collection(firestore, 'units');
+  }, [firestore, campusMode]);
+  const { data: allUnitsList } = useCollection<Unit>(allUnitsQuery);
+
+  const campusUnits = useMemo(() => {
+    if (!allUnitsList || !campusId || campusId === 'N/A') return [];
+    return allUnitsList
+      .filter((u) => !u.campusIds || u.campusIds.length === 0 || u.campusIds.includes(campusId))
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allUnitsList, campusId]);
+
+  const unitId = campusMode ? selectedUnitId || initialUnitId : initialUnitId;
+  const unitName = useMemo(() => {
+    if (campusMode && campusUnits.length > 0) {
+      const found = campusUnits.find((u) => u.id === unitId);
+      if (found) return found.name;
+    }
+    return initialUnitName;
+  }, [campusMode, campusUnits, unitId, initialUnitName]);
 
   const unitCsmSettingsRef = useMemoFirebase(() => {
     if (!firestore || !unitId || unitId === 'N/A' || !currentUser) return null;
@@ -1043,6 +1069,36 @@ function MobileVisitorLogbookContent() {
 
             <CardContent className="p-5 space-y-4">
               <form onSubmit={handleSignIn} className="space-y-4 text-left">
+                {campusMode && campusUnits.length > 0 && (
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="mobileTargetUnitSelect"
+                      className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                    >
+                      Unit / Office to Visit &amp; Evaluate
+                    </Label>
+                    <select
+                      id="mobileTargetUnitSelect"
+                      value={unitId}
+                      onChange={(e) => {
+                        setSelectedUnitId(e.target.value);
+                        setSelectedService('');
+                        setPurpose('');
+                        setSelectedLookingFor('');
+                        setLookingFor('');
+                      }}
+                      required
+                      className="w-full h-11 px-3 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-600 font-bold text-xs uppercase"
+                    >
+                      {campusUnits.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          {u.name.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 {/* Visitor Name */}
                 <div className="space-y-1.5">
                   <Label

@@ -89,17 +89,51 @@ export default function VisitorLogbookPage() {
 
   const { data: systemSettingsDoc } = useDoc<SystemSettings>(systemSettingsRef);
 
+  const roleLower = userRole?.toLowerCase() || '';
+  const isCampusOdimoOrDirector = roleLower.includes('campus director') || roleLower.includes('campus odimo');
+
+  const [selectedTargetUnitId, setSelectedTargetUnitId] = useState<string>('');
+
+  const allUnitsQuery = useMemoFirebase(() => {
+    if (!firestore || !isCampusOdimoOrDirector) return null;
+    return collection(firestore, 'units');
+  }, [firestore, isCampusOdimoOrDirector]);
+  const { data: allUnitsList } = useCollection<Unit>(allUnitsQuery);
+
+  const campusUnits = useMemo(() => {
+    if (!allUnitsList || !userProfile?.campusId) return [];
+    return allUnitsList
+      .filter((u) => !u.campusIds || u.campusIds.length === 0 || u.campusIds.includes(userProfile.campusId))
+      .slice()
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [allUnitsList, userProfile?.campusId]);
+
+  useEffect(() => {
+    if (isCampusOdimoOrDirector && !selectedTargetUnitId && userProfile?.unitId) {
+      setSelectedTargetUnitId(userProfile.unitId);
+    }
+  }, [isCampusOdimoOrDirector, selectedTargetUnitId, userProfile?.unitId]);
+
+  const effectiveUnitId = isCampusOdimoOrDirector
+    ? selectedTargetUnitId || userProfile?.unitId || ''
+    : userProfile?.unitId || '';
+
+  const selectedCampusUnitObj = useMemo(
+    () => campusUnits.find((u) => u.id === effectiveUnitId) || null,
+    [campusUnits, effectiveUnitId],
+  );
+
   const unitCsmSettingsRef = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.unitId || !userProfile?.campusId) return null;
-    return doc(firestore, 'unitCsmSettings', `${userProfile.campusId}_${userProfile.unitId}`);
-  }, [firestore, userProfile?.unitId, userProfile?.campusId]);
+    if (!firestore || !effectiveUnitId || !userProfile?.campusId) return null;
+    return doc(firestore, 'unitCsmSettings', `${userProfile.campusId}_${effectiveUnitId}`);
+  }, [firestore, effectiveUnitId, userProfile?.campusId]);
 
   const { data: compositeSettings } = useDoc<any>(unitCsmSettingsRef);
 
   const fallbackCsmSettingsRef = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.unitId) return null;
-    return doc(firestore, 'unitCsmSettings', userProfile.unitId);
-  }, [firestore, userProfile?.unitId]);
+    if (!firestore || !effectiveUnitId) return null;
+    return doc(firestore, 'unitCsmSettings', effectiveUnitId);
+  }, [firestore, effectiveUnitId]);
 
   const { data: legacySettings } = useDoc<any>(fallbackCsmSettingsRef);
 
@@ -112,14 +146,14 @@ export default function VisitorLogbookPage() {
 
   // Fetch active employees for Visitor Logbook
   const activeEmployeesQuery = useMemoFirebase(() => {
-    if (!firestore || !userProfile?.unitId || !userProfile?.campusId) return null;
+    if (!firestore || !effectiveUnitId || !userProfile?.campusId) return null;
     return query(
       collection(firestore, 'unitPersonnel'),
-      where('unitId', '==', userProfile.unitId),
+      where('unitId', '==', effectiveUnitId),
       where('campusId', '==', userProfile.campusId),
       where('isActive', '==', true),
     );
-  }, [firestore, userProfile?.unitId, userProfile?.campusId]);
+  }, [firestore, effectiveUnitId, userProfile?.campusId]);
 
   const { data: activeEmployees } = useCollection<Employee>(activeEmployeesQuery);
 
@@ -149,12 +183,11 @@ export default function VisitorLogbookPage() {
     return campusName.toUpperCase();
   };
 
-  const roleLower = userRole?.toLowerCase() || '';
-  const isCampusOdimoOrDirector = roleLower.includes('campus director') || roleLower.includes('campus odimo');
-
   const campusNameStr = campusDoc?.name ? getCampusSitePrefix(campusDoc.name) : '';
   const unitNameStr = isCampusOdimoOrDirector
-    ? 'OFFICE OF THE CAMPUS DIRECTOR'
+    ? selectedCampusUnitObj?.name
+      ? selectedCampusUnitObj.name.toUpperCase()
+      : 'OFFICE OF THE CAMPUS DIRECTOR'
     : unitDoc?.name
       ? unitDoc.name.toUpperCase()
       : '';
@@ -403,30 +436,28 @@ export default function VisitorLogbookPage() {
   // Generate QR code URL on client side to avoid SSR window mismatch and image optimization issues
   useEffect(() => {
     if (typeof window !== 'undefined' && userProfile) {
-      const officeNameStr = isCampusOdimoOrDirector
-        ? 'OFFICE OF THE CAMPUS DIRECTOR'
-        : unitDoc?.name || userProfile.unitName || 'Office';
+      const officeNameStr = unitNameStr || userProfile.unitName || 'Office';
+      const campusModeParam = isCampusOdimoOrDirector ? '&campusMode=1' : '';
 
-      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+      const mobilePath = `/visitor-logbook/mobile?unitId=${effectiveUnitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}${campusModeParam}`;
       const fullUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
 
       setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullUrl)}`);
     }
-  }, [userProfile, unitDoc, isCampusOdimoOrDirector]);
+  }, [userProfile, unitNameStr, effectiveUnitId, isCampusOdimoOrDirector]);
 
   // Generate CSM offline/evaluation QR code URL
   useEffect(() => {
     if (typeof window !== 'undefined' && userProfile) {
-      const officeNameStr = isCampusOdimoOrDirector
-        ? 'OFFICE OF THE CAMPUS DIRECTOR'
-        : unitDoc?.name || userProfile.unitName || 'Office';
+      const officeNameStr = unitNameStr || userProfile.unitName || 'Office';
+      const campusModeParam = isCampusOdimoOrDirector ? '&campusMode=1' : '';
 
-      const mobilePath = `/visitor-logbook/mobile?unitId=${userProfile.unitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}`;
+      const mobilePath = `/visitor-logbook/mobile?unitId=${effectiveUnitId || 'N/A'}&campusId=${userProfile.campusId || 'N/A'}&unitName=${encodeURIComponent(officeNameStr)}${campusModeParam}`;
       const fullCsmUrl = `${window.location.origin}/visit?redirect=${encodeURIComponent(mobilePath)}`;
 
       setCsmQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(fullCsmUrl)}`);
     }
-  }, [userProfile, unitDoc, isCampusOdimoOrDirector]);
+  }, [userProfile, unitNameStr, effectiveUnitId, isCampusOdimoOrDirector]);
 
   // Form Reset timer on success
   useEffect(() => {
@@ -446,18 +477,25 @@ export default function VisitorLogbookPage() {
 
   // Real-time active visitors subscriber
   useEffect(() => {
-    if (!firestore || !userProfile?.unitId) {
+    if (!firestore || (!userProfile?.unitId && !userProfile?.campusId)) {
       setActiveVisitors([]);
       setActiveVisitorsLoading(false);
       return;
     }
 
     setActiveVisitorsLoading(true);
-    const q = query(
-      collection(firestore, 'visitorLogs'),
-      where('unitId', '==', userProfile.unitId),
-      where('isLoggedOut', '==', false),
-    );
+    const q =
+      isCampusOdimoOrDirector && userProfile?.campusId
+        ? query(
+            collection(firestore, 'visitorLogs'),
+            where('campusId', '==', userProfile.campusId),
+            where('isLoggedOut', '==', false),
+          )
+        : query(
+            collection(firestore, 'visitorLogs'),
+            where('unitId', '==', userProfile.unitId),
+            where('isLoggedOut', '==', false),
+          );
 
     const unsubscribe = onSnapshot(
       q,
@@ -698,10 +736,10 @@ export default function VisitorLogbookPage() {
         sex: sex,
         purpose: purpose.trim(),
         lookingFor: lookingFor.trim(),
-        unitId: userProfile.unitId || 'N/A',
+        unitId: effectiveUnitId || 'N/A',
         campusId: userProfile.campusId || 'N/A',
         unitName: isCampusOdimoOrDirector
-          ? 'OFFICE OF THE CAMPUS DIRECTOR'
+          ? selectedCampusUnitObj?.name || 'OFFICE OF THE CAMPUS DIRECTOR'
           : unitDoc?.name || userProfile.unitName || 'Office',
         source: 'kiosk',
         createdAt: Date.now(),
@@ -748,10 +786,10 @@ export default function VisitorLogbookPage() {
         sex: sex,
         purpose: purpose.trim(),
         lookingFor: lookingFor.trim(),
-        unitId: userProfile.unitId || 'N/A',
+        unitId: effectiveUnitId || 'N/A',
         campusId: userProfile.campusId || 'N/A',
         unitName: isCampusOdimoOrDirector
-          ? 'OFFICE OF THE CAMPUS DIRECTOR'
+          ? selectedCampusUnitObj?.name || 'OFFICE OF THE CAMPUS DIRECTOR'
           : unitDoc?.name || userProfile.unitName || 'Office',
         source: 'kiosk',
         createdAt: Date.now(),
@@ -1201,6 +1239,40 @@ export default function VisitorLogbookPage() {
             <CardContent className="p-3 sm:p-4 md:p-5 flex-1 overflow-y-auto min-h-0 flex flex-col justify-center">
               {!submitSuccess ? (
                 <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+                  {/* Campus Unit Selector for Campus ODIMO / Campus Director */}
+                  {isCampusOdimoOrDirector && campusUnits.length > 0 && (
+                    <div className="space-y-2">
+                      <Label
+                        htmlFor="targetUnitSelect"
+                        className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                      >
+                        Select Unit / Office to Visit &amp; Evaluate
+                      </Label>
+                      <div className="relative">
+                        <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <select
+                          id="targetUnitSelect"
+                          value={effectiveUnitId}
+                          onChange={(e) => {
+                            setSelectedTargetUnitId(e.target.value);
+                            setSelectedService('');
+                            setPurpose('');
+                            setSelectedLookingFor('');
+                            setLookingFor('');
+                          }}
+                          required
+                          className="w-full h-12 px-3 pl-11 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
+                        >
+                          {campusUnits.map((u) => (
+                            <option key={u.id} value={u.id}>
+                              {u.name.toUpperCase()}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Visitor Name */}
                   <div className="space-y-2">
                     <Label
