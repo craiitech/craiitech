@@ -16,6 +16,11 @@ export const metadata: Metadata = {
     apple: '/rsu-pwa-180.png',
   },
   manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'UAQA Portal',
+  },
 };
 
 export default function RootLayout({
@@ -34,6 +39,11 @@ export default function RootLayout({
                   var theme = localStorage.getItem('theme');
                   if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                     document.documentElement.classList.add('dark');
+                  }
+                  if ('serviceWorker' in navigator && '${process.env.NODE_ENV}' === 'production') {
+                    window.addEventListener('load', function() {
+                      navigator.serviceWorker.register('/sw.js').catch(function() {});
+                    });
                   }
                 } catch(e) {}
               })();

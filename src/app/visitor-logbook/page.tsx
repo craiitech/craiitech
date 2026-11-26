@@ -213,6 +213,8 @@ export default function VisitorLogbookPage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [installPromptEvent, setInstallPromptEvent] = useState<any>(null);
+  const [showIosInstallGuide, setShowIosInstallGuide] = useState(false);
   const [activeVisitors, setActiveVisitors] = useState<any[]>([]);
   const [activeVisitorsLoading, setActiveVisitorsLoading] = useState(true);
   const [logoutSuccessVisitorName, setLogoutSuccessVisitorName] = useState<string | null>(null);
@@ -380,7 +382,17 @@ export default function VisitorLogbookPage() {
       setIsFullscreen(!!document.fullscreenElement || checkStandalone());
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      // Keep native install prompt available via our top-bar Install App button
+      setInstallPromptEvent(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
 
   // Keep kiosk usable when tablet/iPad on-screen keyboard forces fullscreen exit
@@ -1228,6 +1240,29 @@ export default function VisitorLogbookPage() {
         </Link>
 
         <div className="flex items-center gap-3">
+          {!isStandalone && (
+            <button
+              type="button"
+              onClick={async () => {
+                if (installPromptEvent) {
+                  try {
+                    installPromptEvent.prompt();
+                    await installPromptEvent.userChoice;
+                    setInstallPromptEvent(null);
+                    return;
+                  } catch {
+                    /* fall through to guide */
+                  }
+                }
+                setShowIosInstallGuide(true);
+              }}
+              className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-300 hover:text-white transition-all bg-emerald-600/30 hover:bg-emerald-600/50 px-4 py-2 rounded-full border border-emerald-400/30 shadow-lg active:scale-95"
+              title="Install UAQA App on Tablet / iPad"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Install App</span>
+            </button>
+          )}
           {!isStandalone && (
             <button
               type="button"
@@ -2449,6 +2484,43 @@ export default function VisitorLogbookPage() {
           </div>
         </div>
       )}
+
+      {/* Tablet / iPad Install App Guide Dialog */}
+      <AlertDialog open={showIosInstallGuide} onOpenChange={setShowIosInstallGuide}>
+        <AlertDialogContent className="bg-white text-slate-900 border-[#D4AF37]/30 max-w-md rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-base font-black uppercase tracking-tight">
+              Install UAQA Portal on Tablet / iPad
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-slate-600 leading-relaxed">
+              Installing as an app gives you true fullscreen mode without browser bars, and keeps fullscreen active even
+              when the on-screen keyboard opens.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5 text-xs text-slate-700 space-y-2">
+            <p className="font-bold">On iPad / iPhone (Safari):</p>
+            <ol className="list-decimal pl-4 space-y-1">
+              <li>
+                Tap the <strong>Share</strong> icon in Safari&apos;s address bar.
+              </li>
+              <li>
+                Tap <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.
+              </li>
+            </ol>
+            <p className="font-bold pt-1">On Android Tablet (Chrome / Edge):</p>
+            <ol className="list-decimal pl-4 space-y-1">
+              <li>
+                Tap the <strong>Install</strong> icon in the address bar or the <strong>⋮ Menu → Install App</strong>.
+              </li>
+            </ol>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowIosInstallGuide(false)} className="font-black uppercase text-xs">
+              Got It
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Kiosk Mode Paused Overlay (suppressed in PWA standalone mode or while tablet keyboard is open) */}
       {isKioskMode && !isFullscreen && !isStandalone && !isKeyboardOpen && (
