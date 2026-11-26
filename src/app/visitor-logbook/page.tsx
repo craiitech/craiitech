@@ -1041,8 +1041,8 @@ export default function VisitorLogbookPage() {
 
   return (
     <div
-      className="relative h-dvh w-full bg-[#0d2a18] bg-radial-gradient flex flex-col justify-between overflow-hidden p-2 sm:p-3 md:p-4 lg:p-5 xl:p-6"
-      style={{ fontSize: 'clamp(11px, 0.8vw, 17px)' }}
+      className="relative min-h-dvh lg:h-dvh w-full bg-[#0d2a18] bg-radial-gradient flex flex-col justify-between overflow-y-auto lg:overflow-hidden p-2 sm:p-3 md:p-4 lg:p-4 xl:p-6"
+      style={{ fontSize: 'clamp(11px, 0.85vw, 17px)' }}
     >
       {/* Subtle animated background image */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
@@ -1113,28 +1113,28 @@ export default function VisitorLogbookPage() {
       </div>
 
       {/* Main layout wrapper - fills remaining space */}
-      <div className="flex-1 flex flex-col xl:flex-row items-stretch justify-center gap-3 sm:gap-4 md:gap-5 lg:gap-6 w-full mx-auto my-2 sm:my-3 z-10 min-h-0">
+      <div className="flex-1 flex flex-col lg:flex-row items-stretch justify-center gap-3 sm:gap-4 lg:gap-4 xl:gap-6 w-full mx-auto my-2 sm:my-3 z-10 min-h-0">
         {/* Left column: Welcome, date/time info - fills available height */}
-        <div className="w-full xl:w-[28%] flex flex-col justify-between text-center xl:text-left space-y-2 sm:space-y-3 min-h-0 overflow-y-auto">
+        <div className="w-full lg:w-[28%] flex flex-col justify-between text-center lg:text-left space-y-2 sm:space-y-3 min-h-0 lg:overflow-y-auto">
           {/* Logo and Titles */}
-          <div className="space-y-4">
-            <div className="flex justify-center xl:justify-start items-center gap-4">
-              <div className="relative h-20 w-20 md:h-24 md:w-24 transition-all hover:scale-105 duration-300 animate-logo-float">
+          <div className="space-y-3 xl:space-y-4">
+            <div className="flex justify-center lg:justify-start items-center gap-3 xl:gap-4">
+              <div className="relative h-16 w-16 lg:h-16 lg:w-16 xl:h-24 xl:w-24 transition-all hover:scale-105 duration-300 animate-logo-float">
                 <Image src={logoSrc} alt="University Logo" fill className="object-contain" priority />
               </div>
-              <div className="relative h-24 w-24 md:h-28 md:w-28 transition-all hover:scale-105 duration-300 animate-logo-float animation-delay-2000">
+              <div className="relative h-20 w-20 lg:h-20 lg:w-20 xl:h-28 xl:w-28 transition-all hover:scale-105 duration-300 animate-logo-float animation-delay-2000">
                 <Image src="/ISOlogo.jpg" alt="ISO Logo" fill className="object-contain" priority />
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1.5 xl:space-y-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest">
                 <Sparkles className="h-3 w-3" /> Romblon State University
               </span>
-              <h1 className="text-3xl md:text-4xl font-black uppercase text-white tracking-tight leading-none">
+              <h1 className="text-2xl lg:text-3xl xl:text-4xl font-black uppercase text-white tracking-tight leading-none">
                 Visitor <span className="text-[#D4AF37]">Logbook</span>
               </h1>
-              <p className="text-sm md:text-base font-bold text-slate-300 leading-snug">
+              <p className="text-xs lg:text-sm xl:text-base font-bold text-slate-300 leading-snug">
                 Welcome to <span className="text-emerald-400 font-extrabold">{officeName}</span>
               </p>
             </div>
@@ -1142,7 +1142,7 @@ export default function VisitorLogbookPage() {
 
           {/* Time & Date Widget (unified landscape layout) */}
           {currentTime && (
-            <div className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-xl flex items-center justify-between gap-4 max-w-md mx-auto xl:mx-0">
+            <div className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-3 xl:p-4 shadow-xl flex items-center justify-between gap-3 xl:gap-4 max-w-md mx-auto lg:mx-0">
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-[#D4AF37] shrink-0" />
                 <div>
@@ -1171,7 +1171,7 @@ export default function VisitorLogbookPage() {
 
           {/* QR Code Mobile Sign In (Compact design) */}
           {userProfile && (
-            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-3xl p-4 shadow-xl space-y-3.5 max-w-md mx-auto xl:mx-0">
+            <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-3xl p-3 xl:p-4 shadow-xl space-y-2.5 xl:space-y-3.5 max-w-md mx-auto lg:mx-0">
               <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 bg-[#D4AF37]/10 rounded-xl flex items-center justify-center text-[#D4AF37]">
                   <Sparkles className="h-4 w-4" />
@@ -1184,12 +1184,16 @@ export default function VisitorLogbookPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="bg-white p-3 rounded-2xl border border-white/15 shadow-inner shrink-0 w-[192px] h-[192px] flex items-center justify-center">
+              <div className="flex items-center gap-3 xl:gap-4">
+                <div className="bg-white p-2 xl:p-3 rounded-2xl border border-white/15 shadow-inner shrink-0 w-[132px] h-[132px] xl:w-[192px] xl:h-[192px] flex items-center justify-center">
                   {qrUrl ? (
-                    <img src={qrUrl} alt="Mobile Sign In QR Code" className="w-[168px] h-[168px] object-contain" />
+                    <img
+                      src={qrUrl}
+                      alt="Mobile Sign In QR Code"
+                      className="w-[116px] h-[116px] xl:w-[168px] xl:h-[168px] object-contain"
+                    />
                   ) : (
-                    <div className="w-[168px] h-[168px] flex items-center justify-center">
+                    <div className="w-[116px] h-[116px] xl:w-[168px] xl:h-[168px] flex items-center justify-center">
                       <Loader2 className="h-8 w-8 animate-spin text-[#1B6535]" />
                     </div>
                   )}
@@ -1218,15 +1222,18 @@ export default function VisitorLogbookPage() {
         </div>
 
         {/* Middle column: Form Card */}
-        <div className="w-full xl:w-[36%] flex flex-col min-h-0">
-          <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden h-full flex flex-col">
-            <CardHeader className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 p-3 sm:p-4 md:p-5 shrink-0">
+        <div className="w-full lg:w-[36%] flex flex-col min-h-0">
+          <Card
+            className="bg-white text-slate-900 border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden h-full flex flex-col"
+            style={{ colorScheme: 'light' }}
+          >
+            <CardHeader className="bg-slate-50 border-b border-slate-100 p-3 sm:p-4 md:p-5 shrink-0">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
                   <ClipboardList className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                  <CardTitle className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-800">
                     Sign In
                   </CardTitle>
                   <CardDescription className="text-slate-500 text-[9px] sm:text-[10px] font-bold uppercase mt-0.5">
@@ -1236,7 +1243,7 @@ export default function VisitorLogbookPage() {
               </div>
             </CardHeader>
 
-            <CardContent className="p-3 sm:p-4 md:p-5 flex-1 overflow-y-auto min-h-0 flex flex-col justify-center">
+            <CardContent className="p-3 sm:p-4 md:p-5 flex-1 overflow-y-auto min-h-0 flex flex-col justify-center bg-white text-slate-900">
               {!submitSuccess ? (
                 <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                   {/* Campus Unit Selector for Campus ODIMO / Campus Director */}
@@ -1244,7 +1251,7 @@ export default function VisitorLogbookPage() {
                     <div className="space-y-2">
                       <Label
                         htmlFor="targetUnitSelect"
-                        className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                        className="text-[10px] font-black uppercase tracking-wider text-slate-700"
                       >
                         Select Unit / Office to Visit &amp; Evaluate
                       </Label>
@@ -1261,7 +1268,7 @@ export default function VisitorLogbookPage() {
                             setLookingFor('');
                           }}
                           required
-                          className="w-full h-12 px-3 pl-11 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
+                          className="w-full h-12 px-3 pl-11 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
                         >
                           {campusUnits.map((u) => (
                             <option key={u.id} value={u.id}>
@@ -1277,7 +1284,7 @@ export default function VisitorLogbookPage() {
                   <div className="space-y-2">
                     <Label
                       htmlFor="visitorName"
-                      className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                      className="text-[10px] font-black uppercase tracking-wider text-slate-700"
                     >
                       Your Full Name
                     </Label>
@@ -1290,16 +1297,14 @@ export default function VisitorLogbookPage() {
                         value={visitorName}
                         onChange={(e) => setVisitorName(e.target.value.toUpperCase())}
                         required
-                        className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all uppercase"
+                        className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all uppercase"
                       />
                     </div>
                   </div>
 
                   {/* Sex Selection */}
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                      Sex
-                    </Label>
+                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700">Sex</Label>
                     <div className="grid grid-cols-3 gap-2.5">
                       <button
                         type="button"
@@ -1307,7 +1312,7 @@ export default function VisitorLogbookPage() {
                         className={`h-11 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all active:scale-[0.98] ${
                           sex === 'Male'
                             ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-lg shadow-[#1B6535]/20'
-                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
                         Male
@@ -1318,7 +1323,7 @@ export default function VisitorLogbookPage() {
                         className={`h-11 rounded-xl font-bold text-xs uppercase tracking-widest border transition-all active:scale-[0.98] ${
                           sex === 'Female'
                             ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-lg shadow-[#1B6535]/20'
-                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
                         Female
@@ -1329,7 +1334,7 @@ export default function VisitorLogbookPage() {
                         className={`h-11 rounded-xl font-bold text-[10px] uppercase tracking-widest border transition-all active:scale-[0.98] ${
                           sex === 'LGBTQA+'
                             ? 'bg-[#1B6535] text-white border-[#1B6535] shadow-lg shadow-[#1B6535]/20'
-                            : 'bg-slate-50 dark:bg-slate-800/50 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-slate-100'
                         }`}
                       >
                         LGBTQA+
@@ -1343,7 +1348,7 @@ export default function VisitorLogbookPage() {
                       <div className="space-y-2 animate-in fade-in duration-300">
                         <Label
                           htmlFor="purposeSelect"
-                          className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                          className="text-[10px] font-black uppercase tracking-wider text-slate-700"
                         >
                           Purpose of Visit
                         </Label>
@@ -1361,7 +1366,7 @@ export default function VisitorLogbookPage() {
                               }
                             }}
                             required
-                            className="w-full h-12 px-3 pl-11 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
+                            className="w-full h-12 px-3 pl-11 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
                           >
                             <option value="">-- SELECT PURPOSE OF VISIT --</option>
                             {unitCsmSettingsDoc.services.map((svc: string) => (
@@ -1377,7 +1382,7 @@ export default function VisitorLogbookPage() {
                       <div className="space-y-2">
                         <Label
                           htmlFor="purpose"
-                          className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                          className="text-[10px] font-black uppercase tracking-wider text-slate-700"
                         >
                           Purpose of Visit
                         </Label>
@@ -1390,7 +1395,7 @@ export default function VisitorLogbookPage() {
                             value={purpose}
                             onChange={(e) => setPurpose(e.target.value)}
                             required
-                            className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                            className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
                           />
                         </div>
                       </div>
@@ -1400,7 +1405,7 @@ export default function VisitorLogbookPage() {
                       <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
                         <Label
                           htmlFor="customPurpose"
-                          className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                          className="text-[10px] font-black uppercase tracking-wider text-slate-700"
                         >
                           Please specify your purpose
                         </Label>
@@ -1413,7 +1418,7 @@ export default function VisitorLogbookPage() {
                             value={purpose}
                             onChange={(e) => setPurpose(e.target.value)}
                             required
-                            className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                            className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
                           />
                         </div>
                       </div>
@@ -1424,7 +1429,7 @@ export default function VisitorLogbookPage() {
                   <div className="space-y-2">
                     <Label
                       htmlFor="lookingForSelect"
-                      className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                      className="text-[10px] font-black uppercase tracking-wider text-slate-700"
                     >
                       Who are you looking for?
                     </Label>
@@ -1445,7 +1450,7 @@ export default function VisitorLogbookPage() {
                               }
                             }}
                             required
-                            className="w-full h-12 px-3 pl-11 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
+                            className="w-full h-12 px-3 pl-11 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all font-bold text-xs uppercase"
                           >
                             <option value="">-- SELECT PERSONNEL --</option>
                             {activeEmployees
@@ -1462,7 +1467,7 @@ export default function VisitorLogbookPage() {
                             <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
                               <Label
                                 htmlFor="customLookingFor"
-                                className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300"
+                                className="text-[10px] font-black uppercase tracking-wider text-slate-700"
                               >
                                 Please specify the person you are looking for
                               </Label>
@@ -1475,7 +1480,7 @@ export default function VisitorLogbookPage() {
                                   value={lookingFor}
                                   onChange={(e) => setLookingFor(e.target.value)}
                                   required
-                                  className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all font-bold text-xs uppercase"
+                                  className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all font-bold text-xs uppercase"
                                 />
                               </div>
                             </div>
@@ -1489,7 +1494,7 @@ export default function VisitorLogbookPage() {
                           value={lookingFor}
                           onChange={(e) => setLookingFor(e.target.value)}
                           required
-                          className="pl-11 h-12 bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
+                          className="pl-11 h-12 bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 rounded-xl focus-visible:ring-2 focus-visible:ring-emerald-600 focus-visible:border-transparent transition-all"
                         />
                       )}
                     </div>
@@ -1497,6 +1502,7 @@ export default function VisitorLogbookPage() {
 
                   <InlinePrivacyNotice
                     purpose="campus visitor logging, security, and ARTA Client Satisfaction Measurement"
+                    className="bg-emerald-50/70 border-emerald-200 text-slate-700 dark:text-slate-700 [&_p]:dark:text-slate-800"
                     compact
                   />
 
@@ -1531,15 +1537,18 @@ export default function VisitorLogbookPage() {
         </div>
 
         {/* Right column: Active Visitors Card */}
-        <div className="w-full xl:w-[36%] flex flex-col min-h-0">
-          <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden flex-1 min-h-0 flex flex-col">
-            <CardHeader className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-700 p-3 sm:p-4 shrink-0">
+        <div className="w-full lg:w-[36%] flex flex-col min-h-0">
+          <Card
+            className="bg-white text-slate-900 border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden flex-1 min-h-0 flex flex-col"
+            style={{ colorScheme: 'light' }}
+          >
+            <CardHeader className="bg-slate-50 border-b border-slate-100 p-3 sm:p-4 shrink-0">
               <div className="flex items-center gap-2 sm:gap-3">
                 <div className="h-7 w-7 sm:h-8 sm:w-8 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
                   <Users2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </div>
                 <div>
-                  <CardTitle className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                  <CardTitle className="text-sm sm:text-base font-black uppercase tracking-wider text-slate-800">
                     Active Visitors
                   </CardTitle>
                   <CardDescription className="text-slate-500 text-[9px] sm:text-[10px] font-bold uppercase mt-0.5">
@@ -1549,7 +1558,7 @@ export default function VisitorLogbookPage() {
               </div>
             </CardHeader>
 
-            <CardContent className="p-3 sm:p-4 flex-1 overflow-y-auto min-h-0">
+            <CardContent className="p-3 sm:p-4 flex-1 overflow-y-auto min-h-0 bg-white text-slate-900">
               {activeVisitorsLoading ? (
                 <div className="flex flex-col items-center justify-center py-10 gap-2">
                   <div className="h-6 w-6 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
@@ -1559,13 +1568,11 @@ export default function VisitorLogbookPage() {
                 </div>
               ) : displayedActiveVisitors.length === 0 ? (
                 <div className="flex flex-col items-center justify-center text-center py-12 space-y-3">
-                  <div className="h-12 w-12 rounded-full bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center text-slate-400">
+                  <div className="h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-400">
                     <User className="h-6 w-6 opacity-40" />
                   </div>
                   <div>
-                    <p className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
-                      No visitors logged in
-                    </p>
+                    <p className="text-xs font-black uppercase text-slate-700">No visitors logged in</p>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">
                       The visitor queue is currently empty.
                     </p>
@@ -1587,20 +1594,18 @@ export default function VisitorLogbookPage() {
                           'flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left',
                           isMobilePending
                             ? 'bg-amber-50/70 border-amber-200 hover:border-amber-300'
-                            : 'bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 hover:border-slate-200 dark:hover:border-slate-700',
+                            : 'bg-slate-50 border-slate-100 hover:border-slate-200',
                         )}
                       >
                         <div className="space-y-1">
-                          <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
-                            {visitor.name}
-                          </h4>
+                          <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">{visitor.name}</h4>
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider">
                             <span>
-                              Time-in: <span className="font-mono text-slate-700 dark:text-slate-300">{timeInStr}</span>
+                              Time-in: <span className="font-mono text-slate-700">{timeInStr}</span>
                             </span>
                             <span>&bull;</span>
                             <span className="truncate max-w-[130px]">
-                              To Meet: <span className="text-slate-700 dark:text-slate-300">{visitor.lookingFor}</span>
+                              To Meet: <span className="text-slate-700">{visitor.lookingFor}</span>
                             </span>
                           </div>
                         </div>
