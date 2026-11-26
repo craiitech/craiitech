@@ -401,6 +401,10 @@ export default function VisitorLogbookPage() {
       }
       if (isEditableTarget(e.target)) {
         setIsKeyboardOpen(true);
+        const target = e.target as HTMLElement;
+        setTimeout(() => {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 250);
       }
     };
 
