@@ -18,7 +18,7 @@ import {
   CheckCircle2,
   HelpCircle,
   Users2,
-  Sparkles,
+  Building2,
   ClipboardList,
   Loader2,
   Globe,
@@ -522,21 +522,17 @@ function MobileVisitorLogbookContent() {
 
   return (
     <div className="relative min-h-screen w-full bg-[#0d2a18] bg-radial-gradient flex flex-col justify-between overflow-x-hidden p-4">
-      {/* Decorative Blur Backgrounds */}
-      <div className="absolute top-0 -left-1/4 w-[300px] h-[300px] bg-[#1B6535]/20 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-0 -right-1/4 w-[300px] h-[300px] bg-[#D4AF37]/5 rounded-full blur-[80px] pointer-events-none" />
-
       {/* Header section */}
       <div className="w-full flex flex-col items-center text-center mt-4 space-y-3 z-10">
         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest">
-          <Sparkles className="h-3 w-3" /> Romblon State University
+          <Building2 className="h-3 w-3" /> Romblon State University
         </span>
         {/* Logos */}
         <div className="flex justify-center items-center gap-4">
-          <div className="relative h-16 w-16 transition-all hover:scale-105 duration-300 animate-logo-float">
+          <div className="relative h-16 w-16">
             <Image src="/rsulogo.png" alt="RSU Logo" width={64} height={64} className="object-contain" priority />
           </div>
-          <div className="relative h-18 w-18 transition-all hover:scale-105 duration-300 animate-logo-float animation-delay-2000">
+          <div className="relative h-18 w-18">
             <Image src="/ISOlogo.jpg" alt="ISO Logo" width={72} height={72} className="object-contain" priority />
           </div>
         </div>
@@ -588,7 +584,7 @@ function MobileVisitorLogbookContent() {
           <Card className="bg-white border border-[#D4AF37]/20 shadow-2xl rounded-3xl overflow-hidden p-6 space-y-6 animate-in fade-in duration-300">
             <div className="text-center py-6 space-y-6">
               <div className="h-16 w-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-600 border border-amber-200">
-                <Sparkles className="h-8 w-8" />
+                <ClipboardList className="h-8 w-8" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-lg font-black text-slate-800 dark:text-slate-200 uppercase">

@@ -11,7 +11,6 @@ import {
   ListChecks,
   CheckCircle2,
   Maximize2,
-  Sparkles,
   ClipboardCheck,
   AlertCircle,
 } from 'lucide-react';
@@ -265,7 +264,7 @@ export function ProcedureManualProcessSlider({
         <div className="p-3 bg-primary/5 border border-primary/20 rounded-xl flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="flex items-start gap-2.5 min-w-0">
             <div className="p-1.5 bg-primary text-white rounded-lg shrink-0 mt-0.5">
-              <Sparkles className="h-3.5 w-3.5" />
+              <ListChecks className="h-3.5 w-3.5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

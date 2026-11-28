@@ -31,7 +31,8 @@ import {
   Building2,
   HelpCircle,
   Users2,
-  Sparkles,
+  Download,
+  QrCode,
   ClipboardList,
   Maximize2,
   Minimize2,
@@ -1211,24 +1212,18 @@ export default function VisitorLogbookPage() {
       className="relative min-h-dvh lg:h-dvh w-full bg-[#0d2a18] bg-radial-gradient flex flex-col justify-between overflow-y-auto lg:overflow-hidden p-2 sm:p-3 md:p-4 lg:p-4 xl:p-6"
       style={{ fontSize: 'clamp(11px, 0.85vw, 17px)' }}
     >
-      {/* Subtle animated background image */}
+      {/* Subtle static background image */}
       <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div
-          className="absolute inset-0 w-full h-full bg-cover bg-center"
+          className="absolute inset-0 w-full h-full bg-cover bg-center opacity-[0.08]"
           style={{
             backgroundImage: "url('/rsupage.png')",
-            opacity: 0.08,
-            animation: 'kenBurnsBackground 40s ease-in-out infinite',
             mixBlendMode: 'overlay',
           }}
         />
         {/* Soft layout overlay to keep UI text/cards perfectly legible */}
         <div className="absolute inset-0 bg-[#0d2a18]/60" />
       </div>
-
-      {/* Decorative shimmers */}
-      <div className="absolute top-0 -left-1/4 w-[600px] h-[600px] bg-[#1B6535]/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 -right-1/4 w-[600px] h-[600px] bg-[#D4AF37]/5 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Top action bar: Return to dashboard */}
       <div className="w-full flex justify-between items-center z-10">
@@ -1259,7 +1254,7 @@ export default function VisitorLogbookPage() {
               className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-300 hover:text-white transition-all bg-emerald-600/30 hover:bg-emerald-600/50 px-4 py-2 rounded-full border border-emerald-400/30 shadow-lg active:scale-95"
               title="Install UAQA App on Tablet / iPad"
             >
-              <Sparkles className="h-3.5 w-3.5" />
+              <Download className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Install App</span>
             </button>
           )}
@@ -1311,17 +1306,17 @@ export default function VisitorLogbookPage() {
           {/* Logo and Titles */}
           <div className="space-y-3 xl:space-y-4">
             <div className="flex justify-center lg:justify-start items-center gap-3 xl:gap-4">
-              <div className="relative h-16 w-16 lg:h-16 lg:w-16 xl:h-24 xl:w-24 transition-all hover:scale-105 duration-300 animate-logo-float">
+              <div className="relative h-16 w-16 lg:h-16 lg:w-16 xl:h-24 xl:w-24">
                 <Image src={logoSrc} alt="University Logo" fill className="object-contain" priority />
               </div>
-              <div className="relative h-20 w-20 lg:h-20 lg:w-20 xl:h-28 xl:w-28 transition-all hover:scale-105 duration-300 animate-logo-float animation-delay-2000">
+              <div className="relative h-20 w-20 lg:h-20 lg:w-20 xl:h-28 xl:w-28">
                 <Image src="/ISOlogo.jpg" alt="ISO Logo" fill className="object-contain" priority />
               </div>
             </div>
 
             <div className="space-y-1.5 xl:space-y-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest">
-                <Sparkles className="h-3 w-3" /> Romblon State University
+                <Building2 className="h-3 w-3" /> Romblon State University
               </span>
               <h1 className="text-2xl lg:text-3xl xl:text-4xl font-black uppercase text-white tracking-tight leading-none">
                 Visitor <span className="text-[#D4AF37]">Logbook</span>
@@ -1366,7 +1361,7 @@ export default function VisitorLogbookPage() {
             <div className="bg-white/[0.04] backdrop-blur-md border border-white/10 rounded-3xl p-3 xl:p-4 shadow-xl space-y-2.5 xl:space-y-3.5 max-w-md mx-auto lg:mx-0">
               <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 bg-[#D4AF37]/10 rounded-xl flex items-center justify-center text-[#D4AF37]">
-                  <Sparkles className="h-4 w-4" />
+                  <QrCode className="h-4 w-4" />
                 </div>
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-widest text-[#D4AF37] leading-none">
@@ -1889,7 +1884,7 @@ export default function VisitorLogbookPage() {
           <AlertDialogHeader>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 bg-amber-50 rounded-full flex items-center justify-center text-amber-600 border border-amber-200 shrink-0">
-                <Sparkles className="h-5 w-5" />
+                <ClipboardList className="h-5 w-5" />
               </div>
               <div>
                 <AlertDialogTitle className="text-lg font-black uppercase tracking-tight">
@@ -2580,17 +2575,6 @@ export default function VisitorLogbookPage() {
           animation: border-blink 1.2s infinite;
           border-width: 2px !important;
           border-style: solid !important;
-        }
-        @keyframes kenBurnsBackground {
-          0% {
-            transform: scale(1) translate(0, 0);
-          }
-          50% {
-            transform: scale(1.12) translate(-1%, -1%);
-          }
-          100% {
-            transform: scale(1) translate(0, 0);
-          }
         }
       `}</style>
     </div>

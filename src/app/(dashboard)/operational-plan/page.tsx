@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Link from 'next/link';
-import { Info, ArrowRight, Sparkles, FileSpreadsheet, Target, School, Loader2 } from 'lucide-react';
+import { Info, ArrowRight, ClipboardList, FileSpreadsheet, Target, School, Loader2 } from 'lucide-react';
 
 export default function OperationalPlanPage() {
   const { systemSettings, activeAssignment, isAdmin, isVp, isUserLoading } = useUser();
@@ -95,7 +95,7 @@ export default function OperationalPlanPage() {
               <Target className="h-3.5 w-3.5 text-emerald-600" /> Unit Deliverables &amp; Implementation Tracker
             </TabsTrigger>
             <TabsTrigger value="wizard" className="text-xs font-bold gap-1.5 px-4 whitespace-nowrap">
-              <Sparkles className="h-3.5 w-3.5 text-primary" /> Guided Compliance Wizard (All-in-One)
+              <ClipboardList className="h-3.5 w-3.5 text-primary" /> Guided Compliance Wizard (All-in-One)
             </TabsTrigger>
             <TabsTrigger value="university-submissions" className="text-xs font-bold gap-1.5 px-4 whitespace-nowrap">
               <School className="h-3.5 w-3.5 text-indigo-600" /> University Submission Checking

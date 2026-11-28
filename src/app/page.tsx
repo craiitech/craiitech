@@ -1,15 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -21,334 +17,182 @@ import {
   ShieldCheck,
   ArrowRight,
   FileText,
-  ShieldAlert,
   ClipboardCheck,
   BookOpen,
   LayoutList,
   HandHeart,
-  CheckCircle2,
   Target,
   ListChecks,
   UserCheck,
   BarChart3,
-  ChevronRight,
-  Search,
   QrCode,
   Camera,
-  CalendarCheck,
-  Mail,
-  MessageSquare,
-  Clock,
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 const features = [
   {
     title: 'EOMS Submission Hub',
-    desc: 'ISO 7.5.3 Compliance. Streamlined workflow for the 6 core EOMS documents with automated revision control and standardized control numbering.',
-    icon: <FileText className="h-6 w-6 text-primary" />,
+    desc: 'Streamlined workflow for the 6 core EOMS documents (ISO 7.5.3) with revision tracking and standardized control numbering.',
+    icon: <FileText className="h-5 w-5 text-primary" />,
     tag: 'ISO 7.5',
   },
   {
     title: 'Risk & Opportunity',
-    desc: 'ISO 6.1 Compliance. Integrated digital registry for identifying, analyzing, and mitigating institutional vulnerabilities with structured baseline and residual impact assessment.',
-    icon: <Target className="h-6 w-6 text-rose-600" />,
+    desc: 'Digital registry for identifying, analyzing, and mitigating institutional risks (ISO 6.1) with baseline and residual impact scoring.',
+    icon: <Target className="h-5 w-5 text-rose-600" />,
     tag: 'ISO 6.1',
   },
   {
     title: 'IQA Strategic Planning',
-    desc: 'ISO 9.2 Compliance. Digital conduct of Internal Quality Audits with real-time evidence logging, auditor assignments, and consolidated reporting.',
-    icon: <ClipboardCheck className="h-6 w-6 text-indigo-600" />,
+    desc: 'Internal Quality Audit scheduling, evidence logging, auditor assignments, and consolidated audit reporting (ISO 9.2).',
+    icon: <ClipboardCheck className="h-5 w-5 text-indigo-600" />,
     tag: 'ISO 9.2',
   },
   {
     title: 'Academic Monitoring',
-    desc: 'Quality Excellence. Real-time tracking of CHED COPC, AACCUP accreditation, faculty alignment, and institutional graduation outcomes.',
-    icon: <BookOpen className="h-6 w-6 text-emerald-600" />,
+    desc: 'Tracking of CHED COPC, AACCUP accreditation levels, faculty alignment, and program graduation outcomes.',
+    icon: <BookOpen className="h-5 w-5 text-emerald-600" />,
     tag: 'ACADEMIC',
   },
   {
     title: 'Unit Monitoring Hub',
-    desc: 'Operational Integrity. On-site verification tool for facility maintenance, 7S compliance, and physical posting of institutional quality directives.',
-    icon: <LayoutList className="h-6 w-6 text-amber-600" />,
+    desc: 'On-site verification tool for facility maintenance, 7S compliance, and posting of institutional quality directives.',
+    icon: <LayoutList className="h-5 w-5 text-amber-600" />,
     tag: 'OPERATIONS',
   },
   {
     title: 'Unit Form Control',
-    desc: 'Document Governance. Centralized roster of approved unit forms with a formal registration workflow (DRF) and authorized download auditing.',
-    icon: <ListChecks className="h-6 w-6 text-blue-600" />,
+    desc: 'Centralized roster of approved unit forms with formal registration workflows (DRF) and download auditing.',
+    icon: <ListChecks className="h-5 w-5 text-blue-600" />,
     tag: 'CONTROL',
   },
   {
     title: 'Institutional Activity Log',
-    desc: 'Performance Tracking. Daily task registry for personnel and Work From Home (WFH) accomplishment sheets with integrated supervisor verification.',
-    icon: <UserCheck className="h-6 w-6 text-slate-700 dark:text-slate-300" />,
+    desc: 'Daily task registry for personnel and Work From Home (WFH) accomplishment sheets with supervisor verification.',
+    icon: <UserCheck className="h-5 w-5 text-slate-700 dark:text-slate-300" />,
     tag: 'PERSONNEL',
   },
   {
     title: 'GAD Corner Hub',
-    desc: 'Institutional Inclusivity. Consolidated sex-disaggregated data (SDD) and gender-responsive project tracking aligned with PCW standards.',
-    icon: <HandHeart className="h-6 w-6 text-purple-600" />,
+    desc: 'Consolidated sex-disaggregated data (SDD) and gender-responsive project tracking aligned with PCW standards.',
+    icon: <HandHeart className="h-5 w-5 text-purple-600" />,
     tag: 'GAD',
   },
   {
     title: 'Strategic Dashboard',
-    desc: 'Decision Support. High-level institutional analytics featuring maturity radar charts, compliance heatmaps, and implementation velocity trends.',
-    icon: <BarChart3 className="h-6 w-6 text-cyan-600" />,
+    desc: 'Institutional analytics featuring maturity charts, compliance heatmaps, and implementation progress tracking.',
+    icon: <BarChart3 className="h-5 w-5 text-cyan-600" />,
     tag: 'ANALYTICS',
   },
 ];
 
 export default function Home() {
-  const router = useRouter();
-  const [isAccessNoticeOpen, setIsAccessNoticeOpen] = useState(false);
-  const [countdown, setCountdown] = useState(10);
-
-  useEffect(() => {
-    if (!isAccessNoticeOpen) {
-      setCountdown(10);
-      return;
-    }
-
-    if (countdown <= 0) {
-      router.push('/login');
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-
-    return () => window.clearTimeout(timer);
-  }, [isAccessNoticeOpen, countdown, router]);
-
   return (
     <div className="relative min-h-screen flex flex-col">
       {/* Full-Page Fixed Background */}
       <div className="fixed inset-0 -z-10 h-full w-full">
         <Image src="/rsupage.png" alt="Romblon State University Background" fill priority className="object-cover" />
         {/* Dark overlay to ensure high contrast for text */}
-        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[2px]" />
+        <div className="absolute inset-0 bg-slate-950/85" />
       </div>
 
       {/* Content Wrapper */}
       <div className="relative z-10 flex flex-col overflow-x-hidden">
         {/* Hero Section */}
-        <section className="relative flex flex-col items-center justify-center text-center text-white min-h-[90dvh] px-4">
-          <div className="flex flex-col items-center justify-center space-y-8 max-w-5xl animate-in fade-in zoom-in duration-1000">
-            <motion.div
-              className="flex flex-col items-center gap-6"
-              initial="hidden"
-              animate="visible"
-              variants={{
-                hidden: {},
-                visible: {
-                  transition: {
-                    staggerChildren: 0.15,
-                  },
-                },
-              }}
-            >
-              {/* Glassmorphic Logos Container */}
-              <motion.div
-                variants={{
-                  hidden: { opacity: 0, y: 30, scale: 0.95 },
-                  visible: {
-                    opacity: 1,
-                    y: 0,
-                    scale: 1,
-                    transition: { type: 'spring', stiffness: 100, damping: 15 },
-                  },
-                }}
-                className="flex items-center justify-center gap-4 sm:gap-8 md:gap-10 px-6 py-4 sm:px-8 sm:py-5 bg-white/10 backdrop-blur-md rounded-[2.5rem] border border-white/20 shadow-2xl relative group overflow-hidden transition-all duration-500 hover:border-white/30 hover:shadow-primary/10 hover:shadow-[0_0_50px_rgba(27,101,53,0.15)]"
-              >
+        <section className="relative flex flex-col items-center justify-center text-center text-white min-h-[85dvh] px-4 py-16">
+          <div className="flex flex-col items-center justify-center space-y-8 max-w-4xl">
+            <div className="flex flex-col items-center gap-5">
+              {/* Logos Container */}
+              <div className="flex items-center justify-center gap-5 sm:gap-8 px-6 py-4 bg-white/10 rounded-xl border border-white/15">
                 {/* RSU Logo */}
-                <motion.div
-                  variants={{
-                    hidden: { opacity: 0, scale: 0.8 },
-                    visible: { opacity: 1, scale: 1 },
-                  }}
-                  className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 transition-transform duration-300 hover:scale-110 active:scale-95 animate-logo-float [animation-delay:0s]"
-                >
+                <div className="relative w-14 h-14 sm:w-18 sm:h-18 md:w-20 md:h-20">
                   <Image
                     src="/rsulogo.png"
                     alt="Romblon State University Logo"
                     fill
                     unoptimized
-                    sizes="(max-width: 640px) 64px, (max-width: 768px) 80px, 96px"
-                    className="object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
+                    sizes="(max-width: 640px) 56px, (max-width: 768px) 72px, 80px"
+                    className="object-contain"
                     priority
                   />
-                </motion.div>
+                </div>
 
-                {/* Elegant Divider */}
                 <div className="h-10 w-[1px] bg-white/20" />
 
                 {/* QA Logo */}
-                <motion.div
-                  variants={{
-                    hidden: { opacity: 0, scale: 0.8 },
-                    visible: { opacity: 1, scale: 1 },
-                  }}
-                  className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 transition-transform duration-300 hover:scale-110 active:scale-95 animate-logo-float [animation-delay:0.5s]"
-                >
+                <div className="relative w-14 h-14 sm:w-18 sm:h-18 md:w-20 md:h-20">
                   <Image
                     src="/qa_logo.png"
                     alt="Quality Assurance Logo"
                     fill
                     unoptimized
-                    sizes="(max-width: 640px) 64px, (max-width: 768px) 80px, 96px"
-                    className="object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
+                    sizes="(max-width: 640px) 56px, (max-width: 768px) 72px, 80px"
+                    className="object-contain"
                     priority
                   />
-                </motion.div>
+                </div>
 
-                {/* Elegant Divider */}
                 <div className="h-10 w-[1px] bg-white/20" />
 
                 {/* ISO Logo */}
-                <motion.a
-                  variants={{
-                    hidden: { opacity: 0, scale: 0.8 },
-                    visible: { opacity: 1, scale: 1 },
-                  }}
+                <a
                   href="https://www.certipedia.com/quality_marks/9000018803?locale=en"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="relative w-28 h-16 sm:w-36 sm:h-20 md:w-44 md:h-24 transition-transform duration-300 hover:scale-110 active:scale-95 animate-logo-float [animation-delay:1.0s]"
+                  className="relative w-24 h-14 sm:w-32 sm:h-18 md:w-36 md:h-20 hover:opacity-90 transition-opacity"
                 >
                   <Image
                     src="/ISOlogo.jpg"
                     alt="ISO Certification Logo"
                     fill
                     unoptimized
-                    className="object-contain rounded-lg filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]"
+                    className="object-contain rounded-md"
                     priority
                   />
-                </motion.a>
-              </motion.div>
-
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-sm text-white backdrop-blur-md">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                <span className="font-bold tracking-tight">ISO 21001:2018 Certified Management System</span>
+                </a>
               </div>
-            </motion.div>
+
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-4 py-1.5 text-xs sm:text-sm text-white">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                <span className="font-semibold tracking-tight">ISO 21001:2018 Certified Management System</span>
+              </div>
+            </div>
 
             <div className="space-y-4">
-              <div className="flex flex-col items-center justify-center gap-4">
-                <div className="relative pb-6 sm:pb-8 flex flex-col items-center">
-                  <h1 className="text-5xl font-black tracking-tighter sm:text-7xl xl:text-8xl/none uppercase drop-shadow-2xl flex flex-wrap items-baseline justify-center gap-x-3 sm:gap-x-4">
-                    <span>RSU</span>
-                    <span className="text-primary">UAQA</span>
-                    <span>PORTAL</span>
-                  </h1>
-                  <span className="mt-3 text-xs sm:text-sm md:text-base font-black tracking-[0.22em] text-primary uppercase text-center drop-shadow-md">
-                    Unified Archipelagic Quality Assurance Portal
-                  </span>
-                </div>
+              <div className="flex flex-col items-center justify-center">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight uppercase flex flex-wrap items-baseline justify-center gap-x-3">
+                  <span>RSU</span>
+                  <span className="text-primary">UAQA</span>
+                  <span>PORTAL</span>
+                </h1>
+                <span className="mt-2.5 text-xs sm:text-sm font-semibold tracking-widest text-emerald-300 uppercase text-center">
+                  Unified Archipelagic Quality Assurance Portal
+                </span>
               </div>
-              <p className="text-lg sm:text-xl text-white/90 max-w-3xl mx-auto leading-relaxed font-medium drop-shadow-md">
-                Unified Archipelagic Quality Assurance Submission and Monitoring Portal. A state-of-the-art digital
-                solution for the Romblon State University - Quality Assurance Office.
+              <p className="text-base sm:text-lg text-white/85 max-w-2xl mx-auto leading-relaxed font-normal">
+                Official Educational Organizations Management System (ISO 21001:2018) portal for the Romblon State
+                University Quality Assurance Office.
               </p>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-4 pt-6">
-              <AlertDialog open={isAccessNoticeOpen} onOpenChange={setIsAccessNoticeOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    size="lg"
-                    variant="default"
-                    className="w-full max-w-[280px] sm:w-auto h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-primary/40 transition-all hover:scale-105 active:scale-95 flex justify-center items-center gap-2"
-                  >
-                    Access Portal <ArrowRight className="h-5 w-5" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="bg-slate-950 border border-primary/30 text-white max-w-lg shadow-2xl">
-                  <AlertDialogHeader className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-black uppercase tracking-widest">
-                        <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
-                        Important Portal Advisory
-                      </div>
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/20 border border-primary/40 text-emerald-300 text-[11px] font-black tabular-nums">
-                        <Clock className="h-3.5 w-3.5 animate-pulse" />
-                        {countdown}s
-                      </div>
-                    </div>
-                    <AlertDialogTitle className="text-xl font-black uppercase tracking-tight text-white">
-                      Official RSU Email Required (@rsu.edu.ph)
-                    </AlertDialogTitle>
-                    <AlertDialogDescription asChild>
-                      <div className="space-y-4 text-sm text-slate-200 leading-relaxed pt-1">
-                        <p className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-100 font-medium">
-                          Please be reminded to register and sign in using your{' '}
-                          <span className="font-black text-amber-300 underline decoration-amber-400/60 underline-offset-4">
-                            Official RSU Email (@rsu.edu.ph)
-                          </span>
-                          . Personal email accounts are not permitted for portal registration.
-                        </p>
-
-                        <div className="space-y-2.5 rounded-xl bg-white/5 border border-white/10 p-4 text-xs">
-                          <div className="flex items-start gap-2.5">
-                            <Mail className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                            <p className="text-slate-200">
-                              You may contact the <strong className="text-white">DPO Office</strong> at{' '}
-                              <a href="mailto:dpo@rsu.edu.ph" className="font-black text-emerald-400 hover:underline">
-                                dpo@rsu.edu.ph
-                              </a>{' '}
-                              for more information and assistance regarding your Official RSU Email.
-                            </p>
-                          </div>
-                          <div className="flex items-start gap-2.5 pt-2 border-t border-white/10">
-                            <MessageSquare className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
-                            <p className="text-slate-200">
-                              For More Details, Contact the{' '}
-                              <strong className="text-white">QA Office via Official GC</strong>.
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="space-y-1.5 pt-1">
-                          <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-primary transition-all duration-1000 ease-linear"
-                              style={{ width: `${((10 - countdown) / 10) * 100}%` }}
-                            />
-                          </div>
-                          <div className="flex items-center justify-between pt-2">
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                              Redirecting to login in {countdown} second{countdown === 1 ? '' : 's'}...
-                            </span>
-                            <span className="text-xs font-black italic tracking-wide text-emerald-400">- Sir Mavz</span>
-                          </div>
-                        </div>
-                      </div>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter className="border-t border-white/10 pt-4 mt-2 flex sm:justify-between items-center gap-2">
-                    <AlertDialogCancel className="bg-white/5 border-white/20 text-white hover:bg-white/10 hover:text-white font-bold uppercase text-xs tracking-wider mt-0">
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={(e) => {
-                        e.preventDefault();
-                        router.push('/login');
-                      }}
-                      disabled={countdown > 0}
-                      className="bg-primary hover:bg-primary/90 text-white font-black uppercase text-xs tracking-widest px-6 disabled:opacity-50"
-                    >
-                      {countdown > 0 ? `Please Read (${countdown}s)` : 'Proceed to Portal'}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+            <div className="flex flex-wrap justify-center gap-4 pt-4">
+              <Button
+                asChild
+                size="lg"
+                variant="default"
+                className="w-full max-w-[260px] sm:w-auto h-12 px-8 text-sm font-semibold tracking-wide shadow-md flex justify-center items-center gap-2"
+              >
+                <Link href="/login">
+                  Access Portal <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
               <Button
                 asChild
                 size="lg"
                 variant="outline"
-                className="w-full max-w-[280px] sm:w-auto h-14 px-10 text-lg bg-white/5 border-white/40 text-white hover:bg-white/20 font-bold uppercase tracking-widest transition-all backdrop-blur-sm flex justify-center items-center"
+                className="w-full max-w-[260px] sm:w-auto h-12 px-8 text-sm bg-white/5 border-white/30 text-white hover:bg-white/15 font-semibold tracking-wide flex justify-center items-center"
               >
                 <Link href="/register">Create Account</Link>
               </Button>
@@ -356,10 +200,10 @@ export default function Home() {
               <Button
                 asChild
                 size="lg"
-                className="lg:hidden w-full max-w-[280px] sm:w-auto h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-emerald-900/40 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 border-none text-white transition-all hover:scale-105 active:scale-95 flex justify-center items-center"
+                className="lg:hidden w-full max-w-[260px] sm:w-auto h-12 px-8 text-sm font-semibold tracking-wide shadow-md bg-emerald-700 hover:bg-emerald-600 border-none text-white flex justify-center items-center"
               >
-                <Link href="/attendance-app" className="flex items-center gap-2.5">
-                  <QrCode className="h-5 w-5" />
+                <Link href="/attendance-app" className="flex items-center gap-2">
+                  <QrCode className="h-4 w-4" />
                   My Attendance
                 </Link>
               </Button>
@@ -367,10 +211,10 @@ export default function Home() {
               <Button
                 asChild
                 size="lg"
-                className="lg:hidden w-full max-w-[280px] sm:w-auto h-14 px-10 text-lg font-black uppercase tracking-widest shadow-2xl shadow-amber-950/40 bg-gradient-to-r from-amber-500 to-[#D4AF37] hover:from-amber-400 hover:to-[#D4AF37] border-none text-white transition-all hover:scale-105 active:scale-95 flex justify-center items-center"
+                className="lg:hidden w-full max-w-[260px] sm:w-auto h-12 px-8 text-sm font-semibold tracking-wide shadow-md bg-amber-600 hover:bg-amber-500 border-none text-white flex justify-center items-center"
               >
-                <Link href="/scan" className="flex items-center gap-2.5">
-                  <Camera className="h-5 w-5" />
+                <Link href="/scan" className="flex items-center gap-2">
+                  <Camera className="h-4 w-4" />
                   Scan QR
                 </Link>
               </Button>
@@ -379,53 +223,44 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section className="relative py-24 px-4 bg-white/95 backdrop-blur-xl border-t border-white/20">
+        <section className="relative py-20 px-4 bg-white border-t border-slate-200">
           <div className="container mx-auto max-w-7xl">
-            <div className="text-center mb-16 space-y-3">
-              <Badge className="bg-primary text-white px-4 py-1 font-black uppercase text-[10px] tracking-[0.2em]">
-                Platform Capabilities
-              </Badge>
-              <h2 className="text-3xl font-black text-slate-900 dark:text-slate-100 sm:text-4xl uppercase tracking-tight">
-                Operational Excellence, Digitized.
+            <div className="text-center mb-12 space-y-2">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary">Core Modules</p>
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                Institutional Quality &amp; Compliance Workflows
               </h2>
-              <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto font-medium">
-                A comprehensive suite of modules designed to ensure institutional compliance, risk proactivity, and
-                academic quality parity.
+              <p className="text-sm sm:text-base text-slate-600 max-w-2xl mx-auto">
+                Integrated tools for EOMS document control, internal quality audits, risk management, academic
+                monitoring, and institutional reporting.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {features.map((feature, idx) => (
                 <Card
                   key={idx}
-                  className="group border-slate-200 dark:border-slate-700 shadow-sm transition-all hover:shadow-xl hover:-translate-y-2 duration-500 flex flex-col h-full bg-white"
+                  className="border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full bg-white"
                 >
-                  <CardHeader className="p-8 pb-4">
+                  <CardHeader className="p-6 pb-3">
                     <div className="flex items-start justify-between">
-                      <div className="h-12 w-12 rounded-2xl bg-muted/50 flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-500">
+                      <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
                         {feature.icon}
                       </div>
                       <Badge
                         variant="outline"
-                        className="text-[9px] font-black tracking-widest border-slate-200 dark:border-slate-700 text-slate-400 group-hover:text-primary group-hover:border-primary/40 transition-colors uppercase"
+                        className="text-[10px] font-semibold tracking-wider border-slate-200 text-slate-600 uppercase"
                       >
                         {feature.tag}
                       </Badge>
                     </div>
-                    <CardTitle className="text-lg font-black text-slate-900 dark:text-slate-100 mt-6 group-hover:text-primary transition-colors uppercase tracking-tight leading-tight">
+                    <CardTitle className="text-base font-bold text-slate-900 mt-4 leading-tight">
                       {feature.title}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-8 pt-0 flex-1">
-                    <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed font-medium">
-                      {feature.desc}
-                    </p>
+                  <CardContent className="p-6 pt-0 flex-1">
+                    <p className="text-sm text-slate-600 leading-relaxed">{feature.desc}</p>
                   </CardContent>
-                  <CardFooter className="p-8 pt-0 mt-auto">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-x-[-10px] group-hover:translate-x-0">
-                      Institutional Standard Compliance <ChevronRight className="h-3 w-3" />
-                    </div>
-                  </CardFooter>
                 </Card>
               ))}
             </div>
@@ -433,25 +268,24 @@ export default function Home() {
         </section>
 
         {/* Statistics Banner */}
-        <section className="relative py-20 bg-slate-900 text-white overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -z-10" />
+        <section className="relative py-16 bg-slate-900 text-white border-t border-slate-800">
           <div className="container mx-auto px-4 max-w-6xl">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
-              <div className="space-y-2">
-                <p className="text-4xl font-black tabular-nums tracking-tighter">100%</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Digital Traceability</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+              <div className="space-y-1">
+                <p className="text-3xl font-bold tabular-nums tracking-tight">100%</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Digital Traceability</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-4xl font-black tabular-nums tracking-tighter">ISO</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/40">21001:2018 Standards</p>
+              <div className="space-y-1">
+                <p className="text-3xl font-bold tabular-nums tracking-tight">ISO</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-400">21001:2018 Standards</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-4xl font-black tabular-nums tracking-tighter">6</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Core EOMS Reports</p>
+              <div className="space-y-1">
+                <p className="text-3xl font-bold tabular-nums tracking-tight">6</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Core EOMS Reports</p>
               </div>
-              <div className="space-y-2">
-                <p className="text-4xl font-black tabular-nums tracking-tighter">7S</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Active Monitoring</p>
+              <div className="space-y-1">
+                <p className="text-3xl font-bold tabular-nums tracking-tight">7S</p>
+                <p className="text-xs font-medium uppercase tracking-wider text-slate-400">Active Monitoring</p>
               </div>
             </div>
           </div>

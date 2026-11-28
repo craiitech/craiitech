@@ -29,7 +29,6 @@ import {
   ExternalLink,
   ArrowRight,
   Building2,
-  Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -601,7 +600,7 @@ export default function NewSubmissionPage() {
       {/* Newly Established Unit Notice */}
       {selectedYear && isNewUnitForSelectedYear && (
         <Alert className="bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800 text-emerald-900 dark:text-emerald-200 shadow-sm">
-          <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           <AlertTitle className="font-extrabold uppercase text-xs tracking-wider text-emerald-700 dark:text-emerald-400">
             Newly Established Office / Unit (AY {unitEstablishedYear || selectedYear})
           </AlertTitle>
@@ -768,8 +767,8 @@ export default function NewSubmissionPage() {
 
                   <div className="bg-white/90 dark:bg-slate-900/90 p-3 rounded-xl border border-amber-200 dark:border-amber-900/60 space-y-2 shadow-sm col-span-1 md:col-span-2">
                     <p className="font-black text-[10px] uppercase text-amber-700 dark:text-amber-400 tracking-wider flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5 text-amber-600" /> Resolution 3: Office / Unit Newly Established
-                      in {selectedYear}
+                      <Info className="h-3.5 w-3.5 text-amber-600" /> Resolution 3: Office / Unit Newly Established in{' '}
+                      {selectedYear}
                     </p>
                     <p className="text-slate-700 dark:text-slate-300 font-medium text-[11px] leading-relaxed">
                       If this office was newly established in <strong>{selectedYear}</strong> and did not operate in{' '}
@@ -787,7 +786,7 @@ export default function NewSubmissionPage() {
                         {isUpdatingUnitYear ? (
                           <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                         ) : (
-                          <Sparkles className="mr-1.5 h-3 w-3" />
+                          <CheckCircle className="mr-1.5 h-3 w-3" />
                         )}
                         Mark Unit as Established in {selectedYear} (1-Click Exemption)
                       </Button>
@@ -1392,7 +1391,7 @@ export default function NewSubmissionPage() {
 
                                 <div className="bg-white/80 dark:bg-slate-900/80 p-2.5 rounded-lg border border-amber-200 dark:border-amber-900/50 space-y-1.5">
                                   <p className="font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
-                                    <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                                    <Info className="h-3.5 w-3.5 text-amber-600" />
                                     3. Newly Established Unit Exemption
                                   </p>
                                   <p className="text-[10px] text-muted-foreground leading-normal">
@@ -1410,7 +1409,7 @@ export default function NewSubmissionPage() {
                                       {isUpdatingUnitYear ? (
                                         <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                                       ) : (
-                                        <Sparkles className="mr-1.5 h-3 w-3" />
+                                        <CheckCircle className="mr-1.5 h-3 w-3" />
                                       )}
                                       Mark Unit as Established in {selectedYear}
                                     </Button>
@@ -1486,7 +1485,7 @@ export default function NewSubmissionPage() {
                             <div className="mb-6 p-4 rounded-xl border-2 border-primary/20 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in">
                               <div className="space-y-1">
                                 <div className="text-sm font-bold text-primary flex items-center gap-1.5">
-                                  <Sparkles className="h-4 w-4" /> Form QAO-01-025 Interactive Workspace Active
+                                  <LayoutList className="h-4 w-4" /> Form QAO-01-025 Interactive Workspace Active
                                 </div>
                                 <p className="text-xs text-muted-foreground">
                                   You can draft, manage, and print your official Form QAO-01-025 directly with automated

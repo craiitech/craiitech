@@ -481,10 +481,9 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
   const renderSignUp = () => (
     <div className="space-y-5">
-      <div className="rounded-xl bg-gray-800/60 border border-gray-700/80 p-4 space-y-3 text-left">
+      <div className="rounded-xl bg-slate-800/70 border border-slate-700 p-4 space-y-3 text-left">
         <div className="flex items-center gap-2">
-          <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[11px] font-black uppercase tracking-widest text-emerald-300">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-300">
             Official RSU Google Workspace Enrollment
           </span>
         </div>
@@ -526,7 +525,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
   return (
     <>
-      <div className="w-full max-w-md rounded-2xl border border-gray-700/50 p-8 text-white shadow-2xl backdrop-blur-lg">
+      <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900/95 p-8 text-white shadow-lg">
         <div className="flex justify-end">
           <Button
             variant="ghost"

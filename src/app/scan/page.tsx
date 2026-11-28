@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Camera, QrCode, FlipHorizontal2, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, FlipHorizontal2, Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function QRScannerPage() {
@@ -212,10 +212,6 @@ export default function QRScannerPage() {
 
   return (
     <div className="relative min-h-screen w-full bg-[#0d2a18] flex flex-col justify-between overflow-x-hidden p-4 font-sans text-white">
-      {/* Background Decorative Blur Gradients */}
-      <div className="absolute top-0 -left-1/4 w-[300px] h-[300px] bg-[#1B6535]/20 rounded-full blur-[80px] pointer-events-none" />
-      <div className="absolute bottom-0 -right-1/4 w-[300px] h-[300px] bg-[#D4AF37]/5 rounded-full blur-[80px] pointer-events-none" />
-
       {/* Header bar */}
       <div className="w-full flex items-center justify-between z-10 pt-2 shrink-0">
         <Button
@@ -231,7 +227,7 @@ export default function QRScannerPage() {
         </Button>
         <div className="flex flex-col items-center text-center">
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/35 text-[#D4AF37] text-[8px] font-black uppercase tracking-wider">
-            <Sparkles className="h-2.5 w-2.5" /> UAQA Scanner
+            <QrCode className="h-2.5 w-2.5" /> UAQA Scanner
           </span>
           <h1 className="text-sm font-black uppercase tracking-widest mt-1">
             System <span className="text-[#D4AF37]">QR Reader</span>
