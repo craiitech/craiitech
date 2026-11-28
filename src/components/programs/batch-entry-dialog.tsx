@@ -302,7 +302,7 @@ export function BatchEntryDialog({ isOpen, onOpenChange, program, mode, selected
                 type="submit"
                 form="batch-form"
                 disabled={isSaving}
-                className="min-w-[160px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-10"
+                className="min-w-[160px] font-black uppercase text-[10px] tracking-widest h-10"
               >
                 {isSaving ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

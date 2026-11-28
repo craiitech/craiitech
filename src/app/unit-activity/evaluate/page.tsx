@@ -9,22 +9,28 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useFirestore } from '@/firebase';
 import { doc, getDoc, addDoc, collection, serverTimestamp } from '@/firebase/firestore-wrapper';
-import { Star, ArrowRight, Home, CheckCircle2, Loader2, Sparkles, User, MessageSquare, Phone, Lock, Building2, Calendar, ShieldAlert } from 'lucide-react';
+import {
+  Star,
+  ArrowRight,
+  Home,
+  CheckCircle2,
+  Loader2,
+  Sparkles,
+  User,
+  MessageSquare,
+  Phone,
+  Lock,
+  Building2,
+  Calendar,
+  ShieldAlert,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { AttendanceActivity } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
-function StarRating({ 
-  value, 
-  onChange, 
-  label 
-}: { 
-  value: number; 
-  onChange: (val: number) => void; 
-  label: string;
-}) {
+function StarRating({ value, onChange, label }: { value: number; onChange: (val: number) => void; label: string }) {
   const [hoverVal, setHoverVal] = useState<number | null>(null);
   return (
     <div className="space-y-2">
@@ -41,16 +47,26 @@ function StarRating({
           >
             <Star
               className={cn(
-                "h-8 w-8 cursor-pointer transition-colors duration-150",
+                'h-8 w-8 cursor-pointer transition-colors duration-150',
                 (hoverVal !== null ? star <= hoverVal : star <= value)
-                  ? "fill-amber-400 text-amber-400 drop-shadow-md"
-                  : "text-slate-300 hover:text-amber-200"
+                  ? 'fill-amber-400 text-amber-400 drop-shadow-md'
+                  : 'text-slate-300 hover:text-amber-200',
               )}
             />
           </button>
         ))}
         <span className="ml-2 text-xs font-black uppercase text-amber-600 tracking-widest bg-amber-50 px-2.5 py-1 rounded-lg">
-          {value === 5 ? 'Excellent' : value === 4 ? 'Very Satisfactory' : value === 3 ? 'Satisfactory' : value === 2 ? 'Fair' : value === 1 ? 'Poor' : 'Rate'}
+          {value === 5
+            ? 'Excellent'
+            : value === 4
+              ? 'Very Satisfactory'
+              : value === 3
+                ? 'Satisfactory'
+                : value === 2
+                  ? 'Fair'
+                  : value === 1
+                    ? 'Poor'
+                    : 'Rate'}
         </span>
       </div>
     </div>
@@ -84,7 +100,7 @@ function EvaluationForm() {
   const [ratingFood, setRatingFood] = useState(0);
   const [ratingMaterials, setRatingMaterials] = useState(0);
   const [ratingOverall, setRatingOverall] = useState(0);
-  
+
   // Per-category qualitative comments
   const [commentsObjectives, setCommentsObjectives] = useState('');
   const [commentsSpeaker, setCommentsSpeaker] = useState('');
@@ -113,7 +129,16 @@ function EvaluationForm() {
   const [pinCooldownUntil, setPinCooldownUntil] = useState(0);
 
   const strategy = activity?.evaluationStrategy;
-  const focusList = strategy?.feedbackFocus || ['perfQuality', 'perfTimeliness', 'perfStaff', 'venue', 'facility', 'food', 'materials', 'overall'];
+  const focusList = strategy?.feedbackFocus || [
+    'perfQuality',
+    'perfTimeliness',
+    'perfStaff',
+    'venue',
+    'facility',
+    'food',
+    'materials',
+    'overall',
+  ];
   const isPinRequired = strategy?.requirePin === true;
   const activePin = strategy?.pinCode || '';
   const evalFormMode = strategy?.formMode || 'open';
@@ -140,7 +165,7 @@ function EvaluationForm() {
       let hash = 0;
       for (let i = 0; i < dataUrl.length; i++) {
         const char = dataUrl.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
+        hash = (hash << 5) - hash + char;
         hash = hash & hash;
       }
       const screenDetails = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`;
@@ -152,15 +177,17 @@ function EvaluationForm() {
 
     // Try to fetch saved binding data to pre-fill demographic fields
     import('firebase/firestore').then(({ doc: fbDoc, getDoc: fbGetDoc }) => {
-      fbGetDoc(fbDoc(firestore, 'attendanceDeviceBindings', fp)).then(snap => {
-        if (snap.exists()) {
-          const data = snap.data() as any;
-          if (data.userName && !name) setName(data.userName);
-          if (data.unitName && !office) setOffice(data.unitName);
-        }
-      }).catch(() => {});
+      fbGetDoc(fbDoc(firestore, 'attendanceDeviceBindings', fp))
+        .then((snap) => {
+          if (snap.exists()) {
+            const data = snap.data() as any;
+            if (data.userName && !name) setName(data.userName);
+            if (data.unitName && !office) setOffice(data.unitName);
+          }
+        })
+        .catch(() => {});
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [firestore]);
 
   useEffect(() => {
@@ -199,7 +226,7 @@ function EvaluationForm() {
     }
 
     // Dynamic Category Ratings Validation
-    const validationFailed = focusList.some(cat => {
+    const validationFailed = focusList.some((cat) => {
       if (cat === 'perfQuality' && ratingPerfQuality === 0) return true;
       if (cat === 'perfTimeliness' && ratingPerfTimeliness === 0) return true;
       if (cat === 'perfStaff' && ratingPerfStaff === 0) return true;
@@ -228,7 +255,7 @@ function EvaluationForm() {
         toast({
           title: 'Too Many Attempts',
           description: `Please wait ${waitSeconds}s before trying again.`,
-          variant: 'destructive'
+          variant: 'destructive',
         });
         return;
       }
@@ -242,13 +269,13 @@ function EvaluationForm() {
           toast({
             title: 'PIN Locked',
             description: 'Too many incorrect attempts. Please wait 30 seconds.',
-            variant: 'destructive'
+            variant: 'destructive',
           });
         } else {
           toast({
             title: 'Security PIN Mismatch',
             description: `Incorrect PIN (${newAttempts}/5 attempts).`,
-            variant: 'destructive'
+            variant: 'destructive',
           });
         }
         return;
@@ -309,10 +336,10 @@ function EvaluationForm() {
       }
 
       // 4 consolidated open-ended answers
-      evaluationData.ansTakeaways = ansTakeaways.trim();       // Q1: Takeaways + Most Valuable
+      evaluationData.ansTakeaways = ansTakeaways.trim(); // Q1: Takeaways + Most Valuable
       evaluationData.ansExpectations = ansExpectations.trim(); // Q2: Expectations + Feelings
-      evaluationData.ansMissed = ansMissed.trim();             // Q3: Missed Opportunities
-      evaluationData.ansSuggestions = ansSuggestions.trim();   // Q4: Change + Recommendations
+      evaluationData.ansMissed = ansMissed.trim(); // Q3: Missed Opportunities
+      evaluationData.ansSuggestions = ansSuggestions.trim(); // Q4: Change + Recommendations
 
       await addDoc(collection(firestore, 'unitActivityEvaluations'), evaluationData);
       setSubmitted(true);
@@ -347,9 +374,12 @@ function EvaluationForm() {
         <div className="h-16 w-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto text-rose-600">
           <Star className="h-8 w-8" />
         </div>
-        <CardTitle className="text-2xl font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Invalid Evaluation Link</CardTitle>
+        <CardTitle className="text-2xl font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+          Invalid Evaluation Link
+        </CardTitle>
         <p className="text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
-          No Activity reference code was found in the URL. Please re-scan the QR code displayed at the registration booth.
+          No Activity reference code was found in the URL. Please re-scan the QR code displayed at the registration
+          booth.
         </p>
         <Button asChild className="w-full h-12">
           <Link href="/">
@@ -367,10 +397,13 @@ function EvaluationForm() {
           <CheckCircle2 className="h-10 w-10" />
         </div>
         <div className="space-y-2">
-          <CardTitle className="text-3xl font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">Feedback Submitted!</CardTitle>
+          <CardTitle className="text-3xl font-black text-slate-800 dark:text-slate-200 uppercase tracking-tight">
+            Feedback Submitted!
+          </CardTitle>
           <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Thank you for participating</p>
           <p className="text-xs text-slate-500 leading-relaxed max-w-sm mx-auto mt-2 italic">
-            "Your feedback is highly valued and helps us continuously refine and sustain our QMS operational guidelines and educational quality standards."
+            "Your feedback is highly valued and helps us continuously refine and sustain our QMS operational guidelines
+            and educational quality standards."
           </p>
         </div>
         <div className="border-t pt-6 space-y-4">
@@ -380,7 +413,7 @@ function EvaluationForm() {
                 <Home className="mr-2 h-4 w-4" /> Home
               </Link>
             </Button>
-            <Button 
+            <Button
               className="flex-1 h-12"
               onClick={() => {
                 setName('');
@@ -430,12 +463,16 @@ function EvaluationForm() {
         <div className="mx-auto bg-amber-50 h-16 w-16 rounded-full flex items-center justify-center mb-4 text-amber-500 border border-amber-200">
           <Sparkles className="h-8 w-8" />
         </div>
-        <CardTitle className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 uppercase">Activity Evaluation</CardTitle>
+        <CardTitle className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 uppercase">
+          Activity Evaluation
+        </CardTitle>
         {activity && (
           <div className="mt-3 mx-auto max-w-sm">
             <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
               <Calendar className="h-4 w-4 text-amber-500 shrink-0" />
-              <span className="text-sm font-black text-amber-800 uppercase tracking-tight leading-tight">{activity.name}</span>
+              <span className="text-sm font-black text-amber-800 uppercase tracking-tight leading-tight">
+                {activity.name}
+              </span>
             </div>
           </div>
         )}
@@ -458,15 +495,19 @@ function EvaluationForm() {
                 )}
               </div>
               <p className="text-[10px] text-slate-400">
-                {evalFormMode === 'strict' 
-                  ? 'Identity verification is active for this event feedback.' 
+                {evalFormMode === 'strict'
+                  ? 'Identity verification is active for this event feedback.'
                   : 'Feel free to leave blank if you wish to remain completely anonymous.'}
               </p>
             </div>
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                  <User className="h-3 w-3" /> Name (First Name, M.I., Last Name) {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
+                <Label
+                  htmlFor="name"
+                  className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5"
+                >
+                  <User className="h-3 w-3" /> Name (First Name, M.I., Last Name){' '}
+                  {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
                 </Label>
                 <Input
                   id="name"
@@ -479,8 +520,12 @@ function EvaluationForm() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="office" className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                    <Building2 className="h-3 w-3" /> Office {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
+                  <Label
+                    htmlFor="office"
+                    className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5"
+                  >
+                    <Building2 className="h-3 w-3" /> Office{' '}
+                    {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
                   </Label>
                   <Input
                     id="office"
@@ -492,8 +537,12 @@ function EvaluationForm() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="position" className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
-                    <User className="h-3 w-3" /> Position {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
+                  <Label
+                    htmlFor="position"
+                    className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5"
+                  >
+                    <User className="h-3 w-3" /> Position{' '}
+                    {evalFormMode === 'strict' && <span className="text-rose-500">*</span>}
                   </Label>
                   <Input
                     id="position"
@@ -512,10 +561,10 @@ function EvaluationForm() {
           <div className="space-y-5">
             {focusList.includes('perfQuality') && (
               <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                <StarRating 
-                  value={ratingPerfQuality} 
-                  onChange={setRatingPerfQuality} 
-                  label="Quality of Delivery of Service" 
+                <StarRating
+                  value={ratingPerfQuality}
+                  onChange={setRatingPerfQuality}
+                  label="Quality of Delivery of Service"
                 />
                 <Input
                   placeholder="Additional feedback about quality of delivery of service..."
@@ -528,10 +577,10 @@ function EvaluationForm() {
 
             {focusList.includes('perfTimeliness') && (
               <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                <StarRating 
-                  value={ratingPerfTimeliness} 
-                  onChange={setRatingPerfTimeliness} 
-                  label="Timeliness of Service" 
+                <StarRating
+                  value={ratingPerfTimeliness}
+                  onChange={setRatingPerfTimeliness}
+                  label="Timeliness of Service"
                 />
                 <Input
                   placeholder="Additional feedback about timeliness of service..."
@@ -544,11 +593,7 @@ function EvaluationForm() {
 
             {focusList.includes('perfStaff') && (
               <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                <StarRating 
-                  value={ratingPerfStaff} 
-                  onChange={setRatingPerfStaff} 
-                  label="Staff Behavior" 
-                />
+                <StarRating value={ratingPerfStaff} onChange={setRatingPerfStaff} label="Staff Behavior" />
                 <Input
                   placeholder="Additional feedback about staff behavior..."
                   value={commentsPerfStaff}
@@ -560,11 +605,7 @@ function EvaluationForm() {
 
             {focusList.includes('venue') && (
               <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                <StarRating 
-                  value={ratingVenue} 
-                  onChange={setRatingVenue} 
-                  label="Venue" 
-                />
+                <StarRating value={ratingVenue} onChange={setRatingVenue} label="Venue" />
                 <Input
                   placeholder="Additional feedback about the venue..."
                   value={commentsVenue}
@@ -576,11 +617,7 @@ function EvaluationForm() {
 
             {focusList.includes('facility') && (
               <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                <StarRating 
-                  value={ratingFacility} 
-                  onChange={setRatingFacility} 
-                  label="Facility" 
-                />
+                <StarRating value={ratingFacility} onChange={setRatingFacility} label="Facility" />
                 <Input
                   placeholder="Additional feedback about event facilities..."
                   value={commentsFacility}
@@ -592,11 +629,7 @@ function EvaluationForm() {
 
             {focusList.includes('food') && (
               <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                <StarRating 
-                  value={ratingFood} 
-                  onChange={setRatingFood} 
-                  label="Food" 
-                />
+                <StarRating value={ratingFood} onChange={setRatingFood} label="Food" />
                 <Input
                   placeholder="Additional feedback about the food/meals served..."
                   value={commentsFood}
@@ -608,11 +641,7 @@ function EvaluationForm() {
 
             {focusList.includes('materials') && (
               <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                <StarRating 
-                  value={ratingMaterials} 
-                  onChange={setRatingMaterials} 
-                  label="Material" 
-                />
+                <StarRating value={ratingMaterials} onChange={setRatingMaterials} label="Material" />
                 <Input
                   placeholder="Additional feedback about reference files or digital materials..."
                   value={commentsMaterials}
@@ -624,10 +653,10 @@ function EvaluationForm() {
 
             {focusList.includes('overall') && (
               <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                <StarRating 
-                  value={ratingOverall} 
-                  onChange={setRatingOverall} 
-                  label="Overall satisfaction with the activity" 
+                <StarRating
+                  value={ratingOverall}
+                  onChange={setRatingOverall}
+                  label="Overall satisfaction with the activity"
                 />
                 <Input
                   placeholder="Additional feedback about your overall experience..."
@@ -641,11 +670,7 @@ function EvaluationForm() {
             {/* Legacy Category Support */}
             {focusList.includes('objectives') && (
               <div className="space-y-2 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
-                <StarRating 
-                  value={ratingObjectives} 
-                  onChange={setRatingObjectives} 
-                  label="Objectives Met" 
-                />
+                <StarRating value={ratingObjectives} onChange={setRatingObjectives} label="Objectives Met" />
                 <Input
                   placeholder="Additional feedback about the event objectives..."
                   value={commentsObjectives}
@@ -658,15 +683,15 @@ function EvaluationForm() {
             {focusList.includes('speaker') && (
               <div className="space-y-4 p-3.5 bg-slate-50/50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                 <div className="space-y-3">
-                  <StarRating 
-                    value={ratingSpeaker} 
-                    onChange={setRatingSpeaker} 
-                    label="Speaker & Facilitator Delivery" 
+                  <StarRating
+                    value={ratingSpeaker}
+                    onChange={setRatingSpeaker}
+                    label="Speaker & Facilitator Delivery"
                   />
-                  <StarRating 
-                    value={ratingTopic} 
-                    onChange={setRatingTopic} 
-                    label="Topic Relevance & Presentation Content" 
+                  <StarRating
+                    value={ratingTopic}
+                    onChange={setRatingTopic}
+                    label="Topic Relevance & Presentation Content"
                   />
                 </div>
                 <Input
@@ -681,11 +706,15 @@ function EvaluationForm() {
 
           {/* Qualitative Open-Ended Feedback Section */}
           <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 space-y-4">
-            <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">Qualitative Feedback (Optional)</h4>
-            
+            <h4 className="text-xs font-black uppercase text-slate-700 dark:text-slate-300 tracking-wider">
+              Qualitative Feedback (Optional)
+            </h4>
+
             <div className="space-y-3.5">
               <div className="space-y-1.5">
-                <Label htmlFor="q1" className="text-xs font-bold text-slate-600 dark:text-slate-400">1. What was your single biggest takeaway or most valuable part of this activity, and why?</Label>
+                <Label htmlFor="q1" className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  1. What was your single biggest takeaway or most valuable part of this activity, and why?
+                </Label>
                 <Textarea
                   id="q1"
                   placeholder="Type your takeaway and what you found most valuable here..."
@@ -696,7 +725,9 @@ function EvaluationForm() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="q2" className="text-xs font-bold text-slate-600 dark:text-slate-400">2. Did this activity meet your expectations and how did it make you feel? Why or why not?</Label>
+                <Label htmlFor="q2" className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  2. Did this activity meet your expectations and how did it make you feel? Why or why not?
+                </Label>
                 <Textarea
                   id="q2"
                   placeholder="Type your expectations review and reflections here..."
@@ -707,7 +738,9 @@ function EvaluationForm() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="q3" className="text-xs font-bold text-slate-600 dark:text-slate-400">3. Was there a specific topic or activity you wish had been included?</Label>
+                <Label htmlFor="q3" className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  3. Was there a specific topic or activity you wish had been included?
+                </Label>
                 <Textarea
                   id="q3"
                   placeholder="Type missed topics or suggestions here..."
@@ -718,7 +751,10 @@ function EvaluationForm() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="q4" className="text-xs font-bold text-slate-600 dark:text-slate-400">4. If you could change one thing, or what suggestions do you have to make our next activity even better?</Label>
+                <Label htmlFor="q4" className="text-xs font-bold text-slate-600 dark:text-slate-400">
+                  4. If you could change one thing, or what suggestions do you have to make our next activity even
+                  better?
+                </Label>
                 <Textarea
                   id="q4"
                   placeholder="Type changes or recommendations here..."
@@ -731,7 +767,10 @@ function EvaluationForm() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="comments" className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+            <Label
+              htmlFor="comments"
+              className="text-xs font-bold text-slate-600 dark:text-slate-400 flex items-center gap-1.5"
+            >
               <MessageSquare className="h-3 w-3" /> General Comments & Suggestions
             </Label>
             <Textarea
@@ -746,7 +785,11 @@ function EvaluationForm() {
           {isPinRequired && (
             <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-2 animate-in fade-in duration-300">
               <Label htmlFor="pin" className="text-xs font-black uppercase text-amber-700 flex items-center gap-1.5">
-                {isPinLocked ? <ShieldAlert className="h-3.5 w-3.5 text-rose-500 animate-pulse" /> : <Lock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />}
+                {isPinLocked ? (
+                  <ShieldAlert className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
+                ) : (
+                  <Lock className="h-3.5 w-3.5 text-amber-500 animate-pulse" />
+                )}
                 {isPinLocked ? 'PIN Locked — Wait to Retry' : 'Security Verification PIN'}
               </Label>
               <Input
@@ -768,10 +811,10 @@ function EvaluationForm() {
           )}
         </CardContent>
         <CardFooter className="flex flex-col gap-3 pb-8 pt-4 border-t">
-          <Button 
-            type="submit" 
-            disabled={isSubmitting || (isPinRequired && isPinLocked)} 
-            className="w-full h-12 font-black uppercase tracking-wider shadow-lg shadow-primary/20 text-xs"
+          <Button
+            type="submit"
+            disabled={isSubmitting || (isPinRequired && isPinLocked)}
+            className="w-full h-12 font-black uppercase tracking-wider text-xs"
           >
             {isSubmitting ? (
               <>
@@ -800,22 +843,18 @@ export default function PublicActivityEvaluationPage() {
     <div className="relative min-h-screen flex flex-col items-center justify-center p-4 overflow-hidden">
       {/* RSU Branded Background */}
       <div className="fixed inset-0 -z-10 h-full w-full">
-        <Image
-          src="/rsulogo.png"
-          alt="RSU Background"
-          fill
-          priority
-          className="object-cover opacity-15"
-        />
+        <Image src="/rsulogo.png" alt="RSU Background" fill priority className="object-cover opacity-15" />
         <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[6px]" />
       </div>
 
-      <Suspense fallback={
-        <Card className="w-full max-w-xl bg-white/95 backdrop-blur shadow-2xl border-none p-8 flex flex-col items-center justify-center min-h-[300px]">
-          <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Synchronizing Portal...</p>
-        </Card>
-      }>
+      <Suspense
+        fallback={
+          <Card className="w-full max-w-xl bg-white/95 backdrop-blur shadow-2xl border-none p-8 flex flex-col items-center justify-center min-h-[300px]">
+            <Loader2 className="h-10 w-10 animate-spin text-primary mb-4" />
+            <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Synchronizing Portal...</p>
+          </Card>
+        }
+      >
         <EvaluationForm />
       </Suspense>
     </div>

@@ -1,11 +1,6 @@
 'use client';
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -13,14 +8,52 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import type { AuditFinding, ISOClause, CorrectiveActionRequest, Submission, Risk, ClauseRevisit } from '@/lib/types';
-import { doc, setDoc, serverTimestamp, collection, addDoc, updateDoc, Timestamp, deleteDoc, query, where } from '@/firebase/firestore-wrapper';
+import {
+  doc,
+  setDoc,
+  serverTimestamp,
+  collection,
+  addDoc,
+  updateDoc,
+  Timestamp,
+  deleteDoc,
+  query,
+  where,
+} from '@/firebase/firestore-wrapper';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm } from 'react-hook-form';
-import { Loader2, AlertTriangle, History, ShieldCheck, Clock, CheckCircle2, Scale, CloudUpload, CloudDownload, ExternalLink, CheckCircle, AlertCircle, ArrowRight, TrendingUp, FileText, PlusCircle, ChevronDown, CalendarClock } from 'lucide-react';
+import {
+  Loader2,
+  AlertTriangle,
+  History,
+  ShieldCheck,
+  Clock,
+  CheckCircle2,
+  Scale,
+  CloudUpload,
+  CloudDownload,
+  ExternalLink,
+  CheckCircle,
+  AlertCircle,
+  ArrowRight,
+  TrendingUp,
+  FileText,
+  PlusCircle,
+  ChevronDown,
+  CalendarClock,
+} from 'lucide-react';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../ui/dialog';
 import { Input } from '../ui/input';
 import { cn, normalizeReportType } from '@/lib/utils';
 import { clauseQuestions } from '@/lib/audit-questions';
@@ -66,10 +99,10 @@ interface ClauseFormData {
   type: 'Compliance' | 'Observation for Improvement' | 'Non-Conformance' | 'Not Applicable' | '';
 }
 
-function ClauseForm({ 
-  scheduleId, 
-  clause, 
-  finding, 
+function ClauseForm({
+  scheduleId,
+  clause,
+  finding,
   findingId,
   onSave,
   onDelete,
@@ -81,16 +114,16 @@ function ClauseForm({
   scheduleTargetName,
   scheduleCampusId,
   clauseRevisit,
-  planYear
-}: { 
-  scheduleId: string; 
-  clause: ISOClause; 
-  finding: AuditFinding | undefined, 
-  findingId: string,
-  onSave: (data: any) => void,
-  onDelete?: (findingId: string) => void,
-  clauseCars: CorrectiveActionRequest[],
-  clauseSubmissions: Submission[],
+  planYear,
+}: {
+  scheduleId: string;
+  clause: ISOClause;
+  finding: AuditFinding | undefined;
+  findingId: string;
+  onSave: (data: any) => void;
+  onDelete?: (findingId: string) => void;
+  clauseCars: CorrectiveActionRequest[];
+  clauseSubmissions: Submission[];
   isIqaUnit?: boolean;
   previousYearOfis?: AuditFinding[];
   scheduleTargetId?: string;
@@ -140,7 +173,10 @@ function ClauseForm({
         status: 'Pending',
         createdAt: serverTimestamp(),
       });
-      toast({ title: 'Revisit Scheduled', description: `Clause ${clause.id} revisit scheduled for ${format(scheduled, 'MMM dd, yyyy hh:mm a')}.` });
+      toast({
+        title: 'Revisit Scheduled',
+        description: `Clause ${clause.id} revisit scheduled for ${format(scheduled, 'MMM dd, yyyy hh:mm a')}.`,
+      });
       setIsRevisitDialogOpen(false);
       setRevisitReason('');
       setRevisitDate('');
@@ -161,7 +197,11 @@ function ClauseForm({
         await performSave(watchAll);
       } catch (error) {
         console.error('Error saving finding before completing revisit:', error);
-        toast({ title: 'Error', description: 'Failed to commit finding before completing revisit.', variant: 'destructive' });
+        toast({
+          title: 'Error',
+          description: 'Failed to commit finding before completing revisit.',
+          variant: 'destructive',
+        });
         return;
       }
     }
@@ -169,7 +209,10 @@ function ClauseForm({
     const revisitRef = doc(firestore, 'clauseRevisits', clauseRevisit.id);
     try {
       await deleteDoc(revisitRef);
-      toast({ title: 'Revisit Completed', description: `Clause ${clause.id} revisit marked as completed and scheduled revisit removed.` });
+      toast({
+        title: 'Revisit Completed',
+        description: `Clause ${clause.id} revisit marked as completed and scheduled revisit removed.`,
+      });
     } catch (error) {
       console.error('Error completing revisit:', error);
       toast({ title: 'Error', description: 'Failed to complete revisit.', variant: 'destructive' });
@@ -189,15 +232,15 @@ function ClauseForm({
   const watchType = form.watch('type');
 
   useEffect(() => {
-      if (isInitialLoadRef.current || (finding && finding.isoClause !== clause.id)) {
-          form.reset({
-            evidence: finding?.evidence || '',
-            description: finding?.description || '',
-            ncStatement: finding?.ncStatement || '',
-            type: finding?.type || '',
-          });
-          isInitialLoadRef.current = false;
-      }
+    if (isInitialLoadRef.current || (finding && finding.isoClause !== clause.id)) {
+      form.reset({
+        evidence: finding?.evidence || '',
+        description: finding?.description || '',
+        ncStatement: finding?.ncStatement || '',
+        type: finding?.type || '',
+      });
+      isInitialLoadRef.current = false;
+    }
   }, [finding, form, clause.id]);
 
   /**
@@ -205,52 +248,55 @@ function ClauseForm({
    */
   useEffect(() => {
     if (watchType === 'Non-Conformance' && !form.getValues('ncStatement')) {
-        const template = `It was observed that ISO 21001:2018 Clause ${clause.id} requirement regarding [Specific Requirement Name] was not fully implemented in the [Unit Name]. \n\nSpecifically, the unit [Description of the Gap/Failure]. \n\nThis resulted in [Impact/Risk to the Management System].`;
-        form.setValue('ncStatement', template);
+      const template = `It was observed that ISO 21001:2018 Clause ${clause.id} requirement regarding [Specific Requirement Name] was not fully implemented in the [Unit Name]. \n\nSpecifically, the unit [Description of the Gap/Failure]. \n\nThis resulted in [Impact/Risk to the Management System].`;
+      form.setValue('ncStatement', template);
     } else if (watchType === 'Compliance' && !form.getValues('description')) {
-        form.setValue('description', 'Compliant');
+      form.setValue('description', 'Compliant');
     }
   }, [watchType, clause.id, form]);
 
   const performSave = async (values: ClauseFormData) => {
     if (!firestore || !user || !values.type) return;
-    
+
     setIsSubmitting(true);
     const findingRef = doc(firestore, 'auditFindings', findingId);
 
     const findingData: any = {
-        id: findingId,
-        auditScheduleId: scheduleId,
-        isoClause: clause.id,
-        type: values.type,
-        description: values.type === 'Non-Conformance' ? values.ncStatement : values.description,
-        ncStatement: values.type === 'Non-Conformance' ? values.ncStatement : '',
-        evidence: values.evidence,
-        authorId: user.uid,
-        createdAt: finding?.createdAt || serverTimestamp(),
-        updatedAt: serverTimestamp(),
+      id: findingId,
+      auditScheduleId: scheduleId,
+      isoClause: clause.id,
+      type: values.type,
+      description: values.type === 'Non-Conformance' ? values.ncStatement : values.description,
+      ncStatement: values.type === 'Non-Conformance' ? values.ncStatement : '',
+      evidence: values.evidence,
+      authorId: user.uid,
+      createdAt: finding?.createdAt || serverTimestamp(),
+      updatedAt: serverTimestamp(),
     };
 
     try {
-        await setDoc(findingRef, findingData, { merge: true });
-        onSave(findingData); 
-        setLastSaved(new Date());
+      await setDoc(findingRef, findingData, { merge: true });
+      onSave(findingData);
+      setLastSaved(new Date());
     } catch (error) {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: findingRef.path,
-            operation: 'write',
-            requestResourceData: findingData
-        }));
-        throw error;
+      errorEmitter.emit(
+        'permission-error',
+        new FirestorePermissionError({
+          path: findingRef.path,
+          operation: 'write',
+          requestResourceData: findingData,
+        }),
+      );
+      throw error;
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
     if (!firestore || !finding?.id) return;
     if (!window.confirm(`Are you sure you want to remove this finding result for Clause ${clause.id}?`)) return;
-    
+
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     setIsSubmitting(true);
     const findingRef = doc(firestore, 'auditFindings', finding.id);
@@ -264,10 +310,10 @@ function ClauseForm({
         type: '',
       });
       setLastSaved(null);
-      toast({ title: "Result Removed", description: `Audit result for Clause ${clause.id} has been deleted.` });
+      toast({ title: 'Result Removed', description: `Audit result for Clause ${clause.id} has been deleted.` });
     } catch (error) {
       console.error(error);
-      toast({ title: "Error", description: "Failed to delete audit result.", variant: "destructive" });
+      toast({ title: 'Error', description: 'Failed to delete audit result.', variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
     }
@@ -280,33 +326,36 @@ function ClauseForm({
   useEffect(() => {
     if (isInitialLoadRef.current) return;
 
-    const hasChanged = 
-        watchAll.type !== (finding?.type || '') ||
-        watchAll.evidence !== (finding?.evidence || '') ||
-        watchAll.description !== (finding?.description || '') ||
-        watchAll.ncStatement !== (finding?.ncStatement || '');
+    const hasChanged =
+      watchAll.type !== (finding?.type || '') ||
+      watchAll.evidence !== (finding?.evidence || '') ||
+      watchAll.description !== (finding?.description || '') ||
+      watchAll.ncStatement !== (finding?.ncStatement || '');
 
     if (hasChanged && watchAll.type) {
-        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-        
-        saveTimeoutRef.current = setTimeout(() => {
-            performSave(watchAll);
-        }, 5000); 
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+
+      saveTimeoutRef.current = setTimeout(() => {
+        performSave(watchAll);
+      }, 5000);
     }
 
     return () => {
-        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, [watchAll, finding]);
 
   const onSubmit = (values: ClauseFormData) => {
-      performSave(values);
-      toast({ title: isOnline ? "Record Verified" : "Stored Locally", description: `Audit results for Clause ${clause.id} have been registered.`});
+    performSave(values);
+    toast({
+      title: isOnline ? 'Record Verified' : 'Stored Locally',
+      description: `Audit results for Clause ${clause.id} have been registered.`,
+    });
   };
 
   const handleVerifyImplemented = async (ofi: AuditFinding) => {
     if (!firestore || !user) return;
-    
+
     try {
       // 1. Update the previous OFI finding with verification status
       const ofiRef = doc(firestore, 'auditFindings', ofi.id);
@@ -344,24 +393,24 @@ function ClauseForm({
         isoClause: clause.id,
       });
 
-      toast({ 
-        title: "OFI Verified Implemented", 
+      toast({
+        title: 'OFI Verified Implemented',
         description: `Previous OFI ${ofi.id} marked as implemented and linked to current audit.`,
-        variant: "default"
+        variant: 'default',
       });
     } catch (error) {
       console.error('Error verifying OFI:', error);
-      toast({ 
-        title: "Error", 
-        description: "Failed to verify OFI implementation.", 
-        variant: "destructive" 
+      toast({
+        title: 'Error',
+        description: 'Failed to verify OFI implementation.',
+        variant: 'destructive',
       });
     }
   };
 
   const handleCarryForward = async (ofi: AuditFinding) => {
     if (!firestore || !user || !scheduleTargetId || !scheduleCampusId) return;
-    
+
     try {
       // 1. Update the previous OFI finding with verification status
       const ofiRef = doc(firestore, 'auditFindings', ofi.id);
@@ -377,12 +426,12 @@ function ClauseForm({
       // 2. Create a Risk entry (Opportunity) for tracking
       const riskId = `risk-${scheduleId}-ofi-${ofi.id}`;
       const riskRef = doc(firestore, 'risks', riskId);
-      
+
       // Get unit and campus info from passed props
       const unitId = scheduleTargetId;
       const campusId = scheduleCampusId;
       const year = new Date().getFullYear();
-      
+
       await setDoc(riskRef, {
         id: riskId,
         userId: user.uid,
@@ -417,17 +466,17 @@ function ClauseForm({
         'verification.carriedToRiskId': riskId,
       });
 
-      toast({ 
-        title: "OFI Carried Forward", 
+      toast({
+        title: 'OFI Carried Forward',
         description: `Previous OFI ${ofi.id} added to Risk Register as Opportunity for tracking.`,
-        variant: "default"
+        variant: 'default',
       });
     } catch (error) {
       console.error('Error carrying forward OFI:', error);
-      toast({ 
-        title: "Error", 
-        description: "Failed to carry forward OFI.", 
-        variant: "destructive" 
+      toast({
+        title: 'Error',
+        description: 'Failed to carry forward OFI.',
+        variant: 'destructive',
       });
     }
   };
@@ -437,446 +486,575 @@ function ClauseForm({
 
   return (
     <div className="space-y-8">
-        {!isIqaUnit && hasRequiredDocs && (
-            <div className="space-y-3 p-5 rounded-2xl border-indigo-200 bg-indigo-50/40 animate-in slide-in-from-top-2 duration-500">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-indigo-700">
-                        <ShieldCheck className="h-4 w-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">
-                            EOMS Document Submissions
-                        </span>
-                    </div>
-                    <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-indigo-200 text-indigo-700">ISO REQUIRED EVIDENCE</Badge>
-                </div>
-                
-                <div className="space-y-3">
-                    {requiredDocs.map(docType => {
-                        const docSubmissions = clauseSubmissions.filter(s => normalizeReportType(s.reportType) === docType);
-                        
-                        if (docSubmissions.length > 0) {
-                            return (
-                                <div key={docType} className="space-y-2">
-                                    <p className="text-[10px] font-black text-indigo-950 uppercase tracking-wide">{docType}</p>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        {docSubmissions.map(sub => {
-                                            let statusColor = "bg-slate-500 text-white";
-                                            let statusLabel = sub.statusId || "Pending";
-                                            
-                                            const statusLower = String(sub.statusId || "").toLowerCase();
-                                            if (statusLower === 'approved') {
-                                                statusColor = "bg-emerald-600 text-white";
-                                                statusLabel = "Approved";
-                                            } else if (statusLower === 'rejected') {
-                                                statusColor = "bg-rose-600 text-white";
-                                                statusLabel = "Rejected";
-                                            } else if (statusLower === 'submitted') {
-                                                statusColor = "bg-indigo-600 text-white";
-                                                statusLabel = "Submitted";
-                                            } else if (statusLower === 'pending' || statusLower === 'awaiting approval') {
-                                                statusColor = "bg-amber-500 text-white";
-                                                statusLabel = "Pending";
-                                            }
+      {!isIqaUnit && hasRequiredDocs && (
+        <div className="space-y-3 p-5 rounded-2xl border-indigo-200 bg-indigo-50/40 animate-in slide-in-from-top-2 duration-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-indigo-700">
+              <ShieldCheck className="h-4 w-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">EOMS Document Submissions</span>
+            </div>
+            <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-indigo-200 text-indigo-700">
+              ISO REQUIRED EVIDENCE
+            </Badge>
+          </div>
 
-                                            return (
-                                                <div key={sub.id} className="flex items-center justify-between bg-white p-3 rounded-xl border border-indigo-100 shadow-sm">
-                                                    <div className="min-w-0 flex-1 space-y-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <Badge className={cn("h-4 text-[8px] font-black uppercase border-none", statusColor)}>
-                                                                {statusLabel}
-                                                            </Badge>
-                                                            <Badge variant="outline" className="h-4 text-[8px] font-bold text-slate-500 capitalize bg-slate-50/50 dark:bg-slate-800/50">
-                                                                {sub.cycleId || "First"} Cycle
-                                                            </Badge>
-                                                            <Badge variant="outline" className="h-4 text-[8px] font-black uppercase text-indigo-700 border-indigo-200 bg-indigo-50/30">
-                                                                AY {sub.year}
-                                                            </Badge>
-                                                            <span className="text-[9px] font-mono font-medium text-slate-400">
-                                                                Rev {String(sub.revision || 0).padStart(2, '0')}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-[9px] font-mono text-slate-400 truncate leading-none">
-                                                            {sub.controlNumber}
-                                                        </p>
-                                                    </div>
-                                                    {sub.googleDriveLink ? (
-                                                        <Button 
-                                                            asChild
-                                                            variant="ghost" 
-                                                            size="sm" 
-                                                            className="h-7 text-[9px] font-black uppercase gap-1 text-indigo-700 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-100 shrink-0 ml-4"
-                                                        >
-                                                            <a href={sub.googleDriveLink} target="_blank" rel="noopener noreferrer">
-                                                                View Document <ExternalLink className="h-3 w-3" />
-                                                            </a>
-                                                        </Button>
-                                                    ) : (
-                                                        <span className="text-[9px] text-slate-400 italic shrink-0 ml-4">No Link Available</span>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            );
-                        } else {
-                            if (docType === 'Risk and Opportunity Action Plan') {
-                                const rorSub = clauseSubmissions.find(s => s.reportType === 'Risk and Opportunity Registry');
-                                if (rorSub?.riskRating === 'low') {
-                                    return (
-                                        <div key={docType} className="flex items-center gap-3 bg-emerald-50 p-4 rounded-xl border border-emerald-100 shadow-inner">
-                                            <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 animate-in zoom-in duration-300" />
-                                            <div className="space-y-0.5">
-                                                <p className="text-[10px] font-black text-emerald-800 uppercase">Not Required (Low Risk)</p>
-                                                <p className="text-[9px] text-emerald-600 font-medium italic">
-                                                    "Risk and Opportunity Action Plan" is not required since the unit's Risk Registry is rated LOW.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    );
-                                }
-                            }
-                            return (
-                                <div key={docType} className="flex items-center gap-3 bg-rose-50/60 p-4 rounded-xl border border-rose-100 shadow-inner">
-                                    <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
-                                    <div className="space-y-0.5">
-                                        <p className="text-[10px] font-black text-rose-800 uppercase">Missing EOMS Submission</p>
-                                        <p className="text-[9px] text-rose-600 font-medium italic">
-                                            "{docType}" has not been uploaded for {planYear ? `academic year ${planYear - 1}` : 'this academic year'}.
-                                        </p>
-                                    </div>
-                                </div>
-                            );
+          <div className="space-y-3">
+            {requiredDocs.map((docType) => {
+              const docSubmissions = clauseSubmissions.filter((s) => normalizeReportType(s.reportType) === docType);
+
+              if (docSubmissions.length > 0) {
+                return (
+                  <div key={docType} className="space-y-2">
+                    <p className="text-[10px] font-black text-indigo-950 uppercase tracking-wide">{docType}</p>
+                    <div className="grid grid-cols-1 gap-2">
+                      {docSubmissions.map((sub) => {
+                        let statusColor = 'bg-slate-500 text-white';
+                        let statusLabel = sub.statusId || 'Pending';
+
+                        const statusLower = String(sub.statusId || '').toLowerCase();
+                        if (statusLower === 'approved') {
+                          statusColor = 'bg-emerald-600 text-white';
+                          statusLabel = 'Approved';
+                        } else if (statusLower === 'rejected') {
+                          statusColor = 'bg-rose-600 text-white';
+                          statusLabel = 'Rejected';
+                        } else if (statusLower === 'submitted') {
+                          statusColor = 'bg-indigo-600 text-white';
+                          statusLabel = 'Submitted';
+                        } else if (statusLower === 'pending' || statusLower === 'awaiting approval') {
+                          statusColor = 'bg-amber-500 text-white';
+                          statusLabel = 'Pending';
                         }
-                    })}
-                </div>
-            </div>
-        )}
 
-        <div className="space-y-3 p-5 rounded-2xl border-primary/20 bg-primary/5 animate-in slide-in-from-top-2 duration-500">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-primary">
-                    <Scale className="h-4 w-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                        Auditor Foresight: {clause.id === '10.1' ? 'Unit Non-Conformance History' : `Clause ${clause.id} History`}
-                    </span>
-                </div>
-                <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-primary/20 text-primary">CLAUSE 10.1 REQUIREMENT</Badge>
-            </div>
-            
-            {clauseCars.length > 0 ? (
-                <div className="space-y-2">
-                    {clauseCars.map(car => (
-                        <div key={car.id} className="flex items-center justify-between bg-white/80 p-3 rounded-xl border border-primary/5 shadow-sm">
-                            <div className="min-w-0">
-                                <p className="text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase">CAR NO: {car.carNumber}</p>
-                                <p className="text-[10px] text-muted-foreground truncate italic">"{car.descriptionOfNonconformance}"</p>
+                        return (
+                          <div
+                            key={sub.id}
+                            className="flex items-center justify-between bg-white p-3 rounded-xl border border-indigo-100 shadow-sm"
+                          >
+                            <div className="min-w-0 flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <Badge className={cn('h-4 text-[8px] font-black uppercase border-none', statusColor)}>
+                                  {statusLabel}
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="h-4 text-[8px] font-bold text-slate-500 capitalize bg-slate-50/50 dark:bg-slate-800/50"
+                                >
+                                  {sub.cycleId || 'First'} Cycle
+                                </Badge>
+                                <Badge
+                                  variant="outline"
+                                  className="h-4 text-[8px] font-black uppercase text-indigo-700 border-indigo-200 bg-indigo-50/30"
+                                >
+                                  AY {sub.year}
+                                </Badge>
+                                <span className="text-[9px] font-mono font-medium text-slate-400">
+                                  Rev {String(sub.revision || 0).padStart(2, '0')}
+                                </span>
+                              </div>
+                              <p className="text-[9px] font-mono text-slate-400 truncate leading-none">
+                                {sub.controlNumber}
+                              </p>
                             </div>
-                            <Badge className={cn(
-                                "h-5 text-[8px] font-black uppercase border-none ml-4",
-                                car.status === 'Open' ? "bg-rose-600 text-white" : 
-                                car.status === 'In Progress' ? "bg-amber-50 text-amber-950" : 
-                                "bg-emerald-600 text-white"
-                            )}>
-                                {car.status}
-                            </Badge>
-                        </div>
-                    ))}
-                </div>
-            ) : (
-                <div className="flex items-center gap-3 bg-white/60 p-4 rounded-xl border border-emerald-100 shadow-inner">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    <div className="space-y-0.5">
-                        <p className="text-[10px] font-black text-emerald-800 uppercase">Clean Compliance History</p>
-                        <p className="text-[9px] text-emerald-600 font-medium italic">This unit has no recorded non-conformities from previous audits {clause.id !== '10.1' ? 'associated with this clause' : ''}.</p>
-                    </div>
-                </div>
-            )}
-        </div>
-
-        {/* Previous Year OFIs for Clause 10.3 */}
-        {clause.id === '10.3' && previousYearOfis.length > 0 && (
-          <div className="space-y-3 p-5 rounded-2xl border-amber-200 bg-amber-50/40 animate-in slide-in-from-top-2 duration-500">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-amber-700">
-                <TrendingUp className="h-4 w-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">
-                  Previous Year OFIs (Clause 10.3) - {previousYearOfis.length} Found
-                </span>
-              </div>
-              <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-amber-200 text-amber-700">ISO 10.3 REQUIREMENT</Badge>
-            </div>
-            <p className="text-[9px] text-amber-600 font-medium italic mt-2">
-              Verify if previous year Opportunities for Improvement have been implemented or carried forward.
-            </p>
-            <div className="space-y-2 mt-3">
-              {previousYearOfis.map((ofi) => (
-                <div key={ofi.id} className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-black text-amber-800 uppercase tracking-wide">OFI Reference: {ofi.id}</p>
-                      <p className="text-[9px] text-slate-700 dark:text-slate-300 italic leading-relaxed mt-1">"{ofi.description || ofi.evidence || 'No description available'}"</p>
-                      {ofi.verification && (
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge variant="outline" className="h-4 text-[7px] font-black bg-amber-50 border-amber-200 text-amber-700">
-                            Status: {ofi.verification.status}
-                          </Badge>
-                          {ofi.verification.evidence && (
-                            <span className="text-[8px] text-amber-600 font-medium">Evidence: {ofi.verification.evidence}</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-2 shrink-0">
-                      {!ofi.verification || ofi.verification.status !== 'Implemented' ? (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          className="h-8 px-3 text-[8px] font-black uppercase gap-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                          onClick={() => handleVerifyImplemented(ofi)}
-                        >
-                          <CheckCircle className="h-3 w-3" /> Verified Implemented
-                        </Button>
-                      ) : (
-                        <div className="h-8 px-3 text-[8px] font-black uppercase gap-1 bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                          <CheckCircle className="h-3 w-3" /> Implemented
-                        </div>
-                      )}
-                      {!ofi.verification || ofi.verification.status !== 'Carried Forward' ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 px-3 text-[8px] font-black uppercase gap-1 border-amber-300 text-amber-700 hover:bg-amber-50"
-                          onClick={() => handleCarryForward(ofi)}
-                        >
-                          <ArrowRight className="h-3 w-3" /> Open for Implementation
-                        </Button>
-                      ) : (
-                        <div className="h-8 px-3 text-[8px] font-black uppercase gap-1 bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center">
-                          <TrendingUp className="h-3 w-3" /> Carried Forward
-                        </div>
-                      )}
+                            {sub.googleDriveLink ? (
+                              <Button
+                                asChild
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 text-[9px] font-black uppercase gap-1 text-indigo-700 hover:text-indigo-800 hover:bg-indigo-50 border border-indigo-100 shrink-0 ml-4"
+                              >
+                                <a href={sub.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                                  View Document <ExternalLink className="h-3 w-3" />
+                                </a>
+                              </Button>
+                            ) : (
+                              <span className="text-[9px] text-slate-400 italic shrink-0 ml-4">No Link Available</span>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
+                );
+              } else {
+                if (docType === 'Risk and Opportunity Action Plan') {
+                  const rorSub = clauseSubmissions.find((s) => s.reportType === 'Risk and Opportunity Registry');
+                  if (rorSub?.riskRating === 'low') {
+                    return (
+                      <div
+                        key={docType}
+                        className="flex items-center gap-3 bg-emerald-50 p-4 rounded-xl border border-emerald-100 shadow-inner"
+                      >
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 animate-in zoom-in duration-300" />
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] font-black text-emerald-800 uppercase">Not Required (Low Risk)</p>
+                          <p className="text-[9px] text-emerald-600 font-medium italic">
+                            "Risk and Opportunity Action Plan" is not required since the unit's Risk Registry is rated
+                            LOW.
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                }
+                return (
+                  <div
+                    key={docType}
+                    className="flex items-center gap-3 bg-rose-50/60 p-4 rounded-xl border border-rose-100 shadow-inner"
+                  >
+                    <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] font-black text-rose-800 uppercase">Missing EOMS Submission</p>
+                      <p className="text-[9px] text-rose-600 font-medium italic">
+                        "{docType}" has not been uploaded for{' '}
+                        {planYear ? `academic year ${planYear - 1}` : 'this academic year'}.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3 p-5 rounded-2xl border-primary/20 bg-primary/5 animate-in slide-in-from-top-2 duration-500">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-primary">
+            <Scale className="h-4 w-4" />
+            <span className="text-[10px] font-black uppercase tracking-widest">
+              Auditor Foresight: {clause.id === '10.1' ? 'Unit Non-Conformance History' : `Clause ${clause.id} History`}
+            </span>
+          </div>
+          <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-primary/20 text-primary">
+            CLAUSE 10.1 REQUIREMENT
+          </Badge>
+        </div>
+
+        {clauseCars.length > 0 ? (
+          <div className="space-y-2">
+            {clauseCars.map((car) => (
+              <div
+                key={car.id}
+                className="flex items-center justify-between bg-white/80 p-3 rounded-xl border border-primary/5 shadow-sm"
+              >
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black text-slate-900 dark:text-slate-100 uppercase">
+                    CAR NO: {car.carNumber}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground truncate italic">
+                    "{car.descriptionOfNonconformance}"
+                  </p>
                 </div>
-              ))}
+                <Badge
+                  className={cn(
+                    'h-5 text-[8px] font-black uppercase border-none ml-4',
+                    car.status === 'Open'
+                      ? 'bg-rose-600 text-white'
+                      : car.status === 'In Progress'
+                        ? 'bg-amber-50 text-amber-950'
+                        : 'bg-emerald-600 text-white',
+                  )}
+                >
+                  {car.status}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 bg-white/60 p-4 rounded-xl border border-emerald-100 shadow-inner">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <div className="space-y-0.5">
+              <p className="text-[10px] font-black text-emerald-800 uppercase">Clean Compliance History</p>
+              <p className="text-[9px] text-emerald-600 font-medium italic">
+                This unit has no recorded non-conformities from previous audits{' '}
+                {clause.id !== '10.1' ? 'associated with this clause' : ''}.
+              </p>
             </div>
           </div>
         )}
+      </div>
 
-        <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-                <Label className="font-black text-[10px] uppercase tracking-widest text-primary mb-3 block">RSU Institutional Audit Guide</Label>
-                <ul className="list-disc space-y-2 pl-5 mt-2 text-xs text-muted-foreground font-medium leading-relaxed bg-primary/5 p-4 rounded-lg border border-primary/10 italic">
-                    {(clauseQuestions[clause.id] || []).map((q, i) => <li key={i}>{q}</li>)}
-                </ul>
+      {/* Previous Year OFIs for Clause 10.3 */}
+      {clause.id === '10.3' && previousYearOfis.length > 0 && (
+        <div className="space-y-3 p-5 rounded-2xl border-amber-200 bg-amber-50/40 animate-in slide-in-from-top-2 duration-500">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-amber-700">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                Previous Year OFIs (Clause 10.3) - {previousYearOfis.length} Found
+              </span>
             </div>
+            <Badge variant="outline" className="h-5 text-[8px] font-black bg-white border-amber-200 text-amber-700">
+              ISO 10.3 REQUIREMENT
+            </Badge>
+          </div>
+          <p className="text-[9px] text-amber-600 font-medium italic mt-2">
+            Verify if previous year Opportunities for Improvement have been implemented or carried forward.
+          </p>
+          <div className="space-y-2 mt-3">
+            {previousYearOfis.map((ofi) => (
+              <div key={ofi.id} className="bg-white p-4 rounded-xl border border-amber-100 shadow-sm space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-black text-amber-800 uppercase tracking-wide">
+                      OFI Reference: {ofi.id}
+                    </p>
+                    <p className="text-[9px] text-slate-700 dark:text-slate-300 italic leading-relaxed mt-1">
+                      "{ofi.description || ofi.evidence || 'No description available'}"
+                    </p>
+                    {ofi.verification && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <Badge
+                          variant="outline"
+                          className="h-4 text-[7px] font-black bg-amber-50 border-amber-200 text-amber-700"
+                        >
+                          Status: {ofi.verification.status}
+                        </Badge>
+                        {ofi.verification.evidence && (
+                          <span className="text-[8px] text-amber-600 font-medium">
+                            Evidence: {ofi.verification.evidence}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2 shrink-0">
+                    {!ofi.verification || ofi.verification.status !== 'Implemented' ? (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="h-8 px-3 text-[8px] font-black uppercase gap-1 bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                        onClick={() => handleVerifyImplemented(ofi)}
+                      >
+                        <CheckCircle className="h-3 w-3" /> Verified Implemented
+                      </Button>
+                    ) : (
+                      <div className="h-8 px-3 text-[8px] font-black uppercase gap-1 bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                        <CheckCircle className="h-3 w-3" /> Implemented
+                      </div>
+                    )}
+                    {!ofi.verification || ofi.verification.status !== 'Carried Forward' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3 text-[8px] font-black uppercase gap-1 border-amber-300 text-amber-700 hover:bg-amber-50"
+                        onClick={() => handleCarryForward(ofi)}
+                      >
+                        <ArrowRight className="h-3 w-3" /> Open for Implementation
+                      </Button>
+                    ) : (
+                      <div className="h-8 px-3 text-[8px] font-black uppercase gap-1 bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center">
+                        <TrendingUp className="h-3 w-3" /> Carried Forward
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-            <FormField
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div>
+            <Label className="font-black text-[10px] uppercase tracking-widest text-primary mb-3 block">
+              RSU Institutional Audit Guide
+            </Label>
+            <ul className="list-disc space-y-2 pl-5 mt-2 text-xs text-muted-foreground font-medium leading-relaxed bg-primary/5 p-4 rounded-lg border border-primary/10 italic">
+              {(clauseQuestions[clause.id] || []).map((q, i) => (
+                <li key={i}>{q}</li>
+              ))}
+            </ul>
+          </div>
+
+          <FormField
             control={form.control}
             name="evidence"
             render={({ field }) => (
-                <FormItem>
-                <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">1. Objective Audit Evidence / Verified Observations</FormLabel>
+              <FormItem>
+                <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                  1. Objective Audit Evidence / Verified Observations
+                </FormLabel>
                 <FormControl>
-                    <Textarea 
-                      {...field} 
-                      rows={4} 
-                      placeholder="Record verifiable observations..." 
-                      className="bg-white border-slate-200 dark:border-slate-700 shadow-inner text-xs" 
-                    />
+                  <Textarea
+                    {...field}
+                    rows={4}
+                    placeholder="Record verifiable observations..."
+                    className="bg-white border-slate-200 dark:border-slate-700 shadow-inner text-xs"
+                  />
                 </FormControl>
-                </FormItem>
+              </FormItem>
             )}
-            />
+          />
 
-            <FormField
+          <FormField
             control={form.control}
             name="type"
             render={({ field }) => (
-                <FormItem className="space-y-3 bg-muted/20 p-4 rounded-xl border border-dashed">
-                    <FormLabel className="font-black text-xs uppercase tracking-wider text-primary">2. Audit Verification Result</FormLabel>
-                    <FormControl>
-                        <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2">
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="Compliance" id={`c-${clause.id}`} />
-                                <Label htmlFor={`c-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">Compliance (C)</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="Observation for Improvement" id={`ofi-${clause.id}`} />
-                                <Label htmlFor={`ofi-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer">OFI</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="Non-Conformance" id={`nc-${clause.id}`} />
-                                <Label htmlFor={`nc-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter text-destructive cursor-pointer">Non-Conformance (NC)</Label>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <RadioGroupItem value="Not Applicable" id={`na-${clause.id}`} />
-                                <Label htmlFor={`na-${clause.id}`} className="font-bold text-[10px] uppercase tracking-tighter text-muted-foreground cursor-pointer">N/A</Label>
-                            </div>
-                        </RadioGroup>
-                    </FormControl>
-                </FormItem>
-            )}
-            />
-
-            {watchType === 'Non-Conformance' && (
-                <FormField control={form.control} name="ncStatement" render={({ field }) => (
-                    <FormItem className="animate-in slide-in-from-top-2 duration-300">
-                        <div className="flex items-center gap-2 mb-2"><AlertTriangle className="h-4 w-4 text-destructive" /><FormLabel className="font-black text-[10px] uppercase text-destructive tracking-widest">3. Detailed Description of Finding (NC Statement)</FormLabel></div>
-                        <FormControl><Textarea {...field} rows={6} placeholder="Edit the template below..." className="bg-destructive/5 border-destructive/20 text-xs font-medium leading-relaxed italic" /></FormControl>
-                    </FormItem>
-                )} />
-            )}
-
-            {watchType !== 'Non-Conformance' && watchType !== '' && (
-                <FormField control={form.control} name="description" render={({ field }) => (
-                    <FormItem className="animate-in fade-in duration-300">
-                        <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">3. Detailed Description of Finding</FormLabel>
-                        <FormControl><Textarea {...field} rows={3} placeholder="Provide further context..." className="bg-white border-slate-200 dark:border-slate-700 text-xs" /></FormControl>
-                    </FormItem>
-                )} />
-            )}
-
-            <div className="flex items-center justify-between pt-2">
-                <div className="flex items-center gap-2">
-                    {isSubmitting ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse"><CloudUpload className="h-3 w-3" />Committing...</div>
-                    ) : lastSaved ? (
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600"><CheckCircle2 className="h-3 w-3" />Stored & Synced ({format(lastSaved, 'HH:mm:ss')})</div>
-                    ) : null}
-                    {(finding?.id || findingId !== `${scheduleId}-${clause.id}`) && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleDelete}
-                        disabled={isSubmitting}
-                        className="h-10 px-4 text-[10px] font-black uppercase tracking-widest text-destructive hover:bg-destructive/5"
+              <FormItem className="space-y-3 bg-muted/20 p-4 rounded-xl border border-dashed">
+                <FormLabel className="font-black text-xs uppercase tracking-wider text-primary">
+                  2. Audit Verification Result
+                </FormLabel>
+                <FormControl>
+                  <RadioGroup onValueChange={field.onChange} value={field.value} className="flex flex-wrap gap-4 pt-2">
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Compliance" id={`c-${clause.id}`} />
+                      <Label
+                        htmlFor={`c-${clause.id}`}
+                        className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer"
                       >
-                        Delete Result
-                      </Button>
-                    )}
-                </div>
-                <Button type="submit" disabled={isSubmitting || !watchType} className="h-10 px-8 font-black uppercase text-xs tracking-widest shadow-xl shadow-primary/20">
-                    {lastSaved ? 'Re-Commit Finding' : `Commit Clause ${clause.id}`}
-                </Button>
-            </div>
-        </form>
-        </Form>
+                        Compliance (C)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Observation for Improvement" id={`ofi-${clause.id}`} />
+                      <Label
+                        htmlFor={`ofi-${clause.id}`}
+                        className="font-bold text-[10px] uppercase tracking-tighter cursor-pointer"
+                      >
+                        OFI
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Non-Conformance" id={`nc-${clause.id}`} />
+                      <Label
+                        htmlFor={`nc-${clause.id}`}
+                        className="font-bold text-[10px] uppercase tracking-tighter text-destructive cursor-pointer"
+                      >
+                        Non-Conformance (NC)
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="Not Applicable" id={`na-${clause.id}`} />
+                      <Label
+                        htmlFor={`na-${clause.id}`}
+                        className="font-bold text-[10px] uppercase tracking-tighter text-muted-foreground cursor-pointer"
+                      >
+                        N/A
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </FormControl>
+              </FormItem>
+            )}
+          />
 
-        {!clauseRevisit || clauseRevisit.status === 'Completed' ? (
-          <div className="border-t border-dashed border-primary/20 pt-4">
-            <Dialog open={isRevisitDialogOpen} onOpenChange={setIsRevisitDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-4 text-[9px] font-black uppercase tracking-widest border-amber-300 text-amber-700 hover:bg-amber-50 gap-1.5"
-                >
-                  <CalendarClock className="h-3.5 w-3.5" />
-                  Schedule Clause Revisit
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <div className="flex items-center gap-2 text-amber-600 mb-1">
-                    <CalendarClock className="h-5 w-5" />
-                    <span className="text-xs font-bold uppercase tracking-widest">Schedule Revisit</span>
+          {watchType === 'Non-Conformance' && (
+            <FormField
+              control={form.control}
+              name="ncStatement"
+              render={({ field }) => (
+                <FormItem className="animate-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="h-4 w-4 text-destructive" />
+                    <FormLabel className="font-black text-[10px] uppercase text-destructive tracking-widest">
+                      3. Detailed Description of Finding (NC Statement)
+                    </FormLabel>
                   </div>
-                  <DialogTitle>Clause {clause.id}: {clause.title}</DialogTitle>
-                  <DialogDescription>
-                    This will inform the auditor that this clause requires a revisit for {scheduleTargetName || 'this unit'}.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Reason for Revisit</Label>
+                  <FormControl>
                     <Textarea
-                      value={revisitReason}
-                      onChange={(e) => setRevisitReason(e.target.value)}
-                      placeholder="e.g., Additional documents needed, further verification required..."
+                      {...field}
+                      rows={6}
+                      placeholder="Edit the template below..."
+                      className="bg-destructive/5 border-destructive/20 text-xs font-medium leading-relaxed italic"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          )}
+
+          {watchType !== 'Non-Conformance' && watchType !== '' && (
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem className="animate-in fade-in duration-300">
+                  <FormLabel className="font-black text-xs uppercase tracking-wider text-slate-800 dark:text-slate-200">
+                    3. Detailed Description of Finding
+                  </FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
                       rows={3}
+                      placeholder="Provide further context..."
                       className="bg-white border-slate-200 dark:border-slate-700 text-xs"
                     />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Revisit Date</Label>
-                      <Input
-                        type="date"
-                        value={revisitDate}
-                        onChange={(e) => setRevisitDate(e.target.value)}
-                        className="bg-white h-10"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Revisit Time</Label>
-                      <Input
-                        type="time"
-                        value={revisitTime}
-                        onChange={(e) => setRevisitTime(e.target.value)}
-                        className="bg-white h-10"
-                      />
-                    </div>
-                  </div>
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <div className="flex items-center gap-2">
+              {isSubmitting ? (
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 animate-pulse">
+                  <CloudUpload className="h-3 w-3" />
+                  Committing...
                 </div>
-                <DialogFooter>
-                  <Button type="button" variant="outline" onClick={() => setIsRevisitDialogOpen(false)} disabled={isSchedulingRevisit}>
-                    Cancel
-                  </Button>
-                  <Button type="button" onClick={handleScheduleRevisit} disabled={isSchedulingRevisit || !revisitReason.trim() || !revisitDate}>
-                    {isSchedulingRevisit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Schedule Revisit
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+              ) : lastSaved ? (
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-emerald-600">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Stored & Synced ({format(lastSaved, 'HH:mm:ss')})
+                </div>
+              ) : null}
+              {(finding?.id || findingId !== `${scheduleId}-${clause.id}`) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDelete}
+                  disabled={isSubmitting}
+                  className="h-10 px-4 text-[10px] font-black uppercase tracking-widest text-destructive hover:bg-destructive/5"
+                >
+                  Delete Result
+                </Button>
+              )}
+            </div>
+            <Button
+              type="submit"
+              disabled={isSubmitting || !watchType}
+              className="h-10 px-8 font-black uppercase text-xs tracking-widest"
+            >
+              {lastSaved ? 'Re-Commit Finding' : `Commit Clause ${clause.id}`}
+            </Button>
           </div>
-        ) : (
-          <div className="border-t border-dashed border-amber-200 pt-4">
-            <div className="flex items-center justify-between bg-amber-50 rounded-xl p-4 border border-amber-200">
-              <div className="flex items-center gap-3">
-                <CalendarClock className="h-5 w-5 text-amber-600" />
-                <div>
-                  <p className="text-[10px] font-black uppercase text-amber-800">Revisit Scheduled</p>
-                  <p className="text-[9px] text-amber-700 italic max-w-md">{clauseRevisit?.reason}</p>
-                  {clauseRevisit?.scheduledDate && (
-                    <p className="text-[8px] font-bold text-amber-600 mt-1 flex items-center gap-1">
-                      <Clock className="h-2.5 w-2.5" />
-                      {clauseRevisit.scheduledDate.toDate
-                        ? format(clauseRevisit.scheduledDate.toDate(), 'MMM dd, yyyy hh:mm a')
-                        : '--'}
-                    </p>
-                  )}
-                </div>
-              </div>
+        </form>
+      </Form>
+
+      {!clauseRevisit || clauseRevisit.status === 'Completed' ? (
+        <div className="border-t border-dashed border-primary/20 pt-4">
+          <Dialog open={isRevisitDialogOpen} onOpenChange={setIsRevisitDialogOpen}>
+            <DialogTrigger asChild>
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleCompleteRevisit}
-                className="h-8 px-4 text-[9px] font-black uppercase tracking-widest border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+                className="h-8 px-4 text-[9px] font-black uppercase tracking-widest border-amber-300 text-amber-700 hover:bg-amber-50 gap-1.5"
               >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Revisit Completed
+                <CalendarClock className="h-3.5 w-3.5" />
+                Schedule Clause Revisit
               </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <div className="flex items-center gap-2 text-amber-600 mb-1">
+                  <CalendarClock className="h-5 w-5" />
+                  <span className="text-xs font-bold uppercase tracking-widest">Schedule Revisit</span>
+                </div>
+                <DialogTitle>
+                  Clause {clause.id}: {clause.title}
+                </DialogTitle>
+                <DialogDescription>
+                  This will inform the auditor that this clause requires a revisit for{' '}
+                  {scheduleTargetName || 'this unit'}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    Reason for Revisit
+                  </Label>
+                  <Textarea
+                    value={revisitReason}
+                    onChange={(e) => setRevisitReason(e.target.value)}
+                    placeholder="e.g., Additional documents needed, further verification required..."
+                    rows={3}
+                    className="bg-white border-slate-200 dark:border-slate-700 text-xs"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Revisit Date
+                    </Label>
+                    <Input
+                      type="date"
+                      value={revisitDate}
+                      onChange={(e) => setRevisitDate(e.target.value)}
+                      className="bg-white h-10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                      Revisit Time
+                    </Label>
+                    <Input
+                      type="time"
+                      value={revisitTime}
+                      onChange={(e) => setRevisitTime(e.target.value)}
+                      className="bg-white h-10"
+                    />
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsRevisitDialogOpen(false)}
+                  disabled={isSchedulingRevisit}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleScheduleRevisit}
+                  disabled={isSchedulingRevisit || !revisitReason.trim() || !revisitDate}
+                >
+                  {isSchedulingRevisit && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Schedule Revisit
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      ) : (
+        <div className="border-t border-dashed border-amber-200 pt-4">
+          <div className="flex items-center justify-between bg-amber-50 rounded-xl p-4 border border-amber-200">
+            <div className="flex items-center gap-3">
+              <CalendarClock className="h-5 w-5 text-amber-600" />
+              <div>
+                <p className="text-[10px] font-black uppercase text-amber-800">Revisit Scheduled</p>
+                <p className="text-[9px] text-amber-700 italic max-w-md">{clauseRevisit?.reason}</p>
+                {clauseRevisit?.scheduledDate && (
+                  <p className="text-[8px] font-bold text-amber-600 mt-1 flex items-center gap-1">
+                    <Clock className="h-2.5 w-2.5" />
+                    {clauseRevisit.scheduledDate.toDate
+                      ? format(clauseRevisit.scheduledDate.toDate(), 'MMM dd, yyyy hh:mm a')
+                      : '--'}
+                  </p>
+                )}
+              </div>
             </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCompleteRevisit}
+              className="h-8 px-4 text-[9px] font-black uppercase tracking-widest border-emerald-300 text-emerald-700 hover:bg-emerald-50 gap-1.5"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Revisit Completed
+            </Button>
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 }
 
-export function AuditChecklist({ 
-  scheduleId, 
-  clausesToAudit, 
-  existingFindings, 
-  onFindingSaved, 
+export function AuditChecklist({
+  scheduleId,
+  clausesToAudit,
+  existingFindings,
+  onFindingSaved,
   onFindingDeleted,
-  unitCars, 
-  unitSubmissions = [], 
+  unitCars,
+  unitSubmissions = [],
   isIqaUnit = false,
   previousYearOfis = [],
   scheduleTargetId,
@@ -890,17 +1068,24 @@ export function AuditChecklist({
   const { toast } = useToast();
 
   const clauseRevisitsQuery = useMemoFirebase(
-    () => (firestore && scheduleId ? query(collection(firestore, 'clauseRevisits'), where('auditScheduleId', '==', scheduleId)) : null),
-    [firestore, scheduleId]
+    () =>
+      firestore && scheduleId
+        ? query(collection(firestore, 'clauseRevisits'), where('auditScheduleId', '==', scheduleId))
+        : null,
+    [firestore, scheduleId],
   );
   const { data: clauseRevisits } = useCollection<ClauseRevisit>(clauseRevisitsQuery);
 
   const clauseRevisitMap = useMemo(() => {
     if (!clauseRevisits) return new Map<string, ClauseRevisit>();
-    return new Map(clauseRevisits.map(r => [r.clauseId, r]));
+    return new Map(clauseRevisits.map((r) => [r.clauseId, r]));
   }, [clauseRevisits]);
-  
-  const sortedClauses = useMemo(() => [...clausesToAudit].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })), [clausesToAudit]);
+
+  const sortedClauses = useMemo(
+    () =>
+      [...clausesToAudit].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' })),
+    [clausesToAudit],
+  );
 
   // Track the currently open clause for sticky header
   const [openClause, setOpenClause] = useState<OpenClauseInfo | null>(null);
@@ -915,7 +1100,7 @@ export function AuditChecklist({
       stickyActivatedRef.current = false;
       onOpenClauseChange?.(null);
     } else {
-      const clause = sortedClauses.find(c => c.id === value);
+      const clause = sortedClauses.find((c) => c.id === value);
       if (clause) {
         const info = { id: clause.id, title: clause.title };
         setOpenClause(info);
@@ -931,12 +1116,12 @@ export function AuditChecklist({
       const params = new URLSearchParams(window.location.search);
       const revisitClauseId = params.get('revisitClause');
       if (revisitClauseId && sortedClauses.length > 0) {
-        const clause = sortedClauses.find(c => c.id === revisitClauseId);
+        const clause = sortedClauses.find((c) => c.id === revisitClauseId);
         if (clause) {
           const info = { id: clause.id, title: clause.title };
           setOpenClause(info);
           onOpenClauseChange?.(info);
-          
+
           // Scroll to the accordion item
           setTimeout(() => {
             const element = document.querySelector(`[value="${revisitClauseId}"]`);
@@ -957,7 +1142,9 @@ export function AuditChecklist({
     const handleScroll = () => {
       if (stickyActivatedRef.current) return;
 
-      const accordionTrigger = accordionWrapperRef.current?.querySelector(`[data-radix-accordion-trigger][data-state="open"]`);
+      const accordionTrigger = accordionWrapperRef.current?.querySelector(
+        `[data-radix-accordion-trigger][data-state="open"]`,
+      );
       if (!accordionTrigger) return;
 
       const triggerRect = accordionTrigger.getBoundingClientRect();
@@ -975,12 +1162,12 @@ export function AuditChecklist({
 
   const handleAddAdditionalResult = async (clauseId: string) => {
     if (!firestore || !user) {
-      toast({ title: "Error", description: "You must be authenticated to add results.", variant: "destructive" });
+      toast({ title: 'Error', description: 'You must be authenticated to add results.', variant: 'destructive' });
       return;
     }
     const newFindingId = `${scheduleId}-${clauseId}-${Date.now()}`;
     const newFindingRef = doc(firestore, 'auditFindings', newFindingId);
-    
+
     const newFindingData = {
       id: newFindingId,
       auditScheduleId: scheduleId,
@@ -996,161 +1183,219 @@ export function AuditChecklist({
 
     try {
       await setDoc(newFindingRef, newFindingData);
-      toast({ title: "Additional Result Added", description: `A new result entry has been prepared for Clause ${clauseId}.` });
+      toast({
+        title: 'Additional Result Added',
+        description: `A new result entry has been prepared for Clause ${clauseId}.`,
+      });
     } catch (error) {
       console.error(error);
-      toast({ title: "Error", description: "Failed to add additional audit result.", variant: "destructive" });
+      toast({ title: 'Error', description: 'Failed to add additional audit result.', variant: 'destructive' });
     }
   };
 
   return (
     <>
-    {/* Fixed Clause Header - attaches to IQA Evidence Log header when scrolling into the open clause */}
-    {showStickyHeader && openClause && (
-      <div 
-        className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3"
-        style={{ top: '64px' }}
-      >
-        <div className="max-w-7xl mx-auto flex items-center gap-3">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white font-black text-[10px]">
-            {openClause.id}
-          </div>
-          <div>
-            <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Current Clause in View</p>
-            <p className="text-sm font-black text-slate-800 dark:text-slate-200 truncate max-w-[400px]">{openClause.title}</p>
-          </div>
-        </div>
-      </div>
-    )}
-
-    <Card className="shadow-2xl border-primary/10 overflow-hidden">
-      <CardHeader className="bg-muted/30 border-b py-6">
-        <div className="flex items-center justify-between">
-            <div className="space-y-1">
-                <CardTitle className="text-xl font-black uppercase tracking-tight">Institutional Audit Evidence Log</CardTitle>
-                <CardDescription className="font-medium">Verify RSU compliance against ISO 21001:2018 standards.</CardDescription>
+      {/* Fixed Clause Header - attaches to IQA Evidence Log header when scrolling into the open clause */}
+      {showStickyHeader && openClause && (
+        <div
+          className="fixed left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-b border-primary/10 shadow-md px-8 py-3"
+          style={{ top: '64px' }}
+        >
+          <div className="max-w-7xl mx-auto flex items-center gap-3">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white font-black text-[10px]">
+              {openClause.id}
             </div>
-            <Badge variant="outline" className="h-6 px-4 font-black text-[10px] border-primary/20 bg-primary/5 text-primary uppercase">{sortedClauses.length} CLAUSES IN SCOPE</Badge>
+            <div>
+              <p className="text-xs font-black text-slate-500 uppercase tracking-wider">Current Clause in View</p>
+              <p className="text-sm font-black text-slate-800 dark:text-slate-200 truncate max-w-[400px]">
+                {openClause.title}
+              </p>
+            </div>
+          </div>
         </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        {/* Spacer to prevent content from being hidden behind the fixed header */}
-        {showStickyHeader && <div className="h-14" aria-hidden="true" />}
-        <div ref={accordionWrapperRef} className="relative">
-          <Accordion 
-            type="single" 
-            collapsible 
-            className="w-full"
-            value={openClause?.id || ''}
-            onValueChange={handleAccordionChange}
-          >
-          {sortedClauses.map((clause) => {
-            const clauseFindings = existingFindings.filter(f => f.isoClause === clause.id);
-            const activeFindings = clauseFindings.filter(f => f.type);
-            const relevantCars = clause.id === '10.1' ? unitCars : unitCars.filter(c => String(c.concerningClause || '').toLowerCase().includes(String(clause.id).toLowerCase()));
-            const requiredDocs = CLAUSE_EOMS_MAPPING[clause.id] || [];
-            const relevantSubmissions = unitSubmissions.filter(s => requiredDocs.includes(normalizeReportType(s.reportType)));
+      )}
 
-            // Default to rendering one blank form if there are no existing findings in the DB
-            const findingsToRender = clauseFindings.length > 0 ? clauseFindings : [{
-              id: `${scheduleId}-${clause.id}`,
-              auditScheduleId: scheduleId,
-              isoClause: clause.id,
-              type: '' as any,
-              description: '',
-              evidence: '',
-              ncStatement: '',
-              authorId: '',
-              createdAt: null
-            }];
+      <Card className="shadow-2xl border-primary/10 overflow-hidden">
+        <CardHeader className="bg-muted/30 border-b py-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-xl font-black uppercase tracking-tight">
+                Institutional Audit Evidence Log
+              </CardTitle>
+              <CardDescription className="font-medium">
+                Verify RSU compliance against ISO 21001:2018 standards.
+              </CardDescription>
+            </div>
+            <Badge
+              variant="outline"
+              className="h-6 px-4 font-black text-[10px] border-primary/20 bg-primary/5 text-primary uppercase"
+            >
+              {sortedClauses.length} CLAUSES IN SCOPE
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          {/* Spacer to prevent content from being hidden behind the fixed header */}
+          {showStickyHeader && <div className="h-14" aria-hidden="true" />}
+          <div ref={accordionWrapperRef} className="relative">
+            <Accordion
+              type="single"
+              collapsible
+              className="w-full"
+              value={openClause?.id || ''}
+              onValueChange={handleAccordionChange}
+            >
+              {sortedClauses.map((clause) => {
+                const clauseFindings = existingFindings.filter((f) => f.isoClause === clause.id);
+                const activeFindings = clauseFindings.filter((f) => f.type);
+                const relevantCars =
+                  clause.id === '10.1'
+                    ? unitCars
+                    : unitCars.filter((c) =>
+                        String(c.concerningClause || '')
+                          .toLowerCase()
+                          .includes(String(clause.id).toLowerCase()),
+                      );
+                const requiredDocs = CLAUSE_EOMS_MAPPING[clause.id] || [];
+                const relevantSubmissions = unitSubmissions.filter((s) =>
+                  requiredDocs.includes(normalizeReportType(s.reportType)),
+                );
 
-            return (
-              <AccordionItem value={clause.id} key={clause.id} className="px-8 border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                <AccordionTrigger className="hover:no-underline py-6">
-                  <div className="flex items-center justify-between w-full pr-6 text-left">
-                    <div className="flex items-center gap-4">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary text-[10px]">{clause.id}</div>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tighter">{clause.title}</span>
-                            {relevantCars.length > 0 && <div className="flex items-center gap-1.5 mt-1"><History className="h-3 w-3 text-amber-600" /><span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">{relevantCars.length} history detected</span></div>}
+                // Default to rendering one blank form if there are no existing findings in the DB
+                const findingsToRender =
+                  clauseFindings.length > 0
+                    ? clauseFindings
+                    : [
+                        {
+                          id: `${scheduleId}-${clause.id}`,
+                          auditScheduleId: scheduleId,
+                          isoClause: clause.id,
+                          type: '' as any,
+                          description: '',
+                          evidence: '',
+                          ncStatement: '',
+                          authorId: '',
+                          createdAt: null,
+                        },
+                      ];
+
+                return (
+                  <AccordionItem
+                    value={clause.id}
+                    key={clause.id}
+                    className="px-8 border-b last:border-0 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors"
+                  >
+                    <AccordionTrigger className="hover:no-underline py-6">
+                      <div className="flex items-center justify-between w-full pr-6 text-left">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 font-black text-primary text-[10px]">
+                            {clause.id}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-tighter">
+                              {clause.title}
+                            </span>
+                            {relevantCars.length > 0 && (
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <History className="h-3 w-3 text-amber-600" />
+                                <span className="text-[9px] font-black text-amber-700 uppercase tracking-widest">
+                                  {relevantCars.length} history detected
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5 ml-4">
-                      {activeFindings.length > 0 && (
-                        Array.from(new Set(activeFindings.map(f => f.type))).map(type => (
-                          <Badge 
-                            key={type} 
+                        <div className="flex flex-wrap gap-1.5 ml-4">
+                          {activeFindings.length > 0 &&
+                            Array.from(new Set(activeFindings.map((f) => f.type))).map((type) => (
+                              <Badge
+                                key={type}
+                                className={cn(
+                                  'h-5 text-[8px] font-black uppercase shadow-none border-none transition-all scale-105',
+                                  type === 'Compliance'
+                                    ? 'bg-emerald-600 text-white'
+                                    : type === 'Non-Conformance'
+                                      ? 'bg-destructive text-white'
+                                      : type === 'Not Applicable'
+                                        ? 'bg-slate-500 text-white'
+                                        : 'bg-amber-500 text-white',
+                                )}
+                              >
+                                {type === 'Compliance'
+                                  ? 'C'
+                                  : type === 'Non-Conformance'
+                                    ? 'NC'
+                                    : type === 'Not Applicable'
+                                      ? 'N/A'
+                                      : 'OFI'}{' '}
+                                RECORDED
+                              </Badge>
+                            ))}
+                          {clauseRevisitMap.get(clause.id)?.status === 'Pending' && (
+                            <Badge className="h-5 text-[8px] font-black uppercase shadow-none border-none bg-amber-600 text-white">
+                              <CalendarClock className="h-2.5 w-2.5 mr-1" /> REVISIT
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-8">
+                      <div className="space-y-6">
+                        {findingsToRender.map((f, index) => (
+                          <div
+                            key={f.id}
                             className={cn(
-                              "h-5 text-[8px] font-black uppercase shadow-none border-none transition-all scale-105", 
-                              type === 'Compliance' ? 'bg-emerald-600 text-white' : 
-                              type === 'Non-Conformance' ? 'bg-destructive text-white' : 
-                              type === 'Not Applicable' ? 'bg-slate-500 text-white' : 
-                              'bg-amber-500 text-white'
+                              'rounded-xl border bg-white p-8 shadow-sm ring-1 ring-slate-200/50 relative',
+                              index > 0 && 'mt-6 border-t-2 border-dashed',
                             )}
                           >
-                            {type === 'Compliance' ? 'C' : type === 'Non-Conformance' ? 'NC' : type === 'Not Applicable' ? 'N/A' : 'OFI'} RECORDED
-                          </Badge>
-                        ))
-                      )}
-                      {clauseRevisitMap.get(clause.id)?.status === 'Pending' && (
-                        <Badge className="h-5 text-[8px] font-black uppercase shadow-none border-none bg-amber-600 text-white">
-                          <CalendarClock className="h-2.5 w-2.5 mr-1" /> REVISIT
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pb-8">
-                  <div className="space-y-6">
-                    {findingsToRender.map((f, index) => (
-                      <div key={f.id} className={cn("rounded-xl border bg-white p-8 shadow-sm ring-1 ring-slate-200/50 relative", index > 0 && "mt-6 border-t-2 border-dashed")}>
-                        {findingsToRender.length > 1 && (
-                          <Badge className="absolute -top-3 left-4 bg-primary text-white text-[10px] font-black uppercase px-2.5 py-0.5 shadow-sm">
-                            Audit Result #{index + 1}
-                          </Badge>
-                        )}
-                        <ClauseForm 
-                          scheduleId={scheduleId} 
-                          clause={clause} 
-                          finding={f.type === '' && !f.authorId ? undefined : f} 
-                          findingId={f.id}
-                          onSave={(data) => onFindingSaved?.(data)} 
-                          onDelete={(id) => onFindingDeleted?.(id, clause.id)}
-                          clauseCars={relevantCars} 
-                          clauseSubmissions={relevantSubmissions} 
-                          isIqaUnit={isIqaUnit} 
-                          previousYearOfis={previousYearOfis} 
-                          scheduleTargetId={scheduleTargetId} 
-                          scheduleTargetName={scheduleTargetName}
-                          scheduleCampusId={scheduleCampusId} 
-                          clauseRevisit={clauseRevisitMap.get(clause.id)}
-                          planYear={planYear}
-                        />
+                            {findingsToRender.length > 1 && (
+                              <Badge className="absolute -top-3 left-4 bg-primary text-white text-[10px] font-black uppercase px-2.5 py-0.5 shadow-sm">
+                                Audit Result #{index + 1}
+                              </Badge>
+                            )}
+                            <ClauseForm
+                              scheduleId={scheduleId}
+                              clause={clause}
+                              finding={f.type === '' && !f.authorId ? undefined : f}
+                              findingId={f.id}
+                              onSave={(data) => onFindingSaved?.(data)}
+                              onDelete={(id) => onFindingDeleted?.(id, clause.id)}
+                              clauseCars={relevantCars}
+                              clauseSubmissions={relevantSubmissions}
+                              isIqaUnit={isIqaUnit}
+                              previousYearOfis={previousYearOfis}
+                              scheduleTargetId={scheduleTargetId}
+                              scheduleTargetName={scheduleTargetName}
+                              scheduleCampusId={scheduleCampusId}
+                              clauseRevisit={clauseRevisitMap.get(clause.id)}
+                              planYear={planYear}
+                            />
+                          </div>
+                        ))}
+
+                        {/* Add Additional Result Trigger */}
+                        <div className="flex justify-end pt-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleAddAdditionalResult(clause.id)}
+                            className="font-black uppercase text-[10px] tracking-widest text-primary border-primary/20 bg-primary/5 hover:bg-primary/10 gap-1.5 h-9 px-4"
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                            Add Additional Audit Result
+                          </Button>
+                        </div>
                       </div>
-                    ))}
-                    
-                    {/* Add Additional Result Trigger */}
-                    <div className="flex justify-end pt-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddAdditionalResult(clause.id)}
-                        className="font-black uppercase text-[10px] tracking-widest text-primary border-primary/20 bg-primary/5 hover:bg-primary/10 gap-1.5 h-9 px-4"
-                      >
-                        <PlusCircle className="h-4 w-4" />
-                        Add Additional Audit Result
-                      </Button>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
-        </div>
-      </CardContent>
-    </Card>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          </div>
+        </CardContent>
+      </Card>
     </>
   );
 }

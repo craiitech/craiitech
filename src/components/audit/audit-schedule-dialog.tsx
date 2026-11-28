@@ -8,15 +8,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import {
   Select,
   SelectContent,
@@ -37,7 +29,27 @@ import { doc, addDoc, collection, Timestamp, setDoc, updateDoc } from '@/firebas
 import { useToast } from '@/hooks/use-toast';
 import { useMemo, useState, useEffect } from 'react';
 import type { AuditPlan, User, Unit, ISOClause, AuditSchedule, UnitCategory, AuditGroup, Campus } from '@/lib/types';
-import { Loader2, CalendarIcon, ShieldCheck, Check, Search, Clock, ListChecks, Building2, Database, UserCheck, Layers, User as UserIcon, AlertTriangle, School, Sparkles, FileText, PlusCircle, Trash2, ChevronRight } from 'lucide-react';
+import {
+  Loader2,
+  CalendarIcon,
+  ShieldCheck,
+  Check,
+  Search,
+  Clock,
+  ListChecks,
+  Building2,
+  Database,
+  UserCheck,
+  Layers,
+  User as UserIcon,
+  AlertTriangle,
+  School,
+  Sparkles,
+  FileText,
+  PlusCircle,
+  Trash2,
+  ChevronRight,
+} from 'lucide-react';
 import { cn, parseDate } from '@/lib/utils';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandList, CommandItem } from '../ui/command';
 import { Badge } from '../ui/badge';
@@ -58,30 +70,42 @@ interface AuditScheduleDialogProps {
   topManagement: User[];
 }
 
-const formSchema = z.object({
-  campusId: z.string().min(1, 'Target campus site is required.'),
-  targetId: z.string().min(1, 'Auditee Unit/Office is required'),
-  auditeeHeadName: z.string().min(1, 'Auditee Head / Office Head name is required'),
-  processCategory: z.enum(['Management Processes', 'Operation Processes', 'Support Processes']),
-  procedureDescription: z.string().min(5, 'Procedure detail is required.'),
-  scheduledDate: z.string().regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/, 'Date must be in MM/DD/YYYY format'),
-  startTime: z.string().min(1, 'Start time is required'),
-  endTime: z.string().min(1, 'End time is required'),
-  isoClausesToAudit: z.array(z.string()).min(1, 'Select at least one standard clause.'),
-  auditorId: z.string().optional().nullable(),
-  documents: z.array(z.object({
-    name: z.string(),
-    link: z.string(),
-    communicationId: z.string().optional(),
-    communicationRefNum: z.string().optional(),
-    communicationSubject: z.string().optional(),
-  })).optional().default([]),
-}).refine(data => {
-    return data.endTime > data.startTime;
-}, {
-    message: "End time must be after start time",
-    path: ["endTime"]
-});
+const formSchema = z
+  .object({
+    campusId: z.string().min(1, 'Target campus site is required.'),
+    targetId: z.string().min(1, 'Auditee Unit/Office is required'),
+    auditeeHeadName: z.string().min(1, 'Auditee Head / Office Head name is required'),
+    processCategory: z.enum(['Management Processes', 'Operation Processes', 'Support Processes']),
+    procedureDescription: z.string().min(5, 'Procedure detail is required.'),
+    scheduledDate: z
+      .string()
+      .regex(/^(0[1-9]|1[0-2])\/(0[1-9]|[12][0-9]|3[01])\/\d{4}$/, 'Date must be in MM/DD/YYYY format'),
+    startTime: z.string().min(1, 'Start time is required'),
+    endTime: z.string().min(1, 'End time is required'),
+    isoClausesToAudit: z.array(z.string()).min(1, 'Select at least one standard clause.'),
+    auditorId: z.string().optional().nullable(),
+    documents: z
+      .array(
+        z.object({
+          name: z.string(),
+          link: z.string(),
+          communicationId: z.string().optional(),
+          communicationRefNum: z.string().optional(),
+          communicationSubject: z.string().optional(),
+        }),
+      )
+      .optional()
+      .default([]),
+  })
+  .refine(
+    (data) => {
+      return data.endTime > data.startTime;
+    },
+    {
+      message: 'End time must be after start time',
+      path: ['endTime'],
+    },
+  );
 
 const auditGroups: AuditGroup[] = ['Management Processes', 'Operation Processes', 'Support Processes'];
 
@@ -98,10 +122,10 @@ export function AuditScheduleDialog({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const campusesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'campuses') : null, [firestore]);
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
 
-  const isoClausesQuery = useMemoFirebase(() => firestore ? collection(firestore, 'isoClauses') : null, [firestore]);
+  const isoClausesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'isoClauses') : null), [firestore]);
   const { data: isoClauses, isLoading: isLoadingClauses } = useCollection<ISOClause>(isoClausesQuery);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -118,7 +142,7 @@ export function AuditScheduleDialog({
       procedureDescription: '',
       auditorId: '',
       documents: [],
-    }
+    },
   });
 
   const watchCampusId = form.watch('campusId');
@@ -130,11 +154,13 @@ export function AuditScheduleDialog({
   const watchCategory = form.watch('processCategory');
 
   const selectedUnit = useMemo(() => {
-    return allUnits.find(u => u.id === watchTargetId);
+    return allUnits.find((u) => u.id === watchTargetId);
   }, [watchTargetId, allUnits]);
 
   const isIqaUnit = useMemo(() => {
-    return selectedUnit?.name?.toLowerCase() === 'internal quality audit' || selectedUnit?.name?.toLowerCase() === 'iqa';
+    return (
+      selectedUnit?.name?.toLowerCase() === 'internal quality audit' || selectedUnit?.name?.toLowerCase() === 'iqa'
+    );
   }, [selectedUnit]);
 
   const isClauseAllowedForIqa = (clauseId: string) => {
@@ -144,7 +170,7 @@ export function AuditScheduleDialog({
   useEffect(() => {
     if (isIqaUnit) {
       const selected = form.getValues('isoClausesToAudit') || [];
-      const filtered = selected.filter(id => isClauseAllowedForIqa(id));
+      const filtered = selected.filter((id) => isClauseAllowedForIqa(id));
       if (filtered.length !== selected.length) {
         form.setValue('isoClausesToAudit', filtered);
       }
@@ -152,25 +178,25 @@ export function AuditScheduleDialog({
   }, [isIqaUnit, form]);
 
   const auditeesByCategory = useMemo(() => {
-    if (!watchCampusId) return { 'Academic': [], 'Administrative': [], 'Research': [], 'Support': [] };
+    if (!watchCampusId) return { Academic: [], Administrative: [], Research: [], Support: [] };
 
-    const campusUnits = allUnits.filter(u => u.campusIds?.includes(watchCampusId));
-    
+    const campusUnits = allUnits.filter((u) => u.campusIds?.includes(watchCampusId));
+
     const groups: Record<UnitCategory, Unit[]> = {
-        'Academic': [],
-        'Administrative': [],
-        'Research': [],
-        'Support': []
+      Academic: [],
+      Administrative: [],
+      Research: [],
+      Support: [],
     };
 
-    campusUnits.forEach(unit => {
-        const cat = unit.category || 'Administrative';
-        if (!groups[cat]) groups[cat] = [];
-        groups[cat].push(unit);
+    campusUnits.forEach((unit) => {
+      const cat = unit.category || 'Administrative';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(unit);
     });
 
-    Object.keys(groups).forEach(cat => {
-        groups[cat as UnitCategory].sort((a, b) => a.name.localeCompare(b.name));
+    Object.keys(groups).forEach((cat) => {
+      groups[cat as UnitCategory].sort((a, b) => a.name.localeCompare(b.name));
     });
 
     return groups;
@@ -181,142 +207,156 @@ export function AuditScheduleDialog({
     if (!watchDate || !watchStart || !watchEnd || (!watchTargetId && !watchAuditorId)) return null;
 
     try {
-        const [month, day, year] = watchDate.split('/').map(Number);
-        const [sH, sM] = watchStart.split(':').map(Number);
-        const [eH, eM] = watchEnd.split(':').map(Number);
+      const [month, day, year] = watchDate.split('/').map(Number);
+      const [sH, sM] = watchStart.split(':').map(Number);
+      const [eH, eM] = watchEnd.split(':').map(Number);
 
-        const startTS = new Date(year, month - 1, day, sH, sM).getTime();
-        const endTS = new Date(year, month - 1, day, eH, eM).getTime();
+      const startTS = new Date(year, month - 1, day, sH, sM).getTime();
+      const endTS = new Date(year, month - 1, day, eH, eM).getTime();
 
-        return allSchedules.find(s => {
-            if (schedule && s.id === schedule.id) return false;
-            
-            const otherStart = s.scheduledDate?.toMillis?.() || new Date(s.scheduledDate).getTime();
-            const otherEnd = s.endScheduledDate?.toMillis?.() || new Date(s.endScheduledDate).getTime();
+      return allSchedules.find((s) => {
+        if (schedule && s.id === schedule.id) return false;
 
-            const timeOverlap = (startTS < otherEnd) && (endTS > otherStart);
-            if (!timeOverlap) return false;
+        const otherStart = s.scheduledDate?.toMillis?.() || new Date(s.scheduledDate).getTime();
+        const otherEnd = s.endScheduledDate?.toMillis?.() || new Date(s.endScheduledDate).getTime();
 
-            const unitMatch = watchTargetId && s.targetId === watchTargetId;
-            const auditorMatch = watchAuditorId && watchAuditorId !== 'unassigned' && s.auditorId === watchAuditorId;
+        const timeOverlap = startTS < otherEnd && endTS > otherStart;
+        if (!timeOverlap) return false;
 
-            return unitMatch || auditorMatch;
-        });
+        const unitMatch = watchTargetId && s.targetId === watchTargetId;
+        const auditorMatch = watchAuditorId && watchAuditorId !== 'unassigned' && s.auditorId === watchAuditorId;
+
+        return unitMatch || auditorMatch;
+      });
     } catch {
-        return null;
+      return null;
     }
   }, [watchDate, watchStart, watchEnd, watchTargetId, watchAuditorId, allSchedules, schedule]);
 
   useEffect(() => {
     if (isOpen) {
-        if (schedule) {
-            const start = parseDate(schedule.scheduledDate);
-            const end = parseDate(schedule.endScheduledDate);
-            
-            form.reset({
-                campusId: schedule.campusId || (plan.campusId === 'university-wide' ? '' : plan.campusId),
-                targetId: schedule.targetId,
-                auditeeHeadName: schedule.auditeeHeadName || '',
-                processCategory: (schedule.processCategory as any) || 'Operation Processes',
-                scheduledDate: format(start, 'MM/dd/yyyy'),
-                startTime: format(start, 'HH:mm'),
-                endTime: format(end, 'HH:mm'),
-                procedureDescription: schedule.procedureDescription || '',
-                isoClausesToAudit: schedule.isoClausesToAudit || [],
-                auditorId: schedule.auditorId || '',
-                documents: schedule.documents || [],
-            });
-        } else {
-            form.reset({
-                campusId: plan.campusId === 'university-wide' ? '' : plan.campusId,
-                targetId: '',
-                auditeeHeadName: '',
-                processCategory: 'Operation Processes',
-                scheduledDate: '',
-                isoClausesToAudit: [],
-                startTime: '09:00',
-                endTime: '12:00',
-                procedureDescription: '',
-                auditorId: '',
-                documents: [],
-            });
-        }
+      if (schedule) {
+        const start = parseDate(schedule.scheduledDate);
+        const end = parseDate(schedule.endScheduledDate);
+
+        form.reset({
+          campusId: schedule.campusId || (plan.campusId === 'university-wide' ? '' : plan.campusId),
+          targetId: schedule.targetId,
+          auditeeHeadName: schedule.auditeeHeadName || '',
+          processCategory: (schedule.processCategory as any) || 'Operation Processes',
+          scheduledDate: format(start, 'MM/dd/yyyy'),
+          startTime: format(start, 'HH:mm'),
+          endTime: format(end, 'HH:mm'),
+          procedureDescription: schedule.procedureDescription || '',
+          isoClausesToAudit: schedule.isoClausesToAudit || [],
+          auditorId: schedule.auditorId || '',
+          documents: schedule.documents || [],
+        });
+      } else {
+        form.reset({
+          campusId: plan.campusId === 'university-wide' ? '' : plan.campusId,
+          targetId: '',
+          auditeeHeadName: '',
+          processCategory: 'Operation Processes',
+          scheduledDate: '',
+          isoClausesToAudit: [],
+          startTime: '09:00',
+          endTime: '12:00',
+          procedureDescription: '',
+          auditorId: '',
+          documents: [],
+        });
+      }
     }
   }, [schedule, isOpen, form, plan.campusId, plan.id]);
 
   const handleLoadPresets = () => {
-      if (!plan.groupClauseMapping || !watchCategory) return;
-      const presets = plan.groupClauseMapping[watchCategory] || [];
-      if (presets.length > 0) {
-          form.setValue('isoClausesToAudit', presets);
-          toast({ title: 'Presets Loaded', description: `Injected ${presets.length} clauses defined for ${watchCategory}.` });
-      } else {
-          toast({ title: 'No Presets Found', description: `The Audit Plan has no pre-defined clauses for ${watchCategory}.`, variant: 'destructive' });
-      }
+    if (!plan.groupClauseMapping || !watchCategory) return;
+    const presets = plan.groupClauseMapping[watchCategory] || [];
+    if (presets.length > 0) {
+      form.setValue('isoClausesToAudit', presets);
+      toast({
+        title: 'Presets Loaded',
+        description: `Injected ${presets.length} clauses defined for ${watchCategory}.`,
+      });
+    } else {
+      toast({
+        title: 'No Presets Found',
+        description: `The Audit Plan has no pre-defined clauses for ${watchCategory}.`,
+        variant: 'destructive',
+      });
+    }
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!firestore) return;
     setIsSubmitting(true);
-    
+
     try {
-        const targetUnit = allUnits.find(u => u.id === values.targetId);
-        const targetName = targetUnit?.name || 'Unknown Unit';
+      const targetUnit = allUnits.find((u) => u.id === values.targetId);
+      const targetName = targetUnit?.name || 'Unknown Unit';
 
-        const [month, day, year] = values.scheduledDate.split('/').map(Number);
-        
-        const [sHours, sMinutes] = values.startTime.split(':').map(Number);
-        const startDateTime = new Date(year, month - 1, day);
-        startDateTime.setHours(sHours, sMinutes, 0, 0);
+      const [month, day, year] = values.scheduledDate.split('/').map(Number);
 
-        const [eHours, eMinutes] = values.endTime.split(':').map(Number);
-        const endDateTime = new Date(year, month - 1, day);
-        endDateTime.setHours(eHours, eMinutes, 0, 0);
+      const [sHours, sMinutes] = values.startTime.split(':').map(Number);
+      const startDateTime = new Date(year, month - 1, day);
+      startDateTime.setHours(sHours, sMinutes, 0, 0);
 
-        const selectedAuditor = auditors.find(a => a.id === values.auditorId);
-        const auditorName = selectedAuditor ? `${selectedAuditor.firstName} ${selectedAuditor.lastName}` : null;
+      const [eHours, eMinutes] = values.endTime.split(':').map(Number);
+      const endDateTime = new Date(year, month - 1, day);
+      endDateTime.setHours(eHours, eMinutes, 0, 0);
 
-        const scheduleData = {
-          auditPlanId: plan.id,
-          auditNumber: plan.auditNumber || '',
-          campusId: values.campusId,
-          targetId: values.targetId,
-          targetType: 'Unit',
-          targetName,
-          auditeeHeadName: values.auditeeHeadName,
-          processCategory: values.processCategory,
-          procedureDescription: values.procedureDescription,
-          scheduledDate: Timestamp.fromDate(startDateTime),
-          endScheduledDate: Timestamp.fromDate(endDateTime),
-          isoClausesToAudit: values.isoClausesToAudit,
-          status: schedule?.status || 'Scheduled',
-          auditorId: values.auditorId === 'unassigned' ? null : (values.auditorId || null),
-          auditorName: values.auditorId === 'unassigned' ? null : auditorName,
-          documents: values.documents || [],
-        };
+      const selectedAuditor = auditors.find((a) => a.id === values.auditorId);
+      const auditorName = selectedAuditor ? `${selectedAuditor.firstName} ${selectedAuditor.lastName}` : null;
 
-        if (schedule) {
-            await updateDoc(doc(firestore, 'auditSchedules', schedule.id), scheduleData);
-            toast({ title: 'Entry Updated', description: `Itinerary entry for ${targetName} has been updated.` });
-        } else {
-            await addDoc(collection(firestore, 'auditSchedules'), scheduleData);
-            toast({ title: 'Session Provisioned', description: `Itinerary entry for ${targetName} registered.` });
-        }
-        
-        onOpenChange(false);
+      const scheduleData = {
+        auditPlanId: plan.id,
+        auditNumber: plan.auditNumber || '',
+        campusId: values.campusId,
+        targetId: values.targetId,
+        targetType: 'Unit',
+        targetName,
+        auditeeHeadName: values.auditeeHeadName,
+        processCategory: values.processCategory,
+        procedureDescription: values.procedureDescription,
+        scheduledDate: Timestamp.fromDate(startDateTime),
+        endScheduledDate: Timestamp.fromDate(endDateTime),
+        isoClausesToAudit: values.isoClausesToAudit,
+        status: schedule?.status || 'Scheduled',
+        auditorId: values.auditorId === 'unassigned' ? null : values.auditorId || null,
+        auditorName: values.auditorId === 'unassigned' ? null : auditorName,
+        documents: values.documents || [],
+      };
+
+      if (schedule) {
+        await updateDoc(doc(firestore, 'auditSchedules', schedule.id), scheduleData);
+        toast({ title: 'Entry Updated', description: `Itinerary entry for ${targetName} has been updated.` });
+      } else {
+        await addDoc(collection(firestore, 'auditSchedules'), scheduleData);
+        toast({ title: 'Session Provisioned', description: `Itinerary entry for ${targetName} registered.` });
+      }
+
+      onOpenChange(false);
     } catch (error) {
-        console.error('Error scheduling audit:', error);
-        toast({ title: 'Operation Failed', description: 'Could not save itinerary entry.', variant: 'destructive'});
+      console.error('Error scheduling audit:', error);
+      toast({ title: 'Operation Failed', description: 'Could not save itinerary entry.', variant: 'destructive' });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
   const selectedClauses = form.watch('isoClausesToAudit');
   const isPlanUniversityWide = plan.campusId === 'university-wide';
-  const hasPresets = plan.groupClauseMapping && plan.groupClauseMapping[watchCategory] && plan.groupClauseMapping[watchCategory]!.length > 0;
+  const hasPresets =
+    plan.groupClauseMapping &&
+    plan.groupClauseMapping[watchCategory] &&
+    plan.groupClauseMapping[watchCategory]!.length > 0;
 
-  const { fields: docFields, append: appendDoc, remove: removeDoc } = useFieldArray({
+  const {
+    fields: docFields,
+    append: appendDoc,
+    remove: removeDoc,
+  } = useFieldArray({
     control: form.control,
     name: 'documents' as any,
   });
@@ -329,403 +369,506 @@ export function AuditScheduleDialog({
             <ListChecks className="h-5 w-5" />
             <span className="text-[10px] font-black uppercase tracking-widest">Itinerary Provisioning</span>
           </div>
-          <DialogTitle>{schedule ? 'Modify' : 'Provision'} Itinerary Entry: "{plan.title}"</DialogTitle>
+          <DialogTitle>
+            {schedule ? 'Modify' : 'Provision'} Itinerary Entry: "{plan.title}"
+          </DialogTitle>
           <DialogDescription className="text-xs">
             Define the specific procedure, audit focus, and time slot for this session.
           </DialogDescription>
         </DialogHeader>
-        
+
         <ScrollArea className="flex-1 bg-white">
-            <Form {...form}>
-                <form id="schedule-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10">
-                    
-                    {currentConflict && (
-                        <Alert variant="destructive" className="animate-in slide-in-from-top-4 duration-500">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertTitle className="font-black uppercase text-xs tracking-tight">Scheduling Conflict Detected</AlertTitle>
-                            <AlertDescription className="text-xs font-medium">
-                                This selected time slot overlaps with an existing assignment for <strong>{currentConflict.targetName}</strong>. 
-                                {currentConflict.auditorId === watchAuditorId ? " The assigned auditor is already booked." : " The target unit is already scheduled."}
-                            </AlertDescription>
-                        </Alert>
+          <Form {...form}>
+            <form id="schedule-form" onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-10">
+              {currentConflict && (
+                <Alert variant="destructive" className="animate-in slide-in-from-top-4 duration-500">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle className="font-black uppercase text-xs tracking-tight">
+                    Scheduling Conflict Detected
+                  </AlertTitle>
+                  <AlertDescription className="text-xs font-medium">
+                    This selected time slot overlaps with an existing assignment for{' '}
+                    <strong>{currentConflict.targetName}</strong>.
+                    {currentConflict.auditorId === watchAuditorId
+                      ? ' The assigned auditor is already booked.'
+                      : ' The target unit is already scheduled.'}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
+                    1. Timeline & Target Unit
+                  </h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="scheduledDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Conduct Date</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            placeholder="MM/DD/YYYY"
+                            className="h-11 font-bold border-slate-200 dark:border-slate-700 shadow-sm"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
                     )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="startTime"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Start Time</FormLabel>
+                        <FormControl>
+                          <Input type="time" {...field} className="h-11 font-bold shadow-sm" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="endTime"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase mb-2">End Time</FormLabel>
+                        <FormControl>
+                          <Input type="time" {...field} className="h-11 font-bold shadow-sm" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-2 border-b pb-2">
-                            <Clock className="h-4 w-4 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">1. Timeline & Target Unit</h4>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <FormField
-                                control={form.control}
-                                name="scheduledDate"
-                                render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Conduct Date</FormLabel>
-                                        <FormControl>
-                                            <Input 
-                                                {...field} 
-                                                placeholder="MM/DD/YYYY" 
-                                                className="h-11 font-bold border-slate-200 dark:border-slate-700 shadow-sm"
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="startTime"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">Start Time</FormLabel>
-                                        <FormControl><Input type="time" {...field} className="h-11 font-bold shadow-sm" /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="endTime"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase mb-2">End Time</FormLabel>
-                                        <FormControl><Input type="time" {...field} className="h-11 font-bold shadow-sm" /></FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <FormField
-                                control={form.control}
-                                name="campusId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">Target Site / Campus</FormLabel>
-                                        <Select 
-                                            key={field.value}
-                                            onValueChange={(val) => { field.onChange(val); form.setValue('targetId', ''); }} 
-                                            value={field.value || ''}
-                                            disabled={!isPlanUniversityWide}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger className="h-11 font-bold bg-muted/5">
-                                                    <div className="flex items-center gap-2">
-                                                        <School className="h-3.5 w-3.5 text-primary/40" />
-                                                        <SelectValue placeholder="Select Campus" />
-                                                    </div>
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent modal={false}>
-                                                {campuses?.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="campusId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase">Target Site / Campus</FormLabel>
+                        <Select
+                          key={field.value}
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            form.setValue('targetId', '');
+                          }}
+                          value={field.value || ''}
+                          disabled={!isPlanUniversityWide}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="h-11 font-bold bg-muted/5">
+                              <div className="flex items-center gap-2">
+                                <School className="h-3.5 w-3.5 text-primary/40" />
+                                <SelectValue placeholder="Select Campus" />
+                              </div>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {campuses?.map((c) => (
+                              <SelectItem key={c.id} value={c.id}>
+                                {c.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                            <FormField
-                                control={form.control}
-                                name="targetId"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office</FormLabel>
-                                        <Select 
-                                            key={field.value}
-                                            onValueChange={field.onChange} 
-                                            value={field.value} 
-                                            disabled={!watchCampusId}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger className={cn("h-11 font-bold bg-muted/5", currentConflict?.targetId === watchTargetId && "border-destructive text-destructive")}>
-                                                    <SelectValue placeholder={watchCampusId ? "Select Unit" : "Select Campus First"} />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent modal={false}>
-                                                {Object.entries(auditeesByCategory).map(([category, unitList]) => (
-                                                    unitList.length > 0 && (
-                                                        <SelectGroup key={category}>
-                                                            <SelectLabel className="text-[9px] font-black uppercase tracking-widest text-primary pt-4 pb-1 border-b mb-2">{category} Group</SelectLabel>
-                                                            {unitList.map(u => (
-                                                                <SelectItem key={u.id} value={u.id}>
-                                                                    {u.name}
-                                                                </SelectItem>
-                                                            ))}
-                                                        </SelectGroup>
-                                                    )
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-
-                            <FormField
-                                control={form.control}
-                                name="auditeeHeadName"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel className="text-[10px] font-bold uppercase">Head of Unit / Office</FormLabel>
-                                        <FormControl>
-                                            <div className="relative">
-                                                <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground opacity-50" />
-                                                <Input {...field} placeholder="Full Name" className="h-11 pl-10 font-bold bg-muted/5 shadow-sm" disabled={isSubmitting} />
-                                            </div>
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
-
-                        <FormField
-                            control={form.control}
-                            name="processCategory"
-                            render={({ field }) => (
-                                <FormItem className="space-y-3">
-                                    <FormLabel className="text-[10px] font-black uppercase text-primary">Process Category Classification</FormLabel>
-                                    <FormControl>
-                                        <RadioGroup
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                            className="grid grid-cols-1 md:grid-cols-3 gap-4"
-                                        >
-                                            {auditGroups.map((group) => (
-                                                <div key={group} className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors">
-                                                    <RadioGroupItem value={group} id={`group-${group}`} />
-                                                    <Label htmlFor={`group-${group}`} className="text-xs font-bold cursor-pointer leading-none">
-                                                        {group.replace(' Processes', '')}
-                                                    </Label>
-                                                </div>
-                                            ))}
-                                        </RadioGroup>
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-2 border-b pb-2">
-                            <ShieldCheck className="h-4 w-4 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">2. Procedure & Scoping</h4>
-                        </div>
-                        <FormField
-                            control={form.control}
-                            name="procedureDescription"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Procedure / Audit Focus Area</FormLabel>
-                                    <FormControl>
-                                        <Textarea {...field} placeholder="Specify the procedures to be audited (e.g., Business Planning, Strategic Directions)..." rows={4} className="bg-slate-50 dark:bg-slate-800/50 italic text-xs leading-relaxed" />
-                                    </FormControl>
-                                    <FormDescription className="text-[9px]">Describe the organizational processes covered in this session.</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="isoClausesToAudit"
-                            render={({ field }) => (
-                                <FormItem className="space-y-4">
-                                    {isIqaUnit && (
-                                        <Alert className="bg-amber-50/50 border-amber-200 text-amber-900 py-3">
-                                            <AlertTriangle className="h-4 w-4 text-amber-600" />
-                                            <AlertTitle className="text-[10px] font-black uppercase tracking-tight text-amber-800">IQA Unit Scope Restriction</AlertTitle>
-                                            <AlertDescription className="text-[9px] font-medium leading-relaxed mt-0.5">
-                                                This is the Internal Quality Audit unit. Audit conduct is restricted to <strong>Clause 9 (Performance Evaluation)</strong> and other relevant administrative/quality support clauses (7.2, 7.5, 10.1).
-                                            </AlertDescription>
-                                        </Alert>
-                                    )}
-                                    <div className="flex items-center justify-between">
-                                        <FormLabel className="text-[10px] font-black uppercase text-primary">ISO 21001:2018 Clauses in Scope</FormLabel>
-                                        <div className="flex items-center gap-2">
-                                            {hasPresets && (
-                                                <Button 
-                                                    type="button" 
-                                                    variant="secondary" 
-                                                    size="sm" 
-                                                    onClick={handleLoadPresets}
-                                                    className="h-6 text-[9px] font-black uppercase bg-primary/10 text-primary hover:bg-primary/20 border-none gap-1.5"
-                                                >
-                                                    <Sparkles className="h-3 w-3" /> Load Plan Presets
-                                                </Button>
-                                            )}
-                                            <Badge variant="secondary" className="font-mono h-5 text-[10px]">{selectedClauses.length} CLS</Badge>
-                                        </div>
-                                    </div>
-                                    <div className="rounded-xl border shadow-sm overflow-hidden">
-                                        <Command className="bg-transparent" filter={(value, search) => value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0}>
-                                            <div className="flex items-center border-b px-3 bg-white">
-                                                <CommandInput placeholder="Map clauses to itinerary..." className="h-10 text-xs" />
-                                            </div>
-                                            <CommandList className="max-h-[250px]">
-                                                {isLoadingClauses ? (
-                                                    <div className="p-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                                                        <Loader2 className="h-3 w-3 animate-spin" /> Synchronizing Standard...
-                                                    </div>
-                                                ) : (
-                                                    <>
-                                                        <CommandEmpty className="p-4 text-center">
-                                                            <div className="flex flex-col items-center gap-2">
-                                                                 <Database className="h-8 w-8 opacity-10" />
-                                                                 <p className="text-xs font-bold text-muted-foreground uppercase">No clauses found in database</p>
-                                                                 <p className="text-[10px] text-muted-foreground max-w-[200px]">Ensure you have clicked 'Seed Standard Clauses' in the Audit Hub.</p>
-                                                             </div>
-                                                         </CommandEmpty>
-                                                         <CommandGroup>
-                                                             {isoClauses?.filter(c => !isIqaUnit || isClauseAllowedForIqa(c.id)).map(c => {
-                                                                const isSelected = selectedClauses.includes(c.id);
-                                                                return (
-                                                                    <CommandItem
-                                                                        key={c.id}
-                                                                        value={`${c.id} ${c.title}`}
-                                                                        onSelect={() => {
-                                                                            const current = selectedClauses;
-                                                                            const next = current.includes(c.id)
-                                                                                ? current.filter(id => id !== c.id)
-                                                                                : [...current, c.id];
-                                                                            field.onChange(next);
-                                                                        }}
-                                                                        className="flex items-center gap-3 px-4 py-3 cursor-pointer"
-                                                                    >
-                                                                        <div className={cn(
-                                                                            "h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0",
-                                                                            isSelected ? "bg-primary border-primary text-white" : "border-slate-300"
-                                                                        )}>
-                                                                            {isSelected && <Check className="h-3 w-3" />}
-                                                                        </div>
-                                                                        <div className="min-w-0">
-                                                                            <p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p>
-                                                                            <p className="text-[10px] text-muted-foreground truncate">{c.title}</p>
-                                                                        </div>
-                                                                    </CommandItem>
-                                                                );
-                                                            })}
-                                                        </CommandGroup>
-                                                    </>
-                                                )}
-                                            </CommandList>
-                                        </Command>
-                                    </div>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
-                    <div className="space-y-6">
-                        <div className="flex items-center gap-2 border-b pb-2">
-                            <UserCheck className="h-4 w-4 text-primary" />
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">3. Team Assignment</h4>
-                        </div>
-                        <FormField
-                            control={form.control}
-                            name="auditorId"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel className="text-[10px] font-bold uppercase">Assign Auditor</FormLabel>
-                                    <Select key={field.value} onValueChange={field.onChange} value={field.value || ''}>
-                                        <FormControl>
-                                            <SelectTrigger className={cn("h-11 font-bold bg-muted/5", currentConflict?.auditorId === watchAuditorId && watchAuditorId !== 'unassigned' && "border-destructive text-destructive")}>
-                                                <SelectValue placeholder="Select Auditor for this session" />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent modal={false}>
-                                            <SelectItem value="unassigned" className="italic text-muted-foreground">None (Available for Claiming)</SelectItem>
-                                            {auditors.map(auditor => (
-                                                <SelectItem key={auditor.id} value={auditor.id}>
-                                                    {auditor.firstName} {auditor.lastName}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    <FormDescription className="text-[9px]">Assign a specific auditor now, or leave unassigned to allow auditors to claim it themselves.</FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                    </div>
-
-                    <div className="space-y-6">
-                        <div className="flex items-center justify-between border-b pb-2">
-                            <div className="flex items-center gap-2">
-                                <FileText className="h-4 w-4 text-primary" />
-                                <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">4. Session Documents</h4>
-                            </div>
-                            <Button
-                                type="button"
-                                size="sm"
-                                onClick={() => appendDoc({ name: '', link: '' })}
-                                className="h-7 text-[10px] font-black uppercase tracking-widest gap-1"
+                  <FormField
+                    control={form.control}
+                    name="targetId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase">Auditee Unit / Office</FormLabel>
+                        <Select
+                          key={field.value}
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={!watchCampusId}
+                        >
+                          <FormControl>
+                            <SelectTrigger
+                              className={cn(
+                                'h-11 font-bold bg-muted/5',
+                                currentConflict?.targetId === watchTargetId && 'border-destructive text-destructive',
+                              )}
                             >
-                                <PlusCircle className="h-3.5 w-3.5" />
-                                Add Document
-                            </Button>
-                        </div>
+                              <SelectValue placeholder={watchCampusId ? 'Select Unit' : 'Select Campus First'} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent modal={false}>
+                            {Object.entries(auditeesByCategory).map(
+                              ([category, unitList]) =>
+                                unitList.length > 0 && (
+                                  <SelectGroup key={category}>
+                                    <SelectLabel className="text-[9px] font-black uppercase tracking-widest text-primary pt-4 pb-1 border-b mb-2">
+                                      {category} Group
+                                    </SelectLabel>
+                                    {unitList.map((u) => (
+                                      <SelectItem key={u.id} value={u.id}>
+                                        {u.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectGroup>
+                                ),
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                        {docFields.length === 0 ? (
-                            <div className="text-center py-6 border border-dashed rounded-xl bg-slate-50/50 dark:bg-slate-800/50">
-                                <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">No session documents added</p>
-                                <p className="text-[10px] text-muted-foreground mt-1">Add Google Drive links relevant to this itinerary session.</p>
+                  <FormField
+                    control={form.control}
+                    name="auditeeHeadName"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-bold uppercase">Head of Unit / Office</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <UserIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground opacity-50" />
+                            <Input
+                              {...field}
+                              placeholder="Full Name"
+                              className="h-11 pl-10 font-bold bg-muted/5 shadow-sm"
+                              disabled={isSubmitting}
+                            />
+                          </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="processCategory"
+                  render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel className="text-[10px] font-black uppercase text-primary">
+                        Process Category Classification
+                      </FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+                        >
+                          {auditGroups.map((group) => (
+                            <div
+                              key={group}
+                              className="flex items-center space-x-2 rounded-lg border p-3 hover:bg-muted/50 transition-colors"
+                            >
+                              <RadioGroupItem value={group} id={`group-${group}`} />
+                              <Label
+                                htmlFor={`group-${group}`}
+                                className="text-xs font-bold cursor-pointer leading-none"
+                              >
+                                {group.replace(' Processes', '')}
+                              </Label>
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-1 gap-4">
-                                {docFields.map((field, index) => (
-                                    <div key={field.id} className="flex items-center gap-3 p-4 border rounded-xl bg-white hover:shadow-md hover:border-primary/20 transition-all group">
-                                        <div className="p-2.5 bg-primary/10 text-primary rounded-lg shrink-0">
-                                            <FileText className="h-4 w-4" />
-                                        </div>
-                                        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                            <Input
-                                                value={(form.watch as any)(`documents.${index}.name`)}
-                                                onChange={(e) => form.setValue(`documents.${index}.name` as any, e.target.value)}
-                                                placeholder="Document name"
-                                                className="h-8 text-xs font-bold bg-slate-50 dark:bg-slate-800/50"
-                                            />
-                                            <Input
-                                                value={(form.watch as any)(`documents.${index}.link`)}
-                                                onChange={(e) => form.setValue(`documents.${index}.link` as any, e.target.value)}
-                                                placeholder="https://drive.google.com/..."
-                                                className="h-8 text-xs font-medium bg-slate-50 dark:bg-slate-800/50"
-                                            />
-                                        </div>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={() => removeDoc(index)}
-                                            className="h-8 w-8 text-destructive hover:bg-destructive/5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" />
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
+                    2. Procedure & Scoping
+                  </h4>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="procedureDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-bold uppercase">Procedure / Audit Focus Area</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="Specify the procedures to be audited (e.g., Business Planning, Strategic Directions)..."
+                          rows={4}
+                          className="bg-slate-50 dark:bg-slate-800/50 italic text-xs leading-relaxed"
+                        />
+                      </FormControl>
+                      <FormDescription className="text-[9px]">
+                        Describe the organizational processes covered in this session.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isoClausesToAudit"
+                  render={({ field }) => (
+                    <FormItem className="space-y-4">
+                      {isIqaUnit && (
+                        <Alert className="bg-amber-50/50 border-amber-200 text-amber-900 py-3">
+                          <AlertTriangle className="h-4 w-4 text-amber-600" />
+                          <AlertTitle className="text-[10px] font-black uppercase tracking-tight text-amber-800">
+                            IQA Unit Scope Restriction
+                          </AlertTitle>
+                          <AlertDescription className="text-[9px] font-medium leading-relaxed mt-0.5">
+                            This is the Internal Quality Audit unit. Audit conduct is restricted to{' '}
+                            <strong>Clause 9 (Performance Evaluation)</strong> and other relevant administrative/quality
+                            support clauses (7.2, 7.5, 10.1).
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <FormLabel className="text-[10px] font-black uppercase text-primary">
+                          ISO 21001:2018 Clauses in Scope
+                        </FormLabel>
+                        <div className="flex items-center gap-2">
+                          {hasPresets && (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={handleLoadPresets}
+                              className="h-6 text-[9px] font-black uppercase bg-primary/10 text-primary hover:bg-primary/20 border-none gap-1.5"
+                            >
+                              <Sparkles className="h-3 w-3" /> Load Plan Presets
+                            </Button>
+                          )}
+                          <Badge variant="secondary" className="font-mono h-5 text-[10px]">
+                            {selectedClauses.length} CLS
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border shadow-sm overflow-hidden">
+                        <Command
+                          className="bg-transparent"
+                          filter={(value, search) => (value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0)}
+                        >
+                          <div className="flex items-center border-b px-3 bg-white">
+                            <CommandInput placeholder="Map clauses to itinerary..." className="h-10 text-xs" />
+                          </div>
+                          <CommandList className="max-h-[250px]">
+                            {isLoadingClauses ? (
+                              <div className="p-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" /> Synchronizing Standard...
+                              </div>
+                            ) : (
+                              <>
+                                <CommandEmpty className="p-4 text-center">
+                                  <div className="flex flex-col items-center gap-2">
+                                    <Database className="h-8 w-8 opacity-10" />
+                                    <p className="text-xs font-bold text-muted-foreground uppercase">
+                                      No clauses found in database
+                                    </p>
+                                    <p className="text-[10px] text-muted-foreground max-w-[200px]">
+                                      Ensure you have clicked 'Seed Standard Clauses' in the Audit Hub.
+                                    </p>
+                                  </div>
+                                </CommandEmpty>
+                                <CommandGroup>
+                                  {isoClauses
+                                    ?.filter((c) => !isIqaUnit || isClauseAllowedForIqa(c.id))
+                                    .map((c) => {
+                                      const isSelected = selectedClauses.includes(c.id);
+                                      return (
+                                        <CommandItem
+                                          key={c.id}
+                                          value={`${c.id} ${c.title}`}
+                                          onSelect={() => {
+                                            const current = selectedClauses;
+                                            const next = current.includes(c.id)
+                                              ? current.filter((id) => id !== c.id)
+                                              : [...current, c.id];
+                                            field.onChange(next);
+                                          }}
+                                          className="flex items-center gap-3 px-4 py-3 cursor-pointer"
                                         >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </form>
-            </Form>
+                                          <div
+                                            className={cn(
+                                              'h-4 w-4 border rounded flex items-center justify-center transition-colors shrink-0',
+                                              isSelected ? 'bg-primary border-primary text-white' : 'border-slate-300',
+                                            )}
+                                          >
+                                            {isSelected && <Check className="h-3 w-3" />}
+                                          </div>
+                                          <div className="min-w-0">
+                                            <p className="font-black text-[11px] leading-tight mb-0.5">Clause {c.id}</p>
+                                            <p className="text-[10px] text-muted-foreground truncate">{c.title}</p>
+                                          </div>
+                                        </CommandItem>
+                                      );
+                                    })}
+                                </CommandGroup>
+                              </>
+                            )}
+                          </CommandList>
+                        </Command>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 border-b pb-2">
+                  <UserCheck className="h-4 w-4 text-primary" />
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
+                    3. Team Assignment
+                  </h4>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="auditorId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-bold uppercase">Assign Auditor</FormLabel>
+                      <Select key={field.value} onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger
+                            className={cn(
+                              'h-11 font-bold bg-muted/5',
+                              currentConflict?.auditorId === watchAuditorId &&
+                                watchAuditorId !== 'unassigned' &&
+                                'border-destructive text-destructive',
+                            )}
+                          >
+                            <SelectValue placeholder="Select Auditor for this session" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent modal={false}>
+                          <SelectItem value="unassigned" className="italic text-muted-foreground">
+                            None (Available for Claiming)
+                          </SelectItem>
+                          {auditors.map((auditor) => (
+                            <SelectItem key={auditor.id} value={auditor.id}>
+                              {auditor.firstName} {auditor.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-[9px]">
+                        Assign a specific auditor now, or leave unassigned to allow auditors to claim it themselves.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between border-b pb-2">
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" />
+                    <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
+                      4. Session Documents
+                    </h4>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => appendDoc({ name: '', link: '' })}
+                    className="h-7 text-[10px] font-black uppercase tracking-widest gap-1"
+                  >
+                    <PlusCircle className="h-3.5 w-3.5" />
+                    Add Document
+                  </Button>
+                </div>
+
+                {docFields.length === 0 ? (
+                  <div className="text-center py-6 border border-dashed rounded-xl bg-slate-50/50 dark:bg-slate-800/50">
+                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider">
+                      No session documents added
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Add Google Drive links relevant to this itinerary session.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4">
+                    {docFields.map((field, index) => (
+                      <div
+                        key={field.id}
+                        className="flex items-center gap-3 p-4 border rounded-xl bg-white hover:shadow-md hover:border-primary/20 transition-all group"
+                      >
+                        <div className="p-2.5 bg-primary/10 text-primary rounded-lg shrink-0">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <Input
+                            value={(form.watch as any)(`documents.${index}.name`)}
+                            onChange={(e) => form.setValue(`documents.${index}.name` as any, e.target.value)}
+                            placeholder="Document name"
+                            className="h-8 text-xs font-bold bg-slate-50 dark:bg-slate-800/50"
+                          />
+                          <Input
+                            value={(form.watch as any)(`documents.${index}.link`)}
+                            onChange={(e) => form.setValue(`documents.${index}.link` as any, e.target.value)}
+                            placeholder="https://drive.google.com/..."
+                            className="h-8 text-xs font-medium bg-slate-50 dark:bg-slate-800/50"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeDoc(index)}
+                          className="h-8 w-8 text-destructive hover:bg-destructive/5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </form>
+          </Form>
         </ScrollArea>
 
         <DialogFooter className="p-6 border-t bg-slate-50 dark:bg-slate-800/50 shrink-0">
-            <div className="flex w-full items-center justify-between">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase">RSU Quality Management System | Itinerary v2.5</p>
-                <div className="flex gap-2">
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-                    <Button type="submit" form="schedule-form" disabled={isSubmitting} className="min-w-[180px] shadow-xl shadow-primary/20 font-black text-xs uppercase tracking-widest">
-                        {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ListChecks className="mr-2 h-4 w-4 mr-1.5" />}
-                        {schedule ? 'Update Entry' : 'Register Entry'}
-                    </Button>
-                </div>
+          <div className="flex w-full items-center justify-between">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase">
+              RSU Quality Management System | Itinerary v2.5
+            </p>
+            <div className="flex gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="schedule-form"
+                disabled={isSubmitting}
+                className="min-w-[180px] font-black text-xs uppercase tracking-widest"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <ListChecks className="mr-2 h-4 w-4 mr-1.5" />
+                )}
+                {schedule ? 'Update Entry' : 'Register Entry'}
+              </Button>
             </div>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

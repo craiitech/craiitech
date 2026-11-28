@@ -247,11 +247,7 @@ export function RiskStatusOverview({
                   </div>
                 </div>
                 <div className="pt-2 flex justify-end">
-                  <Button
-                    size="sm"
-                    asChild
-                    className="h-7 text-[9px] font-black uppercase tracking-widest px-6 shadow-md shadow-primary/20"
-                  >
+                  <Button size="sm" asChild className="h-7 text-[9px] font-black uppercase tracking-widest px-6">
                     <Link href="/risk-register">
                       Proceed to Registry <ChevronRight className="h-3 w-3 ml-1" />
                     </Link>

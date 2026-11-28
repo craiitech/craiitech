@@ -168,7 +168,7 @@ export function CampusManagement() {
         );
       }
 
-      toast({ title: 'Success', description: `New campus "${values.name}" created.` });
+      toast({ title: 'Success', description: `New campus"${values.name}" created.` });
       form.reset();
     } catch (error: any) {
       console.error('Error creating campus:', error);
@@ -294,7 +294,7 @@ export function CampusManagement() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full shadow-lg shadow-primary/20 font-black uppercase text-xs tracking-widest"
+                className="w-full font-black uppercase text-xs tracking-widest"
               >
                 {isSubmitting ? (
                   <>

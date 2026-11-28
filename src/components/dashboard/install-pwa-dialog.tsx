@@ -41,7 +41,7 @@ export function InstallPwaDialog() {
     // 2. Check installation flag in local storage
     const isInstalledFlag = localStorage.getItem('rsu_pwa_installed') === 'true';
 
-    // 3. Logic for "Already Installed but in Browser"
+    // 3. Logic for"Already Installed but in Browser"
     if (!isStandalone && isInstalledFlag) {
       const isDismissed = localStorage.getItem('rsu_pwa_switch_dismissed');
       if (!isDismissed) {
@@ -62,7 +62,7 @@ export function InstallPwaDialog() {
       }
     }
 
-    // 4. Logic for "Available to Install"
+    // 4. Logic for"Available to Install"
     const handleBeforeInstallPrompt = (e: Event) => {
       const isDismissed = localStorage.getItem('rsu_eoms_install_dismissed');
       const isInstalled = localStorage.getItem('rsu_pwa_installed') === 'true';
@@ -169,7 +169,7 @@ export function InstallPwaDialog() {
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleInstall}
-                className="bg-primary font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 px-10 h-11"
+                className="bg-primary font-black text-[10px] uppercase tracking-widest px-10 h-11"
               >
                 Install Now
               </AlertDialogAction>
@@ -270,7 +270,7 @@ export function InstallPwaDialog() {
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => setView(null)}
-                className="bg-primary font-black text-[10px] uppercase tracking-widest shadow-xl shadow-primary/20 px-10 h-11"
+                className="bg-primary font-black text-[10px] uppercase tracking-widest px-10 h-11"
               >
                 I'll Switch Now
               </AlertDialogAction>

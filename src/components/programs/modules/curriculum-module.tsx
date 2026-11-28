@@ -517,7 +517,7 @@ function EnrollmentRecordCard({
           <p className="text-[9px] italic text-muted-foreground">
             {overallOnly
               ? 'Manual male and female totals and Over-all Sector Breakdown are enabled. Overall Total is auto-computed from their sum.'
-              : 'Auto-computed from all year levels. Use "Sector Breakdown (Over-all)" to log program-wide GAD sectors without breaking down by year level.'}
+              : 'Auto-computed from all year levels. Use"Sector Breakdown (Over-all)" to log program-wide GAD sectors without breaking down by year level.'}
           </p>
           {renderOverallSectorInputs(termKey, isOverallSectorExpanded)}
         </div>
@@ -1088,7 +1088,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                     dateNoted: '',
                   })
                 }
-                className="shadow-lg shadow-primary/20 h-8 text-[10px] font-bold"
+                className="h-8 text-[10px] font-bold"
               >
                 <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Curriculum
               </Button>
@@ -1146,7 +1146,7 @@ export function CurriculumModule({ canEdit, programSpecializations, focusMode = 
                   type="button"
                   size="sm"
                   onClick={() => appendEnroll(getEmptyEnrollRecord())}
-                  className="shadow-lg shadow-primary/20 h-8 text-[10px] font-bold"
+                  className="h-8 text-[10px] font-bold"
                 >
                   <PlusCircle className="h-3.5 w-3.5 mr-1.5" /> Add Major Count
                 </Button>

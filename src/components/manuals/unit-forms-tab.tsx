@@ -135,7 +135,7 @@ export function UnitFormsTab({ unit }: UnitFormsTabProps) {
           <Button
             onClick={() => setIsRegOpen(true)}
             size="sm"
-            className="h-9 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest gap-2"
+            className="h-9 font-black uppercase text-[10px] tracking-widest gap-2"
           >
             <PlusCircle className="h-4 w-4" />
             Register New Form

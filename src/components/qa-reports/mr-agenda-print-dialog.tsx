@@ -143,10 +143,7 @@ export function MRAgendaPrintDialog({
                 </Button>
               </div>
 
-              <Button
-                onClick={handlePrint}
-                className="h-9 font-black uppercase text-xs tracking-wider gap-2 shadow-md shadow-primary/20"
-              >
+              <Button onClick={handlePrint} className="h-9 font-black uppercase text-xs tracking-wider gap-2">
                 <Printer className="h-4 w-4" /> Print Document
               </Button>
             </div>

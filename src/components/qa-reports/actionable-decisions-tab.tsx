@@ -1907,7 +1907,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                           setPreviewOutput(null);
                           handleOpenUpdate(previewOutput);
                         }}
-                        className="shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest px-6"
+                        className="text-[10px] font-black uppercase tracking-widest px-6"
                       >
                         <ClipboardList className="h-3.5 w-3.5 mr-1.5" /> UPDATE STATUS
                       </Button>
@@ -2122,11 +2122,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                     >
                       Cancel
                     </Button>
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="min-w-[150px] shadow-xl shadow-primary/20 font-black"
-                    >
+                    <Button type="submit" disabled={isSubmitting} className="min-w-[150px] font-black">
                       {isSubmitting ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
@@ -2321,11 +2317,7 @@ export function ActionableDecisionsTab({ campuses, units }: ActionableDecisionsT
                   >
                     Cancel
                   </Button>
-                  <Button
-                    type="submit"
-                    disabled={isActionSubmitting}
-                    className="shadow-lg shadow-primary/20 font-black"
-                  >
+                  <Button type="submit" disabled={isActionSubmitting} className="font-black">
                     {isActionSubmitting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (

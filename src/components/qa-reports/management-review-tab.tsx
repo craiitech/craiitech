@@ -435,7 +435,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
     setIsSubmitting(true);
     try {
       await deleteDoc(doc(firestore, 'managementReviews', mrToDelete.id));
-      toast({ title: 'Session Deleted', description: `Management Review session "${mrToDelete.title}" removed.` });
+      toast({ title: 'Session Deleted', description: `Management Review session"${mrToDelete.title}" removed.` });
       if (selectedMr?.id === mrToDelete.id) {
         const remaining = reviews?.filter((r) => r.id !== mrToDelete.id) || [];
         setSelectedMr(remaining[0] || null);
@@ -685,7 +685,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 <Button
                   onClick={handleOpenCreateMr}
                   size="sm"
-                  className="h-9 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest"
+                  className="h-9 font-black uppercase text-[10px] tracking-widest"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" /> New Session
                 </Button>
@@ -996,7 +996,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                               <Button
                                 onClick={() => handleOpenOutputDialog()}
                                 size="sm"
-                                className="h-7 text-[9px] font-black uppercase shadow-lg shadow-primary/20"
+                                className="h-7 text-[9px] font-black uppercase"
                               >
                                 <PlusCircle className="h-3 w-3 mr-1.5" /> LOG MR OUTPUT
                               </Button>
@@ -1384,7 +1384,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
               </span>
             </div>
             <DialogTitle>
-              {editingMr ? `Manage / Edit "${editingMr.title}"` : 'New Management Review Session'}
+              {editingMr ? `Manage / Edit"${editingMr.title}"` : 'New Management Review Session'}
             </DialogTitle>
             <DialogDescription className="text-xs">
               {editingMr
@@ -1697,7 +1697,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 form="mr-manage-form"
                 disabled={isSubmitting}
                 size="sm"
-                className="min-w-[130px] font-bold shadow-lg shadow-primary/20"
+                className="min-w-[130px] font-bold"
               >
                 {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -2048,7 +2048,7 @@ export function ManagementReviewTab({ campuses, units, canManage }: ManagementRe
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="min-w-[180px] shadow-xl shadow-primary/20 font-black text-xs uppercase tracking-widest"
+                  className="min-w-[180px] font-black text-xs uppercase tracking-widest"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

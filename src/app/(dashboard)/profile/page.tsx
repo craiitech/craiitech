@@ -514,7 +514,7 @@ export default function ProfilePage() {
       console.error('Password Update Error:', error);
       let msg = 'Could not update password. Please check your current credentials.';
       if (error.code === 'auth/wrong-password') {
-        msg = 'The "Current Password" you provided is incorrect.';
+        msg = 'The"Current Password" you provided is incorrect.';
       } else if (error.code === 'auth/requires-recent-login') {
         msg = 'For security reasons, please logout and log back in before attempting this update again.';
       }
@@ -576,7 +576,7 @@ export default function ProfilePage() {
           type="button"
           onClick={handleGlobalSave}
           disabled={!hasPendingChanges || isGlobalSaving}
-          className="w-full max-w-md shadow-lg shadow-primary/20 font-black uppercase text-xs tracking-widest"
+          className="w-full max-w-md font-black uppercase text-xs tracking-widest"
         >
           {isGlobalSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Save All Changes
@@ -616,7 +616,7 @@ export default function ProfilePage() {
             </div>
             <Button
               asChild
-              className="bg-gradient-to-r from-emerald-600 to-amber-600 hover:from-emerald-700 hover:to-amber-700 text-white font-black uppercase text-xs tracking-wider shadow-md shrink-0 w-full sm:w-auto"
+              className="bg-emerald-700 hover:bg-emerald-800 border-emerald-800 text-white font-bold uppercase text-xs tracking-wider shadow-sm shrink-0 w-full sm:w-auto"
             >
               <a href="/executive-display" target="_blank" rel="noopener noreferrer">
                 <Tv className="mr-2 h-4 w-4" />
@@ -738,7 +738,7 @@ export default function ProfilePage() {
                 <Button
                   type="submit"
                   disabled={!canEdit}
-                  className="w-full shadow-lg shadow-primary/20 font-black uppercase text-xs tracking-widest"
+                  className="w-full font-black uppercase text-xs tracking-widest"
                 >
                   {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                   Save Profile Updates
@@ -1216,7 +1216,7 @@ export default function ProfilePage() {
                   <Button
                     type="submit"
                     disabled={!canEdit}
-                    className="w-full h-11 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                    className="w-full h-11 font-black uppercase text-[10px] tracking-widest"
                   >
                     {isUpdatingPassword ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -355,7 +355,7 @@ export function OrgStructureUploadCard({
                   </Button>
                 )}
                 <Button
-                  className="flex-1 h-10 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/20"
+                  className="flex-1 h-10 text-[10px] font-black uppercase tracking-widest"
                   onClick={() => setShowForm(true)}
                   disabled={isSubmitting}
                 >
@@ -529,7 +529,7 @@ export function OrgStructureUploadCard({
             </Button>
           )}
           <Button
-            className={cn('flex-1 h-10 text-[10px] font-black uppercase tracking-widest shadow-md shadow-primary/20')}
+            className={cn('flex-1 h-10 text-[10px] font-black uppercase tracking-widest')}
             onClick={handleSubmit}
             disabled={isSubmitting || !isAuthorized}
           >

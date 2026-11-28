@@ -373,7 +373,7 @@ export function CrossUnitFormRequestDialog({
             type="submit"
             form="cross-download-form"
             disabled={isSubmitting}
-            className="min-w-[180px] font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 h-9 gap-1.5"
+            className="min-w-[180px] font-black uppercase text-[10px] tracking-widest h-9 gap-1.5"
           >
             {isSubmitting ? (
               <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />

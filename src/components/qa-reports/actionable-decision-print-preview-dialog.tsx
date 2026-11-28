@@ -142,7 +142,7 @@ export function ActionableDecisionPrintPreviewDialog({
                   }
                 }
                 body {
-                  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                  font-family: -apple-system, BlinkMacSystemFont,"Segoe UI", Roboto, Helvetica, Arial, sans-serif;
                   background: #f1f5f9;
                   padding: 30px;
                   color: black;
@@ -387,7 +387,7 @@ export function ActionableDecisionPrintPreviewDialog({
             <Button
               size="sm"
               onClick={handlePrint}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs uppercase tracking-wider px-6 shadow-lg shadow-primary/20"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-black text-xs uppercase tracking-wider px-6"
             >
               <Printer className="h-4 w-4 mr-1.5" />
               Print Report Now

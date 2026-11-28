@@ -321,7 +321,7 @@ export function ProgramComplianceWorkspace({ program, campusId }: ProgramComplia
               </Badge>
             )}
             {canEdit && (
-              <Button type="submit" disabled={isSaving} className="shadow-lg shadow-primary/20">
+              <Button type="submit" disabled={isSaving}>
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />} Save
                 Compliance Record
               </Button>

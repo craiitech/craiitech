@@ -688,10 +688,7 @@ export function AuditResultsView({
               </Select>
             </div>
             <div className="sm:col-span-2 lg:col-span-4 flex flex-col sm:flex-row items-stretch gap-2 pt-1">
-              <Button
-                onClick={handlePrintConsolidated}
-                className="flex-1 font-black uppercase text-[10px] h-10 shadow-lg shadow-primary/20"
-              >
+              <Button onClick={handlePrintConsolidated} className="flex-1 font-black uppercase text-[10px] h-10">
                 {isProcessingReport ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                 ) : (

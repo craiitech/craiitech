@@ -252,7 +252,7 @@ export function GadSettingsManagement() {
               disabled={
                 isSubmitting || !selectedCampusId || !form.watch('leadershipUnitId') || !form.watch('gadDirector')
               }
-              className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]"
+              className="font-black uppercase tracking-widest text-[10px]"
             >
               {isSubmitting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

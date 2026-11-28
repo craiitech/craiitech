@@ -680,7 +680,7 @@ export default function UnitFormsPage() {
                       </div>
                     ) : (
                       <div className="py-10 text-center opacity-20 text-[9px] font-black uppercase tracking-widest">
-                        {isHistoryActive ? 'No history' : 'Click "Load History" to view'}
+                        {isHistoryActive ? 'No history' : 'Click"Load History" to view'}
                       </div>
                     )}
                   </ScrollArea>
@@ -969,7 +969,7 @@ export default function UnitFormsPage() {
                                 {activeRosterData.link ? (
                                   <Button
                                     onClick={() => setIsRosterLogOpen(true)}
-                                    className="w-full md:w-auto h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                                    className="w-full md:w-auto h-11 px-8 font-black uppercase text-[10px] tracking-widest"
                                   >
                                     <ExternalLink className="h-4 w-4 mr-2" /> Access Official Roster
                                   </Button>
@@ -1098,7 +1098,7 @@ export default function UnitFormsPage() {
                                   setEditingFormToManage(null);
                                   setIsManageFormOpen(true);
                                 }}
-                                className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5 shadow-md shadow-primary/20"
+                                className="h-8 text-[9px] font-black uppercase tracking-widest gap-1.5"
                               >
                                 <PlusCircle className="h-3.5 w-3.5" /> Register Unit Form
                               </Button>

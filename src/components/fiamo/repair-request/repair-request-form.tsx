@@ -183,11 +183,7 @@ export function RepairRequestForm({ onCreated, campusId, unitId }: RepairRequest
             />
           </CardContent>
           <CardFooter className="bg-muted/10 border-t py-4">
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]"
-            >
+            <Button type="submit" disabled={isSubmitting} className="font-black uppercase tracking-widest text-[10px]">
               {isSubmitting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

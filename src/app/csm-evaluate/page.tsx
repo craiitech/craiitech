@@ -808,7 +808,7 @@ function CsmEvaluateContent() {
               type="button"
               disabled={isSubmittingCsm}
               onClick={submitCsm}
-              className="w-full h-14 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-sm rounded-xl shadow-lg"
+              className="w-full h-14 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white font-bold uppercase tracking-wider text-sm rounded-xl shadow-sm"
             >
               {isSubmittingCsm ? (
                 <>

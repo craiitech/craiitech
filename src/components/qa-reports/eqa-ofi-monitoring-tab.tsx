@@ -485,7 +485,7 @@ export function EqaOfiMonitoringTab({ campuses, units, canManage }: EqaOfiMonito
             <Button
               onClick={openCreate}
               size="sm"
-              className="shadow-lg shadow-primary/20 shrink-0 font-black uppercase text-[10px] tracking-widest"
+              className="shrink-0 font-black uppercase text-[10px] tracking-widest"
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Log External OFI
             </Button>

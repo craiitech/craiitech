@@ -142,7 +142,7 @@ function EditRoleDialog({ role, isOpen, onOpenChange }: EditRoleDialogProps) {
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting} className="min-w-[120px] shadow-lg shadow-primary/20">
+              <Button type="submit" disabled={isSubmitting} className="min-w-[120px]">
                 {isSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
@@ -291,7 +291,7 @@ export function RoleManagement() {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full shadow-lg shadow-primary/20 font-black uppercase text-xs tracking-widest"
+                  className="w-full font-black uppercase text-xs tracking-widest"
                 >
                   {isSubmitting ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -75,11 +75,11 @@ export default function SoftwareQualityDashboardPage() {
             <p className="text-muted-foreground">ISO/IEC 25010 Aggregate Results & Historical Audit Records.</p>
           </div>
         </div>
-        <Button onClick={() => setIsFormOpen(true)} className="shadow-lg shadow-primary/20">
+        <Button onClick={() => setIsFormOpen(true)} className="">
           <PlusCircle className="mr-2 h-4 w-4" />
           Conduct New Evaluation
         </Button>
-        <Button onClick={() => window.print()} className="shadow-lg shadow-primary/20 ml-3">
+        <Button onClick={() => window.print()} className="ml-3">
           <Printer className="mr-2 h-4 w-4" /> Print Report
         </Button>
       </div>

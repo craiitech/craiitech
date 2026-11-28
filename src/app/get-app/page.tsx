@@ -55,7 +55,7 @@ export default function GetAppPage() {
             <a
               href={downloadUrl}
               download
-              className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] transition-transform"
+              className="flex items-center justify-center gap-2 w-full h-12 rounded-xl bg-primary text-white font-black text-sm uppercase tracking-widest hover:scale-[1.02] transition-transform"
             >
               <Download className="h-4 w-4" />
               Install App

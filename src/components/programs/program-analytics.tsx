@@ -622,7 +622,7 @@ export function ProgramAnalytics({
   /**
    * INSTITUTIONAL GAPS REGISTRY ROWS (program basis)
    * Lists every active program in the current scope for the selected registry year (or all years).
-   * Programs without any recommendation entry in that year are flagged with "No Entry Yet".
+   * Programs without any recommendation entry in that year are flagged with"No Entry Yet".
    */
   const institutionalGaps = useMemo(() => {
     if (!isAdmin || recoUnitFilter !== 'all') return [];
@@ -2060,7 +2060,7 @@ export function ProgramAnalytics({
                   </Select>
                   <Button
                     onClick={handlePrintRoadmapSchedule}
-                    className="h-10 font-black uppercase text-[10px] tracking-widest gap-1.5 shadow-lg shadow-primary/20 bg-emerald-700 hover:bg-emerald-800"
+                    className="h-10 font-black uppercase text-[10px] tracking-widest gap-1.5 bg-emerald-700 hover:bg-emerald-800"
                   >
                     <Printer className="h-4 w-4" /> Print Schedule
                   </Button>

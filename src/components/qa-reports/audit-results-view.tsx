@@ -713,7 +713,7 @@ export function AuditResultsView({
             <div className="sm:col-span-2 lg:col-span-4 flex flex-col sm:flex-row items-stretch gap-2 pt-1">
               <Button
                 onClick={handlePrintConsolidated}
-                className="flex-1 h-10 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"
+                className="flex-1 h-10 font-black uppercase text-[10px] tracking-widest"
               >
                 {isProcessingReport ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-1.5" />

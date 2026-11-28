@@ -213,7 +213,7 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
             form.reset();
             setIsDialogOpen(true);
           }}
-          className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest"
+          className="h-10 font-black uppercase text-[10px] tracking-widest"
         >
           <PlusCircle className="mr-2 h-4 w-4" /> Log Event Participant Data
         </Button>
@@ -652,7 +652,7 @@ export function GADActivitiesTab({ activities, campuses, units, selectedYear }: 
                 type="submit"
                 form="activity-form"
                 disabled={isSubmitting}
-                className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11"
+                className="min-w-[200px] font-black uppercase text-[10px] h-11"
               >
                 {isSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />

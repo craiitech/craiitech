@@ -186,7 +186,7 @@ export default function LogoutPage() {
             <CardFooter className="p-8 pt-0 flex flex-col gap-3">
               <Button
                 size="lg"
-                className="w-full h-14 text-lg font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+                className="w-full h-14 text-lg font-black uppercase tracking-widest"
                 onClick={() => setIsFormOpen(true)}
               >
                 Start ISO 25010 Audit <ChevronRight className="ml-2 h-5 w-5" />
@@ -286,7 +286,7 @@ export default function LogoutPage() {
             </CardContent>
             <CardFooter className="flex flex-col gap-3 pb-8">
               <Button
-                className="w-full h-12 text-lg font-bold shadow-xl shadow-primary/20"
+                className="w-full h-12 text-lg font-bold"
                 onClick={() => handleFinalLogout()}
                 disabled={rating === 0}
               >

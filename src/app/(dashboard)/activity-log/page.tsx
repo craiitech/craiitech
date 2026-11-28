@@ -2,38 +2,48 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, doc, deleteDoc, Timestamp, updateDoc, serverTimestamp, writeBatch } from '@/firebase/firestore-wrapper';
+import {
+  collection,
+  query,
+  where,
+  doc,
+  deleteDoc,
+  Timestamp,
+  updateDoc,
+  serverTimestamp,
+  writeBatch,
+} from '@/firebase/firestore-wrapper';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import type { EmployeeActivity, Unit, WfhActivity, Campus } from '@/lib/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { 
-    PlusCircle, 
-    Loader2, 
-    UserCheck, 
-    Calendar, 
-    Printer, 
-    Search, 
-    History, 
-    CheckCircle2, 
-    Clock, 
-    Edit,
-    Trash2,
-    LayoutList,
-    Info as InfoIcon,
-    ShieldAlert,
-    ExternalLink,
-    Check,
-    FileCheck,
-    ListChecks,
-    ShieldCheck,
-    Home,
-    Monitor,
-    Briefcase,
-    GraduationCap,
-    Download,
-    Award,
-    User
+import {
+  PlusCircle,
+  Loader2,
+  UserCheck,
+  Calendar,
+  Printer,
+  Search,
+  History,
+  CheckCircle2,
+  Clock,
+  Edit,
+  Trash2,
+  LayoutList,
+  Info as InfoIcon,
+  ShieldAlert,
+  ExternalLink,
+  Check,
+  FileCheck,
+  ListChecks,
+  ShieldCheck,
+  Home,
+  Monitor,
+  Briefcase,
+  GraduationCap,
+  Download,
+  Award,
+  User,
 } from 'lucide-react';
 import { format, endOfMonth } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -42,20 +52,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { ActivityLogFormDialog } from '@/components/activity-log/activity-log-form-dialog';
 import { WfhActivityFormDialog } from '@/components/activity-log/wfh-activity-form-dialog';
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { AccomplishmentReportTemplate } from '@/components/activity-log/accomplishment-report-template';
 import { WfhReportTemplate } from '@/components/activity-log/wfh-report-template';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -67,7 +77,7 @@ export default function EmployeeActivityLogPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  
+
   const currentTab = searchParams.get('tab') || 'daily';
 
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -75,10 +85,10 @@ export default function EmployeeActivityLogPage() {
   const [editingActivity, setEditingActivity] = useState<EmployeeActivity | null>(null);
   const [editingWfhActivity, setEditingWfhActivity] = useState<WfhActivity | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [dateFilter, setDateFilter] = useState<string>(''); 
+  const [dateFilter, setDateFilter] = useState<string>('');
   const [monthFilter, setMonthFilter] = useState<string>('');
   const [viewScope, setViewScope] = useState<'personal' | 'unit' | 'campus'>('personal');
 
@@ -96,7 +106,7 @@ export default function EmployeeActivityLogPage() {
 
   useEffect(() => {
     const now = new Date();
-    setDateFilter(''); 
+    setDateFilter('');
     setMonthFilter(format(now, 'yyyy-MM'));
   }, []);
 
@@ -105,7 +115,8 @@ export default function EmployeeActivityLogPage() {
     const baseRef = collection(firestore, 'employeeActivities');
     if (viewScope === 'personal') return query(baseRef, where('userId', '==', user.uid));
     if (viewScope === 'unit' && userProfile?.unitId) return query(baseRef, where('unitId', '==', userProfile.unitId));
-    if (viewScope === 'campus' && userProfile?.campusId) return query(baseRef, where('campusId', '==', userProfile.campusId));
+    if (viewScope === 'campus' && userProfile?.campusId)
+      return query(baseRef, where('campusId', '==', userProfile.campusId));
     return query(baseRef, where('userId', '==', user.uid));
   }, [firestore, user, userProfile, viewScope, isUserLoading]);
 
@@ -116,7 +127,8 @@ export default function EmployeeActivityLogPage() {
     const baseRef = collection(firestore, 'wfhActivities');
     if (viewScope === 'personal') return query(baseRef, where('userId', '==', user.uid));
     if (viewScope === 'unit' && userProfile?.unitId) return query(baseRef, where('unitId', '==', userProfile.unitId));
-    if (viewScope === 'campus' && userProfile?.campusId) return query(baseRef, where('campusId', '==', userProfile.campusId));
+    if (viewScope === 'campus' && userProfile?.campusId)
+      return query(baseRef, where('campusId', '==', userProfile.campusId));
     return query(baseRef, where('userId', '==', user.uid));
   }, [firestore, user, userProfile, viewScope, isUserLoading]);
 
@@ -124,41 +136,47 @@ export default function EmployeeActivityLogPage() {
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units } = useCollection<Unit>(unitsQuery);
-  const unitMap = useMemo(() => new Map(units?.map(u => [u.id, u.name])), [units]);
+  const unitMap = useMemo(() => new Map(units?.map((u) => [u.id, u.name])), [units]);
 
   const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses } = useCollection<Campus>(campusesQuery);
-  const campusMap = useMemo(() => new Map(campuses?.map(c => [c.id, c.name])), [campuses]);
+  const campusMap = useMemo(() => new Map(campuses?.map((c) => [c.id, c.name])), [campuses]);
 
   const filteredActivities = useMemo(() => {
     if (!rawActivities) return [];
-    return rawActivities.filter(activity => {
-        const matchesSearch = activity.activityParticular.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             (activity.output || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             (activity.userName || '').toLowerCase().includes(searchTerm.toLowerCase());
+    return rawActivities
+      .filter((activity) => {
+        const matchesSearch =
+          activity.activityParticular.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (activity.output || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (activity.userName || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = statusFilter === 'all' || activity.status === statusFilter;
         const aDate = activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date);
-        
+
         const matchesMonth = !monthFilter || format(aDate, 'yyyy-MM') === monthFilter;
         const matchesDate = !dateFilter || format(aDate, 'yyyy-MM-dd') === dateFilter;
-        
+
         return matchesSearch && matchesStatus && matchesMonth && matchesDate;
-    }).sort((a, b) => (b.date?.toMillis?.() || 0) - (a.date?.toMillis?.() || 0));
+      })
+      .sort((a, b) => (b.date?.toMillis?.() || 0) - (a.date?.toMillis?.() || 0));
   }, [rawActivities, searchTerm, statusFilter, dateFilter, monthFilter]);
 
   const filteredWfhActivities = useMemo(() => {
     if (!rawWfhActivities) return [];
-    return rawWfhActivities.filter(activity => {
-        const matchesSearch = activity.deliverables.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             (activity.accomplishment || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-                             (activity.userName || '').toLowerCase().includes(searchTerm.toLowerCase());
-        
+    return rawWfhActivities
+      .filter((activity) => {
+        const matchesSearch =
+          activity.deliverables.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (activity.accomplishment || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (activity.userName || '').toLowerCase().includes(searchTerm.toLowerCase());
+
         const aDate = activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date);
-        
+
         const matchesMonth = !monthFilter || format(aDate, 'yyyy-MM') === monthFilter;
-        
+
         return matchesSearch && monthFilter;
-    }).sort((a, b) => (b.date?.toMillis?.() || 0) - (a.date?.toMillis?.() || 0));
+      })
+      .sort((a, b) => (b.date?.toMillis?.() || 0) - (a.date?.toMillis?.() || 0));
   }, [rawWfhActivities, searchTerm, monthFilter]);
 
   const handleApprove = async (id: string, isWfh = false) => {
@@ -166,38 +184,42 @@ export default function EmployeeActivityLogPage() {
     setIsProcessing(true);
     const col = isWfh ? 'wfhActivities' : 'employeeActivities';
     try {
-        await updateDoc(doc(firestore, col, id), {
-            isApproved: true,
-            status: isWfh ? 'Verified' : 'Completed',
-            approvedBy: userProfile.id,
-            approvedByName: `${userProfile.firstName} ${userProfile.lastName}`,
-            approvedAt: serverTimestamp()
-        });
-        toast({ title: 'Task Verified', description: 'Institutional record updated.' });
+      await updateDoc(doc(firestore, col, id), {
+        isApproved: true,
+        status: isWfh ? 'Verified' : 'Completed',
+        approvedBy: userProfile.id,
+        approvedByName: `${userProfile.firstName} ${userProfile.lastName}`,
+        approvedAt: serverTimestamp(),
+      });
+      toast({ title: 'Task Verified', description: 'Institutional record updated.' });
     } catch (e) {
-        toast({ title: 'Approval Failed', variant: 'destructive' });
+      toast({ title: 'Approval Failed', variant: 'destructive' });
     } finally {
-        setIsProcessing(false);
+      setIsProcessing(false);
     }
   };
 
   const handlePrintDaily = () => {
     if (!userProfile || !rawActivities) return;
-    const itemsToPrint = filteredActivities.filter(a => a.isApproved || a.userId === user?.uid);
-    const periodLabel = dateFilter ? format(new Date(dateFilter), 'PPPP') : monthFilter ? format(new Date(monthFilter), 'MMMM yyyy') : 'All Selected Records';
+    const itemsToPrint = filteredActivities.filter((a) => a.isApproved || a.userId === user?.uid);
+    const periodLabel = dateFilter
+      ? format(new Date(dateFilter), 'PPPP')
+      : monthFilter
+        ? format(new Date(monthFilter), 'MMMM yyyy')
+        : 'All Selected Records';
 
     if (itemsToPrint.length === 0) {
-        toast({ title: "No data", description: "Select records to print.", variant: "destructive" });
-        return;
+      toast({ title: 'No data', description: 'Select records to print.', variant: 'destructive' });
+      return;
     }
 
     const reportHtml = renderToStaticMarkup(
-        <AccomplishmentReportTemplate 
-            activities={itemsToPrint}
-            userName={`${userProfile.firstName} ${userProfile.lastName}`}
-            unitName={unitMap.get(userProfile.unitId) || 'University Office'}
-            periodLabel={periodLabel}
-        />
+      <AccomplishmentReportTemplate
+        activities={itemsToPrint}
+        userName={`${userProfile.firstName} ${userProfile.lastName}`}
+        unitName={unitMap.get(userProfile.unitId) || 'University Office'}
+        periodLabel={periodLabel}
+      />,
     );
     triggerPrint(reportHtml, `Accomplishment_Report_${dateFilter || monthFilter}`);
   };
@@ -207,24 +229,26 @@ export default function EmployeeActivityLogPage() {
     const [year, month] = monthFilter.split('-').map(Number);
     const start = new Date(year, month - 1, 1);
     const end = endOfMonth(start);
-    
-    const itemsToPrint = rawActivities.filter(a => {
+
+    const itemsToPrint = rawActivities
+      .filter((a) => {
         const d = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date);
         return d >= start && d <= end && (a.isApproved || a.userId === user?.uid);
-    }).sort((a, b) => (a.date?.toMillis?.() || 0) - (b.date?.toMillis?.() || 0));
+      })
+      .sort((a, b) => (a.date?.toMillis?.() || 0) - (b.date?.toMillis?.() || 0));
 
     if (itemsToPrint.length === 0) {
-        toast({ title: 'No monthly data found', variant: 'destructive' });
-        return;
+      toast({ title: 'No monthly data found', variant: 'destructive' });
+      return;
     }
 
     const reportHtml = renderToStaticMarkup(
-        <AccomplishmentReportTemplate 
-            activities={itemsToPrint}
-            userName={`${userProfile.firstName} ${userProfile.lastName}`}
-            unitName={unitMap.get(userProfile.unitId) || 'University Office'}
-            periodLabel={format(start, 'MMMM yyyy')}
-        />
+      <AccomplishmentReportTemplate
+        activities={itemsToPrint}
+        userName={`${userProfile.firstName} ${userProfile.lastName}`}
+        unitName={unitMap.get(userProfile.unitId) || 'University Office'}
+        periodLabel={format(start, 'MMMM yyyy')}
+      />,
     );
     triggerPrint(reportHtml, `Monthly_Report_${monthFilter}`);
   };
@@ -234,27 +258,29 @@ export default function EmployeeActivityLogPage() {
     const [year, month] = monthFilter.split('-').map(Number);
     const start = new Date(year, month - 1, 1);
     const end = endOfMonth(start);
-    
-    const itemsToPrint = rawWfhActivities.filter(a => {
+
+    const itemsToPrint = rawWfhActivities
+      .filter((a) => {
         const d = a.date instanceof Timestamp ? a.date.toDate() : new Date(a.date);
         return d >= start && d <= end && (a.status === 'Verified' || a.userId === user?.uid);
-    }).sort((a, b) => (a.date?.toMillis?.() || 0) - (b.date?.toMillis?.() || 0));
+      })
+      .sort((a, b) => (a.date?.toMillis?.() || 0) - (b.date?.toMillis?.() || 0));
 
     if (itemsToPrint.length === 0) {
-        toast({ title: 'No WFH data for this month', variant: 'destructive' });
-        return;
+      toast({ title: 'No WFH data for this month', variant: 'destructive' });
+      return;
     }
 
     const reportHtml = renderToStaticMarkup(
-        <WfhReportTemplate 
-            activities={itemsToPrint}
-            userName={`${userProfile.firstName} ${userProfile.lastName}`}
-            campusName={campusMap.get(userProfile.campusId) || 'Romblon State University'}
-            type={wfhPrintType}
-            deptChair={wfhPrintType === 'Teaching' ? wfhDeptChair : undefined}
-            deanDirector={wfhPrintType === 'Teaching' ? wfhDeanDirector : undefined}
-            immediateHead={wfhPrintType === 'Non-Teaching' ? wfhImmediateHead : undefined}
-        />
+      <WfhReportTemplate
+        activities={itemsToPrint}
+        userName={`${userProfile.firstName} ${userProfile.lastName}`}
+        campusName={campusMap.get(userProfile.campusId) || 'Romblon State University'}
+        type={wfhPrintType}
+        deptChair={wfhPrintType === 'Teaching' ? wfhDeptChair : undefined}
+        deanDirector={wfhPrintType === 'Teaching' ? wfhDeanDirector : undefined}
+        immediateHead={wfhPrintType === 'Non-Teaching' ? wfhImmediateHead : undefined}
+      />,
     );
     triggerPrint(reportHtml, `WFH_Monitoring_${wfhPrintType}_${monthFilter}`);
     setIsWfhPrintDialogOpen(false);
@@ -263,8 +289,8 @@ export default function EmployeeActivityLogPage() {
   const triggerPrint = (html: string, title: string) => {
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-        printWindow.document.open();
-        printWindow.document.write(`
+      printWindow.document.open();
+      printWindow.document.write(`
             <html>
                 <head>
                     <title>${title}</title>
@@ -301,238 +327,483 @@ export default function EmployeeActivityLogPage() {
                 </body>
             </html>
         `);
-        printWindow.document.close();
+      printWindow.document.close();
     }
   };
 
-  if (isUserLoading) return <div className="flex flex-col items-center justify-center py-40 gap-4"><Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" /><p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing Registry...</p></div>;
+  if (isUserLoading)
+    return (
+      <div className="flex flex-col items-center justify-center py-40 gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing Registry...</p>
+      </div>
+    );
 
-  const canViewManagement = isAdmin || isSupervisor || userRole?.toLowerCase().includes('coordinator') || userRole?.toLowerCase().includes('odimo');
+  const canViewManagement =
+    isAdmin ||
+    isSupervisor ||
+    userRole?.toLowerCase().includes('coordinator') ||
+    userRole?.toLowerCase().includes('odimo');
 
   return (
     <div className="space-y-6">
       <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
         <div className="sticky top-0 z-30 pt-2 pb-4 -mx-4 px-4 lg:-mx-8 lg:px-8 space-y-6 institutional-header">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900 dark:text-slate-100">
-                    <UserCheck className="h-8 w-8 text-primary" />
-                    Institutional Activity Registry
-                </h2>
-                <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">Log daily tasks or remote WFH accomplishments for quality auditing.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex bg-muted p-1 rounded-lg border mr-2">
-                        <Input type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} className="h-8 w-32 text-[10px] font-bold border-none bg-transparent" />
-                    </div>
-                    <Select value={viewScope} onValueChange={(v: any) => setViewScope(v)}>
-                        <SelectTrigger className="h-10 w-48 text-xs font-bold bg-white">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="personal">My Personal Logbook</SelectItem>
-                            {canViewManagement && <SelectItem value="unit">Unit Monitoring View</SelectItem>}
-                            {(isAdmin || userRole?.toLowerCase().includes('director')) && <SelectItem value="campus">Campus Monitoring View</SelectItem>}
-                        </SelectContent>
-                    </Select>
-                </div>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                <UserCheck className="h-8 w-8 text-primary" />
+                Institutional Activity Registry
+              </h2>
+              <p className="text-muted-foreground text-xs font-bold uppercase tracking-widest">
+                Log daily tasks or remote WFH accomplishments for quality auditing.
+              </p>
             </div>
+            <div className="flex items-center gap-2">
+              <div className="flex bg-muted p-1 rounded-lg border mr-2">
+                <Input
+                  type="month"
+                  value={monthFilter}
+                  onChange={(e) => setMonthFilter(e.target.value)}
+                  className="h-8 w-32 text-[10px] font-bold border-none bg-transparent"
+                />
+              </div>
+              <Select value={viewScope} onValueChange={(v: any) => setViewScope(v)}>
+                <SelectTrigger className="h-10 w-48 text-xs font-bold bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="personal">My Personal Logbook</SelectItem>
+                  {canViewManagement && <SelectItem value="unit">Unit Monitoring View</SelectItem>}
+                  {(isAdmin || userRole?.toLowerCase().includes('director')) && (
+                    <SelectItem value="campus">Campus Monitoring View</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-            <ScrollArea className="w-full">
-                <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
-                    <TabsTrigger value="daily" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <Briefcase className="h-3.5 w-3.5" /> Employee Activity Log
-                    </TabsTrigger>
-                    <TabsTrigger value="wfh" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
-                        <Home className="h-3.5 w-3.5" /> Work From Home (WFH)
-                    </TabsTrigger>
-                </TabsList>
-            </ScrollArea>
+          <ScrollArea className="w-full">
+            <TabsList className="bg-muted p-1 border shadow-sm w-max min-w-max h-10 animate-tab-highlight rounded-md">
+              <TabsTrigger value="daily" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <Briefcase className="h-3.5 w-3.5" /> Employee Activity Log
+              </TabsTrigger>
+              <TabsTrigger value="wfh" className="gap-2 text-[10px] font-black uppercase tracking-widest px-6 h-8">
+                <Home className="h-3.5 w-3.5" /> Work From Home (WFH)
+              </TabsTrigger>
+            </TabsList>
+          </ScrollArea>
         </div>
 
         <TabsContent value="daily" className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex-1 min-w-[300px] flex gap-2">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search activities..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-10 text-xs bg-white" />
-                    </div>
-                    <div className="flex items-center gap-1">
-                        <Input type="date" value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} className="h-10 w-40 text-xs bg-white" />
-                        {dateFilter && (
-                            <Button variant="ghost" size="icon" className="h-10 w-10 text-muted-foreground" onClick={() => setDateFilter('')}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        )}
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handlePrintDaily} className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2">
-                        <Printer className="h-4 w-4" /> Print Current List
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={handlePrintMonthly} className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2">
-                        <Download className="h-4 w-4" /> Monthly Log
-                    </Button>
-                    <Button onClick={() => { setEditingActivity(null); setIsFormOpen(true); }} className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest">
-                        <PlusCircle className="mr-2 h-4 w-4" /> Log Task
-                    </Button>
-                </div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex-1 min-w-[300px] flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search activities..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-10 text-xs bg-white"
+                />
+              </div>
+              <div className="flex items-center gap-1">
+                <Input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="h-10 w-40 text-xs bg-white"
+                />
+                {dateFilter && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 text-muted-foreground"
+                    onClick={() => setDateFilter('')}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrintDaily}
+                className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2"
+              >
+                <Printer className="h-4 w-4" /> Print Current List
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrintMonthly}
+                className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2"
+              >
+                <Download className="h-4 w-4" /> Monthly Log
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditingActivity(null);
+                  setIsFormOpen(true);
+                }}
+                className="h-10 font-black uppercase text-[10px] tracking-widest"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" /> Log Task
+              </Button>
+            </div>
+          </div>
 
-            <Card className="shadow-md border-primary/10 overflow-hidden">
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader className="bg-muted/30">
-                            <TableRow>
-                                <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Conduct Period</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase py-3">Task Particulars</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase py-3">Output</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-center py-3">Evidence</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-center py-3">Status</TableHead>
-                                <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Action</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredActivities.map((activity) => (
-                                <TableRow key={activity.id} className="hover:bg-muted/20 transition-colors group">
-                                    <TableCell className="pl-6 py-4">
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tabular-nums">{format(activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date), 'MM/dd/yy')}</span>
-                                            <span className="text-[9px] font-bold text-muted-foreground uppercase">{activity.startTime} - {activity.endTime}</span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="max-w-xs py-4">
-                                        <div className="flex flex-col gap-1">
-                                            <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight">{activity.activityParticular}</p>
-                                            {viewScope !== 'personal' && <span className="text-[9px] font-black text-primary uppercase">{activity.userName}</span>}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell><span className="text-xs font-medium text-slate-600 dark:text-slate-400">{activity.output || '--'}</span></TableCell>
-                                    <TableCell className="text-center">
-                                        {activity.googleDriveLink ? <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" asChild><a href={activity.googleDriveLink} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-4 w-4" /></a></Button> : <span className="text-[9px] text-muted-foreground opacity-20">None</span>}
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge className={cn("text-[9px] font-black uppercase border-none px-2 shadow-sm", activity.status === 'Completed' ? "bg-emerald-600" : activity.status === 'In Progress' ? "bg-blue-600" : "bg-amber-500")}>{activity.status}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right pr-6 whitespace-nowrap">
-                                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {viewScope !== 'personal' && !activity.isApproved && (
-                                                <Button size="sm" onClick={() => handleApprove(activity.id)} className="h-7 text-[9px] font-black uppercase bg-emerald-600">Verify</Button>
-                                            )}
-                                            {activity.userId === user?.uid && !activity.isApproved && (
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => { setEditingActivity(activity); setIsFormOpen(true); }}><Edit className="h-4 w-4" /></Button>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+          <Card className="shadow-md border-primary/10 overflow-hidden">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Conduct Period</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase py-3">Task Particulars</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase py-3">Output</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-center py-3">Evidence</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-center py-3">Status</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredActivities.map((activity) => (
+                    <TableRow key={activity.id} className="hover:bg-muted/20 transition-colors group">
+                      <TableCell className="pl-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tabular-nums">
+                            {format(
+                              activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date),
+                              'MM/dd/yy',
+                            )}
+                          </span>
+                          <span className="text-[9px] font-bold text-muted-foreground uppercase">
+                            {activity.startTime} - {activity.endTime}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-xs py-4">
+                        <div className="flex flex-col gap-1">
+                          <p className="font-bold text-sm text-slate-900 dark:text-slate-100 leading-tight">
+                            {activity.activityParticular}
+                          </p>
+                          {viewScope !== 'personal' && (
+                            <span className="text-[9px] font-black text-primary uppercase">{activity.userName}</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                          {activity.output || '--'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {activity.googleDriveLink ? (
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" asChild>
+                            <a href={activity.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                              <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        ) : (
+                          <span className="text-[9px] text-muted-foreground opacity-20">None</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          className={cn(
+                            'text-[9px] font-black uppercase border-none px-2 shadow-sm',
+                            activity.status === 'Completed'
+                              ? 'bg-emerald-600'
+                              : activity.status === 'In Progress'
+                                ? 'bg-blue-600'
+                                : 'bg-amber-500',
+                          )}
+                        >
+                          {activity.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-6 whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {viewScope !== 'personal' && !activity.isApproved && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleApprove(activity.id)}
+                              className="h-7 text-[9px] font-black uppercase bg-emerald-600"
+                            >
+                              Verify
+                            </Button>
+                          )}
+                          {activity.userId === user?.uid && !activity.isApproved && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-primary"
+                              onClick={() => {
+                                setEditingActivity(activity);
+                                setIsFormOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="wfh" className="space-y-6 animate-in fade-in duration-500">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex-1 min-w-[300px] flex gap-2">
-                    <Input type="month" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)} className="h-10 w-48 text-xs bg-white" />
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Search WFH tasks..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-9 h-10 text-xs bg-white" />
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setIsWfhPrintDialogOpen(true)} className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2"><Printer className="h-4 w-4" /> Generate Monitoring Sheet</Button>
-                    <Button onClick={() => { setEditingWfhActivity(null); setIsWfhFormOpen(true); }} className="h-10 shadow-lg shadow-primary/20 bg-indigo-600 text-white font-black uppercase text-[10px] tracking-widest"><PlusCircle className="mr-2 h-4 w-4" /> Log WFH Task</Button>
-                </div>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex-1 min-w-[300px] flex gap-2">
+              <Input
+                type="month"
+                value={monthFilter}
+                onChange={(e) => setMonthFilter(e.target.value)}
+                className="h-10 w-48 text-xs bg-white"
+              />
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search WFH tasks..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 h-10 text-xs bg-white"
+                />
+              </div>
             </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsWfhPrintDialogOpen(true)}
+                className="h-10 bg-white border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest gap-2"
+              >
+                <Printer className="h-4 w-4" /> Generate Monitoring Sheet
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditingWfhActivity(null);
+                  setIsWfhFormOpen(true);
+                }}
+                className="h-10 bg-indigo-600 text-white font-black uppercase text-[10px] tracking-widest"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" /> Log WFH Task
+              </Button>
+            </div>
+          </div>
 
-            <Card className="shadow-md border-primary/10 overflow-hidden">
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader className="bg-muted/30">
-                            <TableRow>
-                                <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase py-3">Target Deliverables</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase py-3">Actual Accomplishment</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-center py-3">Designation</TableHead>
-                                <TableHead className="text-[10px] font-black uppercase text-center py-3">Status</TableHead>
-                                <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Action</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredWfhActivities.map((activity) => (
-                                <TableRow key={activity.id} className="hover:bg-muted/20 transition-colors group">
-                                    <TableCell className="pl-6 py-4">
-                                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tabular-nums">{format(activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date), 'MM/dd/yy')}</span>
-                                    </TableCell>
-                                    <TableCell className="max-w-xs py-4"><p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">{activity.deliverables}</p></TableCell>
-                                    <TableCell className="max-w-xs py-4"><p className="text-xs font-medium text-slate-600 dark:text-slate-400 italic leading-snug">{activity.accomplishment}</p></TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge variant="outline" className="text-[8px] font-black uppercase border-primary/30 text-primary">{activity.type}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-center">
-                                        <Badge className={cn("text-[9px] font-black uppercase border-none px-2", activity.status === 'Verified' ? "bg-emerald-600" : "bg-amber-50")}>{activity.status}</Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right pr-6 whitespace-nowrap">
-                                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {viewScope !== 'personal' && activity.status !== 'Verified' && (
-                                                <Button size="sm" onClick={() => handleApprove(activity.id, true)} className="h-7 text-[9px] font-black uppercase bg-emerald-600">Verify</Button>
-                                            )}
-                                            {activity.userId === user?.uid && activity.status !== 'Verified' && (
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => { setEditingWfhActivity(activity); setIsWfhFormOpen(true); }}><Edit className="h-4 w-4" /></Button>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+          <Card className="shadow-md border-primary/10 overflow-hidden">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead className="text-[10px] font-black uppercase pl-6 py-3">Date</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase py-3">Target Deliverables</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase py-3">Actual Accomplishment</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-center py-3">Designation</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-center py-3">Status</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase pr-6 py-3">Action</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredWfhActivities.map((activity) => (
+                    <TableRow key={activity.id} className="hover:bg-muted/20 transition-colors group">
+                      <TableCell className="pl-6 py-4">
+                        <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tabular-nums">
+                          {format(
+                            activity.date instanceof Timestamp ? activity.date.toDate() : new Date(activity.date),
+                            'MM/dd/yy',
+                          )}
+                        </span>
+                      </TableCell>
+                      <TableCell className="max-w-xs py-4">
+                        <p className="text-xs font-bold text-slate-900 dark:text-slate-100 leading-snug">
+                          {activity.deliverables}
+                        </p>
+                      </TableCell>
+                      <TableCell className="max-w-xs py-4">
+                        <p className="text-xs font-medium text-slate-600 dark:text-slate-400 italic leading-snug">
+                          {activity.accomplishment}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant="outline"
+                          className="text-[8px] font-black uppercase border-primary/30 text-primary"
+                        >
+                          {activity.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          className={cn(
+                            'text-[9px] font-black uppercase border-none px-2',
+                            activity.status === 'Verified' ? 'bg-emerald-600' : 'bg-amber-50',
+                          )}
+                        >
+                          {activity.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-6 whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {viewScope !== 'personal' && activity.status !== 'Verified' && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleApprove(activity.id, true)}
+                              className="h-7 text-[9px] font-black uppercase bg-emerald-600"
+                            >
+                              Verify
+                            </Button>
+                          )}
+                          {activity.userId === user?.uid && activity.status !== 'Verified' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-primary"
+                              onClick={() => {
+                                setEditingWfhActivity(activity);
+                                setIsWfhFormOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
       <Dialog open={isWfhPrintDialogOpen} onOpenChange={setIsWfhPrintDialogOpen}>
         <DialogContent className="sm:max-w-xl">
-            <DialogHeader>
-                <div className="flex items-center gap-2 text-primary mb-1"><Printer className="h-5 w-5" /><span className="text-[10px] font-black uppercase tracking-widest">Report Wizard</span></div>
-                <DialogTitle>Generate WFH Monitoring Sheet</DialogTitle>
-                <DialogDescription>Configure the personnel template and signatories for the selected month ({monthFilter}).</DialogDescription>
-            </DialogHeader>
-            <div className="py-6 space-y-8">
-                <div className="space-y-4">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Select Personnel Type</Label>
-                    <RadioGroup value={wfhPrintType} onValueChange={(v: any) => setWfhPrintType(v)} className="grid grid-cols-2 gap-4">
-                        <Label htmlFor="type-teaching" className={cn("flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted", wfhPrintType === 'Teaching' ? "border-primary bg-primary/5" : "border-slate-100 dark:border-slate-700")}>
-                            <RadioGroupItem value="Teaching" id="type-teaching" className="sr-only" />
-                            <GraduationCap className={cn("h-8 w-8", wfhPrintType === 'Teaching' ? "text-primary" : "text-muted-foreground")} />
-                            <span className="text-xs font-black uppercase">Teaching</span>
-                        </Label>
-                        <Label htmlFor="type-nonteaching" className={cn("flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted", wfhPrintType === 'Non-Teaching' ? "border-primary bg-primary/5" : "border-slate-100 dark:border-slate-700")}>
-                            <RadioGroupItem value="Non-Teaching" id="type-nonteaching" className="sr-only" />
-                            <Briefcase className={cn("h-8 w-8", wfhPrintType === 'Non-Teaching' ? "text-primary" : "text-muted-foreground")} />
-                            <span className="text-xs font-black uppercase">Non-Teaching</span>
-                        </Label>
-                    </RadioGroup>
-                </div>
-
-                <div className="space-y-4 pt-4 border-t">
-                    <div className="flex items-center gap-2"><UserCheck className="h-4 w-4 text-primary" /><Label className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">Identify Official Signatories</Label></div>
-                    {wfhPrintType === 'Teaching' ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Department / Program Chair</Label><Input value={wfhDeptChair} onChange={(e) => setWfhDeptChair(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50 dark:bg-slate-800/50" /></div>
-                            <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Dean / Campus Director</Label><Input value={wfhDeanDirector} onChange={(e) => setWfhDeanDirector(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50 dark:bg-slate-800/50" /></div>
-                        </div>
-                    ) : (
-                        <div className="space-y-2"><Label className="text-[9px] font-bold uppercase text-muted-foreground">Immediate Head</Label><Input value={wfhImmediateHead} onChange={(e) => setWfhImmediateHead(e.target.value)} placeholder="Enter full name" className="h-9 text-xs bg-slate-50 dark:bg-slate-800/50" /></div>
-                    )}
-                </div>
+          <DialogHeader>
+            <div className="flex items-center gap-2 text-primary mb-1">
+              <Printer className="h-5 w-5" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Report Wizard</span>
             </div>
-            <DialogFooter className="border-t pt-4">
-                <Button variant="ghost" onClick={() => setIsWfhPrintDialogOpen(false)} className="font-bold text-[10px] uppercase">Cancel</Button>
-                <Button onClick={handlePrintWfh} className="font-black uppercase text-[10px] tracking-widest px-8 shadow-lg shadow-primary/20" disabled={wfhPrintType === 'Teaching' ? (!wfhDeptChair || !wfhDeanDirector) : !wfhImmediateHead}>Generate & Print</Button>
-            </DialogFooter>
+            <DialogTitle>Generate WFH Monitoring Sheet</DialogTitle>
+            <DialogDescription>
+              Configure the personnel template and signatories for the selected month ({monthFilter}).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-6 space-y-8">
+            <div className="space-y-4">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                Select Personnel Type
+              </Label>
+              <RadioGroup
+                value={wfhPrintType}
+                onValueChange={(v: any) => setWfhPrintType(v)}
+                className="grid grid-cols-2 gap-4"
+              >
+                <Label
+                  htmlFor="type-teaching"
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted',
+                    wfhPrintType === 'Teaching'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-slate-100 dark:border-slate-700',
+                  )}
+                >
+                  <RadioGroupItem value="Teaching" id="type-teaching" className="sr-only" />
+                  <GraduationCap
+                    className={cn('h-8 w-8', wfhPrintType === 'Teaching' ? 'text-primary' : 'text-muted-foreground')}
+                  />
+                  <span className="text-xs font-black uppercase">Teaching</span>
+                </Label>
+                <Label
+                  htmlFor="type-nonteaching"
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 cursor-pointer transition-all hover:bg-muted',
+                    wfhPrintType === 'Non-Teaching'
+                      ? 'border-primary bg-primary/5'
+                      : 'border-slate-100 dark:border-slate-700',
+                  )}
+                >
+                  <RadioGroupItem value="Non-Teaching" id="type-nonteaching" className="sr-only" />
+                  <Briefcase
+                    className={cn(
+                      'h-8 w-8',
+                      wfhPrintType === 'Non-Teaching' ? 'text-primary' : 'text-muted-foreground',
+                    )}
+                  />
+                  <span className="text-xs font-black uppercase">Non-Teaching</span>
+                </Label>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4 text-primary" />
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-800 dark:text-slate-200">
+                  Identify Official Signatories
+                </Label>
+              </div>
+              {wfhPrintType === 'Teaching' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-bold uppercase text-muted-foreground">
+                      Department / Program Chair
+                    </Label>
+                    <Input
+                      value={wfhDeptChair}
+                      onChange={(e) => setWfhDeptChair(e.target.value)}
+                      placeholder="Enter full name"
+                      className="h-9 text-xs bg-slate-50 dark:bg-slate-800/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-bold uppercase text-muted-foreground">
+                      Dean / Campus Director
+                    </Label>
+                    <Input
+                      value={wfhDeanDirector}
+                      onChange={(e) => setWfhDeanDirector(e.target.value)}
+                      placeholder="Enter full name"
+                      className="h-9 text-xs bg-slate-50 dark:bg-slate-800/50"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-bold uppercase text-muted-foreground">Immediate Head</Label>
+                  <Input
+                    value={wfhImmediateHead}
+                    onChange={(e) => setWfhImmediateHead(e.target.value)}
+                    placeholder="Enter full name"
+                    className="h-9 text-xs bg-slate-50 dark:bg-slate-800/50"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          <DialogFooter className="border-t pt-4">
+            <Button
+              variant="ghost"
+              onClick={() => setIsWfhPrintDialogOpen(false)}
+              className="font-bold text-[10px] uppercase"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePrintWfh}
+              className="font-black uppercase text-[10px] tracking-widest px-8"
+              disabled={wfhPrintType === 'Teaching' ? !wfhDeptChair || !wfhDeanDirector : !wfhImmediateHead}
+            >
+              Generate & Print
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

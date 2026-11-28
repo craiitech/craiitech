@@ -17,14 +17,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,17 +31,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { 
-  Megaphone, 
-  Calendar, 
-  PlusCircle, 
-  Trash2, 
-  Edit, 
-  Loader2, 
-  ExternalLink, 
-  Info,
-  FileText
-} from 'lucide-react';
+import { Megaphone, Calendar, PlusCircle, Trash2, Edit, Loader2, ExternalLink, Info, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 
 const formSchema = z.object({
@@ -72,7 +55,7 @@ export function ChedAnnouncements() {
   // Load announcements
   const announcementsQuery = useMemoFirebase(
     () => (firestore ? collection(firestore, 'chedAnnouncements') : null),
-    [firestore]
+    [firestore],
   );
   const { data: rawAnnouncements, isLoading } = useCollection<ChedAnnouncement>(announcementsQuery);
 
@@ -215,7 +198,9 @@ export function ChedAnnouncements() {
           <div className="bg-muted h-16 w-16 rounded-full flex items-center justify-center mb-4">
             <Megaphone className="h-8 w-8 text-muted-foreground opacity-60" />
           </div>
-          <CardTitle className="text-xl font-black uppercase text-slate-700 dark:text-slate-300">No Announcements Yet</CardTitle>
+          <CardTitle className="text-xl font-black uppercase text-slate-700 dark:text-slate-300">
+            No Announcements Yet
+          </CardTitle>
           <CardDescription className="max-w-md mx-auto mt-2 text-xs font-medium uppercase tracking-wider">
             All JC03 directives and updates for CHED Program Monitoring will be displayed here.
           </CardDescription>
@@ -232,7 +217,10 @@ export function ChedAnnouncements() {
             };
 
             return (
-              <Card key={ann.id} className="shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-500 overflow-hidden">
+              <Card
+                key={ann.id}
+                className="shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-amber-500 overflow-hidden"
+              >
                 <CardHeader className="pb-3 bg-slate-50/50 dark:bg-slate-800/50">
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
@@ -315,9 +303,7 @@ export function ChedAnnouncements() {
               <span className="text-xs font-bold uppercase tracking-widest">Announcement Configuration</span>
             </div>
             <DialogTitle>{editingAnnouncement ? 'Modify' : 'Publish'} JC03 Announcement</DialogTitle>
-            <DialogDescription>
-              Set the announcement details and link Google Drive upload folders.
-            </DialogDescription>
+            <DialogDescription>Set the announcement details and link Google Drive upload folders.</DialogDescription>
           </DialogHeader>
 
           <Form {...form}>
@@ -344,7 +330,11 @@ export function ChedAnnouncements() {
                     <FormItem>
                       <FormLabel className="text-[10px] font-bold uppercase">Announcement Title</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., submission deadline extension" className="h-11 font-bold" {...field} />
+                        <Input
+                          placeholder="e.g., submission deadline extension"
+                          className="h-11 font-bold"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -374,7 +364,9 @@ export function ChedAnnouncements() {
                   name="additionalInstructions"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase">Additional Instructions (Optional)</FormLabel>
+                      <FormLabel className="text-[10px] font-bold uppercase">
+                        Additional Instructions (Optional)
+                      </FormLabel>
                       <FormControl>
                         <Textarea
                           placeholder="Specific files, naming conventions, or templates to use..."
@@ -392,9 +384,15 @@ export function ChedAnnouncements() {
                   name="googleDriveLink"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase">Document / Google Drive Link (Optional)</FormLabel>
+                      <FormLabel className="text-[10px] font-bold uppercase">
+                        Document / Google Drive Link (Optional)
+                      </FormLabel>
                       <FormControl>
-                        <Input placeholder="https://drive.google.com/... or document URL" className="h-11 font-bold text-xs" {...field} />
+                        <Input
+                          placeholder="https://drive.google.com/... or document URL"
+                          className="h-11 font-bold text-xs"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -406,7 +404,7 @@ export function ChedAnnouncements() {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isSubmitting} className="min-w-[140px] shadow-lg shadow-amber-500/25">
+                <Button type="submit" disabled={isSubmitting} className="min-w-[140px]">
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {editingAnnouncement ? 'Update Announcement' : 'Publish Announcement'}
                 </Button>
@@ -422,7 +420,8 @@ export function ChedAnnouncements() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to delete this announcement?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action is permanent and will remove <strong>{deletingAnnouncement?.title}</strong> from the CHED Program Monitoring Workspace.
+              This action is permanent and will remove <strong>{deletingAnnouncement?.title}</strong> from the CHED
+              Program Monitoring Workspace.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

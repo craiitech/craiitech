@@ -646,7 +646,7 @@ export default function SubmissionsPage() {
                   {canSubmit && (
                     <Button
                       onClick={() => setShowNewSubmissionGuidance(true)}
-                      className="shadow-lg shadow-primary/20 h-9 font-black uppercase text-[10px] tracking-widest"
+                      className="h-9 font-black uppercase text-[10px] tracking-widest"
                     >
                       <PlusCircle className="mr-2 h-4 w-4" /> New Submission
                     </Button>
@@ -1152,7 +1152,7 @@ export default function SubmissionsPage() {
               <Input
                 value={confirmationText}
                 onChange={(e) => setConfirmationText(e.target.value)}
-                placeholder={`Type "${challengeText}"`}
+                placeholder={`Type"${challengeText}"`}
               />
             </div>
             <AlertDialogFooter>

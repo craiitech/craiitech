@@ -2293,7 +2293,7 @@ function UnitActivityScannerTerminal() {
                   console.warn('Failed to resume fullscreen:', err);
                 }
               }}
-              className="w-full h-12 bg-gradient-to-r from-emerald-600 to-[#1B6535] hover:from-emerald-700 hover:to-[#154e29] text-white font-black uppercase tracking-widest shadow-lg shadow-emerald-900/20 active:scale-95 transition-all duration-150 border-none rounded-xl"
+              className="w-full h-12 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white font-bold uppercase tracking-wider shadow-sm transition-colors rounded-xl"
             >
               Resume Terminal
             </Button>

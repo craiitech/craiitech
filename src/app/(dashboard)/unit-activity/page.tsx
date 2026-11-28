@@ -2832,7 +2832,7 @@ export default function UnitActivityPage() {
                 <div className="flex justify-end">
                   <Button
                     onClick={() => setShowSummaryModal(true)}
-                    className="h-10 text-[11px] font-black uppercase tracking-widest bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-lg shadow-emerald-500/20 rounded-xl flex items-center gap-2 px-5"
+                    className="h-10 text-[11px] font-bold uppercase tracking-wider bg-emerald-700 hover:bg-emerald-800 border-emerald-800 text-white shadow-sm rounded-lg flex items-center gap-2 px-5"
                   >
                     <FileText className="h-4 w-4" />
                     Generate Evaluation Summary

@@ -498,7 +498,7 @@ export function AdminAuditView() {
               <Button
                 onClick={handleNewPlan}
                 disabled={isLoadingClauses && !isoClauses}
-                className="h-9 mt-5 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest"
+                className="h-9 mt-5 font-black uppercase text-[10px] tracking-widest"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 New Audit Plan

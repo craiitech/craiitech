@@ -87,7 +87,7 @@ export default function FiamoPage() {
                 <Button
                   size="sm"
                   onClick={() => setIsNewRequestOpen(true)}
-                  className="h-9 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest"
+                  className="h-9 font-black uppercase text-[10px] tracking-widest"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" /> New Repair Request
                 </Button>

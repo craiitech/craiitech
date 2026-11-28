@@ -138,7 +138,7 @@ export function CurrentYearManagementReview({
     return matchThisYear || allReviews[0];
   }, [allReviews, currentYear]);
 
-  // Previous reviews for "View Previous MR" (any MR older than current or previous calendar years)
+  // Previous reviews for"View Previous MR" (any MR older than current or previous calendar years)
   const previousReviews = useMemo(() => {
     if (!allReviews) return [];
     if (!currentMr) return allReviews;
@@ -496,7 +496,7 @@ export function CurrentYearManagementReview({
       });
       toast({
         title: 'Order Updated',
-        description: `Moved "${movedPart.title}" ${direction === 'up' ? 'up' : 'down'} to Part #${targetIndex + 1}.`,
+        description: `Moved"${movedPart.title}" ${direction === 'up' ? 'up' : 'down'} to Part #${targetIndex + 1}.`,
       });
     } catch (err: any) {
       console.error(err);
@@ -682,7 +682,7 @@ export function CurrentYearManagementReview({
             <Button
               onClick={() => handleOpenApplyDialog(Boolean(currentMr))}
               size="sm"
-              className="h-9 px-4 font-black uppercase text-[10px] tracking-widest shadow-md shadow-primary/20 gap-2"
+              className="h-9 px-4 font-black uppercase text-[10px] tracking-widest gap-2"
             >
               <SlidersHorizontal className="h-3.5 w-3.5" />
               {currentMr ? 'Configure Session' : 'Apply / Plan New MR'}
@@ -1682,8 +1682,7 @@ export function CurrentYearManagementReview({
                   {(!currentOutputs || currentOutputs.length === 0) && !isLoadingCurrentOutputs && (
                     <TableRow>
                       <TableCell colSpan={5} className="h-24 text-center text-muted-foreground text-xs">
-                        No actionable decisions logged yet for this review. Log outputs in the "Meeting Log Archive"
-                        tab.
+                        No actionable decisions logged yet for this review. Log outputs in the"Meeting Log Archive" tab.
                       </TableCell>
                     </TableRow>
                   )}

@@ -285,7 +285,7 @@ export function Chatbot() {
             <div className="flex items-center gap-1 text-[10px] text-emerald-600 font-bold uppercase tracking-wider">
               <CheckCircleIcon className="h-3.5 w-3.5" /> Found QA Standard Answer
             </div>
-            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Q: "{found.question}"</p>
+            <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Q:"{found.question}"</p>
             <div className="text-xs">{found.answer}</div>
           </div>
         );
@@ -457,7 +457,7 @@ export function Chatbot() {
                   <Button
                     onClick={() => handleSend()}
                     disabled={isLoading || !input.trim()}
-                    className="h-10 w-10 shrink-0 rounded-xl bg-primary text-white shadow-md shadow-primary/20 hover:scale-[1.03] transition-transform"
+                    className="h-10 w-10 shrink-0 rounded-xl bg-primary text-white hover:scale-[1.03] transition-transform"
                     size="icon"
                   >
                     <Send className="h-4 w-4" />

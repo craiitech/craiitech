@@ -418,7 +418,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
                         ))}
                         {fields.length === 0 && (
                           <p className="text-[10px] text-muted-foreground italic text-center py-4 border border-dashed rounded bg-white">
-                            No majors added. Click "+" to register a specialization.
+                            No majors added. Click"+" to register a specialization.
                           </p>
                         )}
                       </div>
@@ -450,11 +450,7 @@ export function ProgramDialog({ isOpen, onOpenChange, program, campuses, existin
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !!duplicationError}
-                className="min-w-[140px] shadow-lg shadow-primary/20"
-              >
+              <Button type="submit" disabled={isSubmitting || !!duplicationError} className="min-w-[140px]">
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {program ? 'Update Registry' : 'Register Program'}
               </Button>

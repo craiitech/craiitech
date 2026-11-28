@@ -213,7 +213,7 @@ export function RequestOtherUnitFormsTab({
       const myCampusName = userProfile?.campusId ? campusMap.get(userProfile.campusId) || '' : '';
       const ownerCampusName = ownerUnitObj.campusIds?.[0] ? campusMap.get(ownerUnitObj.campusIds[0]) || '' : '';
 
-      // 1. Log to crossUnitFormRequests (visible in "Forms Requested by Us" & "Forms Provided to Other Units")
+      // 1. Log to crossUnitFormRequests (visible in"Forms Requested by Us" &"Forms Provided to Other Units")
       await addDoc(collection(firestore, 'crossUnitFormRequests'), {
         formId: formItem.id,
         formCode: formItem.formCode,
@@ -590,7 +590,7 @@ export function RequestOtherUnitFormsTab({
                                     selectedTargetUnit,
                                   )
                                 }
-                                className="h-9 font-black uppercase text-[10px] tracking-widest shadow-md shadow-primary/20 gap-1.5"
+                                className="h-9 font-black uppercase text-[10px] tracking-widest gap-1.5"
                               >
                                 {downloadingFormId === 'roster-folder' ? (
                                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

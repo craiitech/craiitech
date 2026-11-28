@@ -61,11 +61,7 @@ export default function PublicSoftwareEvaluationPage() {
           />
         </CardContent>
         <CardFooter className="flex flex-col gap-4 pb-10 pt-4">
-          <Button
-            size="lg"
-            className="w-full h-14 text-lg font-black shadow-xl shadow-primary/20"
-            onClick={() => setIsFormOpen(true)}
-          >
+          <Button size="lg" className="w-full h-14 text-lg font-black" onClick={() => setIsFormOpen(true)}>
             <ShieldCheck className="mr-2 h-6 w-6" />
             Launch Evaluation Instrument
             <ArrowRight className="ml-2 h-5 w-5" />

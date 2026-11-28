@@ -79,10 +79,7 @@ export default function SettingsPage() {
                 Manage users, campuses, units, roles, permissions, and institutional signatories.
               </p>
               <div className="flex gap-2">
-                <Button
-                  onClick={() => window.print()}
-                  className="shadow-lg shadow-primary/20 font-black uppercase tracking-wider text-[10px]"
-                >
+                <Button onClick={() => window.print()} className="font-black uppercase tracking-wider text-[10px]">
                   Print
                 </Button>
               </div>

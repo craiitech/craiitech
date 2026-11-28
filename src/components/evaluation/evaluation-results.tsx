@@ -314,7 +314,7 @@ export function EvaluationResults({ evaluations }: EvaluationResultsProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="default" size="sm" className="h-8 text-xs font-bold gap-1.5 shadow-lg shadow-primary/20">
+              <Button variant="default" size="sm" className="h-8 text-xs font-bold gap-1.5">
                 <Download className="h-3.5 w-3.5" /> Download
                 <ChevronDown className="h-3 w-3" />
               </Button>

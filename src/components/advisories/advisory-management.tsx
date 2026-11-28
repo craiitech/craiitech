@@ -1,4 +1,3 @@
-﻿
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -6,7 +5,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, deleteDoc, doc, Timestamp, updateDoc } from '@/firebase/firestore-wrapper';
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  deleteDoc,
+  doc,
+  Timestamp,
+  updateDoc,
+} from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +22,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, PlusCircle, Trash2, Edit, Megaphone, Globe, Building2, ExternalLink, Hash } from 'lucide-react';
 import type { QaAdvisory, Unit, Campus } from '@/lib/types';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,7 +51,10 @@ export function AdvisoryManagement() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingAdvisory, setEditingAdvisory] = useState<QaAdvisory | null>(null);
 
-  const advisoriesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'qaAdvisories') : null), [firestore]);
+  const advisoriesQuery = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'qaAdvisories') : null),
+    [firestore],
+  );
   const { data: advisories, isLoading: isLoadingAdvisories } = useCollection<QaAdvisory>(advisoriesQuery);
 
   const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
@@ -45,10 +62,10 @@ export function AdvisoryManagement() {
 
   const form = useForm<z.infer<typeof advisorySchema>>({
     resolver: zodResolver(advisorySchema),
-    defaultValues: { 
-        controlNumber: `${new Date().getFullYear()}-001`,
-        scope: 'University-Wide',
-        releaseDate: format(new Date(), 'yyyy-MM-dd')
+    defaultValues: {
+      controlNumber: `${new Date().getFullYear()}-001`,
+      scope: 'University-Wide',
+      releaseDate: format(new Date(), 'yyyy-MM-dd'),
     },
   });
 
@@ -96,7 +113,9 @@ export function AdvisoryManagement() {
 
   const handleEdit = (advisory: QaAdvisory) => {
     setEditingAdvisory(advisory);
-    const dateStr = advisory.releaseDate?.toDate ? format(advisory.releaseDate.toDate(), 'yyyy-MM-dd') : format(new Date(advisory.releaseDate), 'yyyy-MM-dd');
+    const dateStr = advisory.releaseDate?.toDate
+      ? format(advisory.releaseDate.toDate(), 'yyyy-MM-dd')
+      : format(new Date(advisory.releaseDate), 'yyyy-MM-dd');
     form.reset({
       ...advisory,
       releaseDate: dateStr,
@@ -104,7 +123,7 @@ export function AdvisoryManagement() {
     setIsDialogOpen(true);
   };
 
-  const unitMap = useMemo(() => new Map(units?.map(u => [u.id, u.name])), [units]);
+  const unitMap = useMemo(() => new Map(units?.map((u) => [u.id, u.name])), [units]);
 
   return (
     <Card>
@@ -116,13 +135,26 @@ export function AdvisoryManagement() {
           </CardTitle>
           <CardDescription>Official registry of directives released by the QA Office.</CardDescription>
         </div>
-        <Button onClick={() => { setEditingAdvisory(null); form.reset({ controlNumber: `${new Date().getFullYear()}-001`, scope: 'University-Wide', releaseDate: format(new Date(), 'yyyy-MM-dd') }); setIsDialogOpen(true); }} size="sm">
+        <Button
+          onClick={() => {
+            setEditingAdvisory(null);
+            form.reset({
+              controlNumber: `${new Date().getFullYear()}-001`,
+              scope: 'University-Wide',
+              releaseDate: format(new Date(), 'yyyy-MM-dd'),
+            });
+            setIsDialogOpen(true);
+          }}
+          size="sm"
+        >
           <PlusCircle className="mr-2 h-4 w-4" /> Log New Advisory
         </Button>
       </CardHeader>
       <CardContent>
         {isLoadingAdvisories ? (
-          <div className="flex justify-center py-10"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+          <div className="flex justify-center py-10">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
         ) : (
           <ScrollArea className="h-[60dvh]">
             <Table>
@@ -143,9 +175,13 @@ export function AdvisoryManagement() {
                         <span className="font-bold text-xs">{adv.subject}</span>
                         <span className="text-[9px] text-muted-foreground uppercase flex items-center gap-1 mt-0.5">
                           {adv.scope === 'University-Wide' ? (
-                            <><Globe className="h-2.5 w-2.5" /> Institutional Access</>
+                            <>
+                              <Globe className="h-2.5 w-2.5" /> Institutional Access
+                            </>
                           ) : (
-                            <><Building2 className="h-2.5 w-2.5" /> {unitMap.get(adv.targetUnitId!) || 'Specific Unit'}</>
+                            <>
+                              <Building2 className="h-2.5 w-2.5" /> {unitMap.get(adv.targetUnitId!) || 'Specific Unit'}
+                            </>
                           )}
                         </span>
                       </div>
@@ -157,7 +193,12 @@ export function AdvisoryManagement() {
                       <Button variant="ghost" size="icon" onClick={() => handleEdit(adv)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleDelete(adv.id)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive"
+                        onClick={() => handleDelete(adv.id)}
+                      >
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -178,71 +219,127 @@ export function AdvisoryManagement() {
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
               <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="controlNumber" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-bold uppercase">Control Number</FormLabel>
-                    <FormControl><Input {...field} placeholder="yyyy-###" className="font-mono bg-slate-50 dark:bg-slate-800/50" /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-                <FormField control={form.control} name="releaseDate" render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-[10px] font-bold uppercase">Date of Release</FormLabel>
-                    <FormControl><Input type="date" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
+                <FormField
+                  control={form.control}
+                  name="controlNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-bold uppercase">Control Number</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="yyyy-###"
+                          className="font-mono bg-slate-50 dark:bg-slate-800/50"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="releaseDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-bold uppercase">Date of Release</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
-              
-              <FormField control={form.control} name="subject" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-bold uppercase">Communication Subject</FormLabel>
-                  <FormControl><Input {...field} placeholder="e.g., Submission Deadline for FY 2025" /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
 
-              <FormField control={form.control} name="scope" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-bold uppercase">Target Accessibility Scope</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                    <SelectContent modal={false}>
-                      <SelectItem value="University-Wide">University-Wide (Institutional)</SelectItem>
-                      <SelectItem value="Specific Unit">Specific Unit / Office Only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )} />
-
-              {watchScope === 'Specific Unit' && (
-                <FormField control={form.control} name="targetUnitId" render={({ field }) => (
+              <FormField
+                control={form.control}
+                name="subject"
+                render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[10px] font-bold uppercase">Target Recipient Unit</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="Select Unit" /></SelectTrigger></FormControl>
+                    <FormLabel className="text-[10px] font-bold uppercase">Communication Subject</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g., Submission Deadline for FY 2025" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="scope"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-bold uppercase">Target Accessibility Scope</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
                       <SelectContent modal={false}>
-                        {units?.map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                        <SelectItem value="University-Wide">University-Wide (Institutional)</SelectItem>
+                        <SelectItem value="Specific Unit">Specific Unit / Office Only</SelectItem>
                       </SelectContent>
                     </Select>
-                    <FormMessage />
                   </FormItem>
-                )} />
+                )}
+              />
+
+              {watchScope === 'Specific Unit' && (
+                <FormField
+                  control={form.control}
+                  name="targetUnitId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-bold uppercase">Target Recipient Unit</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ''}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select Unit" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent modal={false}>
+                          {units?.map((u) => (
+                            <SelectItem key={u.id} value={u.id}>
+                              {u.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               )}
 
-              <FormField control={form.control} name="googleDriveLink" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-[10px] font-bold uppercase">Google Drive PDF Link</FormLabel>
-                  <FormControl><Input {...field} placeholder="https://drive.google.com/..." /></FormControl>
-                  <FormDescription className="text-[9px]">Ensure sharing is 'Anyone with the link can view'.</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <FormField
+                control={form.control}
+                name="googleDriveLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-bold uppercase">Google Drive PDF Link</FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="https://drive.google.com/..." />
+                    </FormControl>
+                    <FormDescription className="text-[9px]">
+                      Ensure sharing is 'Anyone with the link can view'.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>Cancel</Button>
-                <Button type="submit" disabled={isSubmitting} className="shadow-lg shadow-primary/20 font-black uppercase text-xs">
-                  {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSubmitting}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting} className="font-black uppercase text-xs">
+                  {isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                  )}
                   {editingAdvisory ? 'Save Updates' : 'Publish Advisory'}
                 </Button>
               </DialogFooter>

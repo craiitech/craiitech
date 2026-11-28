@@ -404,8 +404,8 @@ export function FormRegistrationDialog({
         <div className="space-y-1">
           <p className="font-black text-blue-800 uppercase text-[10px] tracking-widest">Draft Protocol: Uploading</p>
           <p className="text-[11px] text-blue-700 leading-relaxed">
-            Paste the links to your working documents. Ensure the Quality Assurance Office has "Editor" or "Viewer"
-            access to suggest corrections directly.
+            Paste the links to your working documents. Ensure the Quality Assurance Office has"Editor" or"Viewer" access
+            to suggest corrections directly.
           </p>
         </div>
       ) : (
@@ -876,7 +876,7 @@ export function FormRegistrationDialog({
                 type="button"
                 onClick={() => setIsConfirmOpen(true)}
                 disabled={isSubmitting}
-                className="min-w-[200px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10"
+                className="min-w-[200px] font-black uppercase text-[10px] h-10"
               >
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                 Submit Application
@@ -985,10 +985,7 @@ export function FormRegistrationDialog({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="font-bold text-[10px] uppercase">Review Again</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleFinalSubmit}
-              className="bg-primary font-black text-[10px] uppercase shadow-lg shadow-primary/20 px-8"
-            >
+            <AlertDialogAction onClick={handleFinalSubmit} className="bg-primary font-black text-[10px] uppercase px-8">
               Confirm & Submit Application
             </AlertDialogAction>
           </AlertDialogFooter>

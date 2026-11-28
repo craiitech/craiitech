@@ -1461,7 +1461,7 @@ export default function HomePage() {
               {renderChecklist('First', firstCycleMap)}
               <Separator />
               {renderChecklist('Final', finalCycleMap)}
-              <Button asChild className="w-full h-12 font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+              <Button asChild className="w-full h-12 font-black uppercase tracking-widest">
                 <Link href="/submissions/new">
                   <Pencil className="mr-2 h-4 w-4" /> Manage Submissions
                 </Link>

@@ -1423,7 +1423,7 @@ export default function RsuAttendanceApp() {
                     <Button
                       type="submit"
                       disabled={isSubmittingOtp || (!paramActivityId && !chosenActivityId) || otpCode.length !== 3}
-                      className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-none text-slate-950 dark:text-white font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
+                      className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 border-emerald-700 text-white font-bold uppercase tracking-wider text-xs rounded-xl shadow-sm transition-colors"
                     >
                       {isSubmittingOtp ? (
                         <>
@@ -2098,7 +2098,7 @@ export default function RsuAttendanceApp() {
                 <Button
                   type="submit"
                   disabled={isAuthLoading || !authEmail.trim() || !authPassword.trim()}
-                  className="w-full h-11 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 border-none text-slate-950 dark:text-white font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
+                  className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 border-emerald-700 text-white font-bold uppercase tracking-wider text-xs rounded-xl shadow-sm transition-colors"
                 >
                   {isAuthLoading ? (
                     <>
@@ -2287,7 +2287,7 @@ export default function RsuAttendanceApp() {
                 <Button
                   type="submit"
                   disabled={isRegistering || !deviceFingerprint}
-                  className="w-full h-11 bg-gradient-to-r from-amber-500 to-[#D4AF37] hover:from-amber-600 hover:to-[#c29f32] border-none text-slate-950 dark:text-white font-black uppercase tracking-wider text-xs rounded-xl shadow-lg transition-all"
+                  className="w-full h-11 bg-amber-500 hover:bg-amber-600 border-amber-600 text-slate-950 font-bold uppercase tracking-wider text-xs rounded-xl shadow-sm transition-colors"
                 >
                   {isRegistering ? (
                     <>

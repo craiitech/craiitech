@@ -962,8 +962,8 @@ export default function NewSubmissionPage() {
                 <Scan className="h-5 w-5 text-primary flex-shrink-0 mt-1" />
                 <div>
                   <span className="font-semibold">3. Upload and Share:</span> Scan the signed, final document as make
-                  sure to save as PDF before uploading it to your unit's Google Drive. Set the sharing permission to
-                  "Anyone with the link can view".
+                  sure to save as PDF before uploading it to your unit's Google Drive. Set the sharing permission
+                  to"Anyone with the link can view".
                 </div>
               </div>
               <div className="flex items-start gap-3">
@@ -1269,11 +1269,7 @@ export default function NewSubmissionPage() {
                           </ol>
                         </div>
 
-                        <Button
-                          size="sm"
-                          asChild
-                          className="h-8 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
-                        >
+                        <Button size="sm" asChild className="h-8 text-[10px] font-black uppercase tracking-widest">
                           <Link href="/risk-register?highlightSection=4">
                             Update Digital Register Now <ExternalLink className="ml-1.5 h-3 w-3" />
                           </Link>

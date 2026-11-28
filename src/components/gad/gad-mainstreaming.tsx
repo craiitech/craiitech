@@ -1536,7 +1536,7 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
                 <Button
                   onClick={handleSaveEnablingChecklist}
                   disabled={isSaving || !selectedUnitId}
-                  className="w-full sm:w-auto font-black text-xs uppercase tracking-widest shadow-lg shadow-primary/20"
+                  className="w-full sm:w-auto font-black text-xs uppercase tracking-widest"
                 >
                   {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Readiness Checklist

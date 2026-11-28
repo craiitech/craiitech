@@ -127,7 +127,7 @@ export function NewSubmissionGuidanceDialog({ open, onOpenChange, onProceed }: N
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleProceed}
-            className="w-full sm:w-auto font-black uppercase text-[10px] tracking-widest h-9 shadow-md shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
+            className="w-full sm:w-auto font-black uppercase text-[10px] tracking-widest h-9 bg-primary hover:bg-primary/90 text-primary-foreground gap-1.5"
           >
             I Understand — Proceed to Submission
             <ArrowRight className="h-3.5 w-3.5" />

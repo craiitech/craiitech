@@ -251,10 +251,7 @@ export default function PbbSubmissionsPage() {
         </div>
         {!showSubmitForm && (
           <div className="flex gap-2">
-            <Button
-              onClick={() => window.print()}
-              className="shadow-lg shadow-primary/20 font-black uppercase tracking-wider text-[10px]"
-            >
+            <Button onClick={() => window.print()} className="font-black uppercase tracking-wider text-[10px]">
               <Printer className="h-4 w-4 mr-2" /> Print
             </Button>
             <Button
@@ -262,7 +259,7 @@ export default function PbbSubmissionsPage() {
                 setShowSubmitForm(true);
                 setFormYear(systemYear.toString());
               }}
-              className="shadow-lg shadow-primary/20 font-black uppercase tracking-wider text-[10px]"
+              className="font-black uppercase tracking-wider text-[10px]"
             >
               <Plus className="h-4 w-4 mr-2" /> Submit Document
             </Button>
@@ -293,7 +290,7 @@ export default function PbbSubmissionsPage() {
               <li>
                 Upload the file to be submitted on your own{' '}
                 <strong className="text-slate-900 dark:text-slate-100">RSU Google Drive</strong>, set the sharing
-                permissions (e.g. "Anyone with the link can view"), and copy the sharing link.
+                permissions (e.g."Anyone with the link can view"), and copy the sharing link.
               </li>
               <li>
                 Set the correct year of submission, provide the document title, and paste the copied Google Drive link
@@ -382,11 +379,7 @@ export default function PbbSubmissionsPage() {
                 >
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="font-bold text-xs uppercase shadow-lg shadow-primary/20"
-                >
+                <Button type="submit" disabled={isSubmitting} className="font-bold text-xs uppercase">
                   {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting

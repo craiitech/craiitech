@@ -483,7 +483,7 @@ export default function RiskRegisterPage() {
                 {!isTopManagement && (
                   <Button
                     onClick={handleNewRisk}
-                    className="flex-1 sm:flex-none h-9 shadow-lg shadow-primary/20 font-bold uppercase text-[10px] tracking-widest"
+                    className="flex-1 sm:flex-none h-9 font-bold uppercase text-[10px] tracking-widest"
                   >
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Log New Entry

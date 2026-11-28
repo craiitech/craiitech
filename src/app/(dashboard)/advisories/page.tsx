@@ -8,7 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Megaphone, Search, Calendar, FileText, Eye, Globe, Building2, ExternalLink, ShieldCheck } from 'lucide-react';
+import {
+  Loader2,
+  Megaphone,
+  Search,
+  Calendar,
+  FileText,
+  Eye,
+  Globe,
+  Building2,
+  ExternalLink,
+  ShieldCheck,
+} from 'lucide-react';
 import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -30,7 +41,7 @@ export default function QaAdvisoriesPage() {
   const filteredAdvisories = useMemo(() => {
     if (!rawAdvisories || !userProfile) return [];
 
-    return rawAdvisories.filter(advisory => {
+    return rawAdvisories.filter((advisory) => {
       // 1. Accessibility Logic
       const isUniversityWide = advisory.scope === 'University-Wide';
       const isForMyUnit = advisory.targetUnitId === userProfile.unitId;
@@ -83,7 +94,10 @@ export default function QaAdvisoriesPage() {
             <Card key={advisory.id} className="hover:shadow-md transition-all group border-primary/10">
               <CardHeader className="pb-3 border-b bg-muted/10">
                 <div className="flex justify-between items-start gap-2">
-                  <Badge variant="outline" className="font-mono text-[10px] font-black border-primary/20 text-primary bg-white">
+                  <Badge
+                    variant="outline"
+                    className="font-mono text-[10px] font-black border-primary/20 text-primary bg-white"
+                  >
                     {advisory.controlNumber}
                   </Badge>
                   {advisory.scope === 'University-Wide' ? (
@@ -106,9 +120,9 @@ export default function QaAdvisoriesPage() {
                   Released: {advisory.releaseDate?.toDate ? format(advisory.releaseDate.toDate(), 'PPP') : 'N/A'}
                 </div>
                 <div className="flex gap-2 pt-2">
-                  <Button 
-                    variant="default" 
-                    size="sm" 
+                  <Button
+                    variant="default"
+                    size="sm"
                     className="flex-1 h-8 text-[10px] font-black uppercase tracking-widest bg-primary shadow-lg shadow-primary/10"
                     onClick={() => setPreviewAdvisory(advisory)}
                   >
@@ -127,7 +141,9 @@ export default function QaAdvisoriesPage() {
             <div className="col-span-full py-20 text-center border border-dashed rounded-2xl bg-muted/5">
               <Megaphone className="h-12 w-12 mx-auto text-muted-foreground opacity-10 mb-4" />
               <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest">No Advisories Found</p>
-              <p className="text-xs text-muted-foreground mt-1">There are no active communications relevant to your unit at this time.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                There are no active communications relevant to your unit at this time.
+              </p>
             </div>
           )}
         </div>
@@ -143,18 +159,22 @@ export default function QaAdvisoriesPage() {
                   <Megaphone className="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <DialogTitle className="text-sm font-black uppercase tracking-tight line-clamp-1">{previewAdvisory?.subject}</DialogTitle>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Official QA Advisory &bull; {previewAdvisory?.controlNumber}</p>
+                  <DialogTitle className="text-sm font-black uppercase tracking-tight line-clamp-1">
+                    {previewAdvisory?.subject}
+                  </DialogTitle>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    Official QA Advisory &bull; {previewAdvisory?.controlNumber}
+                  </p>
                 </div>
               </div>
             </div>
           </DialogHeader>
           <div className="flex-1 bg-muted relative">
             {previewAdvisory && (
-              <iframe 
-                src={getEmbedUrl(previewAdvisory.googleDriveLink)} 
-                className="absolute inset-0 w-full h-full border-none bg-white" 
-                allow="autoplay" 
+              <iframe
+                src={getEmbedUrl(previewAdvisory.googleDriveLink)}
+                className="absolute inset-0 w-full h-full border-none bg-white"
+                allow="autoplay"
                 title="QA Advisory Preview"
               />
             )}
@@ -165,9 +185,23 @@ export default function QaAdvisoriesPage() {
               Institutional Digital Directives
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest" onClick={() => setPreviewAdvisory(null)}>Close</Button>
-              <Button variant="default" size="sm" className="h-8 font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20" asChild>
-                <a href={previewAdvisory?.googleDriveLink} target="_blank" rel="noopener noreferrer">Open in Drive</a>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 font-black text-[10px] uppercase tracking-widest"
+                onClick={() => setPreviewAdvisory(null)}
+              >
+                Close
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                className="h-8 font-black text-[10px] uppercase tracking-widest"
+                asChild
+              >
+                <a href={previewAdvisory?.googleDriveLink} target="_blank" rel="noopener noreferrer">
+                  Open in Drive
+                </a>
               </Button>
             </div>
           </div>

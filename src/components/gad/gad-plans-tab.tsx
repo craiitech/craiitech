@@ -294,7 +294,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                 });
                 setIsDialogOpen(true);
               }}
-              className="h-10 shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest"
+              className="h-10 font-black uppercase text-[10px] tracking-widest"
             >
               <PlusCircle className="mr-2 h-4 w-4" /> Add GPB Entry
             </Button>
@@ -1009,7 +1009,7 @@ export function GADPlansTab({ plans, campuses, units, selectedYear, selectedUnit
                   type="submit"
                   form="plan-form"
                   disabled={isSubmitting}
-                  className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-11"
+                  className="min-w-[180px] font-black uppercase text-[10px] h-11"
                 >
                   {isSubmitting ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />

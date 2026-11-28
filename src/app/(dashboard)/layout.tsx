@@ -164,7 +164,7 @@ function SidebarEomsPoints({
           className={cn(
             'text-[9px] font-black uppercase px-1.5 py-0.5 rounded-sm tracking-wider',
             eomsPoints.tier === 'Gold' && 'bg-yellow-400 text-yellow-900',
-            eomsPoints.tier === 'Silver' && 'bg-slate-300 text-slate-800 dark:text-slate-200',
+            eomsPoints.tier === 'Silver' && 'bg-slate-300 text-slate-900',
             eomsPoints.tier === 'Bronze' && 'bg-amber-700 text-amber-100',
             eomsPoints.tier === 'Unranked' && 'bg-sidebar-accent text-sidebar-foreground/70',
           )}
@@ -1048,7 +1048,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <CardFooter className="bg-slate-50 dark:bg-slate-800/50 border-t py-6">
             <Button
               onClick={() => window.location.reload()}
-              className="w-full h-12 font-black uppercase tracking-widest gap-2 shadow-xl shadow-primary/20"
+              className="w-full h-12 font-black uppercase tracking-widest gap-2"
             >
               <RotateCw className="h-4 w-4" /> Try Reconnecting
             </Button>
@@ -1066,7 +1066,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <SidebarProvider>
               <Sidebar variant="sidebar" collapsible="icon">
                 <SidebarHeader className="p-4">
-                  <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-xl bg-card border border-sidebar-border shadow-sm group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden">
+                  <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-xl bg-sidebar-accent/70 border border-sidebar-border shadow-sm group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden">
                     <div className="relative z-10">
                       {displayAvatar ? (
                         <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 border-2 border-sidebar-border shadow-sm">

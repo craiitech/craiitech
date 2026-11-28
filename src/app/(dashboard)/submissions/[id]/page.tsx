@@ -394,7 +394,7 @@ export default function SubmissionDetailPage() {
       if (incorrectEntries.length > 0) {
         const statusLabel = submission?.cycleId === 'first' ? 'Incorrect' : 'Not Updated';
         reasons.push(
-          `* Digital Register Discrepancy: ${incorrectEntries.length} entries in the digital risk register are marked as "${statusLabel}". The digital database must exactly match the submitted document.`,
+          `* Digital Register Discrepancy: ${incorrectEntries.length} entries in the digital risk register are marked as"${statusLabel}". The digital database must exactly match the submitted document.`,
         );
       }
     }
@@ -1314,8 +1314,7 @@ export default function SubmissionDetailPage() {
                         </div>
 
                         <p className="text-[10px] text-muted-foreground italic text-center font-medium">
-                          Select "Record New Entry" to use the rapid entry wizard for a specific item from this
-                          document.
+                          Select"Record New Entry" to use the rapid entry wizard for a specific item from this document.
                         </p>
                       </div>
                     ) : (
@@ -1333,7 +1332,7 @@ export default function SubmissionDetailPage() {
                         </div>
                         <Button
                           onClick={handleOpenRiskBridge}
-                          className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20 bg-indigo-600 text-white hover:bg-indigo-700"
+                          className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest bg-indigo-600 text-white hover:bg-indigo-700"
                         >
                           <PlusCircle className="h-4 w-4" />
                           Record in Risk Registry
@@ -1359,7 +1358,7 @@ export default function SubmissionDetailPage() {
                     </div>
                     <Button
                       onClick={() => setIsAdminReviewOverride(true)}
-                      className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"
+                      className="shrink-0 gap-2 font-black uppercase text-[10px] tracking-widest"
                     >
                       <ClipboardCheck className="h-4 w-4" />
                       Review Rejected Document
@@ -1437,7 +1436,7 @@ export default function SubmissionDetailPage() {
                     disabled={isSubmitting || !isChecklistComplete}
                     className={cn(
                       'shadow-lg font-black',
-                      submission.isDraft ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : 'shadow-primary/20',
+                      submission.isDraft ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' : '',
                     )}
                   >
                     {isSubmitting ? (

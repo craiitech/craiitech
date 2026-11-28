@@ -1,17 +1,16 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogDescription, 
-    DialogFooter, 
-    DialogHeader, 
-    DialogTitle 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
@@ -20,18 +19,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { useUser, useFirestore } from '@/firebase';
 import { collection, addDoc, serverTimestamp, doc, setDoc, Timestamp } from '@/firebase/firestore-wrapper';
 import { useToast } from '@/hooks/use-toast';
-import { 
-    Loader2, 
-    Save, 
-    Home, 
-    Calendar, 
-    Info, 
-    Briefcase,
-    GraduationCap,
-    Activity,
-    ClipboardCheck,
-    CheckCircle2,
-    Link as LinkIcon
+import {
+  Loader2,
+  Save,
+  Home,
+  Calendar,
+  Info,
+  Briefcase,
+  GraduationCap,
+  Activity,
+  ClipboardCheck,
+  CheckCircle2,
+  Link as LinkIcon,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { WfhActivity } from '@/lib/types';
@@ -75,7 +74,7 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
       officeAssignment: '',
       otherDesignations: '',
       evidenceLink: '',
-    }
+    },
   });
 
   const watchType = form.watch('type');
@@ -150,113 +149,230 @@ export function WfhActivityFormDialog({ isOpen, onOpenChange, activity }: WfhAct
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Work from Home Monitor</span>
           </div>
           <DialogTitle>{activity ? 'Edit' : 'Record'} WFH Activity</DialogTitle>
-          <DialogDescription className="text-xs">Document your remote accomplishments for institutional monitoring.</DialogDescription>
+          <DialogDescription className="text-xs">
+            Document your remote accomplishments for institutional monitoring.
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="p-8 space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField control={form.control} name="date" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                            <Calendar className="h-3 w-3" /> Date
-                        </FormLabel>
-                        <FormControl><Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50 font-bold" /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
-                <FormField control={form.control} name="type" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                            <Activity className="h-3 w-3" /> Personnel Type
-                        </FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl><SelectTrigger className="bg-primary/5 border-primary/20 font-bold"><SelectValue /></SelectTrigger></FormControl>
-                            <SelectContent modal={false}>
-                                <SelectItem value="Teaching">Teaching Faculty</SelectItem>
-                                <SelectItem value="Non-Teaching">Non-Teaching Staff</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </FormItem>
-                )} />
+              <FormField
+                control={form.control}
+                name="date"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <Calendar className="h-3 w-3" /> Date
+                    </FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} className="bg-slate-50 dark:bg-slate-800/50 font-bold" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <Activity className="h-3 w-3" /> Personnel Type
+                    </FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="bg-primary/5 border-primary/20 font-bold">
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent modal={false}>
+                        <SelectItem value="Teaching">Teaching Faculty</SelectItem>
+                        <SelectItem value="Non-Teaching">Non-Teaching Staff</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className="p-4 rounded-xl border bg-muted/5 space-y-4">
-                <FormField control={form.control} name="natureOfAppointment" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">Nature of Appointment</FormLabel>
-                        <FormControl><Input {...field} placeholder="e.g. Permanent, Lecturer, Part-Time" className="bg-white h-9 text-xs" /></FormControl>
-                    </FormItem>
-                )} />
-
-                {watchType === 'Teaching' ? (
-                    <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-300">
-                        <FormField control={form.control} name="teachingLoad" render={({ field }) => (
-                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Teaching Load (Units)</FormLabel><FormControl><Input {...field} placeholder="e.g. 18" className="h-8 text-xs bg-white" /></FormControl></FormItem>
-                        )} />
-                        <FormField control={form.control} name="subjectsTaught" render={({ field }) => (
-                            <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Subjects Taught</FormLabel><FormControl><Input {...field} placeholder="e.g. ITEC 101" className="h-8 text-xs bg-white" /></FormControl></FormItem>
-                        )} />
-                    </div>
-                ) : (
-                    <FormField control={form.control} name="officeAssignment" render={({ field }) => (
-                        <FormItem className="animate-in fade-in duration-300"><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Office Assignment</FormLabel><FormControl><Input {...field} placeholder="e.g. ACCT Office" className="h-8 text-xs bg-white" /></FormControl></FormItem>
-                    )} />
+              <FormField
+                control={form.control}
+                name="natureOfAppointment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-400">
+                      Nature of Appointment
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        placeholder="e.g. Permanent, Lecturer, Part-Time"
+                        className="bg-white h-9 text-xs"
+                      />
+                    </FormControl>
+                  </FormItem>
                 )}
-                
-                <FormField control={form.control} name="otherDesignations" render={({ field }) => (
-                    <FormItem><FormLabel className="text-[9px] font-black uppercase text-muted-foreground">Other Designations</FormLabel><FormControl><Input {...field} placeholder="e.g. QMS Coordinator" className="h-8 text-xs bg-white" /></FormControl></FormItem>
-                )} />
+              />
+
+              {watchType === 'Teaching' ? (
+                <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-300">
+                  <FormField
+                    control={form.control}
+                    name="teachingLoad"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">
+                          Teaching Load (Units)
+                        </FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g. 18" className="h-8 text-xs bg-white" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="subjectsTaught"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">
+                          Subjects Taught
+                        </FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g. ITEC 101" className="h-8 text-xs bg-white" />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="officeAssignment"
+                  render={({ field }) => (
+                    <FormItem className="animate-in fade-in duration-300">
+                      <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">
+                        Office Assignment
+                      </FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g. ACCT Office" className="h-8 text-xs bg-white" />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <FormField
+                control={form.control}
+                name="otherDesignations"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[9px] font-black uppercase text-muted-foreground">
+                      Other Designations
+                    </FormLabel>
+                    <FormControl>
+                      <Input {...field} placeholder="e.g. QMS Coordinator" className="h-8 text-xs bg-white" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className="space-y-4">
-                <FormField control={form.control} name="deliverables" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                            <ClipboardCheck className="h-3.5 w-3.5" /> Deliverables
-                        </FormLabel>
-                        <FormControl><Textarea {...field} rows={3} placeholder="What was approved for this period?" className="bg-slate-50 dark:bg-slate-800/50 text-xs" /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+              <FormField
+                control={form.control}
+                name="deliverables"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <ClipboardCheck className="h-3.5 w-3.5" /> Deliverables
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        rows={3}
+                        placeholder="What was approved for this period?"
+                        className="bg-slate-50 dark:bg-slate-800/50 text-xs"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField control={form.control} name="accomplishment" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Accomplishment
-                        </FormLabel>
-                        <FormControl><Textarea {...field} rows={3} placeholder="Specify actual results and evidence..." className="bg-emerald-50/10 border-emerald-100 text-xs font-medium" /></FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+              <FormField
+                control={form.control}
+                name="accomplishment"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-emerald-700 flex items-center gap-2">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Accomplishment
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        {...field}
+                        rows={3}
+                        placeholder="Specify actual results and evidence..."
+                        className="bg-emerald-50/10 border-emerald-100 text-xs font-medium"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField control={form.control} name="evidenceLink" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-blue-700 flex items-center gap-2">
-                            <LinkIcon className="h-3.5 w-3.5" /> Evidence Link (Google Drive)
-                        </FormLabel>
-                        <FormControl>
-                            <Input {...field} value={field.value || ''} placeholder="https://drive.google.com/..." className="h-9 text-xs bg-blue-50/30 border-blue-100" />
-                        </FormControl>
-                        <FormDescription className="text-[9px]">Paste the link to your digital evidence folder or file.</FormDescription>
-                        <FormMessage />
-                    </FormItem>
-                )} />
+              <FormField
+                control={form.control}
+                name="evidenceLink"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-blue-700 flex items-center gap-2">
+                      <LinkIcon className="h-3.5 w-3.5" /> Evidence Link (Google Drive)
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        value={field.value || ''}
+                        placeholder="https://drive.google.com/..."
+                        className="h-9 text-xs bg-blue-50/30 border-blue-100"
+                      />
+                    </FormControl>
+                    <FormDescription className="text-[9px]">
+                      Paste the link to your digital evidence folder or file.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
-                <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-blue-800 leading-relaxed italic">
-                    <strong>Institutional Monitoring:</strong> WFH sheets are audited monthly. Ensure that deliverables are approved by your immediate head before execution.
-                </p>
+              <Info className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
+              <p className="text-[10px] text-blue-800 leading-relaxed italic">
+                <strong>Institutional Monitoring:</strong> WFH sheets are audited monthly. Ensure that deliverables are
+                approved by your immediate head before execution.
+              </p>
             </div>
 
             <DialogFooter className="pt-4 border-t mt-6">
-                <Button type="button" variant="ghost" className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground" onClick={() => onOpenChange(false)}>Discard</Button>
-                <Button type="submit" disabled={isSubmitting} className="min-w-[160px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-11">
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
-                    {activity ? 'Update Entry' : 'Log WFH Task'}
-                </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="font-bold text-[10px] uppercase tracking-widest text-muted-foreground"
+                onClick={() => onOpenChange(false)}
+              >
+                Discard
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="min-w-[160px] font-black uppercase text-[10px] tracking-widest h-11"
+              >
+                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4 mr-1.5" />}
+                {activity ? 'Update Entry' : 'Log WFH Task'}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

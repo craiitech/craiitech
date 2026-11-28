@@ -573,7 +573,7 @@ function MobileVisitorLogbookContent() {
             <div className="pt-2">
               <Button
                 onClick={resetPage}
-                className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white border border-[#D4AF37]/30 hover:border-[#D4AF37]/50 rounded-xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all duration-150"
+                className="w-full h-12 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white rounded-xl font-bold uppercase tracking-wider shadow-sm transition-colors"
               >
                 Sign In Again
               </Button>
@@ -600,7 +600,7 @@ function MobileVisitorLogbookContent() {
                     setShowSurvey(true);
                     setPendingCsmResolve(null);
                   }}
-                  className="w-full h-14 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white border border-[#D4AF37]/30 rounded-xl font-black uppercase tracking-widest shadow-lg"
+                  className="w-full h-14 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white rounded-xl font-bold uppercase tracking-wider shadow-sm"
                 >
                   <CheckCircle2 className="h-5 w-5" /> Yes, Complete Survey
                 </Button>
@@ -653,7 +653,7 @@ function MobileVisitorLogbookContent() {
                 <div className="space-y-3 pt-4">
                   <Button
                     onClick={() => setShowSurvey(true)}
-                    className="w-full h-14 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white border border-[#D4AF37]/30 hover:border-[#D4AF37]/50 rounded-xl font-black uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+                    className="w-full h-14 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white rounded-xl font-bold uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-colors"
                   >
                     <LogOut className="h-5 w-5" /> Proceed to Logout
                   </Button>
@@ -1021,7 +1021,7 @@ function MobileVisitorLogbookContent() {
                     type="button"
                     disabled={isSubmittingCsm || !csmAgeGroup || !csmClientType || csmCC1 === null}
                     onClick={() => submitCsmCheckout(false)}
-                    className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] text-white font-black uppercase tracking-widest text-xs rounded-xl shadow-lg transition-all"
+                    className="w-full h-12 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white font-bold uppercase tracking-wider text-xs rounded-xl shadow-sm transition-colors"
                   >
                     {isSubmittingCsm ? (
                       <>
@@ -1326,7 +1326,7 @@ function MobileVisitorLogbookContent() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-11 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] text-white border border-[#D4AF37]/20 rounded-xl font-black uppercase tracking-widest text-xs shadow-md"
+                    className="w-full h-11 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white rounded-xl font-bold uppercase tracking-wider text-xs shadow-sm"
                   >
                     {isSubmitting ? 'Recording...' : 'Submit Entry'}
                   </Button>

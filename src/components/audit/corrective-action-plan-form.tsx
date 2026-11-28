@@ -40,8 +40,8 @@ export function CorrectiveActionPlanForm({ findingId }: CorrectiveActionPlanForm
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const usersQuery = useMemoFirebase(() => {
-      if (!firestore || !userProfile) return null;
-      return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
+    if (!firestore || !userProfile) return null;
+    return query(collection(firestore, 'users'), where('unitId', '==', userProfile.unitId));
   }, [firestore, userProfile]);
 
   const { data: unitUsers, isLoading: isLoadingUsers } = useCollection<User>(usersQuery);
@@ -54,7 +54,7 @@ export function CorrectiveActionPlanForm({ findingId }: CorrectiveActionPlanForm
     if (!firestore || !user || !userProfile || !unitUsers) return;
     setIsSubmitting(true);
 
-    const responsiblePerson = unitUsers.find(u => u.id === values.responsiblePersonId);
+    const responsiblePerson = unitUsers.find((u) => u.id === values.responsiblePersonId);
 
     const capData = {
       ...values,
@@ -66,14 +66,17 @@ export function CorrectiveActionPlanForm({ findingId }: CorrectiveActionPlanForm
     };
 
     try {
-        await addDoc(collection(firestore, 'correctiveActionPlans'), capData);
-        toast({ title: isOnline ? 'Success' : 'Saved Locally', description: isOnline ? 'Corrective Action Plan submitted.' : 'Plan saved to device and awaiting sync.' });
-        router.push('/audit');
-    } catch(error) {
-        console.error("Error submitting CAP:", error);
-        toast({ title: 'Error', description: 'Could not submit the plan.', variant: 'destructive'});
+      await addDoc(collection(firestore, 'correctiveActionPlans'), capData);
+      toast({
+        title: isOnline ? 'Success' : 'Saved Locally',
+        description: isOnline ? 'Corrective Action Plan submitted.' : 'Plan saved to device and awaiting sync.',
+      });
+      router.push('/audit');
+    } catch (error) {
+      console.error('Error submitting CAP:', error);
+      toast({ title: 'Error', description: 'Could not submit the plan.', variant: 'destructive' });
     } finally {
-        setIsSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -86,7 +89,9 @@ export function CorrectiveActionPlanForm({ findingId }: CorrectiveActionPlanForm
           render={({ field }) => (
             <FormItem>
               <FormLabel>Root Cause Analysis</FormLabel>
-              <FormControl><Textarea {...field} placeholder="Analyze and describe the root cause of the non-conformance..." /></FormControl>
+              <FormControl>
+                <Textarea {...field} placeholder="Analyze and describe the root cause of the non-conformance..." />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -97,7 +102,12 @@ export function CorrectiveActionPlanForm({ findingId }: CorrectiveActionPlanForm
           render={({ field }) => (
             <FormItem>
               <FormLabel>Immediate Correction Plan</FormLabel>
-              <FormControl><Textarea {...field} placeholder="Describe the immediate actions that will be taken to correct the issue." /></FormControl>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  placeholder="Describe the immediate actions that will be taken to correct the issue."
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
@@ -108,64 +118,86 @@ export function CorrectiveActionPlanForm({ findingId }: CorrectiveActionPlanForm
           render={({ field }) => (
             <FormItem>
               <FormLabel>Long-Term Corrective Action</FormLabel>
-              <FormControl><Textarea {...field} placeholder="Describe the long-term actions to prevent recurrence of this issue." /></FormControl>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  placeholder="Describe the long-term actions to prevent recurrence of this issue."
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-                control={form.control}
-                name="responsiblePersonId"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Responsible Person</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingUsers}>
-                            <FormControl><SelectTrigger><SelectValue placeholder="Select a person from your unit" /></SelectTrigger></FormControl>
-                            <SelectContent>{unitUsers?.map(u => <SelectItem key={u.id} value={u.id}>{u.firstName} {u.lastName}</SelectItem>)}</SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-            <FormField
-                control={form.control}
-                name="targetDate"
-                render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                        <FormLabel>Target Completion Date</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <FormControl>
-                                    <Button variant="outline" className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                                        {field.value ? format(field.value, "PPP") : (<span>Pick a date</span>)}
-                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                    </Button>
-                                </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
+          <FormField
+            control={form.control}
+            name="responsiblePersonId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Responsible Person</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value} disabled={isLoadingUsers}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a person from your unit" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {unitUsers?.map((u) => (
+                      <SelectItem key={u.id} value={u.id}>
+                        {u.firstName} {u.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="targetDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Target Completion Date</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        className={cn('pl-3 text-left font-normal', !field.value && 'text-muted-foreground')}
+                      >
+                        {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-         <div className="flex justify-end">
-            <Button type="submit" disabled={isSubmitting} className="min-w-[140px] shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest h-10">
-                {isSubmitting ? (
-                    <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isOnline ? 'Submitting...' : 'Caching locally...'}
-                    </>
-                ) : (
-                    <>
-                        <Save className="mr-2 h-4 w-4" />
-                        Submit Corrective Action Plan
-                    </>
-                )}
-            </Button>
+        <div className="flex justify-end">
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="min-w-[140px] font-black uppercase text-[10px] tracking-widest h-10"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {isOnline ? 'Submitting...' : 'Caching locally...'}
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Submit Corrective Action Plan
+              </>
+            )}
+          </Button>
         </div>
       </form>
     </Form>

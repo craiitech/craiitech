@@ -403,14 +403,14 @@ export function RiskFormDialog({
     // 2. Check for duplicates in PREVIOUS years
     const previousYearRisks = matchingRisks.filter((r) => r.year < watchYear);
     if (previousYearRisks.length > 0) {
-      // It is allowed ONLY if the previous risk was assessed to be "Carried Forward"
+      // It is allowed ONLY if the previous risk was assessed to be"Carried Forward"
       const hasCarriedForward = previousYearRisks.some((r) => r.verification?.status === 'Carried Forward');
       if (!hasCarriedForward) {
         const latestPrevRisk = previousYearRisks.reduce((prev, current) => (prev.year > current.year ? prev : current));
         return {
           type: 'previous-year-not-carried',
           risk: latestPrevRisk,
-          message: `An identical entry exists in the AY ${latestPrevRisk.year} registry, but it was not assessed as "Carried Forward" by the admin. Re-creating this entry is not allowed unless it is explicitly carried forward by the admin.`,
+          message: `An identical entry exists in the AY ${latestPrevRisk.year} registry, but it was not assessed as"Carried Forward" by the admin. Re-creating this entry is not allowed unless it is explicitly carried forward by the admin.`,
         };
       }
     }
@@ -1766,7 +1766,7 @@ export function RiskFormDialog({
               form="risk-form"
               type="submit"
               disabled={isSubmitting || !!duplicateConflict}
-              className="min-w-[150px] shadow-lg shadow-primary/20"
+              className="min-w-[150px]"
             >
               {isSubmitting ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

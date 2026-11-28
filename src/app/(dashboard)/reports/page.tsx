@@ -514,7 +514,7 @@ export default function ReportsPage() {
               </div>
               {isAdmin && (
                 <div className="pt-4">
-                  <Button size="sm" onClick={handlePrint} className="h-9 shadow-lg shadow-primary/20">
+                  <Button size="sm" onClick={handlePrint} className="h-9">
                     <Printer className="mr-2 h-4 w-4" />
                     Print Data Log
                   </Button>

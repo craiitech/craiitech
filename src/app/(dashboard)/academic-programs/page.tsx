@@ -296,11 +296,7 @@ export default function AcademicProgramsPage() {
               </div>
               {isAdmin && (
                 <div className="pt-4">
-                  <Button
-                    onClick={handleNewProgram}
-                    size="sm"
-                    className="h-9 font-bold uppercase tracking-tight shadow-lg shadow-primary/20"
-                  >
+                  <Button onClick={handleNewProgram} size="sm" className="h-9 font-bold uppercase tracking-tight">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Register Program
                   </Button>

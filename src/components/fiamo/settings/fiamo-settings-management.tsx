@@ -782,7 +782,7 @@ export function FiamoSettingsManagement() {
                   <Button
                     onClick={handleSaveOffice}
                     disabled={isSubmitting}
-                    className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]"
+                    className="font-black uppercase tracking-widest text-[10px]"
                   >
                     {isSubmitting ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

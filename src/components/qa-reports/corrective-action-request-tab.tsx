@@ -1920,7 +1920,7 @@ export function CorrectiveActionRequestTab({
       const newFollowUps = values.followUpLogs || [];
       if (newFollowUps.length > prevFollowUps.length) {
         const latestLog = newFollowUps[newFollowUps.length - 1];
-        changes.push(`Follow-up log recorded: "${latestLog?.result || 'Updated'}"`);
+        changes.push(`Follow-up log recorded:"${latestLog?.result || 'Updated'}"`);
       } else if (JSON.stringify(newFollowUps) !== JSON.stringify(prevFollowUps)) {
         changes.push('Follow-up verification logs updated');
       }
@@ -1929,13 +1929,13 @@ export function CorrectiveActionRequestTab({
       const newAudits = values.effectivenessAudits || [];
       if (newAudits.length > prevAudits.length) {
         const latestAudit = newAudits[newAudits.length - 1];
-        changes.push(`Verification audit recorded: "${latestAudit?.action || 'Audit updated'}"`);
+        changes.push(`Verification audit recorded:"${latestAudit?.action || 'Audit updated'}"`);
       } else if (JSON.stringify(newAudits) !== JSON.stringify(prevAudits)) {
         changes.push('Verification audit logs updated');
       }
 
       if (nextStatus !== (liveCar?.status || 'Open')) {
-        changes.push(`Status transitioned from "${liveCar?.status || 'Open'}" to "${nextStatus}"`);
+        changes.push(`Status transitioned from"${liveCar?.status || 'Open'}" to"${nextStatus}"`);
       }
 
       const prevAssigned = liveCar?.assignedUnits || [];
@@ -2059,7 +2059,7 @@ export function CorrectiveActionRequestTab({
 
     const directive = [
       `Returned for correction: the Google Drive evidence link for Action Step ${index + 1} (${step.type}) is not accessible or the file could not be found.`,
-      'Please check that the link points to the correct evidence file, set Google Drive General access to "Anyone with the link" with Viewer permission, and test the link in a private/incognito window while signed out.',
+      'Please check that the link points to the correct evidence file, set Google Drive General access to"Anyone with the link" with Viewer permission, and test the link in a private/incognito window while signed out.',
       'Replace the evidence link if needed, then save and resubmit this CAR response for verification.',
     ].join('\n\n');
     const existingFeedback = form.getValues('adminFeedback')?.trim();
@@ -2258,7 +2258,7 @@ export function CorrectiveActionRequestTab({
       if (printWindow) {
         printWindow.document.open();
         printWindow.document.write(
-          `<!DOCTYPE html><html><head><title>CAR Registry Analytical Report</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 13in 8.5in landscape; margin: 0.4in; } @media print { html, body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display: none !important; } tr { page-break-inside: avoid !important; break-inside: avoid !important; } thead { display: table-header-group; } } body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; padding: 24px; margin: 0; color: #000; }</style></head><body><div class="no-print mb-6 flex justify-center"><button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-xl font-black uppercase text-xs tracking-widest">Click to Print CAR Registry Report</button></div><div id="print-content">${reportHtml}</div></body></html>`,
+          `<!DOCTYPE html><html><head><title>CAR Registry Analytical Report</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>@page { size: 13in 8.5in landscape; margin: 0.4in; } @media print { html, body { margin: 0; padding: 0; background: white; -webkit-print-color-adjust: exact; print-color-adjust: exact; } .no-print { display: none !important; } tr { page-break-inside: avoid !important; break-inside: avoid !important; } thead { display: table-header-group; } } body { font-family: -apple-system, BlinkMacSystemFont,"Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f8fafc; padding: 24px; margin: 0; color: #000; }</style></head><body><div class="no-print mb-6 flex justify-center"><button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg shadow-xl font-black uppercase text-xs tracking-widest">Click to Print CAR Registry Report</button></div><div id="print-content">${reportHtml}</div></body></html>`,
         );
         printWindow.document.close();
       }
@@ -2298,7 +2298,7 @@ export function CorrectiveActionRequestTab({
             <Button
               onClick={handleOpenCreateNew}
               size="sm"
-              className="shadow-lg shadow-primary/20 font-black uppercase text-[10px] tracking-widest"
+              className="font-black uppercase text-[10px] tracking-widest"
             >
               <PlusCircle className="mr-2 h-4 w-4" />
               {effectiveTypeFilter === 'EQA' ? 'Issue New EQA CAR' : 'Issue New CAR'}
@@ -4809,7 +4809,7 @@ export function CorrectiveActionRequestTab({
                   <Button
                     onClick={form.handleSubmit(onSubmit)}
                     disabled={isSubmitting}
-                    className="min-w-[180px] shadow-xl shadow-primary/20 font-black uppercase text-[10px] h-10 px-8"
+                    className="min-w-[180px] font-black uppercase text-[10px] h-10 px-8"
                   >
                     {isSubmitting ? (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />

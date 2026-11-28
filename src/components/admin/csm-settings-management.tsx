@@ -8,42 +8,21 @@ import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@
 import { doc, setDoc, serverTimestamp, collection, getDocs } from '@/firebase/firestore-wrapper';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from '@/components/ui/card';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Loader2, 
-  ShieldCheck, 
-  ClipboardList, 
-  Info, 
-  School, 
+import {
+  Loader2,
+  ShieldCheck,
+  ClipboardList,
+  Info,
+  School,
   Building,
   CheckCircle2,
   XCircle,
   Globe,
-  Radio
+  Radio,
 } from 'lucide-react';
 import type { CsmSettings, CsmDeployment, Unit, Campus, Cycle } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -68,25 +47,17 @@ export function CsmSettingsManagement() {
   // Fetch CSM Settings
   const csmSettingsRef = useMemoFirebase(
     () => (firestore ? doc(firestore, 'system', 'csmSettings') : null),
-    [firestore]
+    [firestore],
   );
   const { data: currentSettings, isLoading: isLoadingSettings } = useDoc<CsmSettings>(csmSettingsRef);
 
   // Fetch Campuses
-  const campusesQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'campuses') : null),
-    [firestore]
-  );
+  const campusesQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'campuses') : null), [firestore]);
   const { data: campuses, isLoading: isLoadingCampuses } = useCollection<Campus>(campusesQuery);
 
   // Fetch Units
-  const unitsQuery = useMemoFirebase(
-    () => (firestore ? collection(firestore, 'units') : null),
-    [firestore]
-  );
+  const unitsQuery = useMemoFirebase(() => (firestore ? collection(firestore, 'units') : null), [firestore]);
   const { data: units, isLoading: isLoadingUnits } = useCollection<Unit>(unitsQuery);
-
-
 
   const form = useForm<z.infer<typeof csmSettingsSchema>>({
     resolver: zodResolver(csmSettingsSchema),
@@ -101,34 +72,35 @@ export function CsmSettingsManagement() {
   // Filter units based on selected campus
   const filteredUnits = useMemo(() => {
     if (!units || !selectedCampusId) return [];
-    return units
-      .filter(u => u.campusIds?.includes(selectedCampusId))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return units.filter((u) => u.campusIds?.includes(selectedCampusId)).sort((a, b) => a.name.localeCompare(b.name));
   }, [units, selectedCampusId]);
 
   // Sync state from database settings
   useEffect(() => {
     if (currentSettings) {
       if (currentSettings.managingUnitId && units && units.length > 0) {
-        const targetUnit = units.find(u => u.id === currentSettings.managingUnitId);
+        const targetUnit = units.find((u) => u.id === currentSettings.managingUnitId);
         if (targetUnit && targetUnit.campusIds && targetUnit.campusIds.length > 0) {
           if (!selectedCampusId || !targetUnit.campusIds.includes(selectedCampusId)) {
             setSelectedCampusId(targetUnit.campusIds[0]);
           }
-          
+
           if (form.getValues('managingUnitId') !== targetUnit.id) {
             form.setValue('managingUnitId', targetUnit.id);
           }
         }
       }
-      
+
       if (currentSettings.csmDirector && form.getValues('csmDirector') !== currentSettings.csmDirector) {
         form.setValue('csmDirector', currentSettings.csmDirector);
       }
       if (currentSettings.csmQualityHead && form.getValues('csmQualityHead') !== currentSettings.csmQualityHead) {
         form.setValue('csmQualityHead', currentSettings.csmQualityHead);
       }
-      if (currentSettings.csmCampusCoordinator && form.getValues('csmCampusCoordinator') !== currentSettings.csmCampusCoordinator) {
+      if (
+        currentSettings.csmCampusCoordinator &&
+        form.getValues('csmCampusCoordinator') !== currentSettings.csmCampusCoordinator
+      ) {
         form.setValue('csmCampusCoordinator', currentSettings.csmCampusCoordinator);
       }
     }
@@ -138,14 +110,18 @@ export function CsmSettingsManagement() {
     if (!firestore || !userProfile) return;
     setIsSubmitting(true);
     try {
-      await setDoc(doc(firestore, 'system', 'csmSettings'), {
-        ...values,
-        updatedAt: serverTimestamp(),
-        updatedBy: userProfile.id,
-      }, { merge: true });
-      toast({ 
-        title: 'CSM Authority Designated', 
-        description: 'The selected unit will now act as the official CSM monitoring department.' 
+      await setDoc(
+        doc(firestore, 'system', 'csmSettings'),
+        {
+          ...values,
+          updatedAt: serverTimestamp(),
+          updatedBy: userProfile.id,
+        },
+        { merge: true },
+      );
+      toast({
+        title: 'CSM Authority Designated',
+        description: 'The selected unit will now act as the official CSM monitoring department.',
       });
     } catch (error) {
       console.error('Error updating CSM settings:', error);
@@ -175,7 +151,9 @@ export function CsmSettingsManagement() {
         <CardHeader className="bg-primary/5 border-b">
           <div className="flex items-center gap-2 mb-1">
             <ClipboardList className="h-5 w-5 text-primary" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-primary">CSM Monitoring Governance</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+              CSM Monitoring Governance
+            </span>
           </div>
           <CardTitle>ARTA Client Satisfaction Measurement (CSM) Governance</CardTitle>
           <CardDescription>
@@ -185,24 +163,35 @@ export function CsmSettingsManagement() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <CardContent className="space-y-6 pt-6">
-              
               {/* STEP 1: SELECT CAMPUS */}
               <div className="space-y-2">
-                <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Step 1: Select Site / Campus</FormLabel>
-                <Select value={selectedCampusId} onValueChange={(val) => { setSelectedCampusId(val); form.setValue('managingUnitId', ''); }}>
+                <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                  Step 1: Select Site / Campus
+                </FormLabel>
+                <Select
+                  value={selectedCampusId}
+                  onValueChange={(val) => {
+                    setSelectedCampusId(val);
+                    form.setValue('managingUnitId', '');
+                  }}
+                >
                   <SelectTrigger className="h-11 font-bold">
                     <School className="h-4 w-4 mr-2 opacity-40" />
                     <SelectValue placeholder="Select Campus" />
                   </SelectTrigger>
                   <SelectContent>
-                    {campuses?.sort((a,b) => a.name.localeCompare(b.name)).map((campus) => (
-                      <SelectItem key={campus.id} value={campus.id}>
-                        {campus.name}
-                      </SelectItem>
-                    ))}
+                    {campuses
+                      ?.sort((a, b) => a.name.localeCompare(b.name))
+                      .map((campus) => (
+                        <SelectItem key={campus.id} value={campus.id}>
+                          {campus.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground italic">Filtering units by site ensures the correct department is identified.</p>
+                <p className="text-[10px] text-muted-foreground italic">
+                  Filtering units by site ensures the correct department is identified.
+                </p>
               </div>
 
               {/* STEP 2: SELECT UNIT */}
@@ -211,12 +200,16 @@ export function CsmSettingsManagement() {
                 name="managingUnitId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Step 2: Designated CSM Managing Unit</FormLabel>
+                    <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                      Step 2: Designated CSM Managing Unit
+                    </FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedCampusId}>
                       <FormControl>
                         <SelectTrigger className="h-11 font-bold">
                           <Building className="h-4 w-4 mr-2 opacity-40" />
-                          <SelectValue placeholder={selectedCampusId ? "Select Unit / Office" : "Waiting for Campus selection..."} />
+                          <SelectValue
+                            placeholder={selectedCampusId ? 'Select Unit / Office' : 'Waiting for Campus selection...'}
+                          />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -228,7 +221,8 @@ export function CsmSettingsManagement() {
                       </SelectContent>
                     </Select>
                     <FormDescription className="text-[10px]">
-                      Personnel belonging to this unit (e.g. **IPDU**) will receive global access to view, audit, and deploy CSM metrics, feedback reports, and decision support analytics.
+                      Personnel belonging to this unit (e.g. **IPDU**) will receive global access to view, audit, and
+                      deploy CSM metrics, feedback reports, and decision support analytics.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -240,28 +234,36 @@ export function CsmSettingsManagement() {
                 <div className="space-y-1">
                   <p className="text-xs font-black uppercase text-blue-800">Authority Note</p>
                   <p className="text-[10px] text-blue-700 leading-relaxed italic">
-                    By default, the designated department handles institutional coordination and prepares annual satisfaction monitoring reports for ARTA submission.
+                    By default, the designated department handles institutional coordination and prepares annual
+                    satisfaction monitoring reports for ARTA submission.
                   </p>
                 </div>
               </div>
 
               {/* STEP 3: CSM SIGNATORIES */}
               <div className="space-y-4 pt-4 border-t">
-                <FormLabel className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">Step 3: CSM Report Signatories</FormLabel>
+                <FormLabel className="text-xs font-black uppercase text-slate-700 dark:text-slate-300">
+                  Step 3: CSM Report Signatories
+                </FormLabel>
                 <FormDescription className="text-[10px]">
-                  These names will appear as official signatories on all generated CSM reports (Harmonized Agency Report, Campus Performance Export, CAIP Matrix).
+                  These names will appear as official signatories on all generated CSM reports (Harmonized Agency
+                  Report, Campus Performance Export, CAIP Matrix).
                 </FormDescription>
-                
+
                 <FormField
                   control={form.control}
                   name="csmDirector"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">CSM Director (Prepared By)</FormLabel>
+                      <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                        CSM Director (Prepared By)
+                      </FormLabel>
                       <FormControl>
                         <Input placeholder="e.g., DR. JUAN DELA CRUZ" {...field} className="font-bold" />
                       </FormControl>
-                      <FormDescription className="text-[10px]">Overall responsible official for CSM program implementation.</FormDescription>
+                      <FormDescription className="text-[10px]">
+                        Overall responsible official for CSM program implementation.
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -273,11 +275,15 @@ export function CsmSettingsManagement() {
                     name="csmQualityHead"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">CSM Quality Assurance Head (Reviewed By)</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                          CSM Quality Assurance Head (Reviewed By)
+                        </FormLabel>
                         <FormControl>
                           <Input placeholder="Enter name" {...field} className="font-semibold" />
                         </FormControl>
-                        <FormDescription className="text-[10px]">Reviews and validates CSM data quality and compliance.</FormDescription>
+                        <FormDescription className="text-[10px]">
+                          Reviews and validates CSM data quality and compliance.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -288,11 +294,15 @@ export function CsmSettingsManagement() {
                     name="csmCampusCoordinator"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">Campus CSM Coordinator (Noted By)</FormLabel>
+                        <FormLabel className="text-xs font-bold uppercase text-slate-700 dark:text-slate-300">
+                          Campus CSM Coordinator (Noted By)
+                        </FormLabel>
                         <FormControl>
                           <Input placeholder="Enter name" {...field} className="font-semibold" />
                         </FormControl>
-                        <FormDescription className="text-[10px]">Campus-level coordinator for CSM deployment and monitoring.</FormDescription>
+                        <FormDescription className="text-[10px]">
+                          Campus-level coordinator for CSM deployment and monitoring.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -301,7 +311,18 @@ export function CsmSettingsManagement() {
               </div>
             </CardContent>
             <CardFooter className="bg-muted/10 border-t py-4">
-              <Button type="submit" disabled={isSubmitting || !selectedCampusId || !form.watch('managingUnitId') || !form.watch('csmDirector') || !form.watch('csmQualityHead') || !form.watch('csmCampusCoordinator')} className="shadow-lg shadow-primary/20 font-black uppercase tracking-widest text-[10px]">
+              <Button
+                type="submit"
+                disabled={
+                  isSubmitting ||
+                  !selectedCampusId ||
+                  !form.watch('managingUnitId') ||
+                  !form.watch('csmDirector') ||
+                  !form.watch('csmQualityHead') ||
+                  !form.watch('csmCampusCoordinator')
+                }
+                className="font-black uppercase tracking-widest text-[10px]"
+              >
                 {isSubmitting ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -313,7 +334,6 @@ export function CsmSettingsManagement() {
           </form>
         </Form>
       </Card>
-
     </div>
   );
 }

@@ -486,7 +486,7 @@ export function HomeDashboardSettingsManagement() {
           <Button
             onClick={handleSaveSettings}
             disabled={isSubmitting || isLoading}
-            className="w-full sm:w-auto font-black uppercase text-xs tracking-wider gap-2 px-6 shadow-md shadow-primary/20"
+            className="w-full sm:w-auto font-black uppercase text-xs tracking-wider gap-2 px-6"
           >
             {isSubmitting ? (
               <>

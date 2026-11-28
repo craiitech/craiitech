@@ -1697,7 +1697,7 @@ export default function VisitorLogbookPage() {
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white border border-[#D4AF37]/30 hover:border-[#D4AF37]/50 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-[#1B6535]/20 focus-visible:ring-0 active:scale-[0.98] transition-all duration-150"
+                    className="w-full h-12 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white rounded-xl font-bold uppercase tracking-wider shadow-sm focus-visible:ring-0 transition-colors"
                   >
                     {isSubmitting ? 'Recording...' : 'Submit Entry'}
                   </Button>
@@ -2416,7 +2416,7 @@ export default function VisitorLogbookPage() {
                 type="button"
                 disabled={isSubmittingCsm || !csmAgeGroup || !csmClientType || csmCC1 === null}
                 onClick={() => submitCsmCheckout(false)}
-                className="w-full sm:w-auto h-14 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white font-black uppercase tracking-widest text-sm sm:text-base px-8 rounded-xl shadow-lg transition-all"
+                className="w-full sm:w-auto h-14 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white font-bold uppercase tracking-wider text-sm sm:text-base px-8 rounded-xl shadow-sm transition-colors"
               >
                 {isSubmittingCsm ? (
                   <>
@@ -2471,7 +2471,7 @@ export default function VisitorLogbookPage() {
             <div className="pt-2">
               <Button
                 onClick={() => setLogoutSuccessVisitorName(null)}
-                className="w-full h-12 bg-gradient-to-r from-[#1B6535] to-[#247e43] hover:from-[#1B6535] hover:to-[#1a5d31] text-white border border-[#D4AF37]/30 hover:border-[#D4AF37]/50 rounded-xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-all duration-150"
+                className="w-full h-12 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white rounded-xl font-bold uppercase tracking-wider shadow-sm transition-colors"
               >
                 {csmLanguage === 'FIL' ? 'MABUHAY / OK' : 'OK / CLOSE'}
               </Button>
@@ -2540,7 +2540,7 @@ export default function VisitorLogbookPage() {
                   console.warn('Failed to resume fullscreen:', err);
                 }
               }}
-              className="w-full h-12 bg-gradient-to-r from-[#D4AF37] to-[#bfa032] hover:from-[#e5bd3c] hover:to-[#d4af37] text-slate-950 dark:text-white font-black uppercase tracking-widest shadow-lg shadow-[#D4AF37]/20 active:scale-95 transition-all duration-150 border-none rounded-xl"
+              className="w-full h-12 bg-[#D4AF37] hover:bg-[#c29f32] border-[#b08e29] text-slate-950 font-bold uppercase tracking-wider shadow-sm transition-colors rounded-xl"
             >
               Resume Kiosk Mode
             </Button>

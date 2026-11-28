@@ -229,7 +229,7 @@ export function PermissionMatrix() {
               size="sm"
               onClick={handleSave}
               disabled={isSaving || !hasChanges}
-              className="text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
+              className="text-[10px] font-black uppercase tracking-widest"
             >
               {isSaving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
               {hasChanges ? 'Save Changes' : 'Saved'}

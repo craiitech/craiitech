@@ -765,7 +765,7 @@ export function SidebarNav({
                               isActive={route.active}
                               tooltip={route.label}
                               onClick={() => setIsVisitorDialogOpen(true)}
-                              className="[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent"
+                              className="border border-sidebar-border/70 hover:border-slate-500/70 [&[data-active=true]]:border-sidebar-primary [&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent"
                             >
                               {route.icon}
                               <span>{route.label}</span>
@@ -777,7 +777,7 @@ export function SidebarNav({
                               tooltip={route.label}
                               onClick={(e) => handleNavClick(e, route.href)}
                               className={cn(
-                                '[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent',
+                                'border border-sidebar-border/70 hover:border-slate-500/70 [&[data-active=true]]:border-sidebar-primary [&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent',
                                 isDisabled && 'opacity-20 cursor-not-allowed grayscale pointer-events-auto',
                               )}
                             >
@@ -856,7 +856,7 @@ export function SidebarNav({
               tooltip="Communication"
               onClick={(e) => handleNavClick(e, '/communications')}
               className={cn(
-                '[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                'border border-sidebar-border/70 hover:border-slate-500/70 [&[data-active=true]]:border-sidebar-primary [&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                 (!isOnline || isForcedOffline) && 'opacity-20 cursor-not-allowed',
               )}
             >
@@ -878,7 +878,7 @@ export function SidebarNav({
               tooltip="Help"
               onClick={(e) => handleNavClick(e, '/help')}
               className={cn(
-                '[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent',
+                'border border-sidebar-border/70 hover:border-slate-500/70 [&[data-active=true]]:border-sidebar-primary [&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent',
                 (!isOnline || isForcedOffline) && 'opacity-20 cursor-not-allowed',
               )}
             >
@@ -893,14 +893,18 @@ export function SidebarNav({
               onClick={toggleTheme}
               tooltip={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
               data-tour="dark-mode-toggle"
-              className="hover:bg-sidebar-accent"
+              className="border border-sidebar-border/70 hover:border-slate-500/70 hover:bg-sidebar-accent"
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={handleLogout} tooltip="Logout" className="hover:bg-sidebar-accent">
+            <SidebarMenuButton
+              onClick={handleLogout}
+              tooltip="Logout"
+              className="border border-sidebar-border/70 hover:border-slate-500/70 hover:bg-sidebar-accent"
+            >
               <LogOut />
               <span>Logout</span>
             </SidebarMenuButton>
@@ -1009,7 +1013,7 @@ export function SidebarNav({
                       });
                     }
                   }}
-                  className="w-full h-9 bg-gradient-to-r from-[#1B6535] to-[#247e43] text-white font-black uppercase tracking-wider text-[9px] rounded-xl shadow-xs"
+                  className="w-full h-9 bg-[#1B6535] hover:bg-[#15522b] border-[#144d28] text-white font-black uppercase tracking-wider text-[9px] rounded-xl shadow-sm"
                 >
                   <Download className="h-3.5 w-3.5 mr-1 shrink-0" /> Download QR
                 </Button>
