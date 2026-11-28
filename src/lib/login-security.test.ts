@@ -8,11 +8,13 @@ import {
   formatLockoutCountdown,
   formatLockoutDuration,
   generateNumericCaptcha,
+  getAuthMethodModeLabel,
   getEffectiveSecurityState,
   getRemainingLockoutMs,
   isAccountLocked,
   isInvalidCredentialErrorCode,
   mergeSecurityStates,
+  normalizeAuthAccessPolicy,
   normalizeLoginIdentifier,
   recordFailedCaptchaAttempt,
   recordFailedPasswordAttempt,
@@ -133,5 +135,30 @@ describe('login-security state machine', () => {
     expect(isInvalidCredentialErrorCode('auth/invalid-credential')).toBe(true);
     expect(isInvalidCredentialErrorCode('auth/network-request-failed')).toBe(false);
     expect(isInvalidCredentialErrorCode(undefined)).toBe(false);
+  });
+
+  it('normalizes auth access policy toggles with lockout prevention fallback', () => {
+    expect(normalizeAuthAccessPolicy(undefined)).toEqual({
+      enableEmailPasswordLogin: true,
+      enableGoogleLogin: true,
+      allowExternalGoogleAccounts: false,
+      allowRegisteredExternalEmails: false,
+    });
+    expect(getAuthMethodModeLabel(normalizeAuthAccessPolicy(undefined))).toBe('Email & Google');
+
+    const googleOnly = normalizeAuthAccessPolicy({ enableEmailPasswordLogin: false, enableGoogleLogin: true });
+    expect(googleOnly.enableEmailPasswordLogin).toBe(false);
+    expect(googleOnly.enableGoogleLogin).toBe(true);
+    expect(getAuthMethodModeLabel(googleOnly)).toBe('Google Sign-In Only');
+
+    const emailOnly = normalizeAuthAccessPolicy({ enableEmailPasswordLogin: true, enableGoogleLogin: false });
+    expect(emailOnly.enableEmailPasswordLogin).toBe(true);
+    expect(emailOnly.enableGoogleLogin).toBe(false);
+    expect(getAuthMethodModeLabel(emailOnly)).toBe('Email Login Only');
+
+    // Never allow both login methods to remain disabled
+    const bothDisabled = normalizeAuthAccessPolicy({ enableEmailPasswordLogin: false, enableGoogleLogin: false });
+    expect(bothDisabled.enableEmailPasswordLogin).toBe(true);
+    expect(bothDisabled.enableGoogleLogin).toBe(true);
   });
 });

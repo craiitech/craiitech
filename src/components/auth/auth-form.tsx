@@ -36,8 +36,10 @@ import { DataPrivacyDialog } from './data-privacy-dialog';
 import { NumericCaptcha } from './numeric-captcha';
 import { logUserActivity } from '@/lib/activity-logger';
 import {
+  type AuthAccessPolicy,
   type AuthFeedback,
   type LoginSecurityState,
+  DEFAULT_AUTH_ACCESS_POLICY,
   MAX_FAILED_CAPTCHA_ATTEMPTS_BEFORE_LOCKOUT,
   MAX_FAILED_PASSWORD_ATTEMPTS_BEFORE_CAPTCHA,
   clearLocalSecurityState,
@@ -49,6 +51,7 @@ import {
   isAccountLocked,
   isInvalidCredentialErrorCode,
   mergeSecurityStates,
+  normalizeAuthAccessPolicy,
   normalizeLoginIdentifier,
   readLastActiveSecurityContext,
   readLocalSecurityState,
@@ -71,24 +74,11 @@ interface AuthFormProps {
   initialTab: 'signin' | 'signup';
 }
 
-type AuthAccessPolicy = {
-  allowExternalGoogleAccounts: boolean;
-  allowRegisteredExternalEmails: boolean;
-};
-
-const DEFAULT_AUTH_ACCESS_POLICY: AuthAccessPolicy = {
-  allowExternalGoogleAccounts: false,
-  allowRegisteredExternalEmails: false,
-};
-
 async function getAuthAccessPolicy(firestore: Firestore): Promise<AuthAccessPolicy> {
   try {
     const settingsDoc = await getDoc(doc(firestore, 'system', 'settings'));
     const data = settingsDoc.exists() ? settingsDoc.data() : {};
-    return {
-      allowExternalGoogleAccounts: data.allowExternalGoogleAccounts === true,
-      allowRegisteredExternalEmails: data.allowRegisteredExternalEmails === true,
-    };
+    return normalizeAuthAccessPolicy(data);
   } catch {
     return DEFAULT_AUTH_ACCESS_POLICY;
   }
@@ -201,6 +191,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [authFeedback, setAuthFeedback] = useState<AuthFeedback | null>(null);
   const [authAccessPolicy, setAuthAccessPolicy] = useState<AuthAccessPolicy>(DEFAULT_AUTH_ACCESS_POLICY);
+  const [isPolicyLoading, setIsPolicyLoading] = useState(true);
 
   // Security guard states (invalid clearing, 3-attempt CAPTCHA, 5-attempt CAPTCHA 30-min lockout)
   const [securityState, setSecurityState] = useState<LoginSecurityState>(() => createEmptySecurityState());
@@ -278,14 +269,22 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
   }, [user, userProfile, isUserLoading, router]);
 
-  // Load the administrator-configured sign-in policy so the Google account chooser
-  // can avoid restricting to the RSU Workspace domain when external accounts are allowed.
+  // Load the administrator-configured sign-in policy so login methods and Google domain
+  // restrictions reflect current Settings before rendering inputs.
   useEffect(() => {
-    if (!firestore) return;
+    if (!firestore) {
+      setIsPolicyLoading(false);
+      return;
+    }
     let cancelled = false;
-    getAuthAccessPolicy(firestore).then((policy) => {
-      if (!cancelled) setAuthAccessPolicy(policy);
-    });
+    setIsPolicyLoading(true);
+    getAuthAccessPolicy(firestore)
+      .then((policy) => {
+        if (!cancelled) setAuthAccessPolicy(policy);
+      })
+      .finally(() => {
+        if (!cancelled) setIsPolicyLoading(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -390,6 +389,34 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         const isRegistered = userDoc.exists();
         const policy = await getAuthAccessPolicy(firestore);
         setAuthAccessPolicy(policy);
+
+        if (isGoogle && !policy.enableGoogleLogin) {
+          if (auth) {
+            await auth.signOut();
+          }
+          setAuthFeedback({
+            variant: 'error',
+            title: 'Google Sign-In Disabled',
+            message:
+              'Google Sign-In is currently disabled by the administrator. Please sign in with your email and password.',
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (!isGoogle && !policy.enableEmailPasswordLogin) {
+          if (auth) {
+            await auth.signOut();
+          }
+          setAuthFeedback({
+            variant: 'error',
+            title: 'Email Login Disabled',
+            message:
+              'Email and password sign-in is currently disabled by the administrator. Please sign in using Google.',
+          });
+          setIsSubmitting(false);
+          return;
+        }
 
         let isAccessAllowed = isInstitutional;
         if (!isAccessAllowed) {
@@ -555,6 +582,24 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         message: 'Please enter both your email address and password to sign in.',
       });
       return;
+    }
+
+    if (firestore) {
+      const latestPolicy = await getAuthAccessPolicy(firestore);
+      setAuthAccessPolicy(latestPolicy);
+      if (!latestPolicy.enableEmailPasswordLogin) {
+        setEmail('');
+        setPassword('');
+        setCaptchaInput('');
+        setIsPasswordVisible(false);
+        setAuthFeedback({
+          variant: 'error',
+          title: 'Email Login Disabled',
+          message:
+            'Email and password sign-in is currently disabled by the administrator. Please sign in using Google.',
+        });
+        return;
+      }
     }
 
     const targetEmail = normalizeLoginIdentifier(email);
@@ -762,7 +807,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
   };
 
-  const processGoogleSignIn = () => {
+  const processGoogleSignIn = async () => {
     if (!auth || !firestore) {
       setAuthFeedback({
         variant: 'error',
@@ -773,9 +818,23 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     }
     setIsSubmitting(true);
     setAuthFeedback(null);
+
+    const latestPolicy = await getAuthAccessPolicy(firestore);
+    setAuthAccessPolicy(latestPolicy);
+    if (!latestPolicy.enableGoogleLogin) {
+      setAuthFeedback({
+        variant: 'error',
+        title: 'Google Sign-In Disabled',
+        message:
+          'Google Sign-In is currently disabled by the administrator. Please sign in with your email and password.',
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
     const provider = new GoogleAuthProvider();
     const allowExternalAccounts =
-      authAccessPolicy.allowExternalGoogleAccounts || authAccessPolicy.allowRegisteredExternalEmails;
+      latestPolicy.allowExternalGoogleAccounts || latestPolicy.allowRegisteredExternalEmails;
     provider.setCustomParameters(
       allowExternalAccounts ? { prompt: 'select_account' } : { prompt: 'select_account', hd: 'rsu.edu.ph' },
     );
@@ -983,11 +1042,18 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         </div>
       </div>
 
+      {!isPolicyLoading && !authAccessPolicy.enableGoogleLogin && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
+          Google Sign-In is currently disabled by the administrator. Please contact your QMS administrator or switch to
+          Sign in.
+        </div>
+      )}
+
       <Button
         type="button"
         onClick={processGoogleSignIn}
-        disabled={isSubmitting}
-        className="w-full h-12 bg-white hover:bg-gray-100 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl flex items-center justify-center gap-2.5"
+        disabled={isSubmitting || isPolicyLoading || !authAccessPolicy.enableGoogleLogin}
+        className="w-full h-12 bg-white hover:bg-gray-100 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl flex items-center justify-center gap-2.5 disabled:opacity-50"
       >
         {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <GoogleIcon className="h-5 w-5" />}
         Sign up with RSU Email (rsu.edu.ph)
@@ -1040,31 +1106,47 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           {activeTab === 'signup' ? 'Create your RSU EOMS Account' : 'RSU EOMS Submission Portal'}
         </h2>
 
-        {activeTab === 'signup' ? renderSignUp() : renderSignIn()}
-
-        {activeTab === 'signin' && (
+        {activeTab === 'signup' ? (
+          renderSignUp()
+        ) : isPolicyLoading ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-10 text-gray-400">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-xs font-medium">Loading sign-in options...</span>
+          </div>
+        ) : (
           <>
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-700" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-gray-800/50 px-2 text-gray-400 backdrop-blur-sm rounded-full">Or sign in with</span>
-              </div>
-            </div>
+            {authAccessPolicy.enableEmailPasswordLogin && renderSignIn()}
 
-            <div className="grid grid-cols-1 gap-4">
-              <Button
-                variant="outline"
-                className="bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 text-white"
-                onClick={processGoogleSignIn}
-                disabled={isSubmitting}
-              >
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                <GoogleIcon className="mr-2 h-5 w-5" />
-                RSU Email (rsu.edu.ph) via Google
-              </Button>
-            </div>
+            {authAccessPolicy.enableEmailPasswordLogin && authAccessPolicy.enableGoogleLogin && (
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-gray-700" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-gray-800/50 px-2 text-gray-400 backdrop-blur-sm rounded-full">
+                    Or sign in with
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {authAccessPolicy.enableGoogleLogin && (
+              <div className="grid grid-cols-1 gap-4">
+                {!authAccessPolicy.enableEmailPasswordLogin && (
+                  <p className="text-center text-xs text-gray-300">Sign in using your authorized Google account.</p>
+                )}
+                <Button
+                  variant="outline"
+                  className="bg-gray-800/50 border-gray-700 hover:bg-gray-700/50 text-white"
+                  onClick={processGoogleSignIn}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <GoogleIcon className="mr-2 h-5 w-5" />
+                  RSU Email (rsu.edu.ph) via Google
+                </Button>
+              </div>
+            )}
           </>
         )}
         {activeTab === 'signup' && (

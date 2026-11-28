@@ -382,6 +382,8 @@ export type SystemSettings = {
   enableUnifiedHomeDashboard?: boolean;
   homeDashboardDefaultTab?: string;
   sucLevellingProfile?: SucInstitutionalProfile;
+  enableEmailPasswordLogin?: boolean;
+  enableGoogleLogin?: boolean;
   allowExternalGoogleAccounts?: boolean;
   allowRegisteredExternalEmails?: boolean;
   updatedAt?: any;

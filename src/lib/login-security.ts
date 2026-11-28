@@ -24,6 +24,58 @@ export interface AuthFeedback {
   hint?: string;
 }
 
+export interface AuthAccessPolicy {
+  enableEmailPasswordLogin: boolean;
+  enableGoogleLogin: boolean;
+  allowExternalGoogleAccounts: boolean;
+  allowRegisteredExternalEmails: boolean;
+}
+
+export const DEFAULT_AUTH_ACCESS_POLICY: AuthAccessPolicy = {
+  enableEmailPasswordLogin: true,
+  enableGoogleLogin: true,
+  allowExternalGoogleAccounts: false,
+  allowRegisteredExternalEmails: false,
+};
+
+/**
+ * Normalizes Firestore `system/settings` auth fields with a lockout-prevention fallback
+ * ensuring at least one sign-in method (email/password or Google) remains enabled.
+ */
+export function normalizeAuthAccessPolicy(
+  data: Partial<AuthAccessPolicy> | Record<string, unknown> | null | undefined,
+): AuthAccessPolicy {
+  let enableEmailPasswordLogin = data?.enableEmailPasswordLogin !== false;
+  let enableGoogleLogin = data?.enableGoogleLogin !== false;
+
+  if (!enableEmailPasswordLogin && !enableGoogleLogin) {
+    enableEmailPasswordLogin = true;
+    enableGoogleLogin = true;
+  }
+
+  return {
+    enableEmailPasswordLogin,
+    enableGoogleLogin,
+    allowExternalGoogleAccounts: data?.allowExternalGoogleAccounts === true,
+    allowRegisteredExternalEmails: data?.allowRegisteredExternalEmails === true,
+  };
+}
+
+export function getAuthMethodModeLabel(
+  policy: Pick<AuthAccessPolicy, 'enableEmailPasswordLogin' | 'enableGoogleLogin'>,
+): string {
+  if (policy.enableEmailPasswordLogin && policy.enableGoogleLogin) {
+    return 'Email & Google';
+  }
+  if (!policy.enableEmailPasswordLogin && policy.enableGoogleLogin) {
+    return 'Google Sign-In Only';
+  }
+  if (policy.enableEmailPasswordLogin && !policy.enableGoogleLogin) {
+    return 'Email Login Only';
+  }
+  return 'Email & Google';
+}
+
 const LOCAL_STORAGE_KEY = 'rsu_eoms_login_security_v1';
 
 type StoredSecurityPayload = {
