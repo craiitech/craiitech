@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth, getAdminFirestore } from '@/firebase/admin';
+import { getAdminAuth } from '@/firebase/admin';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { pruneExpiredInMemoryGuardState, readGuardState, writeGuardState } from '@/lib/login-guard-store';
 import {
   type LoginSecurityState,
-  createEmptySecurityState,
   getEffectiveSecurityState,
   getRemainingLockoutMs,
   isAccountLocked,
@@ -18,47 +18,11 @@ export const dynamic = 'force-dynamic';
 
 type LoginGuardAction = 'status' | 'password_failed' | 'captcha_failed' | 'reset';
 
-const LOGIN_GUARD_COLLECTION = 'auth_login_guards';
 const LOGIN_GUARD_IP_RATE_LIMIT = { name: 'auth-login-guard-ip', limit: 60, windowSeconds: 60 };
 const VALID_ACTIONS = new Set<LoginGuardAction>(['status', 'password_failed', 'captcha_failed', 'reset']);
 
-// Process-local fallback store for environments without Firebase Admin credentials (or unit tests).
-const inMemoryGuardStore = new Map<string, LoginSecurityState>();
-
-export function resetInMemoryLoginGuardStore(): void {
-  inMemoryGuardStore.clear();
-}
-
 function hashEmailIdentifier(normalizedEmail: string): string {
   return createHash('sha256').update(normalizedEmail).digest('hex');
-}
-
-async function readGuardState(docId: string, now: number): Promise<LoginSecurityState> {
-  const firestore = getAdminFirestore();
-  if (firestore) {
-    try {
-      const snap = await firestore.collection(LOGIN_GUARD_COLLECTION).doc(docId).get();
-      if (snap.exists) {
-        return getEffectiveSecurityState(snap.data() as LoginSecurityState, now);
-      }
-      return createEmptySecurityState(now);
-    } catch {
-      // Fall back to in-memory store when Admin SDK has no ADC/service account in local dev.
-    }
-  }
-  return getEffectiveSecurityState(inMemoryGuardStore.get(docId), now);
-}
-
-async function writeGuardState(docId: string, state: LoginSecurityState): Promise<void> {
-  inMemoryGuardStore.set(docId, state);
-  const firestore = getAdminFirestore();
-  if (firestore) {
-    try {
-      await firestore.collection(LOGIN_GUARD_COLLECTION).doc(docId).set(state);
-    } catch {
-      // In-memory store retains the state for this process when Firestore Admin is unavailable.
-    }
-  }
 }
 
 function buildGuardResponse(state: LoginSecurityState, now: number): NextResponse {
@@ -133,11 +97,8 @@ export async function POST(req: NextRequest) {
     const current = await readGuardState(docId, now);
 
     if (action === 'status') {
-      if (current.lockedUntil === null && inMemoryGuardStore.has(docId)) {
-        const cached = inMemoryGuardStore.get(docId);
-        if (cached?.lockedUntil && cached.lockedUntil <= now) {
-          inMemoryGuardStore.delete(docId);
-        }
+      if (current.lockedUntil === null) {
+        pruneExpiredInMemoryGuardState(docId, now);
       }
       return buildGuardResponse(current, now);
     }

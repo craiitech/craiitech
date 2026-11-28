@@ -10,7 +10,8 @@ vi.mock('@/firebase/admin', () => ({
   }),
 }));
 
-import { POST, resetInMemoryLoginGuardStore } from './route';
+import { POST } from './route';
+import { resetInMemoryLoginGuardStore } from '@/lib/login-guard-store';
 
 function makeRequest(body: unknown, headers: Record<string, string> = {}) {
   return new NextRequest('http://localhost/api/auth/login-guard', {
