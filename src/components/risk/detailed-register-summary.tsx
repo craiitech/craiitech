@@ -102,7 +102,7 @@ export function DetailedRegisterSummary({ risks, currentTab, selectedYear }: Det
         : 'Risk & Opportunity Registry';
 
   return (
-    <Card className="border border-indigo-100 dark:border-indigo-950/50 shadow-md bg-gradient-to-br from-white via-indigo-50/15 to-slate-50 dark:from-slate-900 dark:via-indigo-950/10 dark:to-slate-900 overflow-hidden">
+    <Card className="border-border shadow-sm bg-card overflow-hidden">
       {/* Header bar with toggle */}
       <div className="flex items-center justify-between px-5 py-3 border-b bg-indigo-50/40 dark:bg-indigo-950/20">
         <div className="flex items-center gap-2.5">

@@ -1008,7 +1008,7 @@ export function AccreditationMonitoringView({
     <div className="space-y-6">
       {/* Top Highlight KPI Cards for Accreditation */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-indigo-200 shadow-sm bg-gradient-to-br from-indigo-50/50 to-white">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-indigo-900 tracking-wider">Accredited Programs</p>
@@ -1026,7 +1026,7 @@ export function AccreditationMonitoringView({
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-white to-slate-50">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
@@ -1046,7 +1046,7 @@ export function AccreditationMonitoringView({
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-200 shadow-sm bg-gradient-to-br from-emerald-50/50 to-white">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">High Maturity Levels</p>
@@ -1064,7 +1064,7 @@ export function AccreditationMonitoringView({
           </CardContent>
         </Card>
 
-        <Card className="border-amber-200 shadow-sm bg-gradient-to-br from-amber-50/50 to-white">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-amber-800 tracking-wider">Action Items & Recs</p>
@@ -1570,8 +1570,8 @@ export function AccreditationMonitoringView({
       })()}
 
       {/* Main Accreditation Monitoring Tabs Card */}
-      <Card className="border-primary/10 shadow-lg overflow-hidden bg-white">
-        <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-b py-5">
+      <Card className="border-border shadow-sm overflow-hidden bg-card">
+        <CardHeader className="bg-muted/30 border-b py-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-white shadow-sm border border-indigo-200">

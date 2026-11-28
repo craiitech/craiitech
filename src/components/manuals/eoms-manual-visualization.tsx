@@ -542,7 +542,7 @@ export function EomsManualVisualization({
       {/* EXECUTIVE KPI SUMMARY CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Card 1 */}
-        <Card className="shadow-md hover:shadow-lg transition-all border-primary/10 rounded-2xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
+        <Card className="shadow-sm border-border rounded-xl bg-card">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-black uppercase tracking-wider text-muted-foreground">
               Clause Coverage
@@ -569,7 +569,7 @@ export function EomsManualVisualization({
         </Card>
 
         {/* Card 2 */}
-        <Card className="shadow-md hover:shadow-lg transition-all border-primary/10 rounded-2xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
+        <Card className="shadow-sm border-border rounded-xl bg-card">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-black uppercase tracking-wider text-muted-foreground">
               Policy Volume
@@ -589,7 +589,7 @@ export function EomsManualVisualization({
         </Card>
 
         {/* Card 3 */}
-        <Card className="shadow-md hover:shadow-lg transition-all border-primary/10 rounded-2xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
+        <Card className="shadow-sm border-border rounded-xl bg-card">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-black uppercase tracking-wider text-muted-foreground">
               Cloud Availability
@@ -609,7 +609,7 @@ export function EomsManualVisualization({
         </Card>
 
         {/* Card 4 */}
-        <Card className="shadow-md hover:shadow-lg transition-all border-primary/10 rounded-2xl bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
+        <Card className="shadow-sm border-border rounded-xl bg-card">
           <CardHeader className="pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-black uppercase tracking-wider text-muted-foreground">
               Policy Currency
@@ -861,21 +861,8 @@ export function EomsManualVisualization({
             return (
               <Card
                 key={clause.sectionId}
-                className="group relative overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border-primary/15 rounded-2xl flex flex-col justify-between bg-white dark:bg-slate-900"
+                className="group relative overflow-hidden shadow-sm border-border rounded-xl flex flex-col justify-between bg-card"
               >
-                {/* Accent top stripe based on Domain */}
-                <div
-                  className={cn(
-                    'h-1.5 w-full',
-                    clause.domain === 'Context & Direction' && 'bg-sky-500',
-                    clause.domain === 'Leadership' && 'bg-indigo-600',
-                    clause.domain === 'Planning' && 'bg-amber-500',
-                    clause.domain === 'Support' && 'bg-purple-600',
-                    clause.domain === 'Operation' && 'bg-emerald-500',
-                    clause.domain === 'Evaluation & Improvement' && 'bg-rose-500',
-                  )}
-                />
-
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">

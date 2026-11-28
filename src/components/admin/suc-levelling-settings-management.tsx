@@ -407,7 +407,7 @@ export function SucLevellingSettingsManagement() {
       </div>
 
       {/* Current Official Institutional SUC Level Standing Card */}
-      <Card className="border-amber-500/30 bg-gradient-to-br from-amber-500/5 via-card to-background shadow-sm overflow-hidden">
+      <Card className="border-border bg-card shadow-sm overflow-hidden">
         <CardHeader className="pb-3 border-b border-border/50 bg-muted/20">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">

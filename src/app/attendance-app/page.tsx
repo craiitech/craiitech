@@ -1207,9 +1207,7 @@ export default function RsuAttendanceApp() {
       <main className="my-auto py-6">
         {isLocked && binding ? (
           /* LOCKED ACTIVE ATTENDANCE CARD */
-          <Card className="bg-slate-900/60 border-emerald-500/20 shadow-2xl rounded-2xl overflow-hidden relative backdrop-blur-md">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500" />
-
+          <Card className="bg-slate-900/85 border-emerald-500/20 shadow-lg rounded-xl overflow-hidden relative">
             <CardHeader className="text-center pb-2 pt-6">
               <div className="flex justify-center mb-2">
                 <Badge className="bg-emerald-500/10 hover:bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[9px] font-black tracking-widest uppercase px-3 py-1 flex items-center gap-1.5 rounded-full">
@@ -1581,9 +1579,7 @@ export default function RsuAttendanceApp() {
           </Card>
         ) : showManualForm ? (
           /* DIRECT UNREGISTERED / WALK-IN CHECK-IN SCREEN (TYPING NAME, MOBILE & SEX) */
-          <Card className="bg-slate-900/60 border-emerald-500/20 shadow-2xl rounded-2xl overflow-hidden relative backdrop-blur-md">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-[#D4AF37]" />
-
+          <Card className="bg-slate-900/85 border-emerald-500/20 shadow-lg rounded-xl overflow-hidden relative">
             <CardHeader className="pb-2 pt-6">
               <div className="flex items-center justify-between mb-1">
                 <CardTitle className="text-sm font-black uppercase text-slate-100 tracking-tight flex items-center gap-2">
@@ -1897,8 +1893,7 @@ export default function RsuAttendanceApp() {
           </Card>
         ) : !role ? (
           /* ROLE SELECTION SCREEN */
-          <Card className="bg-slate-900/60 border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden relative backdrop-blur-md">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 to-[#D4AF37]" />
+          <Card className="bg-slate-900/85 border-slate-800 shadow-lg rounded-xl overflow-hidden relative">
             <CardHeader className="pb-3 pt-6">
               <CardTitle className="text-sm font-black uppercase text-slate-200 tracking-tight flex items-center gap-2">
                 <Users className="h-5 w-5 text-[#D4AF37]" /> Attendance Check-In
@@ -1992,8 +1987,7 @@ export default function RsuAttendanceApp() {
           </Card>
         ) : role === 'employee' && !firebaseUser ? (
           /* EMPLOYEE LOGIN / ACCOUNT CREATION */
-          <Card className="bg-slate-900/60 border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden relative backdrop-blur-md">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-emerald-500 to-teal-500" />
+          <Card className="bg-slate-900/85 border-slate-800 shadow-lg rounded-xl overflow-hidden relative">
             <CardHeader className="pb-3 pt-6">
               <div className="flex items-center justify-between mb-1">
                 <CardTitle className="text-sm font-black uppercase text-slate-200 tracking-tight flex items-center gap-2">
@@ -2129,9 +2123,7 @@ export default function RsuAttendanceApp() {
           </Card>
         ) : (
           /* REGISTRATION / DEVICE BINDING FORM (for student, stakeholder, or logged-in employee) */
-          <Card className="bg-slate-900/60 border-slate-800/80 shadow-2xl rounded-2xl overflow-hidden relative backdrop-blur-md">
-            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-amber-500 to-[#D4AF37]" />
-
+          <Card className="bg-slate-900/85 border-slate-800 shadow-lg rounded-xl overflow-hidden relative">
             <CardHeader className="pb-3 pt-6">
               <div className="flex items-center justify-between mb-1">
                 <CardTitle className="text-sm font-black uppercase text-slate-200 tracking-tight flex items-center gap-2">

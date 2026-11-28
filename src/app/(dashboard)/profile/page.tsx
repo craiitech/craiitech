@@ -590,7 +590,7 @@ export default function ProfilePage() {
       </div>
 
       {canAccessExecutiveDisplay && (
-        <Card className="border-emerald-500/40 bg-gradient-to-r from-emerald-950/20 via-emerald-900/10 to-amber-950/20 shadow-md relative overflow-hidden">
+        <Card className="border-border bg-card shadow-sm relative overflow-hidden">
           <CardContent className="p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-amber-500 flex items-center justify-center text-white shadow-md shrink-0">

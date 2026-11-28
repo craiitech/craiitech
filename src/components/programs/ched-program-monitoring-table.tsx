@@ -535,8 +535,8 @@ export function ChedProgramMonitoringTable({
 
   return (
     <>
-      <Card className="border-primary/10 shadow-lg overflow-hidden bg-white">
-        <CardHeader className="bg-gradient-to-r from-emerald-50 to-blue-50 dark:from-emerald-950/30 dark:to-blue-950/30 border-b py-5">
+      <Card className="border-border shadow-sm overflow-hidden bg-card">
+        <CardHeader className="bg-muted/30 border-b py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-white shadow-sm border border-primary/10">
@@ -1034,8 +1034,8 @@ export function ChedProgramMonitoringTable({
         </CardContent>
       </Card>
 
-      <Card className="border-primary/10 shadow-lg overflow-hidden bg-white">
-        <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 border-b py-5">
+      <Card className="border-border shadow-sm overflow-hidden bg-card">
+        <CardHeader className="bg-muted/30 border-b py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-white shadow-sm border border-primary/10">

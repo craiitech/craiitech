@@ -201,7 +201,7 @@ export function SubmissionAnalytics({
       <Chart3DDefs idPrefix="sub3d" />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-primary/10 rounded-2xl overflow-hidden flex flex-col bg-gradient-to-b from-white to-slate-50/50 dark:from-slate-900 dark:to-slate-850">
+        <Card className="shadow-sm border-border rounded-xl overflow-hidden flex flex-col bg-card">
           <CardHeader className="bg-muted/10 border-b py-4">
             <CardTitle className="text-sm font-black uppercase tracking-tight">Lifecycle Status</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
@@ -251,7 +251,7 @@ export function SubmissionAnalytics({
         </Card>
 
         {/* First-Time-Right Verification Score */}
-        <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-primary/10 rounded-2xl overflow-hidden flex flex-col bg-gradient-to-b from-white to-emerald-50/20 dark:from-slate-900 dark:to-slate-850">
+        <Card className="shadow-sm border-border rounded-xl overflow-hidden flex flex-col bg-card">
           <CardHeader className="bg-primary/5 border-b py-4">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-emerald-600" />
@@ -306,7 +306,7 @@ export function SubmissionAnalytics({
           </CardFooter>
         </Card>
 
-        <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-primary/10 rounded-2xl overflow-hidden flex flex-col bg-gradient-to-b from-white to-indigo-50/20 dark:from-slate-900 dark:to-slate-850">
+        <Card className="shadow-sm border-border rounded-xl overflow-hidden flex flex-col bg-card">
           <CardHeader className="bg-muted/10 border-b py-4">
             <CardTitle className="text-sm font-black uppercase tracking-tight">Contribution Volume</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
@@ -358,7 +358,7 @@ export function SubmissionAnalytics({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-primary/10 rounded-2xl overflow-hidden flex flex-col bg-gradient-to-b from-white to-sky-50/20 dark:from-slate-900 dark:to-slate-850">
+        <Card className="shadow-sm border-border rounded-xl overflow-hidden flex flex-col bg-card">
           <CardHeader className="bg-primary/5 border-b py-4">
             <div className="flex items-center gap-2">
               <Timer className="h-5 w-5 text-primary" />
@@ -409,7 +409,7 @@ export function SubmissionAnalytics({
           </CardFooter>
         </Card>
 
-        <Card className="shadow-lg hover:shadow-xl transition-all duration-300 border-primary/10 rounded-2xl overflow-hidden flex flex-col bg-gradient-to-b from-white to-violet-50/20 dark:from-slate-900 dark:to-slate-850">
+        <Card className="shadow-sm border-border rounded-xl overflow-hidden flex flex-col bg-card">
           <CardHeader className="bg-muted/10 border-b py-4">
             <CardTitle className="text-sm font-black uppercase tracking-tight">Distribution by Document Type</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase tracking-widest">

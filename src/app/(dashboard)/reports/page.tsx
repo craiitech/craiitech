@@ -1184,8 +1184,8 @@ export default function ReportsPage() {
                       );
                     if (campusUnits.length === 0) return null;
                     return (
-                      <Card key={campus.id} className="border-primary/10 shadow-md overflow-hidden">
-                        <CardHeader className="bg-gradient-to-r from-[#1B6535]/5 to-transparent border-b border-primary/10 p-4">
+                      <Card key={campus.id} className="border-border shadow-sm overflow-hidden">
+                        <CardHeader className="bg-muted/30 border-b p-4">
                           <div className="flex items-center gap-2">
                             <School className="h-4 w-4 text-[#1B6535]" />
                             <CardTitle className="text-sm font-black uppercase tracking-wider text-[#1B6535]">

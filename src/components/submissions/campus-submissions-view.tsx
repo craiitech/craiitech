@@ -1407,7 +1407,7 @@ export function CampusSubmissionsView({
                 />
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card className="md:col-span-1 border-primary/10 shadow-lg p-8 bg-gradient-to-br from-primary/10 to-background flex flex-col items-center justify-center relative overflow-hidden">
+                  <Card className="md:col-span-1 border-border shadow-sm p-8 bg-card flex flex-col items-center justify-center relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-5">
                       <TrendingUp className="h-20 w-20" />
                     </div>

@@ -791,7 +791,7 @@ export function GADMainstreaming({ units, selectedYear }: GADMainstreamingProps)
           {activeView === 'cmo-20-rubric' ? (
             <>
               {/* Sticky Real-Time CMO 1 s. 2015 & 40% EOMS Weighted Scorecard */}
-              <Card className="border-violet-500/30 bg-gradient-to-r from-violet-950/95 via-slate-900 to-indigo-950/95 text-white shadow-xl">
+              <Card className="border-slate-800 bg-slate-900 text-white shadow-sm">
                 <CardContent className="p-5 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">

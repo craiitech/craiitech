@@ -21,12 +21,46 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, type Firestore } from '@/firebase/firestore-wrapper';
-import { Loader2, Mail, X, Eye, EyeOff, AlertCircle, Users, KeyRound } from 'lucide-react';
+import {
+  Loader2,
+  Mail,
+  X,
+  Eye,
+  EyeOff,
+  AlertCircle,
+  KeyRound,
+  Lock,
+  ShieldAlert,
+  ShieldCheck,
+  Clock,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Checkbox } from '../ui/checkbox';
 import { DataPrivacyDialog } from './data-privacy-dialog';
+import { NumericCaptcha } from './numeric-captcha';
 import { logUserActivity } from '@/lib/activity-logger';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  type AuthFeedback,
+  type LoginSecurityState,
+  MAX_FAILED_CAPTCHA_ATTEMPTS_BEFORE_LOCKOUT,
+  MAX_FAILED_PASSWORD_ATTEMPTS_BEFORE_CAPTCHA,
+  clearLocalSecurityState,
+  createEmptySecurityState,
+  formatLockoutCountdown,
+  formatLockoutDuration,
+  generateNumericCaptcha,
+  getRemainingLockoutMs,
+  isAccountLocked,
+  isInvalidCredentialErrorCode,
+  mergeSecurityStates,
+  normalizeLoginIdentifier,
+  readLastActiveSecurityContext,
+  readLocalSecurityState,
+  recordFailedCaptchaAttempt,
+  recordFailedPasswordAttempt,
+  resetLoginSecurityState,
+  verifyNumericCaptcha,
+  writeLocalSecurityState,
+} from '@/lib/login-security';
 import {
   Dialog,
   DialogContent,
@@ -63,26 +97,99 @@ async function getAuthAccessPolicy(firestore: Firestore): Promise<AuthAccessPoli
   }
 }
 
-const firebaseErrorMap: Record<string, string> = {
-  'auth/user-not-found': 'No account found with this email address. Please sign up or try again.',
-  'auth/wrong-password': 'Incorrect password. Please try again.',
-  'auth/invalid-email': 'The email address is not valid. Please check the format.',
-  'auth/email-already-in-use': 'This email address is already associated with an account.',
-  'auth/weak-password': 'The password is too weak. Please use at least 6 characters.',
-  'auth/popup-closed-by-user': 'The sign-in window was closed. Please try again.',
-  'auth/cancelled-popup-request': 'A sign-in request is already in progress. Please wait or refresh the page.',
-  'auth/invalid-credential': 'Invalid credentials. Please check your email and password and try again.',
-  'auth/operation-not-allowed':
-    'Google Sign-In is not enabled. Please contact the administrator to enable it in the Firebase Console.',
-  'auth/popup-blocked':
-    'The sign-in popup was blocked by your browser. Please allow popups or try again to use redirect.',
-  'auth/unauthorized-domain':
-    'This domain is not authorized for Google Sign-In. Please contact the administrator to add this URL to the Authorized Domains list in Firebase.',
-  'auth/too-many-requests':
-    'Access to this account has been temporarily disabled due to many failed login attempts. Please reset your password or try again later.',
-  'auth/quota-exceeded': 'The university server is experiencing high traffic. Please wait a moment and try again.',
-  'auth/internal-error': 'A temporary internal error occurred. Please refresh the page and try again.',
+const firebaseFeedbackMap: Record<string, Omit<AuthFeedback, 'variant'>> = {
+  'auth/user-not-found': {
+    title: 'Invalid Email or Password',
+    message: 'The email address or password you entered does not match an active account.',
+  },
+  'auth/wrong-password': {
+    title: 'Invalid Email or Password',
+    message: 'The email address or password you entered is incorrect.',
+  },
+  'auth/invalid-credential': {
+    title: 'Invalid Email or Password',
+    message: 'The email address or password you entered is incorrect.',
+  },
+  'auth/invalid-email': {
+    title: 'Invalid Email Format',
+    message: 'Please enter a valid institutional email address (e.g. name@rsu.edu.ph).',
+  },
+  'auth/email-already-in-use': {
+    title: 'Email Already Registered',
+    message: 'This email address is already associated with an existing account.',
+    hint: 'Switch to Sign in to access your account.',
+  },
+  'auth/weak-password': {
+    title: 'Weak Password',
+    message: 'Please use at least 6 characters for your account password.',
+  },
+  'auth/popup-closed-by-user': {
+    title: 'Sign-In Window Closed',
+    message: 'The Google sign-in window was closed before completing authentication. Please try again.',
+  },
+  'auth/cancelled-popup-request': {
+    title: 'Sign-In Already in Progress',
+    message: 'Another sign-in window is already open. Please wait or refresh the page.',
+  },
+  'auth/operation-not-allowed': {
+    title: 'Sign-In Method Disabled',
+    message: 'This authentication method is currently disabled. Please contact your system administrator.',
+  },
+  'auth/popup-blocked': {
+    title: 'Sign-In Popup Blocked',
+    message: 'Your browser blocked the sign-in popup. Allow popups or try again to continue via redirect.',
+  },
+  'auth/unauthorized-domain': {
+    title: 'Unauthorized Domain',
+    message: 'This portal domain is not yet authorized for Google Sign-In. Please contact the administrator.',
+  },
+  'auth/too-many-requests': {
+    title: 'Too Many Failed Attempts',
+    message: 'Authentication has been temporarily throttled due to repeated failed attempts.',
+    hint: 'Please reset your password or wait before trying again.',
+  },
+  'auth/network-request-failed': {
+    title: 'Network Connection Error',
+    message: 'Unable to reach the authentication server. Please check your internet connection and try again.',
+  },
+  'auth/quota-exceeded': {
+    title: 'Server Busy',
+    message: 'The authentication server is experiencing high traffic. Please wait a moment and try again.',
+  },
+  'auth/internal-error': {
+    title: 'Temporary Authentication Error',
+    message: 'An unexpected authentication error occurred. Please refresh the page and try again.',
+  },
 };
+
+function getMappedAuthFeedback(errorCode: string | undefined, fallbackTitle: string): AuthFeedback {
+  const mapped = errorCode ? firebaseFeedbackMap[errorCode] : undefined;
+  if (mapped) {
+    return { variant: 'error', ...mapped };
+  }
+  return {
+    variant: 'error',
+    title: fallbackTitle,
+    message: 'Unable to complete authentication right now. Please verify your details and try again.',
+  };
+}
+
+function buildLockedFeedback(state: LoginSecurityState, now: number): AuthFeedback {
+  const remainingMs = getRemainingLockoutMs(state, now);
+  const unlockTime =
+    state.lockedUntil !== null
+      ? new Date(state.lockedUntil).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+      : '';
+  return {
+    variant: 'locked',
+    title: 'Account Locked for 30 Minutes',
+    message:
+      'Login has been temporarily blocked after 5 invalid CAPTCHA attempts. You cannot sign in to this account until the lockout period ends.',
+    hint: unlockTime
+      ? `Remaining lockout duration: ${formatLockoutDuration(remainingMs)} (unlocks at ${unlockTime}).`
+      : `Remaining lockout duration: ${formatLockoutDuration(remainingMs)}.`,
+  };
+}
 
 export function AuthForm({ initialTab }: AuthFormProps) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -95,8 +202,15 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const [privacyPolicyAgreed, setPrivacyPolicyAgreed] = useState(false);
   const [isPrivacyDialogOpen, setIsPrivacyDialogOpen] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authFeedback, setAuthFeedback] = useState<AuthFeedback | null>(null);
   const [authAccessPolicy, setAuthAccessPolicy] = useState<AuthAccessPolicy>(DEFAULT_AUTH_ACCESS_POLICY);
+
+  // Security guard states (invalid clearing, 3-attempt CAPTCHA, 5-attempt CAPTCHA 30-min lockout)
+  const [securityState, setSecurityState] = useState<LoginSecurityState>(() => createEmptySecurityState());
+  const [activeSecurityEmail, setActiveSecurityEmail] = useState('');
+  const [captchaCode, setCaptchaCode] = useState(() => generateNumericCaptcha());
+  const [captchaInput, setCaptchaInput] = useState('');
+  const [nowMs, setNowMs] = useState(() => Date.now());
 
   // Forgot Password States
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
@@ -108,6 +222,57 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const auth = useAuth();
   const firestore = useFirestore();
   const { user, userProfile, isUserLoading } = useUser();
+
+  const syncLoginGuard = useCallback(
+    async (
+      action: 'status' | 'password_failed' | 'captcha_failed' | 'reset',
+      targetEmail: string,
+      idToken?: string,
+    ): Promise<LoginSecurityState> => {
+      const normalized = normalizeLoginIdentifier(targetEmail);
+      const now = Date.now();
+      if (!normalized) return createEmptySecurityState(now);
+
+      let localState = readLocalSecurityState(normalized, now);
+      if (action === 'password_failed') {
+        localState = recordFailedPasswordAttempt(localState, now);
+        writeLocalSecurityState(normalized, localState);
+      } else if (action === 'captcha_failed') {
+        localState = recordFailedCaptchaAttempt(localState, now);
+        writeLocalSecurityState(normalized, localState);
+      } else if (action === 'reset') {
+        clearLocalSecurityState(normalized);
+        localState = resetLoginSecurityState(now);
+      }
+
+      try {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (idToken) {
+          headers.Authorization = `Bearer ${idToken}`;
+        }
+        const response = await fetch('/api/auth/login-guard', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ action, email: normalized }),
+        });
+        if (!response.ok) return localState;
+        const data = (await response.json()) as { state?: LoginSecurityState };
+        if (!data?.state) return localState;
+
+        if (action === 'reset') {
+          clearLocalSecurityState(normalized);
+          return resetLoginSecurityState(Date.now());
+        }
+
+        const merged = mergeSecurityStates(localState, data.state, Date.now());
+        writeLocalSecurityState(normalized, merged);
+        return merged;
+      } catch {
+        return localState;
+      }
+    },
+    [],
+  );
 
   // Automatically redirect if already logged in with a profile
   useEffect(() => {
@@ -129,6 +294,71 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     };
   }, [firestore]);
 
+  // Restore any active CAPTCHA or 30-minute lockout context on mount
+  useEffect(() => {
+    if (activeTab !== 'signin') return;
+    let cancelled = false;
+    const now = Date.now();
+    const ctx = readLastActiveSecurityContext(now);
+    if (!ctx) return;
+
+    setActiveSecurityEmail(ctx.email);
+    setSecurityState(ctx.state);
+    setNowMs(now);
+    if (isAccountLocked(ctx.state, now)) {
+      setAuthFeedback(buildLockedFeedback(ctx.state, now));
+    } else if (ctx.state.captchaRequired) {
+      setCaptchaCode(generateNumericCaptcha());
+      setAuthFeedback({
+        variant: 'warning',
+        title: 'CAPTCHA Verification Required',
+        message: 'Multiple failed login attempts were previously detected for this account.',
+        hint: 'Please enter the 6-digit CAPTCHA number below to verify your sign-in.',
+      });
+    }
+
+    syncLoginGuard('status', ctx.email).then((merged) => {
+      if (cancelled) return;
+      const current = Date.now();
+      setSecurityState(merged);
+      setNowMs(current);
+      if (isAccountLocked(merged, current)) {
+        setAuthFeedback(buildLockedFeedback(merged, current));
+      } else if (!merged.captchaRequired) {
+        setActiveSecurityEmail('');
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, syncLoginGuard]);
+
+  // Live 1-second countdown while an account is locked for 30 minutes
+  const isLockedTimerActive = isAccountLocked(securityState, nowMs);
+  useEffect(() => {
+    if (!isLockedTimerActive) return;
+    const timer = window.setInterval(() => {
+      const current = Date.now();
+      setNowMs(current);
+      if (!isAccountLocked(securityState, current)) {
+        if (activeSecurityEmail) {
+          clearLocalSecurityState(activeSecurityEmail);
+        }
+        setSecurityState(resetLoginSecurityState(current));
+        setActiveSecurityEmail('');
+        setCaptchaInput('');
+        setCaptchaCode(generateNumericCaptcha());
+        setAuthFeedback({
+          variant: 'info',
+          title: 'Account Lockout Expired',
+          message: 'Your 30-minute temporary lockout has ended. You may now sign in again.',
+        });
+      }
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [isLockedTimerActive, securityState, activeSecurityEmail]);
+
   /**
    * Centralized logic to handle authentication results.
    */
@@ -140,6 +370,20 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
       try {
         const normalizedEmail = (user.email || '').trim().toLowerCase();
+        const guardStatusNow = Date.now();
+        const guardState = await syncLoginGuard('status', normalizedEmail);
+        if (isAccountLocked(guardState, guardStatusNow)) {
+          if (auth) {
+            await auth.signOut();
+          }
+          setActiveSecurityEmail(normalizedEmail);
+          setSecurityState(guardState);
+          setNowMs(guardStatusNow);
+          setAuthFeedback(buildLockedFeedback(guardState, guardStatusNow));
+          setIsSubmitting(false);
+          return;
+        }
+
         const isInstitutional = normalizedEmail.endsWith('@rsu.edu.ph') || normalizedEmail === 'admin@eoms.com';
         const providerId = additionalInfo?.providerId || (result as any).credential?.providerId || '';
         const isGoogle = providerId === 'google.com';
@@ -165,15 +409,28 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           if (auth) {
             await auth.signOut();
           }
-          setAuthError(
-            policy.allowRegisteredExternalEmails
-              ? 'Access Denied: This email is not registered in the system. Please contact the administrator to register your account.'
+          setAuthFeedback({
+            variant: 'error',
+            title: 'Access Denied',
+            message: policy.allowRegisteredExternalEmails
+              ? 'This email address is not registered in the system. Please contact the administrator to register your account.'
               : policy.allowExternalGoogleAccounts
-                ? 'Access Denied: Please sign in with your official @rsu.edu.ph account or continue with Google.'
-                : 'Institutional Requirement: Please connect using your official Romblon State University Google account (@rsu.edu.ph).',
-          );
+                ? 'Please sign in with your official @rsu.edu.ph account or continue with Google.'
+                : 'Please connect using your official Romblon State University Google account (@rsu.edu.ph).',
+          });
           setIsSubmitting(false);
           return;
+        }
+
+        clearLocalSecurityState(normalizedEmail);
+        setSecurityState(resetLoginSecurityState());
+        setActiveSecurityEmail('');
+        setCaptchaInput('');
+        try {
+          const idToken = await user.getIdToken();
+          await syncLoginGuard('reset', normalizedEmail, idToken);
+        } catch {
+          // Do not block an authorized login if cleanup fails.
         }
 
         if (typeof window !== 'undefined') {
@@ -234,11 +491,15 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           }
         }
       } catch (err) {
-        setAuthError('An error occurred while setting up your institutional profile. Please try again.');
+        setAuthFeedback({
+          variant: 'error',
+          title: 'Profile Setup Error',
+          message: 'An error occurred while setting up your institutional profile. Please try again.',
+        });
         setIsSubmitting(false);
       }
     },
-    [auth, firestore, firstName, lastName, sex, router, toast],
+    [auth, firestore, firstName, lastName, sex, router, toast, syncLoginGuard],
   );
 
   // Handle Redirect Result on Mount
@@ -254,10 +515,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         .catch((error) => {
           const errorCode = (error as AuthError).code;
           if (errorCode !== 'auth/redirect-cancelled-by-user') {
-            setAuthError(
-              firebaseErrorMap[errorCode] ||
-                `Sign-in failed (${errorCode}). Please check your connection or Whitelisted Domains.`,
-            );
+            setAuthFeedback(getMappedAuthFeedback(errorCode, 'Google Sign-In Failed'));
           }
         });
     }
@@ -272,35 +530,179 @@ export function AuthForm({ initialTab }: AuthFormProps) {
     setFirstName('');
     setLastName('');
     setSex('');
+    setCaptchaInput('');
     setIsPasswordVisible(false);
-    setAuthError(null);
+    setAuthFeedback(null);
   };
 
   const clearError = () => {
-    if (authError) setAuthError(null);
+    if (authFeedback && authFeedback.variant !== 'locked') {
+      setAuthFeedback(null);
+    }
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth) {
-      setAuthError('Authentication service is not available.');
+      setAuthFeedback({
+        variant: 'error',
+        title: 'Service Unavailable',
+        message: 'Authentication service is not available right now. Please refresh and try again.',
+      });
       return;
     }
-    if (!email || !password) {
-      setAuthError('Please enter both email and password.');
+    if (!email.trim() || !password) {
+      setAuthFeedback({
+        variant: 'error',
+        title: 'Missing Credentials',
+        message: 'Please enter both your email address and password to sign in.',
+      });
       return;
     }
+
+    const targetEmail = normalizeLoginIdentifier(email);
     setIsSubmitting(true);
-    setAuthError(null);
+    setAuthFeedback(null);
+
+    const statusNow = Date.now();
+    const effectiveState = await syncLoginGuard('status', targetEmail);
+
+    if (isAccountLocked(effectiveState, statusNow)) {
+      setActiveSecurityEmail(targetEmail);
+      setSecurityState(effectiveState);
+      setNowMs(statusNow);
+      setEmail('');
+      setPassword('');
+      setCaptchaInput('');
+      setIsPasswordVisible(false);
+      setAuthFeedback(buildLockedFeedback(effectiveState, statusNow));
+      setIsSubmitting(false);
+      return;
+    }
+
+    if (effectiveState.captchaRequired) {
+      setActiveSecurityEmail(targetEmail);
+      setSecurityState(effectiveState);
+
+      if (!securityState.captchaRequired) {
+        setCaptchaCode(generateNumericCaptcha());
+        setCaptchaInput('');
+        setAuthFeedback({
+          variant: 'warning',
+          title: 'CAPTCHA Verification Required',
+          message: 'Multiple failed login attempts were detected for this account.',
+          hint: 'Please enter the 6-digit CAPTCHA number below to continue signing in.',
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!captchaInput.trim()) {
+        const remainingCaptcha = Math.max(
+          0,
+          MAX_FAILED_CAPTCHA_ATTEMPTS_BEFORE_LOCKOUT - effectiveState.failedCaptchaAttempts,
+        );
+        setAuthFeedback({
+          variant: 'warning',
+          title: 'CAPTCHA Number Required',
+          message: 'Please enter the 6-digit CAPTCHA number displayed below before signing in.',
+          hint: `${remainingCaptcha} invalid CAPTCHA ${remainingCaptcha === 1 ? 'attempt' : 'attempts'} remaining before a 30-minute lockout.`,
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (!verifyNumericCaptcha(captchaCode, captchaInput)) {
+        const updatedState = await syncLoginGuard('captcha_failed', targetEmail);
+        const failureNow = Date.now();
+        setActiveSecurityEmail(targetEmail);
+        setSecurityState(updatedState);
+        setNowMs(failureNow);
+        setCaptchaInput('');
+        setCaptchaCode(generateNumericCaptcha());
+
+        if (isAccountLocked(updatedState, failureNow)) {
+          setEmail('');
+          setPassword('');
+          setIsPasswordVisible(false);
+          setAuthFeedback(buildLockedFeedback(updatedState, failureNow));
+        } else {
+          const remainingCaptcha = Math.max(
+            0,
+            MAX_FAILED_CAPTCHA_ATTEMPTS_BEFORE_LOCKOUT - updatedState.failedCaptchaAttempts,
+          );
+          setAuthFeedback({
+            variant: 'warning',
+            title: 'Incorrect CAPTCHA Number',
+            message: 'The 6-digit verification number you entered does not match. A new code has been generated.',
+            hint: `Invalid CAPTCHA attempt ${updatedState.failedCaptchaAttempts} of ${MAX_FAILED_CAPTCHA_ATTEMPTS_BEFORE_LOCKOUT} — ${remainingCaptcha} ${
+              remainingCaptcha === 1 ? 'attempt' : 'attempts'
+            } remaining before a 30-minute account lockout.`,
+          });
+        }
+        setIsSubmitting(false);
+        return;
+      }
+    }
 
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email.trim(), password);
       await handleAuthResult(result);
     } catch (error) {
       const errorCode = (error as AuthError).code;
-      setAuthError(
-        firebaseErrorMap[errorCode] || `Sign-in failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+
+      if (
+        isInvalidCredentialErrorCode(errorCode) ||
+        errorCode === 'auth/invalid-email' ||
+        errorCode === 'auth/too-many-requests'
+      ) {
+        setEmail('');
+        setPassword('');
+        setCaptchaInput('');
+        setIsPasswordVisible(false);
+      }
+
+      if (isInvalidCredentialErrorCode(errorCode)) {
+        const updatedState = await syncLoginGuard('password_failed', targetEmail);
+        setActiveSecurityEmail(targetEmail);
+        setSecurityState(updatedState);
+
+        if (updatedState.captchaRequired) {
+          setCaptchaCode(generateNumericCaptcha());
+          const remainingCaptcha = Math.max(
+            0,
+            MAX_FAILED_CAPTCHA_ATTEMPTS_BEFORE_LOCKOUT - updatedState.failedCaptchaAttempts,
+          );
+          setAuthFeedback({
+            variant: 'warning',
+            title:
+              updatedState.failedPasswordAttempts === MAX_FAILED_PASSWORD_ATTEMPTS_BEFORE_CAPTCHA
+                ? 'Invalid Credentials — CAPTCHA Required'
+                : 'Invalid Email or Password',
+            message:
+              'The email address or password you entered is incorrect. Both fields have been cleared for security.',
+            hint: `Complete the 6-digit CAPTCHA below to continue. ${remainingCaptcha} invalid CAPTCHA ${
+              remainingCaptcha === 1 ? 'attempt' : 'attempts'
+            } remaining before a 30-minute account lockout.`,
+          });
+        } else {
+          const remaining = Math.max(
+            0,
+            MAX_FAILED_PASSWORD_ATTEMPTS_BEFORE_CAPTCHA - updatedState.failedPasswordAttempts,
+          );
+          setAuthFeedback({
+            variant: 'error',
+            title: 'Invalid Email or Password',
+            message:
+              'The email address or password you entered is incorrect. Both username and password fields have been cleared.',
+            hint: `Failed attempt ${updatedState.failedPasswordAttempts} of ${MAX_FAILED_PASSWORD_ATTEMPTS_BEFORE_CAPTCHA} — ${remaining} ${
+              remaining === 1 ? 'attempt' : 'attempts'
+            } remaining before CAPTCHA verification is required.`,
+          });
+        }
+      } else {
+        setAuthFeedback(getMappedAuthFeedback(errorCode, 'Sign-In Failed'));
+      }
       setIsSubmitting(false);
     }
   };
@@ -308,35 +710,48 @@ export function AuthForm({ initialTab }: AuthFormProps) {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!auth || !firestore) {
-      setAuthError('Authentication service is not available.');
+      setAuthFeedback({
+        variant: 'error',
+        title: 'Service Unavailable',
+        message: 'Authentication service is not available.',
+      });
       return;
     }
     if (!email || !password || !firstName || !lastName || !sex) {
-      setAuthError('Please fill out all fields, including sex identification.');
+      setAuthFeedback({
+        variant: 'error',
+        title: 'Incomplete Details',
+        message: 'Please fill out all fields, including sex identification.',
+      });
       return;
     }
     const normalizedEmail = email.trim().toLowerCase();
     const isInstitutional = normalizedEmail.endsWith('@rsu.edu.ph');
     const isDev = process.env.NODE_ENV !== 'production';
     if (!isInstitutional && !isDev) {
-      setAuthError('Institutional Requirement: Please register using your official university email (@rsu.edu.ph).');
+      setAuthFeedback({
+        variant: 'error',
+        title: 'Institutional Email Required',
+        message: 'Please register using your official university email (@rsu.edu.ph).',
+      });
       return;
     }
     if (!privacyPolicyAgreed) {
-      setAuthError('You must agree to the Data Privacy Statement to create an account.');
+      setAuthFeedback({
+        variant: 'error',
+        title: 'Privacy Statement Required',
+        message: 'You must agree to the Data Privacy Statement to create an account.',
+      });
       return;
     }
     setIsSubmitting(true);
-    setAuthError(null);
+    setAuthFeedback(null);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await handleAuthResult(userCredential);
     } catch (error) {
       const errorCode = (error as AuthError).code;
-      setAuthError(
-        firebaseErrorMap[errorCode] ||
-          `Registration failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      setAuthFeedback(getMappedAuthFeedback(errorCode, 'Registration Failed'));
       setIsSubmitting(false);
     }
   };
@@ -354,9 +769,10 @@ export function AuthForm({ initialTab }: AuthFormProps) {
       setResetEmail('');
     } catch (error) {
       const errorCode = (error as AuthError).code;
+      const mapped = getMappedAuthFeedback(errorCode, 'Password Reset Failed');
       toast({
-        title: 'Request Failed',
-        description: firebaseErrorMap[errorCode] || 'Could not send reset email. Please try again.',
+        title: mapped.title,
+        description: mapped.message,
         variant: 'destructive',
       });
     } finally {
@@ -366,11 +782,15 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
   const processGoogleSignIn = () => {
     if (!auth || !firestore) {
-      setAuthError('Authentication service is not available.');
+      setAuthFeedback({
+        variant: 'error',
+        title: 'Service Unavailable',
+        message: 'Authentication service is not available.',
+      });
       return;
     }
     setIsSubmitting(true);
-    setAuthError(null);
+    setAuthFeedback(null);
     const provider = new GoogleAuthProvider();
     const allowExternalAccounts =
       authAccessPolicy.allowExternalGoogleAccounts || authAccessPolicy.allowRegisteredExternalEmails;
@@ -396,17 +816,61 @@ export function AuthForm({ initialTab }: AuthFormProps) {
         if (shouldRedirect) {
           signInWithRedirect(auth, provider);
         } else {
-          setAuthError(
-            firebaseErrorMap[errorCode] ||
-              `Google Sign-In Error: ${errorCode}. Please ensure this domain is whitelisted in Firebase.`,
-          );
+          setAuthFeedback(getMappedAuthFeedback(errorCode, 'Google Sign-In Failed'));
           setIsSubmitting(false);
         }
       });
   };
 
+  const normalizedTypedEmail = normalizeLoginIdentifier(email);
+  const isCurrentTargetLocked =
+    isAccountLocked(securityState, nowMs) && (!normalizedTypedEmail || normalizedTypedEmail === activeSecurityEmail);
+  const lockoutCountdown = formatLockoutCountdown(getRemainingLockoutMs(securityState, nowMs));
+
+  const handleSignInEmailChange = (nextValue: string) => {
+    setEmail(nextValue);
+    const typed = normalizeLoginIdentifier(nextValue);
+    const now = Date.now();
+
+    if (typed) {
+      const stored = readLocalSecurityState(typed, now);
+      if (isAccountLocked(stored, now)) {
+        setActiveSecurityEmail(typed);
+        setSecurityState(stored);
+        setNowMs(now);
+        setAuthFeedback(buildLockedFeedback(stored, now));
+        return;
+      }
+      if (stored.captchaRequired) {
+        setActiveSecurityEmail(typed);
+        setSecurityState(stored);
+        if (!securityState.captchaRequired) {
+          setCaptchaCode(generateNumericCaptcha());
+        }
+        clearError();
+        return;
+      }
+      if (
+        typed.includes('@') &&
+        activeSecurityEmail &&
+        typed !== activeSecurityEmail &&
+        !activeSecurityEmail.startsWith(typed)
+      ) {
+        setActiveSecurityEmail(typed);
+        setSecurityState(stored);
+        setCaptchaInput('');
+      }
+    }
+
+    if (!isAccountLocked(securityState, now)) {
+      clearError();
+    } else if (typed.includes('@') && typed !== activeSecurityEmail && !activeSecurityEmail.startsWith(typed)) {
+      setAuthFeedback(null);
+    }
+  };
+
   const renderSignIn = () => (
-    <form onSubmit={handleSignIn} className="space-y-6">
+    <form onSubmit={handleSignIn} className="space-y-5">
       <div className="space-y-2">
         <Label htmlFor="email-signin">Email</Label>
         <div className="relative">
@@ -417,10 +881,7 @@ export function AuthForm({ initialTab }: AuthFormProps) {
             placeholder="Enter your email"
             required
             value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              clearError();
-            }}
+            onChange={(e) => handleSignInEmailChange(e.target.value)}
             disabled={isSubmitting}
             className="pl-9 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
@@ -451,13 +912,15 @@ export function AuthForm({ initialTab }: AuthFormProps) {
               setPassword(e.target.value);
               clearError();
             }}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isCurrentTargetLocked}
             placeholder="Enter your password"
             className="pr-10 bg-gray-800/50 border-gray-700 focus:ring-primary focus:border-primary"
           />
           <button
             type="button"
             onClick={togglePasswordVisibility}
+            disabled={isSubmitting || isCurrentTargetLocked}
+            aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}
             className="absolute inset-y-0 right-0 flex items-center pr-3"
           >
             {isPasswordVisible ? (
@@ -468,13 +931,40 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           </button>
         </div>
       </div>
+
+      {securityState.captchaRequired && !isCurrentTargetLocked && (
+        <NumericCaptcha
+          code={captchaCode}
+          value={captchaInput}
+          onChange={(val) => {
+            setCaptchaInput(val);
+            clearError();
+          }}
+          onRefresh={() => {
+            setCaptchaCode(generateNumericCaptcha());
+            setCaptchaInput('');
+            clearError();
+          }}
+          failedAttempts={securityState.failedCaptchaAttempts}
+          maxAttempts={MAX_FAILED_CAPTCHA_ATTEMPTS_BEFORE_LOCKOUT}
+          disabled={isSubmitting}
+        />
+      )}
+
       <Button
         type="submit"
-        className="w-full bg-white dark:bg-slate-900 text-black dark:text-white hover:bg-gray-200"
-        disabled={isSubmitting}
+        className="w-full bg-white dark:bg-slate-900 text-black dark:text-white hover:bg-gray-200 disabled:opacity-60"
+        disabled={isSubmitting || isCurrentTargetLocked}
       >
         {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-        Sign In
+        {isCurrentTargetLocked ? (
+          <>
+            <Lock className="mr-2 h-4 w-4" />
+            Account Locked ({lockoutCountdown})
+          </>
+        ) : (
+          'Sign In'
+        )}
       </Button>
     </form>
   );
@@ -568,10 +1058,78 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           {activeTab === 'signup' ? 'Create your RSU EOMS Account' : 'RSU EOMS Submission Portal'}
         </h2>
 
-        {authError && (
-          <div className="bg-destructive/20 border border-destructive/50 text-destructive text-xs rounded-md p-3 flex items-center gap-2 mb-4">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            <span className="leading-snug">{authError}</span>
+        {authFeedback && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className={cn(
+              'rounded-lg border p-3.5 mb-5 text-left transition-colors',
+              authFeedback.variant === 'locked' && 'bg-red-950/90 border-red-500/70 text-red-50',
+              authFeedback.variant === 'error' && 'bg-rose-950/85 border-rose-500/60 text-rose-50',
+              authFeedback.variant === 'warning' && 'bg-amber-950/85 border-amber-500/60 text-amber-50',
+              authFeedback.variant === 'info' && 'bg-emerald-950/80 border-emerald-500/60 text-emerald-50',
+            )}
+          >
+            <div className="flex items-start gap-3">
+              <div
+                className={cn(
+                  'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
+                  authFeedback.variant === 'locked' && 'bg-red-500/20 text-red-300',
+                  authFeedback.variant === 'error' && 'bg-rose-500/20 text-rose-300',
+                  authFeedback.variant === 'warning' && 'bg-amber-500/20 text-amber-300',
+                  authFeedback.variant === 'info' && 'bg-emerald-500/20 text-emerald-300',
+                )}
+              >
+                {authFeedback.variant === 'locked' ? (
+                  <Lock className="h-4 w-4" />
+                ) : authFeedback.variant === 'warning' ? (
+                  <ShieldAlert className="h-4 w-4" />
+                ) : authFeedback.variant === 'info' ? (
+                  <ShieldCheck className="h-4 w-4" />
+                ) : (
+                  <AlertCircle className="h-4 w-4" />
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-xs font-bold tracking-wide leading-tight">{authFeedback.title}</p>
+                  {authFeedback.variant !== 'locked' && (
+                    <button
+                      type="button"
+                      onClick={() => setAuthFeedback(null)}
+                      aria-label="Dismiss notification"
+                      className="text-white/60 hover:text-white transition-colors shrink-0"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <p className="text-xs leading-relaxed text-white/85">{authFeedback.message}</p>
+
+                {authFeedback.variant === 'locked' && isAccountLocked(securityState, nowMs) && (
+                  <div className="mt-2 inline-flex items-center gap-1.5 rounded bg-red-900/70 border border-red-400/30 px-2.5 py-1 text-[11px] font-mono font-semibold text-red-100">
+                    <Clock className="h-3.5 w-3.5 text-red-300" />
+                    <span>Time remaining: {lockoutCountdown}</span>
+                  </div>
+                )}
+
+                {authFeedback.hint && (
+                  <p
+                    className={cn(
+                      'mt-1.5 pt-1.5 border-t text-[11px] font-medium leading-snug',
+                      authFeedback.variant === 'locked' && 'border-red-500/30 text-red-200',
+                      authFeedback.variant === 'error' && 'border-rose-500/30 text-rose-200',
+                      authFeedback.variant === 'warning' && 'border-amber-500/30 text-amber-200',
+                      authFeedback.variant === 'info' && 'border-emerald-500/30 text-emerald-200',
+                    )}
+                  >
+                    {authFeedback.hint}
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         )}
 

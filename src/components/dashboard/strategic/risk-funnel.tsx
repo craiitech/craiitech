@@ -36,7 +36,7 @@ export function RiskFunnel({ allRisks, selectedYear }: RiskFunnelProps) {
   const hasData = useMemo(() => funnelData.some((d) => d.value > 0), [funnelData]);
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl border-primary/10 overflow-hidden bg-gradient-to-b from-white to-slate-50/40 dark:from-slate-900 dark:to-slate-850">
+    <Card className="shadow-sm rounded-xl border-border overflow-hidden bg-card">
       {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
       <Chart3DDefs idPrefix="funnel3d" />
 

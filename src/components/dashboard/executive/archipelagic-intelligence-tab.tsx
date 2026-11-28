@@ -564,7 +564,7 @@ export function ArchipelagicIntelligenceTab({
       <Chart3DDefs idPrefix="arch-intel" />
 
       {/* 1. Top Executive Control Bar */}
-      <Card className="border-2 shadow-xs bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white">
+      <Card className="border border-slate-800 shadow-sm bg-slate-900 text-white">
         <CardHeader className="pb-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="space-y-1">
@@ -1134,9 +1134,8 @@ export function ArchipelagicIntelligenceTab({
             {pillarsAnalytics.map((pillar) => (
               <Card
                 key={pillar.code}
-                className="border shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden"
+                className="border border-border shadow-sm flex flex-col justify-between overflow-hidden"
               >
-                <div className="h-2 w-full" style={{ backgroundColor: pillar.color }} />
                 <CardHeader className="pb-3 pt-4">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <Badge
@@ -1209,9 +1208,8 @@ export function ArchipelagicIntelligenceTab({
             {sucLevellingAnalytics.map((kra) => (
               <Card
                 key={kra.code}
-                className="border shadow-xs hover:shadow-md transition-all flex flex-col justify-between overflow-hidden"
+                className="border border-border shadow-sm flex flex-col justify-between overflow-hidden"
               >
-                <div className="h-2 w-full" style={{ backgroundColor: kra.color }} />
                 <CardHeader className="pb-2 pt-3">
                   <Badge
                     variant="outline"

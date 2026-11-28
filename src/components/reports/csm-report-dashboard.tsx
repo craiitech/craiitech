@@ -2327,8 +2327,7 @@ export function CsmReportDashboard({
           {/* Executive Scorecard Gauge charts */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             {/* Satisfaction Gauge */}
-            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500" />
+            <Card className="shadow-sm rounded-xl border-slate-200 dark:border-slate-700 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
                   Overall Score (3D)
@@ -2367,8 +2366,7 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Participation Gauge */}
-            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-amber-500" />
+            <Card className="shadow-sm rounded-xl border-slate-200 dark:border-slate-700 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
                   Response Rate (3D)
@@ -2407,8 +2405,7 @@ export function CsmReportDashboard({
             </Card>
 
             {/* CC1 Gauge */}
-            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-500" />
+            <Card className="shadow-sm rounded-xl border-slate-200 dark:border-slate-700 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
                   CC Awareness (3D)
@@ -2444,8 +2441,7 @@ export function CsmReportDashboard({
             </Card>
 
             {/* CC2 Gauge */}
-            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-purple-500" />
+            <Card className="shadow-sm rounded-xl border-slate-200 dark:border-slate-700 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
                   CC Visibility (3D)
@@ -2484,8 +2480,7 @@ export function CsmReportDashboard({
             </Card>
 
             {/* CC3 Gauge */}
-            <Card className="shadow-lg hover:shadow-xl transition-all rounded-2xl border-slate-200/80 dark:border-slate-700/80 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-rose-500" />
+            <Card className="shadow-sm rounded-xl border-slate-200 dark:border-slate-700 flex flex-col justify-between overflow-hidden relative bg-white dark:bg-slate-900">
               <CardHeader className="pb-1 pt-3 flex flex-row items-center justify-between">
                 <span className="text-[9px] font-black uppercase text-muted-foreground tracking-wider">
                   CC Helpfulness (3D)
@@ -3426,8 +3421,7 @@ export function CsmReportDashboard({
         <TabsContent value="exporter" className="space-y-6 animate-in fade-in duration-500">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Harmonized Agency Report Card */}
-            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative flex flex-col justify-between">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-600" />
+            <Card className="shadow-sm border-slate-200 dark:border-slate-700 overflow-hidden relative flex flex-col justify-between">
               <div>
                 <CardHeader className="pb-2 pt-5">
                   <span className="text-[9px] font-black uppercase text-[#1B6535] tracking-widest">
@@ -3465,8 +3459,7 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Campus specific performance Card */}
-            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative flex flex-col justify-between">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-blue-600" />
+            <Card className="shadow-sm border-slate-200 dark:border-slate-700 overflow-hidden relative flex flex-col justify-between">
               <div>
                 <CardHeader className="pb-2 pt-5">
                   <span className="text-[9px] font-black uppercase text-blue-600 tracking-widest">
@@ -3529,8 +3522,7 @@ export function CsmReportDashboard({
             </Card>
 
             {/* Master CSM Excel Workbook Card */}
-            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative flex flex-col justify-between">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-[#1B6535]" />
+            <Card className="shadow-sm border-slate-200 dark:border-slate-700 overflow-hidden relative flex flex-col justify-between">
               <div>
                 <CardHeader className="pb-2 pt-5">
                   <span className="text-[9px] font-black uppercase text-[#1B6535] tracking-widest">
@@ -3561,8 +3553,7 @@ export function CsmReportDashboard({
             </Card>
 
             {/* CAIP matrix Card */}
-            <Card className="shadow-md border-slate-200/85 dark:border-slate-700/85 overflow-hidden relative flex flex-col justify-between">
-              <div className="absolute top-0 left-0 w-full h-1.5 bg-[#D4AF37]" />
+            <Card className="shadow-sm border-slate-200 dark:border-slate-700 overflow-hidden relative flex flex-col justify-between">
               <div>
                 <CardHeader className="pb-2 pt-5">
                   <span className="text-[9px] font-black uppercase text-amber-700 tracking-widest">

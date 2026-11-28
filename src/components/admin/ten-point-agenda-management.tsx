@@ -226,7 +226,7 @@ export function TenPointAgendaManagement() {
   return (
     <div className="space-y-6">
       {/* 1. Header & Overview Card */}
-      <Card className="border-2 border-primary/20 shadow-sm overflow-hidden bg-gradient-to-br from-card via-card to-primary/5">
+      <Card className="border-border shadow-sm overflow-hidden bg-card">
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">

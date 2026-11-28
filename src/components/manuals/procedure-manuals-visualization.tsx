@@ -431,8 +431,7 @@ export function ProcedureManualsVisualization({
       {/* TOP 5 EXECUTIVE KPI CARDS */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* KPI 1: Total Units */}
-        <Card className="border-border/60 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-indigo-500" />
+        <Card className="border-border shadow-sm relative overflow-hidden bg-card">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center justify-between">
               <span>University Units</span>
@@ -450,8 +449,7 @@ export function ProcedureManualsVisualization({
         </Card>
 
         {/* KPI 2: Documented Processes */}
-        <Card className="border-border/60 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-sky-500" />
+        <Card className="border-border shadow-sm relative overflow-hidden bg-card">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center justify-between">
               <span>Total SOP Processes</span>
@@ -469,8 +467,7 @@ export function ProcedureManualsVisualization({
         </Card>
 
         {/* KPI 3: Updated Manuals */}
-        <Card className="border-border/60 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-emerald-500" />
+        <Card className="border-border shadow-sm relative overflow-hidden bg-card">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center justify-between">
               <span>Updated & Active</span>
@@ -486,8 +483,7 @@ export function ProcedureManualsVisualization({
         </Card>
 
         {/* KPI 4: Needs Revision */}
-        <Card className="border-border/60 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-amber-500" />
+        <Card className="border-border shadow-sm relative overflow-hidden bg-card">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center justify-between">
               <span>Needs Revision</span>
@@ -505,8 +501,7 @@ export function ProcedureManualsVisualization({
         </Card>
 
         {/* KPI 5: Digital Previews */}
-        <Card className="border-border/60 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden bg-gradient-to-b from-white to-slate-50 dark:from-slate-900 dark:to-slate-950">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-violet-500" />
+        <Card className="border-border shadow-sm relative overflow-hidden bg-card">
           <CardHeader className="pb-2 pt-4 px-4">
             <CardDescription className="text-[10px] font-black uppercase tracking-wider text-muted-foreground flex items-center justify-between">
               <span>Digital Accessibility</span>
@@ -842,7 +837,7 @@ export function ProcedureManualsVisualization({
 
       {/* INSTITUTIONAL QMS INFORMATION CARDS (FOR EVERYONE) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="border-border/60 bg-gradient-to-br from-indigo-50/50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900/80 dark:to-indigo-950/30">
+        <Card className="border-border bg-card shadow-sm">
           <CardHeader className="pb-2">
             <div className="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-600 mb-1">
               <BookOpen className="h-4 w-4" />
@@ -858,7 +853,7 @@ export function ProcedureManualsVisualization({
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 bg-gradient-to-br from-emerald-50/50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900/80 dark:to-emerald-950/30">
+        <Card className="border-border bg-card shadow-sm">
           <CardHeader className="pb-2">
             <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 mb-1">
               <ShieldCheck className="h-4 w-4" />
@@ -874,7 +869,7 @@ export function ProcedureManualsVisualization({
           </CardContent>
         </Card>
 
-        <Card className="border-border/60 bg-gradient-to-br from-amber-50/50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900/80 dark:to-amber-950/30">
+        <Card className="border-border bg-card shadow-sm">
           <CardHeader className="pb-2">
             <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-600 mb-1">
               <Activity className="h-4 w-4" />

@@ -544,7 +544,7 @@ export function RequestOtherUnitFormsTab({
               {selectedTargetUnit ? (
                 <>
                   {/* Selected Unit Profile Card */}
-                  <Card className="shadow-md border-primary/20 overflow-hidden bg-gradient-to-br from-white via-slate-50 to-indigo-50/20 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/20">
+                  <Card className="shadow-sm border-border overflow-hidden bg-card">
                     <CardHeader className="border-b pb-4 bg-muted/10">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="space-y-1">

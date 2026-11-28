@@ -1753,7 +1753,7 @@ export function UnitKpiTracker() {
       </Dialog>
 
       {/* 7. Unit Risks and Opportunities Register (ROAP) — Aligned with ISO 21001 Clause 6.1 */}
-      <Card className="shadow-xs border-t-4 border-t-amber-500 overflow-hidden">
+      <Card className="shadow-sm border-border overflow-hidden">
         <CardHeader className="py-4 border-b bg-muted/10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div>

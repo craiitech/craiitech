@@ -509,14 +509,9 @@ export function AiRiskIntelligenceCard({
   }, [riskAnalytics.topAttentionItems, selectedAttentionTab]);
 
   return (
-    <Card
-      className={cn(
-        'shadow-xl border-primary/20 overflow-hidden bg-gradient-to-br from-card via-card to-primary/[0.02]',
-        className,
-      )}
-    >
+    <Card className={cn('shadow-sm border-border overflow-hidden bg-card', className)}>
       {/* ─── CARD HEADER ────────────────────────────────────────────── */}
-      <CardHeader className="bg-gradient-to-r from-destructive/10 via-primary/5 to-transparent border-b py-4 px-6">
+      <CardHeader className="bg-muted/30 border-b py-4 px-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">

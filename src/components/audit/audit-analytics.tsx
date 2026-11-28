@@ -803,8 +803,8 @@ export function AuditAnalytics({
 
       {/* Yearly IQA Performance Table */}
       {yearlyIqaPerformance.length > 0 && (
-        <Card className="shadow-md border-primary/10 overflow-hidden bg-card">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b py-4 px-6">
+        <Card className="shadow-sm border-border overflow-hidden bg-card">
+          <CardHeader className="bg-muted/30 border-b py-4 px-6">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-xl bg-white shadow-sm border border-primary/10">
                 <BarChart3 className="h-5 w-5 text-primary" />

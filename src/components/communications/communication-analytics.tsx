@@ -1045,7 +1045,7 @@ export function CommunicationAnalytics({ communications, units = [], campuses = 
       </div>
 
       {/* ISO 21001:2025 CLAUSE 7.4 SIX PILLARS COMPLIANCE MATRIX */}
-      <Card className="rounded-2xl border-slate-200/80 dark:border-slate-800 shadow-sm bg-gradient-to-r from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 overflow-hidden">
+      <Card className="rounded-xl border-border shadow-sm bg-card overflow-hidden">
         <CardHeader className="border-b border-slate-100 dark:border-slate-800 pb-3">
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">

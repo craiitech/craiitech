@@ -203,8 +203,8 @@ export function UpcomingCarActionsCard({
   };
 
   return (
-    <Card className={cn('shadow-lg border-primary/20 bg-card rounded-2xl overflow-hidden', className)}>
-      <CardHeader className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-5 border-b border-primary/20">
+    <Card className={cn('shadow-sm border-border bg-card rounded-xl overflow-hidden', className)}>
+      <CardHeader className="bg-slate-900 text-white p-5 border-b border-slate-800">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-primary/20 text-primary-foreground border border-primary/30 shadow-inner">

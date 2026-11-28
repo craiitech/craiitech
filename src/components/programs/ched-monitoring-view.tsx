@@ -483,7 +483,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
     <div className="space-y-6">
       {/* Top Highlight KPI Cards for CHED */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3.5">
-        <Card className="border-primary/10 shadow-sm bg-gradient-to-br from-white to-slate-50">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-3.5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">
@@ -498,7 +498,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-200 shadow-sm bg-gradient-to-br from-emerald-50/50 to-white">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-3.5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-emerald-800 tracking-wider">Marked With COPC</p>
@@ -514,7 +514,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
           </CardContent>
         </Card>
 
-        <Card className="border-amber-200 shadow-sm bg-gradient-to-br from-amber-50/50 to-white">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-3.5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-amber-800 tracking-wider">COPC In Progress</p>
@@ -527,7 +527,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
           </CardContent>
         </Card>
 
-        <Card className="border-rose-200 shadow-sm bg-gradient-to-br from-rose-50/50 to-white">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-3.5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-rose-800 tracking-wider">No COPC Issued</p>
@@ -542,7 +542,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm bg-gradient-to-br from-slate-50 to-white">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-3.5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-slate-700 tracking-wider">No AY Record</p>
@@ -555,7 +555,7 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
           </CardContent>
         </Card>
 
-        <Card className="border-violet-200 shadow-sm bg-gradient-to-br from-violet-50/50 to-white">
+        <Card className="border-border shadow-sm bg-card">
           <CardContent className="p-3.5 flex items-center justify-between">
             <div>
               <p className="text-[10px] font-black uppercase text-violet-800 tracking-wider">Status Unknown</p>
@@ -606,8 +606,8 @@ export function ChedMonitoringView({ programs, compliances, campuses, units, sel
       </div>
 
       {/* Main CHED Monitoring Tabs Card */}
-      <Card className="border-primary/10 shadow-lg overflow-hidden bg-white">
-        <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-b py-5">
+      <Card className="border-border shadow-sm overflow-hidden bg-card">
+        <CardHeader className="bg-muted/30 border-b py-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2.5 rounded-xl bg-white shadow-sm border border-emerald-200">

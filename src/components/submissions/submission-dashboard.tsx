@@ -551,8 +551,8 @@ export function SubmissionDashboard({
     <div className="space-y-6">
       {/* Yearly Submission Performance Table */}
       {yearlyPerformance.length > 0 && (
-        <Card className="shadow-md border-primary/10 overflow-hidden bg-card">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-b py-4 px-6">
+        <Card className="shadow-sm border-border overflow-hidden bg-card">
+          <CardHeader className="bg-muted/30 border-b py-4 px-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-white dark:bg-slate-900 shadow-sm border border-primary/10">

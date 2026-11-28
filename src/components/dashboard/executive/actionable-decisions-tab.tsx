@@ -772,22 +772,11 @@ export function ActionableDecisionsTab({
                 <Card
                   key={flag.id}
                   className={cn(
-                    'border shadow-sm transition-all hover:shadow-md overflow-hidden flex flex-col justify-between',
+                    'border shadow-sm transition-shadow hover:shadow-md overflow-hidden flex flex-col justify-between',
                     config.border,
                     config.bg,
                   )}
                 >
-                  {/* Top Accent Strip based on severity */}
-                  <div
-                    className={cn(
-                      'h-1.5 w-full shrink-0',
-                      flag.severity === 'critical'
-                        ? 'bg-red-500'
-                        : flag.severity === 'warning'
-                          ? 'bg-amber-500'
-                          : 'bg-emerald-500',
-                    )}
-                  />
                   <CardContent className="p-4 flex flex-col justify-between h-full gap-4">
                     <div>
                       {/* Title & Value Row */}

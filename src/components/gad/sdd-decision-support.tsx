@@ -864,8 +864,8 @@ export function SDDDecisionSupport({
   };
 
   return (
-    <Card className="border-primary/20 shadow-xl rounded-2xl overflow-hidden bg-white dark:bg-slate-900">
-      <CardHeader className="bg-gradient-to-r from-indigo-950 via-slate-900 to-purple-950 text-white py-5 px-6 border-b">
+    <Card className="border-border shadow-sm rounded-xl overflow-hidden bg-card">
+      <CardHeader className="bg-slate-900 text-white py-5 px-6 border-b border-slate-800">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 flex-wrap">

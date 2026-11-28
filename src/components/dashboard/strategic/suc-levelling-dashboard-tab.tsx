@@ -395,7 +395,7 @@ export function SucLevellingDashboardTab({
       {/* 4 KRA Metric Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KRA 1 */}
-        <Card className="border-blue-200 bg-gradient-to-br from-blue-50/50 to-white dark:from-blue-950/20 dark:to-slate-900 shadow-sm">
+        <Card className="border-border bg-card shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <Badge className="bg-blue-100 text-blue-800 border-blue-200 text-[8px] font-black uppercase">
@@ -437,7 +437,7 @@ export function SucLevellingDashboardTab({
         </Card>
 
         {/* KRA 2 */}
-        <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white dark:from-emerald-950/20 dark:to-slate-900 shadow-sm">
+        <Card className="border-border bg-card shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[8px] font-black uppercase">
@@ -473,7 +473,7 @@ export function SucLevellingDashboardTab({
         </Card>
 
         {/* KRA 3 */}
-        <Card className="border-purple-200 bg-gradient-to-br from-purple-50/50 to-white dark:from-purple-950/20 dark:to-slate-900 shadow-sm">
+        <Card className="border-border bg-card shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[8px] font-black uppercase">
@@ -509,7 +509,7 @@ export function SucLevellingDashboardTab({
         </Card>
 
         {/* KRA 4 */}
-        <Card className="border-rose-200 bg-gradient-to-br from-rose-50/50 to-white dark:from-rose-950/20 dark:to-slate-900 shadow-sm">
+        <Card className="border-border bg-card shadow-sm">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <Badge className="bg-rose-100 text-rose-800 border-rose-200 text-[8px] font-black uppercase">

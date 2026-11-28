@@ -59,7 +59,7 @@ export function SecuritySpecificationsManagement() {
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <Card className="border-primary/20 shadow-md bg-gradient-to-br from-card via-card to-primary/5">
+      <Card className="border-border shadow-sm bg-card">
         <CardHeader className="pb-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">

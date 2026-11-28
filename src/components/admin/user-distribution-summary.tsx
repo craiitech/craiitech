@@ -284,7 +284,7 @@ export function UserDistributionSummary({
   }, [unitStats]);
 
   return (
-    <Card className="border border-indigo-100 dark:border-indigo-950/50 shadow-md bg-gradient-to-br from-white via-indigo-50/15 to-slate-50 dark:from-slate-900 dark:via-indigo-950/10 dark:to-slate-900 overflow-hidden">
+    <Card className="border-border shadow-sm bg-card overflow-hidden">
       {/* Header bar with toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b bg-indigo-50/40 dark:bg-indigo-950/20">
         <div className="flex items-center gap-3">

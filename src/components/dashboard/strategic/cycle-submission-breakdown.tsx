@@ -43,7 +43,7 @@ export function CycleSubmissionBreakdown({ allSubmissions, selectedYear }: Cycle
   const hasData = useMemo(() => chartData.some((d) => d['First Cycle'] > 0 || d['Final Cycle'] > 0), [chartData]);
 
   return (
-    <Card className="shadow-lg hover:shadow-xl transition-all duration-300 rounded-2xl border-primary/10 overflow-hidden bg-gradient-to-b from-white to-slate-50/40 dark:from-slate-900 dark:to-slate-850">
+    <Card className="shadow-sm rounded-xl border-border overflow-hidden bg-card">
       {/* 3D SVG GRADIENTS & DEPTH FILTERS */}
       <Chart3DDefs idPrefix="cycle3d" />
 

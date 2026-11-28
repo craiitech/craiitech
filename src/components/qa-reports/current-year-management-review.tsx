@@ -713,7 +713,7 @@ export function CurrentYearManagementReview({
         <TabsContent value="apply" className="space-y-6 animate-in fade-in duration-300">
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="border-primary/10 shadow-sm bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80">
+            <Card className="border-border shadow-sm bg-card">
               <CardContent className="p-4 space-y-1">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <Calendar className="h-3 w-3 text-primary" /> Session Status
@@ -727,7 +727,7 @@ export function CurrentYearManagementReview({
               </CardContent>
             </Card>
 
-            <Card className="border-primary/10 shadow-sm bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80">
+            <Card className="border-border shadow-sm bg-card">
               <CardContent className="p-4 space-y-1">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <Users className="h-3 w-3 text-blue-500" /> Invited Attendees
@@ -741,7 +741,7 @@ export function CurrentYearManagementReview({
               </CardContent>
             </Card>
 
-            <Card className="border-primary/10 shadow-sm bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80">
+            <Card className="border-border shadow-sm bg-card">
               <CardContent className="p-4 space-y-1">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <FolderOpen className="h-3 w-3 text-amber-500" /> Drive Folders Uploaded
@@ -756,7 +756,7 @@ export function CurrentYearManagementReview({
               </CardContent>
             </Card>
 
-            <Card className="border-primary/10 shadow-sm bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80">
+            <Card className="border-border shadow-sm bg-card">
               <CardContent className="p-4 space-y-1">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                   <ShieldCheck className="h-3 w-3 text-emerald-500" /> ISO 21001:2018 Inputs

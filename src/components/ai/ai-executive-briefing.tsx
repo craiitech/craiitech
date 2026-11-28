@@ -599,7 +599,7 @@ export function AiExecutiveBriefing({
 
       <div className="eqi-scan pointer-events-none absolute inset-0 z-0" />
 
-      <CardHeader className="relative z-10 border-b border-white/10 pb-3 bg-gradient-to-r from-[#0b1526] via-primary/10 to-transparent">
+      <CardHeader className="relative z-10 border-b border-white/10 pb-3 bg-[#0b1526]">
         <div className="flex items-center justify-between gap-2">
           <div>
             <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">

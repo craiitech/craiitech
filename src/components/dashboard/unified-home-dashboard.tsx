@@ -612,75 +612,72 @@ export function UnifiedHomeDashboard({
         {/* Archipelagic University Institutional Statements */}
         <section aria-label="University vision, mission, and quality policy">
           <div className="mb-4 text-center">
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">Our Institutional Identity</p>
-            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-900 dark:text-slate-100 sm:text-2xl">
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary">Our Institutional Identity</p>
+            <h2 className="mt-1 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
               Bridging Islands, Building Futures.
             </h2>
           </div>
           <div className="grid grid-cols-1 items-stretch gap-4 md:grid-cols-3">
-            <Card className="group overflow-hidden rounded-2xl border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-indigo-100/70 text-center shadow-sm transition-shadow hover:shadow-lg dark:border-indigo-900 dark:from-indigo-950/70 dark:via-slate-950 dark:to-indigo-900/40">
-              <div className="h-1.5 bg-indigo-600" />
+            <Card className="rounded-xl border border-border bg-card text-center shadow-sm">
               <CardHeader className="pb-2 pt-6">
-                <CardTitle className="flex items-center justify-center gap-2 text-sm font-black uppercase tracking-wider text-indigo-800 dark:text-indigo-300">
-                  <Target className="h-4 w-4" />
+                <CardTitle className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Target className="h-4 w-4 text-primary shrink-0" />
                   Archipelagic University Vision
                 </CardTitle>
               </CardHeader>
-              <CardContent className="px-6 pb-7">
+              <CardContent className="px-6 pb-6">
                 {isLoadingStatements ? (
                   <div className="space-y-3 py-2">
-                    <div className="h-5 w-full animate-pulse rounded bg-indigo-200/70 dark:bg-indigo-800/60" />
-                    <div className="h-5 w-5/6 animate-pulse rounded bg-indigo-200/70 dark:bg-indigo-800/60" />
-                    <div className="h-5 w-2/3 animate-pulse rounded bg-indigo-200/70 dark:bg-indigo-800/60" />
+                    <div className="h-5 w-full animate-pulse rounded bg-muted" />
+                    <div className="h-5 w-5/6 animate-pulse rounded bg-muted" />
+                    <div className="h-5 w-2/3 animate-pulse rounded bg-muted" />
                   </div>
                 ) : (
-                  <p className="text-lg font-bold leading-relaxed text-indigo-950 dark:text-indigo-100 sm:text-xl">
+                  <p className="text-base sm:text-lg font-medium leading-relaxed text-foreground">
                     {archipelagicStatements?.vision?.trim() || 'No vision statement has been set yet.'}
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="group overflow-hidden rounded-2xl border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/70 text-center shadow-sm transition-shadow hover:shadow-lg dark:border-emerald-900 dark:from-emerald-950/70 dark:via-slate-950 dark:to-emerald-900/40">
-              <div className="h-1.5 bg-emerald-600" />
+            <Card className="rounded-xl border border-border bg-card text-center shadow-sm">
               <CardHeader className="pb-2 pt-6">
-                <CardTitle className="flex items-center justify-center gap-2 text-sm font-black uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
-                  <Compass className="h-4 w-4" />
+                <CardTitle className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <Compass className="h-4 w-4 text-primary shrink-0" />
                   Archipelagic University Mission
                 </CardTitle>
               </CardHeader>
-              <CardContent className="px-6 pb-7">
+              <CardContent className="px-6 pb-6">
                 {isLoadingStatements ? (
                   <div className="space-y-3 py-2">
-                    <div className="h-5 w-full animate-pulse rounded bg-emerald-200/70 dark:bg-emerald-800/60" />
-                    <div className="h-5 w-5/6 animate-pulse rounded bg-emerald-200/70 dark:bg-emerald-800/60" />
-                    <div className="h-5 w-2/3 animate-pulse rounded bg-emerald-200/70 dark:bg-emerald-800/60" />
+                    <div className="h-5 w-full animate-pulse rounded bg-muted" />
+                    <div className="h-5 w-5/6 animate-pulse rounded bg-muted" />
+                    <div className="h-5 w-2/3 animate-pulse rounded bg-muted" />
                   </div>
                 ) : (
-                  <p className="text-lg font-bold leading-relaxed text-emerald-950 dark:text-emerald-100 sm:text-xl">
+                  <p className="text-base sm:text-lg font-medium leading-relaxed text-foreground">
                     {archipelagicStatements?.mission?.trim() || 'No mission statement has been set yet.'}
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="group overflow-hidden rounded-2xl border-amber-200 bg-gradient-to-br from-amber-50 via-white to-amber-100/70 text-center shadow-sm transition-shadow hover:shadow-lg dark:border-amber-900 dark:from-amber-950/70 dark:via-slate-950 dark:to-amber-900/40">
-              <div className="h-1.5 bg-amber-500" />
+            <Card className="rounded-xl border border-border bg-card text-center shadow-sm">
               <CardHeader className="pb-2 pt-6">
-                <CardTitle className="flex items-center justify-center gap-2 text-sm font-black uppercase tracking-wider text-amber-800 dark:text-amber-300">
-                  <ShieldCheck className="h-4 w-4" />
+                <CardTitle className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <ShieldCheck className="h-4 w-4 text-primary shrink-0" />
                   Archipelagic University Quality Policy
                 </CardTitle>
               </CardHeader>
-              <CardContent className="px-6 pb-7">
+              <CardContent className="px-6 pb-6">
                 {isLoadingStatements ? (
                   <div className="space-y-3 py-2">
-                    <div className="h-5 w-full animate-pulse rounded bg-amber-200/70 dark:bg-amber-800/60" />
-                    <div className="h-5 w-5/6 animate-pulse rounded bg-amber-200/70 dark:bg-amber-800/60" />
-                    <div className="h-5 w-2/3 animate-pulse rounded bg-amber-200/70 dark:bg-amber-800/60" />
+                    <div className="h-5 w-full animate-pulse rounded bg-muted" />
+                    <div className="h-5 w-5/6 animate-pulse rounded bg-muted" />
+                    <div className="h-5 w-2/3 animate-pulse rounded bg-muted" />
                   </div>
                 ) : (
-                  <p className="text-lg font-bold leading-relaxed text-amber-950 dark:text-amber-100 sm:text-xl">
+                  <p className="text-base sm:text-lg font-medium leading-relaxed text-foreground">
                     {archipelagicStatements?.qualityPolicy?.trim() || 'No quality policy statement has been set yet.'}
                   </p>
                 )}
@@ -691,59 +688,63 @@ export function UnifiedHomeDashboard({
 
         {/* Executive Highlight Strip */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Card className="p-3 border-indigo-200 bg-indigo-50/40 shadow-sm">
-            <span className="text-[9px] font-black uppercase text-indigo-700 tracking-wider block">
+          <Card className="p-3.5 border-border bg-card shadow-sm">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider block">
               Active Programs
             </span>
-            <span className="text-xl font-black text-slate-800 dark:text-slate-100">
-              {executivePulse.totalPrograms}
-            </span>
-            <span className="text-[9px] text-slate-500 block">Across 8 Campuses</span>
+            <span className="text-xl font-bold text-foreground">{executivePulse.totalPrograms}</span>
+            <span className="text-[11px] text-muted-foreground block">Across 8 Campuses</span>
           </Card>
 
-          <Card className="p-3 border-emerald-200 bg-emerald-50/40 shadow-sm">
-            <span className="text-[9px] font-black uppercase text-emerald-700 tracking-wider block">
+          <Card className="p-3.5 border-border bg-card shadow-sm">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider block">
               COPC Compliance
             </span>
-            <span className="text-xl font-black text-emerald-700">{executivePulse.copcRate}%</span>
-            <span className="text-[9px] text-slate-500 block">{executivePulse.copcCount} Awarded</span>
+            <span className="text-xl font-bold text-foreground">{executivePulse.copcRate}%</span>
+            <span className="text-[11px] text-muted-foreground block">{executivePulse.copcCount} Awarded</span>
           </Card>
 
-          <Card className="p-3 border-rose-200 bg-rose-50/40 shadow-sm">
-            <span className="text-[9px] font-black uppercase text-rose-700 tracking-wider block">
+          <Card className="p-3.5 border-border bg-card shadow-sm">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider block">
               AACCUP Accredited
             </span>
-            <span className="text-xl font-black text-rose-700">{executivePulse.accreditedRate}%</span>
-            <span className="text-[9px] text-slate-500 block">
+            <span className="text-xl font-bold text-foreground">{executivePulse.accreditedRate}%</span>
+            <span className="text-[11px] text-muted-foreground block">
               {executivePulse.accreditedCount}/{executivePulse.accreditableProgramCount} eligible programs
             </span>
           </Card>
 
-          <Card className="p-3 border-amber-200 bg-amber-50/40 shadow-sm">
-            <span className="text-[9px] font-black uppercase text-amber-700 tracking-wider block">SUC Levelling</span>
-            <span className="text-xl font-black text-amber-700">{executivePulse.sucLevel}</span>
-            <span className="text-[9px] text-slate-500 block">{executivePulse.sucScore.toFixed(1)} / 100 Pts</span>
+          <Card className="p-3.5 border-border bg-card shadow-sm">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider block">
+              SUC Levelling
+            </span>
+            <span className="text-xl font-bold text-foreground">{executivePulse.sucLevel}</span>
+            <span className="text-[11px] text-muted-foreground block">
+              {executivePulse.sucScore.toFixed(1)} / 100 Pts
+            </span>
           </Card>
 
-          <Card className="p-3 border-blue-200 bg-blue-50/40 shadow-sm">
-            <span className="text-[9px] font-black uppercase text-blue-700 tracking-wider block">CAR Resolution</span>
-            <span className="text-xl font-black text-blue-700">{executivePulse.carResolutionRate}%</span>
-            <span className="text-[9px] text-slate-500 block">
+          <Card className="p-3.5 border-border bg-card shadow-sm">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider block">
+              CAR Resolution
+            </span>
+            <span className="text-xl font-bold text-foreground">{executivePulse.carResolutionRate}%</span>
+            <span className="text-[11px] text-muted-foreground block">
               {executivePulse.closedCars}/{executivePulse.totalCars} Closed
             </span>
           </Card>
 
-          <Card className="p-3 border-orange-200 bg-orange-50/40 shadow-sm">
-            <span className="text-[9px] font-black uppercase text-orange-700 tracking-wider block">
-              Data Gaps & Warnings
+          <Card className="p-3.5 border-border bg-card shadow-sm">
+            <span className="text-[10px] font-semibold uppercase text-muted-foreground tracking-wider block">
+              Data Gaps &amp; Warnings
             </span>
-            <span className="text-xl font-black text-orange-700">{executivePulse.warningCount}</span>
-            <span className="text-[9px] text-slate-500 block">CHED Student Warnings</span>
+            <span className="text-xl font-bold text-foreground">{executivePulse.warningCount}</span>
+            <span className="text-[11px] text-muted-foreground block">CHED Student Warnings</span>
           </Card>
         </div>
 
         {/* Institutional Crosswalk Banner */}
-        <Card className="border-slate-200 dark:border-slate-800 shadow-sm bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-5 rounded-xl">
+        <Card className="border-slate-800 shadow-sm bg-slate-900 text-white p-5 rounded-xl">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="space-y-1">
               <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-400/30 text-[9px] font-black uppercase">
@@ -827,7 +828,7 @@ export function UnifiedHomeDashboard({
 
       {/* TAB 5: EOMS (ISO 21001:2025) */}
       <TabsContent value="eoms" className="space-y-6 animate-in fade-in duration-300">
-        <Card className="border-blue-200 bg-gradient-to-r from-blue-900 to-indigo-950 text-white p-6 rounded-2xl shadow-md">
+        <Card className="border-slate-800 bg-slate-900 text-white p-6 rounded-xl shadow-sm">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className="space-y-1">
               <Badge className="bg-blue-400/20 text-blue-200 border-blue-300/30 text-[9px] font-black uppercase">

@@ -278,7 +278,7 @@ export function OrgStructureDirectoryView({ allUnits, allCampuses, selectedYear 
     <div className="space-y-6">
       {/* KPI Cards Banner */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-primary/10 bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800 shadow-sm">
+        <Card className="border-border bg-card shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">
@@ -295,7 +295,7 @@ export function OrgStructureDirectoryView({ allUnits, allCampuses, selectedYear 
           </CardContent>
         </Card>
 
-        <Card className="border-blue-200/50 bg-gradient-to-br from-white to-blue-50/30 dark:from-slate-900 dark:to-blue-950/20 shadow-sm">
+        <Card className="border-border bg-card shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-[10px] font-black uppercase text-blue-700 dark:text-blue-400 tracking-widest">
@@ -315,7 +315,7 @@ export function OrgStructureDirectoryView({ allUnits, allCampuses, selectedYear 
           </CardContent>
         </Card>
 
-        <Card className="border-green-200/50 bg-gradient-to-br from-white to-green-50/30 dark:from-slate-900 dark:to-green-950/20 shadow-sm">
+        <Card className="border-border bg-card shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-[10px] font-black uppercase text-green-700 dark:text-green-400 tracking-widest">
@@ -333,7 +333,7 @@ export function OrgStructureDirectoryView({ allUnits, allCampuses, selectedYear 
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-200/50 bg-gradient-to-br from-white to-emerald-50/40 dark:from-slate-900 dark:to-emerald-950/20 shadow-sm">
+        <Card className="border-border bg-card shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400 tracking-widest">

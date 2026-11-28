@@ -189,7 +189,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
       <Chart3DDefs idPrefix="mon3d" />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-white to-primary/5 dark:from-slate-900 dark:to-slate-850 border-primary/15 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col">
+        <Card className="bg-card border-border rounded-xl shadow-sm flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs uppercase font-bold text-slate-600 dark:text-slate-400">
               Visits in {selectedYear}
@@ -201,7 +201,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-white to-emerald-50/40 dark:from-slate-900 dark:to-slate-850 border-emerald-200 dark:border-emerald-800/40 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col">
+        <Card className="bg-card border-border rounded-xl shadow-sm flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs uppercase text-emerald-700 dark:text-emerald-400 font-bold">
               Avg. Compliance
@@ -213,7 +213,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-white to-amber-50/40 dark:from-slate-900 dark:to-slate-850 border-amber-200 dark:border-amber-800/40 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col">
+        <Card className="bg-card border-border rounded-xl shadow-sm flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs uppercase text-amber-700 dark:text-amber-400 font-bold">
               Total Findings
@@ -225,7 +225,7 @@ export function MonitoringAnalytics({ records, campuses, units, isLoading, selec
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-white to-blue-50/40 dark:from-slate-900 dark:to-slate-850 border-blue-200 dark:border-blue-800/40 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 flex flex-col">
+        <Card className="bg-card border-border rounded-xl shadow-sm flex flex-col">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs uppercase text-blue-700 dark:text-blue-400 font-bold">Top Unit</CardTitle>
           </CardHeader>

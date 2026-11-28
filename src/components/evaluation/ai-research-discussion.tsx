@@ -163,8 +163,8 @@ export function AiResearchDiscussion({
   const isReady = isAiEnabled && status === 'ready';
 
   return (
-    <Card className="shadow-md overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-primary/[0.06] via-primary/[0.03] to-transparent border-b">
+    <Card className="shadow-sm border-border overflow-hidden">
+      <CardHeader className="bg-muted/30 border-b">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2">

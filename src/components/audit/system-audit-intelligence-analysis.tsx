@@ -761,9 +761,9 @@ export function SystemAuditIntelligenceAnalysis({
   }, [systemicAnalytics.allClusters, activeTab, searchTerm]);
 
   return (
-    <Card className={cn('shadow-xl border-primary/20 overflow-hidden bg-card', className)}>
+    <Card className={cn('shadow-sm border-border overflow-hidden bg-card', className)}>
       {/* ─── CARD HEADER ────────────────────────────────────────────── */}
-      <CardHeader className="bg-gradient-to-r from-blue-900/10 via-indigo-900/5 to-transparent border-b py-5 px-6">
+      <CardHeader className="bg-muted/30 border-b py-5 px-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
