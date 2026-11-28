@@ -796,7 +796,7 @@ export default function ProfilePage() {
                         <Palette className="h-3.5 w-3.5 text-primary" /> System Color Palette
                       </FormLabel>
                       <FormDescription className="text-[10px]">
-                        Choose a primary color scheme for your dashboard experience.
+                        Choose the button color scheme for your dashboard experience.
                       </FormDescription>
                       <FormControl>
                         <RadioGroup

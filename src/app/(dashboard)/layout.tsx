@@ -153,9 +153,11 @@ function SidebarEomsPoints({
   if (!eomsPoints) return null;
 
   return (
-    <div className="mt-2 pt-2 border-t border-white/10 flex items-center justify-center gap-2">
+    <div className="mt-2 pt-2 border-t border-sidebar-border flex items-center justify-center gap-2">
       <div className="flex items-center gap-1">
-        <span className="text-[9px] font-black text-white/70 uppercase tracking-wider">AY {selectedYear}</span>
+        <span className="text-[9px] font-black text-sidebar-foreground/70 uppercase tracking-wider">
+          AY {selectedYear}
+        </span>
       </div>
       <div className="flex items-center gap-1.5">
         <span
@@ -164,12 +166,12 @@ function SidebarEomsPoints({
             eomsPoints.tier === 'Gold' && 'bg-yellow-400 text-yellow-900',
             eomsPoints.tier === 'Silver' && 'bg-slate-300 text-slate-800 dark:text-slate-200',
             eomsPoints.tier === 'Bronze' && 'bg-amber-700 text-amber-100',
-            eomsPoints.tier === 'Unranked' && 'bg-white/10 text-white/50',
+            eomsPoints.tier === 'Unranked' && 'bg-sidebar-accent text-sidebar-foreground/70',
           )}
         >
           {eomsPoints.tier}
         </span>
-        <span className="text-xs font-black text-white">{eomsPoints.total.toFixed(1)}</span>
+        <span className="text-xs font-black text-sidebar-foreground">{eomsPoints.total.toFixed(1)}</span>
       </div>
     </div>
   );
@@ -1064,10 +1066,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <SidebarProvider>
               <Sidebar variant="sidebar" collapsible="icon">
                 <SidebarHeader className="p-4">
-                  <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-xl bg-white/10 border border-white/15 shadow-sm group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden">
+                  <div className="relative flex flex-col items-center justify-center text-center p-4 rounded-xl bg-card border border-sidebar-border shadow-sm group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:border-none transition-all overflow-hidden">
                     <div className="relative z-10">
                       {displayAvatar ? (
-                        <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 border-2 border-white/25 shadow-sm">
+                        <Avatar className="h-16 w-16 transition-all group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 border-2 border-sidebar-border shadow-sm">
                           <AvatarImage src={displayAvatar} alt={displayName || 'User'} />
                           <AvatarFallback>{fallbackAvatar}</AvatarFallback>
                         </Avatar>
@@ -1076,21 +1078,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       )}
                     </div>
                     <div className="mt-3 text-center group-data-[collapsible=icon]:hidden relative z-10">
-                      <p className="font-bold text-sm leading-tight text-white">{displayName}</p>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-emerald-200 mt-1">
+                      <p className="font-bold text-sm leading-tight text-sidebar-foreground">{displayName}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/70 mt-1">
                         {displayRole}
                       </p>
                       <div className="mt-2 space-y-1">
                         {userProfile?.unitId && (
-                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-white/85 font-semibold uppercase tracking-tight">
-                            <Building2 className="h-3 w-3 text-white/60 shrink-0" />
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-sidebar-foreground/80 font-semibold uppercase tracking-tight">
+                            <Building2 className="h-3 w-3 text-sidebar-foreground/60 shrink-0" />
                             <span className="truncate max-w-[150px]">
                               {allUnits?.find((u) => u.id === userProfile.unitId)?.name || 'Loading Unit...'}
                             </span>
                           </div>
                         )}
                         {userProfile?.campusId && (
-                          <div className="flex items-center justify-center gap-1.5 text-[9px] text-white/70 font-medium">
+                          <div className="flex items-center justify-center gap-1.5 text-[9px] text-sidebar-foreground/70 font-medium">
                             <School className="h-3 w-3 shrink-0 opacity-60" />
                             <span className="truncate max-w-[150px]">
                               {allCampuses?.find((c) => c.id === userProfile.campusId)?.name || 'Loading Site...'}

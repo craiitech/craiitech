@@ -21,19 +21,16 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, type Firestore } from '@/firebase/firestore-wrapper';
+import { Loader2, Mail, X, Eye, EyeOff, KeyRound, Lock } from 'lucide-react';
 import {
-  Loader2,
-  Mail,
-  X,
-  Eye,
-  EyeOff,
-  AlertCircle,
-  KeyRound,
-  Lock,
-  ShieldAlert,
-  ShieldCheck,
-  Clock,
-} from 'lucide-react';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { DataPrivacyDialog } from './data-privacy-dialog';
 import { NumericCaptcha } from './numeric-captcha';
@@ -669,35 +666,20 @@ export function AuthForm({ initialTab }: AuthFormProps) {
 
         if (updatedState.captchaRequired) {
           setCaptchaCode(generateNumericCaptcha());
-          const remainingCaptcha = Math.max(
-            0,
-            MAX_FAILED_CAPTCHA_ATTEMPTS_BEFORE_LOCKOUT - updatedState.failedCaptchaAttempts,
-          );
           setAuthFeedback({
             variant: 'warning',
             title:
               updatedState.failedPasswordAttempts === MAX_FAILED_PASSWORD_ATTEMPTS_BEFORE_CAPTCHA
-                ? 'Invalid Credentials — CAPTCHA Required'
+                ? 'CAPTCHA Verification Required'
                 : 'Invalid Email or Password',
             message:
-              'The email address or password you entered is incorrect. Both fields have been cleared for security.',
-            hint: `Complete the 6-digit CAPTCHA below to continue. ${remainingCaptcha} invalid CAPTCHA ${
-              remainingCaptcha === 1 ? 'attempt' : 'attempts'
-            } remaining before a 30-minute account lockout.`,
+              'The email address or password you entered is incorrect. Please enter the CAPTCHA number below to continue signing in.',
           });
         } else {
-          const remaining = Math.max(
-            0,
-            MAX_FAILED_PASSWORD_ATTEMPTS_BEFORE_CAPTCHA - updatedState.failedPasswordAttempts,
-          );
           setAuthFeedback({
             variant: 'error',
             title: 'Invalid Email or Password',
-            message:
-              'The email address or password you entered is incorrect. Both username and password fields have been cleared.',
-            hint: `Failed attempt ${updatedState.failedPasswordAttempts} of ${MAX_FAILED_PASSWORD_ATTEMPTS_BEFORE_CAPTCHA} — ${remaining} ${
-              remaining === 1 ? 'attempt' : 'attempts'
-            } remaining before CAPTCHA verification is required.`,
+            message: 'The email address or password you entered is incorrect. Please try again.',
           });
         }
       } else {
@@ -1054,84 +1036,9 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           </div>
         </div>
 
-        <h2 className="text-2xl font-bold mb-2 text-center">
+        <h2 className="text-2xl font-bold mb-6 text-center">
           {activeTab === 'signup' ? 'Create your RSU EOMS Account' : 'RSU EOMS Submission Portal'}
         </h2>
-
-        {authFeedback && (
-          <div
-            role="alert"
-            aria-live="assertive"
-            className={cn(
-              'rounded-lg border p-3.5 mb-5 text-left transition-colors',
-              authFeedback.variant === 'locked' && 'bg-red-950/90 border-red-500/70 text-red-50',
-              authFeedback.variant === 'error' && 'bg-rose-950/85 border-rose-500/60 text-rose-50',
-              authFeedback.variant === 'warning' && 'bg-amber-950/85 border-amber-500/60 text-amber-50',
-              authFeedback.variant === 'info' && 'bg-emerald-950/80 border-emerald-500/60 text-emerald-50',
-            )}
-          >
-            <div className="flex items-start gap-3">
-              <div
-                className={cn(
-                  'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md',
-                  authFeedback.variant === 'locked' && 'bg-red-500/20 text-red-300',
-                  authFeedback.variant === 'error' && 'bg-rose-500/20 text-rose-300',
-                  authFeedback.variant === 'warning' && 'bg-amber-500/20 text-amber-300',
-                  authFeedback.variant === 'info' && 'bg-emerald-500/20 text-emerald-300',
-                )}
-              >
-                {authFeedback.variant === 'locked' ? (
-                  <Lock className="h-4 w-4" />
-                ) : authFeedback.variant === 'warning' ? (
-                  <ShieldAlert className="h-4 w-4" />
-                ) : authFeedback.variant === 'info' ? (
-                  <ShieldCheck className="h-4 w-4" />
-                ) : (
-                  <AlertCircle className="h-4 w-4" />
-                )}
-              </div>
-
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-xs font-bold tracking-wide leading-tight">{authFeedback.title}</p>
-                  {authFeedback.variant !== 'locked' && (
-                    <button
-                      type="button"
-                      onClick={() => setAuthFeedback(null)}
-                      aria-label="Dismiss notification"
-                      className="text-white/60 hover:text-white transition-colors shrink-0"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                <p className="text-xs leading-relaxed text-white/85">{authFeedback.message}</p>
-
-                {authFeedback.variant === 'locked' && isAccountLocked(securityState, nowMs) && (
-                  <div className="mt-2 inline-flex items-center gap-1.5 rounded bg-red-900/70 border border-red-400/30 px-2.5 py-1 text-[11px] font-mono font-semibold text-red-100">
-                    <Clock className="h-3.5 w-3.5 text-red-300" />
-                    <span>Time remaining: {lockoutCountdown}</span>
-                  </div>
-                )}
-
-                {authFeedback.hint && (
-                  <p
-                    className={cn(
-                      'mt-1.5 pt-1.5 border-t text-[11px] font-medium leading-snug',
-                      authFeedback.variant === 'locked' && 'border-red-500/30 text-red-200',
-                      authFeedback.variant === 'error' && 'border-rose-500/30 text-rose-200',
-                      authFeedback.variant === 'warning' && 'border-amber-500/30 text-amber-200',
-                      authFeedback.variant === 'info' && 'border-emerald-500/30 text-emerald-200',
-                    )}
-                  >
-                    {authFeedback.hint}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
 
         {activeTab === 'signup' ? renderSignUp() : renderSignIn()}
 
@@ -1217,6 +1124,27 @@ export function AuthForm({ initialTab }: AuthFormProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={Boolean(authFeedback)}
+        onOpenChange={(open) => {
+          if (!open) setAuthFeedback(null);
+        }}
+      >
+        <AlertDialogContent className="sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{authFeedback?.title}</AlertDialogTitle>
+            <AlertDialogDescription>{authFeedback?.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          {authFeedback?.variant === 'locked' && isAccountLocked(securityState, nowMs) && (
+            <p className="text-sm font-medium text-destructive">Time remaining: {lockoutCountdown}</p>
+          )}
+          {authFeedback?.hint && <p className="text-xs text-muted-foreground">{authFeedback.hint}</p>}
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setAuthFeedback(null)}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <DataPrivacyDialog
         isOpen={isPrivacyDialogOpen}

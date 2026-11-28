@@ -733,7 +733,7 @@ export function SidebarNav({
           return (
             <SidebarGroup key={group.key} className="p-0">
               {group.label && (
-                <SidebarGroupLabel asChild className="h-7 px-2 text-sidebar-foreground/50">
+                <SidebarGroupLabel asChild className="h-7 px-2 text-sidebar-foreground/60">
                   <button
                     type="button"
                     onClick={() => toggleGroup(group.key)}
@@ -856,8 +856,7 @@ export function SidebarNav({
               tooltip="Communication"
               onClick={(e) => handleNavClick(e, '/communications')}
               className={cn(
-                'rounded-md hover:bg-sky-950/40 hover:text-sky-200 text-sky-300 [&_svg]:text-sky-300',
-                '[&[data-active=true]]:bg-sky-500 [&[data-active=true]]:text-slate-950 dark:text-white [&[data-active=true]_svg]:text-slate-950 dark:text-white [&[data-active=true]]:hover:bg-sky-400 [&[data-active=true]]:hover:text-slate-950 dark:text-white',
+                '[&[data-active=true]]:bg-sidebar-primary [&[data-active=true]]:text-sidebar-primary-foreground rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                 (!isOnline || isForcedOffline) && 'opacity-20 cursor-not-allowed',
               )}
             >
